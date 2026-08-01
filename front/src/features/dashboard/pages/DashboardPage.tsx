@@ -7,6 +7,7 @@ import {
   CalendarCheck,
   Building2,
   ArrowRight,
+  School,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useStudents } from '@/features/students/api/useStudents';
@@ -18,12 +19,17 @@ export const DashboardPage: React.FC = () => {
   const { user } = useAuthStore();
   const navigate = useNavigate();
 
-  const { data: students = [] } = useStudents();
-  const { data: obligations = [] } = usePayments();
+  const isTeacher = user?.role === 'TEACHER';
+  const canViewFinances = user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'PARENT';
 
-  const paidTotal = obligations
-    .filter((o) => o.status === 'PAID')
-    .reduce((acc, curr) => acc + curr.amountDue, 0);
+  const { data: students = [] } = useStudents();
+  const { data: obligations = [] } = usePayments(canViewFinances);
+
+  const paidTotal = canViewFinances
+    ? obligations
+        .filter((o) => o.status === 'PAID')
+        .reduce((acc, curr) => acc + curr.amountDue, 0)
+    : 0;
 
   return (
     <div className="space-y-6">
@@ -37,8 +43,9 @@ export const DashboardPage: React.FC = () => {
           ¡Bienvenido, {user?.firstName} {user?.lastNamePaternal}!
         </h1>
         <p className="text-sm text-muted-foreground max-w-2xl">
-          Estás conectado al entorno Multi-Tenant con token de autenticación asignado al colegio{' '}
-          <strong className="text-foreground font-mono">{user?.schoolId}</strong>.
+          {isTeacher
+            ? 'Panel docente para control de asistencia diario e ingreso de evaluaciones SIAGIE.'
+            : 'Estás conectado al entorno Multi-Tenant con token de autenticación asignado a tu colegio.'}
         </p>
       </div>
 
@@ -55,18 +62,32 @@ export const DashboardPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Cobranzas Recaudadas</CardTitle>
-            <CreditCard className="w-4 h-4 text-emerald-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-              S/ {paidTotal.toFixed(2)}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">{obligations.length} obligaciones registradas</p>
-          </CardContent>
-        </Card>
+        {/* Solo mostrar finanzas a Admins y Apoderados */}
+        {canViewFinances ? (
+          <Card className="hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Cobranzas Recaudadas</CardTitle>
+              <CreditCard className="w-4 h-4 text-emerald-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                S/ {paidTotal.toFixed(2)}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">{obligations.length} obligaciones registradas</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Rol Docente</CardTitle>
+              <School className="w-4 h-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">Profesor</div>
+              <p className="text-xs text-muted-foreground mt-1">Acceso pedagógico y evaluación</p>
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -85,15 +106,15 @@ export const DashboardPage: React.FC = () => {
             <CalendarCheck className="w-4 h-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">5 Semanas</div>
-            <p className="text-xs text-muted-foreground mt-1">Histórico diario cargado</p>
+            <div className="text-2xl font-bold text-foreground">Diario</div>
+            <p className="text-xs text-muted-foreground mt-1">Registro de presente/falta</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Quick Navigation Cards */}
       <div className="space-y-3">
-        <h2 className="text-lg font-bold tracking-tight text-foreground">Secciones Fundamentales</h2>
+        <h2 className="text-lg font-bold tracking-tight text-foreground">Secciones Disponibles</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="flex flex-col justify-between hover:border-primary/50 transition-colors">
             <CardHeader>
@@ -102,7 +123,7 @@ export const DashboardPage: React.FC = () => {
                 Estudiantes
               </CardTitle>
               <CardDescription className="text-xs">
-                Directorio con TanStack Table, búsqueda global y datos SIAGIE.
+                Directorio con TanStack Table y datos demográficos SIAGIE.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
@@ -112,34 +133,36 @@ export const DashboardPage: React.FC = () => {
                 className="w-full justify-between text-xs font-semibold text-primary"
                 onClick={() => navigate('/students')}
               >
-                <span>Ir al directorio</span>
+                <span>Ver lista de alumnos</span>
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </CardContent>
           </Card>
 
-          <Card className="flex flex-col justify-between hover:border-primary/50 transition-colors">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <CreditCard className="w-5 h-5 text-emerald-500" />
-                Cobranzas y Pagos
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Control de pensiones, boletas, morosidad y transacciones.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-between text-xs font-semibold text-primary"
-                onClick={() => navigate('/payments')}
-              >
-                <span>Ver módulo pagos</span>
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </CardContent>
-          </Card>
+          {canViewFinances && (
+            <Card className="flex flex-col justify-between hover:border-primary/50 transition-colors">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <CreditCard className="w-5 h-5 text-emerald-500" />
+                  Cobranzas y Pagos
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Control de pensiones, boletas, morosidad y transacciones.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-between text-xs font-semibold text-primary"
+                  onClick={() => navigate('/payments')}
+                >
+                  <span>Ver módulo pagos</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           <Card className="flex flex-col justify-between hover:border-primary/50 transition-colors">
             <CardHeader>
@@ -148,7 +171,7 @@ export const DashboardPage: React.FC = () => {
                 Excel de Notas
               </CardTitle>
               <CardDescription className="text-xs">
-                Matriz evaluativa interactiva tipo Excel con conversion a letras.
+                Matriz evaluativa interactiva tipo Excel con conversión a letras.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-0">

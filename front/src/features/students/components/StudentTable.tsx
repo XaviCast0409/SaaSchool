@@ -5,13 +5,16 @@ import {
   getFilteredRowModel,
   getPaginationRowModel,
   flexRender,
-  ColumnDef,
+  type ColumnDef,
 } from '@tanstack/react-table';
-import { Search, UserCheck } from 'lucide-react';
+import { Search, UserCheck, ChevronDown, ChevronUp, Users } from 'lucide-react';
 import { Student } from '../types';
+import { useUsers } from '@/features/users/api/useUsers';
+import { StudentParentsPanel } from '@/features/users/family-relationships/components/StudentParentsPanel';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface StudentTableProps {
@@ -21,6 +24,9 @@ interface StudentTableProps {
 
 export const StudentTable: React.FC<StudentTableProps> = ({ students, isLoading }) => {
   const [globalFilter, setGlobalFilter] = useState('');
+  const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null);
+
+  const { data: allParents = [] } = useUsers('PARENT');
 
   const columns: ColumnDef<Student>[] = [
     {
@@ -61,15 +67,6 @@ export const StudentTable: React.FC<StudentTableProps> = ({ students, isLoading 
       ),
     },
     {
-      accessorKey: 'birthDepartment',
-      header: 'Ubigeo Nacimiento',
-      cell: ({ row }) => (
-        <span className="text-xs text-muted-foreground">
-          {row.original.birthDistrict || row.original.birthDepartment || 'PERÚ'}
-        </span>
-      ),
-    },
-    {
       accessorKey: 'motherTongue',
       header: 'Lengua Materna',
       cell: ({ row }) => (
@@ -77,6 +74,25 @@ export const StudentTable: React.FC<StudentTableProps> = ({ students, isLoading 
           {row.original.motherTongue}
         </Badge>
       ),
+    },
+    {
+      id: 'actions',
+      header: 'Apoderados',
+      cell: ({ row }) => {
+        const isExpanded = expandedStudentId === row.original.id;
+        return (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-1.5 text-xs text-primary hover:bg-primary/10"
+            onClick={() => setExpandedStudentId(isExpanded ? null : row.original.id)}
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>Apoderados</span>
+            {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </Button>
+        );
+      },
     },
   ];
 
@@ -90,6 +106,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({ students, isLoading 
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    initialState: { pagination: { pageSize: 10 } },
   });
 
   if (isLoading) {
@@ -134,15 +151,36 @@ export const StudentTable: React.FC<StudentTableProps> = ({ students, isLoading 
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} className="hover:bg-muted/30">
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
+              table.getRowModel().rows.map((row) => {
+                const isExpanded = expandedStudentId === row.original.id;
+                return (
+                  <React.Fragment key={row.id}>
+                    <TableRow className="hover:bg-muted/30">
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+
+                    {/* Subpanel desplegable para ver y vincular apoderados */}
+                    {isExpanded && (
+                      <TableRow>
+                        <TableCell
+                          colSpan={columns.length}
+                          className="p-0 bg-muted/20 border-t border-dashed border-border"
+                        >
+                          <StudentParentsPanel
+                            studentId={row.original.id}
+                            studentName={`${row.original.lastNamePaternal} ${row.original.lastNameMaternal}, ${row.original.firstNames}`}
+                            availableParents={allParents}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
+                );
+              })
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">

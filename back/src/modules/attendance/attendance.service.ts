@@ -1,15 +1,28 @@
-import type { AttendanceRepository } from './attendance.repository';
-import type { BulkAttendanceDto, CreateAttendanceDto } from './attendance.schema';
+import { AppError } from '../../core/errors/app-error';
+import type { AttendanceRepository, AttendanceMonthlySummary } from './attendance.repository';
+import type {
+  AttendanceFilterDto,
+  AttendanceSummaryQueryDto,
+  BulkAttendanceDto,
+  CreateAttendanceDto,
+  UpdateAttendanceDto,
+} from './attendance.schema';
 import type { Attendance } from '@prisma/client';
 
 export class AttendanceService {
   constructor(private readonly attendanceRepository: AttendanceRepository) {}
 
-  async getAttendanceByDate(schoolId: string, date: string): Promise<Attendance[]> {
-    return this.attendanceRepository.findBySchoolAndDate(schoolId, date);
+  async getAttendanceByFilters(
+    schoolId: string,
+    filters: AttendanceFilterDto,
+  ): Promise<Attendance[]> {
+    return this.attendanceRepository.findBySchoolAndFilters(schoolId, filters);
   }
 
-  async getAttendanceByEnrollment(enrollmentId: string, schoolId: string): Promise<Attendance[]> {
+  async getAttendanceByEnrollment(
+    enrollmentId: string,
+    schoolId: string,
+  ): Promise<Attendance[]> {
     return this.attendanceRepository.findByEnrollment(enrollmentId, schoolId);
   }
 
@@ -30,8 +43,21 @@ export class AttendanceService {
   async updateAttendance(
     attendanceId: string,
     schoolId: string,
-    updateData: Partial<CreateAttendanceDto>,
+    updateData: UpdateAttendanceDto,
   ): Promise<Attendance> {
+    const existing = await this.attendanceRepository.findById(attendanceId, schoolId);
+
+    if (!existing) {
+      throw new AppError(`Registro de asistencia con id ${attendanceId} no encontrado`, 404);
+    }
+
     return this.attendanceRepository.update(attendanceId, schoolId, updateData);
+  }
+
+  async getMonthlySummary(
+    schoolId: string,
+    query: AttendanceSummaryQueryDto,
+  ): Promise<AttendanceMonthlySummary> {
+    return this.attendanceRepository.getMonthlySummary(schoolId, query);
   }
 }

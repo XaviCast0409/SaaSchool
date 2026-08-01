@@ -8,6 +8,7 @@ import { StudentsPage } from '@/features/students/pages/StudentsPage';
 import { PaymentsPage } from '@/features/payments/pages/PaymentsPage';
 import { GradesPage } from '@/features/grades/pages/GradesPage';
 import { AttendancePage } from '@/features/attendance/pages/AttendancePage';
+import { DirectoryPage } from '@/features/users/pages/DirectoryPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const token = useAuthStore((state) => state.token);
@@ -20,6 +21,18 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const token = useAuthStore((state) => state.token);
   if (token) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <>{children}</>;
+};
+
+/** Guardia por Rol: previene navegación por URL si el usuario no tiene permisos */
+const RoleGuard: React.FC<{ allowedRoles: string[]; children: React.ReactNode }> = ({
+  allowedRoles,
+  children,
+}) => {
+  const user = useAuthStore((state) => state.user);
+  if (!user || !allowedRoles.includes(user.role)) {
     return <Navigate to="/dashboard" replace />;
   }
   return <>{children}</>;
@@ -48,10 +61,48 @@ export const AppRouter: React.FC = () => {
           }
         >
           <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/students" element={<StudentsPage />} />
-          <Route path="/payments" element={<PaymentsPage />} />
-          <Route path="/grades" element={<GradesPage />} />
-          <Route path="/attendance" element={<AttendancePage />} />
+
+          {/* Rutas protegidas por Rol */}
+          <Route
+            path="/directory"
+            element={
+              <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
+                <DirectoryPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="/students"
+            element={
+              <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT']}>
+                <StudentsPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="/payments"
+            element={
+              <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'PARENT']}>
+                <PaymentsPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="/grades"
+            element={
+              <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT']}>
+                <GradesPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="/attendance"
+            element={
+              <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT']}>
+                <AttendancePage />
+              </RoleGuard>
+            }
+          />
         </Route>
 
         {/* Default Fallback */}

@@ -1,11 +1,15 @@
 import React from 'react';
 import { Users, UserPlus } from 'lucide-react';
+import { useAuthStore } from '@/store/useAuthStore';
 import { useStudents } from '../api/useStudents';
 import { StudentTable } from '../components/StudentTable';
 import { Button } from '@/components/ui/button';
 
 export const StudentsPage: React.FC = () => {
+  const { user } = useAuthStore();
   const { data: students = [], isLoading, isError, refetch } = useStudents();
+
+  const isAdmin = user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN';
 
   return (
     <div className="space-y-6">
@@ -23,10 +27,12 @@ export const StudentsPage: React.FC = () => {
           </p>
         </div>
 
-        <Button className="gap-2 self-start md:self-auto">
-          <UserPlus className="w-4 h-4" />
-          <span>Matricular Estudiante</span>
-        </Button>
+        {isAdmin && (
+          <Button className="gap-2 self-start md:self-auto">
+            <UserPlus className="w-4 h-4" />
+            <span>Matricular Estudiante</span>
+          </Button>
+        )}
       </div>
 
       {/* Content */}

@@ -29,13 +29,17 @@ export const DashboardLayout: React.FC = () => {
     document.documentElement.classList.toggle('dark');
   };
 
-  const navItems = [
-    { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { label: 'Estudiantes', path: '/students', icon: Users },
-    { label: 'Cobranzas y Pagos', path: '/payments', icon: CreditCard },
-    { label: 'Registro de Notas', path: '/grades', icon: BookOpenCheck },
-    { label: 'Asistencia', path: '/attendance', icon: CalendarCheck },
+  const allNavItems = [
+    { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT'] },
+    { label: 'Directorio', path: '/directory', icon: Users, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'] },
+    { label: 'Estudiantes', path: '/students', icon: GraduationCap, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT'] },
+    { label: 'Cobranzas y Pagos', path: '/payments', icon: CreditCard, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'PARENT'] },
+    { label: 'Registro de Notas', path: '/grades', icon: BookOpenCheck, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT'] },
+    { label: 'Asistencia', path: '/attendance', icon: CalendarCheck, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT'] },
   ];
+
+  const userRole = user?.role || 'PARENT';
+  const navItems = allNavItems.filter((item) => item.roles.includes(userRole));
 
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row">
