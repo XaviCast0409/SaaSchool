@@ -1,0 +1,380 @@
+// ============================================================================
+// 1. CONFIGURACIÓN DEL CLIENTE Y BD
+// ============================================================================
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// 2. ENUMERADORES (Catálogos y Tipos MINEDU/SIAGIE)
+// ============================================================================
+enum Role {
+  SUPER_ADMIN
+  SCHOOL_ADMIN
+  TEACHER
+  PARENT
+}
+
+enum DocumentType {
+  DNI
+  CE
+  PASSPORT
+  PNA // Partida de Nacimiento
+  OTHER
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum EducationLevel {
+  INITIAL
+  PRIMARY
+  SECONDARY
+}
+
+enum Shift {
+  MORNING
+  AFTERNOON
+  NIGHT
+}
+
+enum EnrollmentState {
+  REGISTERED
+  TRANSFERRED
+  WITHDRAWN
+}
+
+enum RelationshipType {
+  MOTHER
+  FATHER
+  GRANDPARENT
+  UNCLE_AUNT
+  OTHER
+}
+
+enum ObligationStatus {
+  PENDING
+  PARTIAL
+  PAID
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CREDIT_CARD
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT_JUSTIFIED
+  ABSENT_UNJUSTIFIED
+  LATE_JUSTIFIED
+  LATE_UNJUSTIFIED
+}
+
+enum AssessmentType {
+  FORMATIVE
+  SUMMATIVE
+}
+
+// ============================================================================
+// 3. CORE & TENANCY (El Colegio y los Usuarios)
+// ============================================================================
+model School {
+  id              String   @id @default(uuid())
+  modularCode     String?  @unique // Código Modular MINEDU
+  localCode       String?  @unique // Código de Local MINEDU
+  name            String
+  documentId      String   @unique // RUC
+  email           String?
+  phone           String?
+  address         String?
+  department      String?  // Ej: LIMA
+  province        String?
+  district        String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relaciones Multi-Tenant
+  users               User[]
+  students            Student[]
+  academicYears       AcademicYear[]
+  classrooms          Classroom[]
+  areas               CurricularArea[]
+  gradingScales       GradingScale[]
+  obligations         PaymentObligation[]
+  transactions        PaymentTransaction[]
+  attendances         Attendance[]
+  courseAssignments   CourseAssignment[]
+}
+
+model User {
+  id               String       @id @default(uuid())
+  schoolId         String
+  email            String       @unique
+  passwordHash     String
+  role             Role         @default(PARENT)
+  
+  // Requisitos SIAGIE: Nombres y Apellidos separados
+  firstName        String
+  lastNamePaternal String
+  lastNameMaternal String
+  
+  documentType     DocumentType @default(DNI)
+  documentId       String?
+  cellphone        String?
+  isActive         Boolean      @default(true)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  school           School       @relation(fields: [schoolId], references: [id])
+  
+  // Relaciones
+  familyRelations  FamilyRelationship[]
+  coursesTaught    CourseAssignment[]
+}
+
+// ============================================================================
+// 4. DEMOGRAFÍA Y FAMILIA (Datos MINEDU)
+// ============================================================================
+model Student {
+  id                 String       @id @default(uuid())
+  schoolId           String
+  studentCode        String?      @unique // Código de Estudiante SIAGIE (14 dígitos)
+  
+  // Requisitos SIAGIE
+  firstNames         String
+  lastNamePaternal   String
+  lastNameMaternal   String
+  documentType       DocumentType @default(DNI)
+  documentId         String
+  gender             Gender
+  birthDate          DateTime
+  birthCountry       String       @default("PERÚ")
+  birthDepartment    String?
+  birthProvince      String?
+  birthDistrict      String?
+  motherTongue       String       @default("CASTELLANO")
+  hasDisability      Boolean      @default(false)
+  disabilityType     String?
+  address            String?
+
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  school             School       @relation(fields: [schoolId], references: [id])
+  familyRelations    FamilyRelationship[]
+  enrollments        Enrollment[]
+}
+
+model FamilyRelationship {
+  id                     String           @id @default(uuid())
+  studentId              String
+  userId                 String
+  relationshipType       RelationshipType
+  isLegalGuardian        Boolean          @default(false) // Apoderado oficial
+  isFinancialResponsible Boolean          @default(false) // Quien paga (boletas)
+  livesWithStudent       Boolean          @default(true)
+
+  student                Student          @relation(fields: [studentId], references: [id])
+  user                   User             @relation(fields: [userId], references: [id]) // El Parent
+  
+  @@unique([studentId, userId])
+}
+
+// ============================================================================
+// 5. MATRÍCULA Y ESTRUCTURA ESCOLAR
+// ============================================================================
+model AcademicYear {
+  id          String       @id @default(uuid())
+  schoolId    String
+  year        Int          // Ej: 2026
+  name        String?      // Ej: "Año Escolar 2026"
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean      @default(true)
+
+  school      School       @relation(fields: [schoolId], references: [id])
+  enrollments Enrollment[]
+}
+
+model Classroom {
+  id             String         @id @default(uuid())
+  schoolId       String
+  educationLevel EducationLevel
+  grade          Int            // Ej: 1, 2, 3
+  section        String         // Ej: "A", "B", "Única"
+  shift          Shift          @default(MORNING)
+  capacity       Int            @default(30)
+
+  school         School         @relation(fields: [schoolId], references: [id])
+  enrollments    Enrollment[]
+  assignments    CourseAssignment[]
+}
+
+model Enrollment {
+  id                        String          @id @default(uuid())
+  schoolId                  String
+  studentId                 String
+  academicYearId            String
+  classroomId               String
+  enrollmentDate            DateTime        @default(now())
+  enrollmentState           EnrollmentState @default(REGISTERED)
+  previousSchoolModularCode String?
+  repeatingGrade            Boolean         @default(false)
+  isActive                  Boolean         @default(true)
+
+  student                   Student         @relation(fields: [studentId], references: [id])
+  academicYear              AcademicYear    @relation(fields: [academicYearId], references: [id])
+  classroom                 Classroom       @relation(fields: [classroomId], references: [id])
+  
+  obligations               PaymentObligation[]
+  attendances               Attendance[]
+  grades                    Grade[]
+
+  @@unique([studentId, academicYearId])
+}
+
+// ============================================================================
+// 6. FINANZAS Y COBRANZAS (MVP Fase 1)
+// ============================================================================
+model PaymentObligation {
+  id           String           @id @default(uuid())
+  schoolId     String
+  enrollmentId String
+  title        String           // Ej: "Pensión Marzo 2026"
+  concept      String           // Ej: "PENSION", "MATRICULA"
+  amountDue    Float
+  dueDate      DateTime
+  status       ObligationStatus @default(PENDING)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  school       School           @relation(fields: [schoolId], references: [id])
+  enrollment   Enrollment       @relation(fields: [enrollmentId], references: [id])
+  transactions PaymentTransaction[]
+}
+
+model PaymentTransaction {
+  id               String        @id @default(uuid())
+  schoolId         String
+  obligationId     String
+  amountPaid       Float
+  paymentDate      DateTime      @default(now())
+  paymentMethod    PaymentMethod
+  operationNumber  String?
+  receiptType      String?       // BOLETA, FACTURA
+  receiptNumber    String?
+  notes            String?
+
+  school           School            @relation(fields: [schoolId], references: [id])
+  obligation       PaymentObligation @relation(fields: [obligationId], references: [id])
+}
+
+// ============================================================================
+// 7. ACADÉMICO, SIAGIE Y CONVERSIÓN DE NOTAS (MVP Fase 2)
+// ============================================================================
+model CurricularArea {
+  id             String   @id @default(uuid())
+  schoolId       String
+  name           String   // Ej: "Matemática"
+  officialCode   String?  // Código MINEDU
+  isActive       Boolean  @default(true)
+
+  school         School                 @relation(fields: [schoolId], references: [id])
+  competences    CurricularCompetence[]
+  assignments    CourseAssignment[]
+}
+
+model CurricularCompetence {
+  id             String         @id @default(uuid())
+  areaId         String
+  name           String         // Ej: "Resuelve problemas de cantidad"
+  description    String?
+
+  area           CurricularArea @relation(fields: [areaId], references: [id])
+  grades         Grade[]
+}
+
+model CourseAssignment {
+  id             String   @id @default(uuid())
+  schoolId       String
+  classroomId    String
+  areaId         String
+  teacherId      String
+  
+  school         School         @relation(fields: [schoolId], references: [id])
+  classroom      Classroom      @relation(fields: [classroomId], references: [id])
+  area           CurricularArea @relation(fields: [areaId], references: [id])
+  teacher        User           @relation(fields: [teacherId], references: [id]) 
+  
+  gradeEntries   GradeEntry[]
+}
+
+model GradeEntry {
+  id                  String         @id @default(uuid())
+  courseAssignmentId  String
+  periodNumber        Int            // Ej: 1 para el primer bimestre
+  assessmentType      AssessmentType @default(FORMATIVE)
+  title               String         // "Práctica Calificada 1"
+  weight              Float          @default(1.0) 
+  maxScore            Float          @default(20.0) 
+  dateCreated         DateTime       @default(now())
+
+  assignment          CourseAssignment @relation(fields: [courseAssignmentId], references: [id])
+  grades              Grade[]
+}
+
+model Grade {
+  id                  String   @id @default(uuid())
+  gradeEntryId        String
+  enrollmentId        String
+  competenceId        String
+  
+  numericScore        Float    // EL DATO BRUTO. Ej: 15.5
+  teacherComment      String?  // Útil para cuando sacan C
+
+  entry               GradeEntry           @relation(fields: [gradeEntryId], references: [id])
+  enrollment          Enrollment           @relation(fields: [enrollmentId], references: [id])
+  competence          CurricularCompetence @relation(fields: [competenceId], references: [id])
+
+  @@unique([gradeEntryId, enrollmentId]) 
+}
+
+model GradingScale {
+  id             String         @id @default(uuid())
+  schoolId       String
+  level          EducationLevel 
+  letterGrade    String         // "AD", "A", "B", "C"
+  minNumeric     Float          // 17.5
+  maxNumeric     Float          // 20.0
+  description    String?
+
+  school         School         @relation(fields: [schoolId], references: [id])
+}
+
+// ============================================================================
+// 8. ASISTENCIA
+// ============================================================================
+model Attendance {
+  id           String           @id @default(uuid())
+  schoolId     String
+  enrollmentId String
+  date         DateTime         @default(now()) @db.Date
+  status       AttendanceStatus @default(PRESENT)
+  notes        String?
+
+  school       School           @relation(fields: [schoolId], references: [id])
+  enrollment   Enrollment       @relation(fields: [enrollmentId], references: [id])
+
+  @@unique([enrollmentId, date])
+}

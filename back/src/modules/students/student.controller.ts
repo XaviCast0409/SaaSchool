@@ -1,0 +1,42 @@
+import { Request, Response } from 'express';
+import { createStudentSchema, updateStudentSchema } from './student.schema';
+import type { StudentService } from './student.service';
+
+export class StudentController {
+  constructor(private readonly studentService: StudentService) {}
+
+  getAll = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const students = await this.studentService.getAllStudents(schoolId);
+    response.status(200).json({ status: 'success', data: students });
+  };
+
+  getById = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const id = request.params.id as string;
+    const student = await this.studentService.getStudentById(id, schoolId);
+    response.status(200).json({ status: 'success', data: student });
+  };
+
+  create = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const createStudentDto = createStudentSchema.parse(request.body);
+    const student = await this.studentService.createStudent(schoolId, createStudentDto);
+    response.status(201).json({ status: 'success', data: student });
+  };
+
+  update = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const id = request.params.id as string;
+    const updateStudentDto = updateStudentSchema.parse(request.body);
+    const student = await this.studentService.updateStudent(id, schoolId, updateStudentDto);
+    response.status(200).json({ status: 'success', data: student });
+  };
+
+  delete = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const id = request.params.id as string;
+    await this.studentService.deleteStudent(id, schoolId);
+    response.status(204).send();
+  };
+}
