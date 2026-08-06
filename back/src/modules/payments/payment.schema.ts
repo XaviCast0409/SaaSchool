@@ -1,15 +1,38 @@
 import { z } from 'zod';
 
 export const createObligationSchema = z.object({
-  enrollmentId: z.string().uuid(),
+  enrollmentId: z.string().uuid('ID de matrícula inválido'),
   title: z.string().min(1, 'El título es requerido'),
   concept: z.string().min(1, 'El concepto es requerido'),
   amountDue: z.number().positive('El monto debe ser positivo'),
-  dueDate: z.string().datetime({ message: 'Fecha de vencimiento inválida (ISO 8601)' }),
+  dueDate: z.string().min(1, 'Fecha de vencimiento requerida'),
+});
+
+export const bulkCreateObligationsSchema = z.object({
+  classroomId: z.string().uuid('ID de aula inválido').optional(),
+  title: z.string().min(1, 'El título es requerido'),
+  concept: z.string().min(1, 'El concepto es requerido'),
+  amountDue: z.number().positive('El monto debe ser positivo'),
+  dueDate: z.string().min(1, 'Fecha de vencimiento requerida'),
+});
+
+export const updateObligationSchema = z.object({
+  title: z.string().min(1).optional(),
+  concept: z.string().min(1).optional(),
+  amountDue: z.number().positive().optional(),
+  dueDate: z.string().optional(),
+  status: z.enum(['PENDING', 'PARTIAL', 'PAID', 'CANCELLED']).optional(),
+});
+
+export const obligationFilterSchema = z.object({
+  status: z.enum(['PENDING', 'PARTIAL', 'PAID', 'CANCELLED']).optional(),
+  classroomId: z.string().uuid().optional(),
+  enrollmentId: z.string().uuid().optional(),
+  search: z.string().optional(),
 });
 
 export const createTransactionSchema = z.object({
-  obligationId: z.string().uuid(),
+  obligationId: z.string().uuid('ID de obligación inválido'),
   amountPaid: z.number().positive('El monto pagado debe ser positivo'),
   paymentMethod: z.enum(['CASH', 'BANK_TRANSFER', 'CREDIT_CARD']),
   operationNumber: z.string().optional(),
@@ -18,5 +41,20 @@ export const createTransactionSchema = z.object({
   notes: z.string().optional(),
 });
 
+export const transactionFilterSchema = z.object({
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  paymentMethod: z.enum(['CASH', 'BANK_TRANSFER', 'CREDIT_CARD']).optional(),
+});
+
+export const sendReminderSchema = z.object({
+  channel: z.enum(['WHATSAPP', 'EMAIL', 'BOTH']).default('BOTH'),
+});
+
 export type CreateObligationDto = z.infer<typeof createObligationSchema>;
+export type BulkCreateObligationsDto = z.infer<typeof bulkCreateObligationsSchema>;
+export type UpdateObligationDto = z.infer<typeof updateObligationSchema>;
+export type ObligationFilterDto = z.infer<typeof obligationFilterSchema>;
 export type CreateTransactionDto = z.infer<typeof createTransactionSchema>;
+export type TransactionFilterDto = z.infer<typeof transactionFilterSchema>;
+export type SendReminderDto = z.infer<typeof sendReminderSchema>;

@@ -23,7 +23,7 @@ export const DashboardPage: React.FC = () => {
   const canViewFinances = user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'PARENT';
 
   const { data: students = [] } = useStudents();
-  const { data: obligations = [] } = usePayments(canViewFinances);
+  const { data: obligations = [] } = usePayments({}, canViewFinances);
 
   const paidTotal = canViewFinances
     ? obligations
