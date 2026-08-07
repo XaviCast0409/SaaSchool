@@ -10,6 +10,7 @@ import { GradesPage } from '@/features/grades/pages/GradesPage';
 import { AttendancePage } from '@/features/attendance/pages/AttendancePage';
 import { DirectoryPage } from '@/features/users/pages/DirectoryPage';
 import { AnnouncementsPage } from '@/features/announcements/pages/AnnouncementsPage';
+import { SuperAdminPage } from '@/features/super-admin/pages/SuperAdminPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const token = useAuthStore((state) => state.token);
@@ -109,6 +110,14 @@ export const AppRouter: React.FC = () => {
             element={
               <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT']}>
                 <AttendancePage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="/super-admin"
+            element={
+              <RoleGuard allowedRoles={['SUPER_ADMIN']}>
+                <SuperAdminPage />
               </RoleGuard>
             }
           />

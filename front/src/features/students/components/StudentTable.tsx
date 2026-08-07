@@ -183,7 +183,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nombre, DNI o código SIAGIE..."
+            placeholder="Buscar por apellidos o nombres del estudiante..."
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             className="pl-9 h-9 text-xs rounded-xl"

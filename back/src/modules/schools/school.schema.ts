@@ -19,6 +19,16 @@ export const createSchoolSchema = z.object({
   department: z.string().optional().nullable().or(emptyToUndefined),
   province: z.string().optional().nullable().or(emptyToUndefined),
   district: z.string().optional().nullable().or(emptyToUndefined),
+  plan: z.enum(['BASIC', 'PRO', 'ENTERPRISE']).optional(),
+  planExpiresAt: z.string().optional().nullable().or(emptyToUndefined),
+  // Datos opcionales para crear el usuario Administrador Inicial en el onboarding
+  adminEmail: z.string().email('Email de administrador inválido').optional().nullable().or(emptyToUndefined),
+  adminPassword: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres').optional().nullable().or(emptyToUndefined),
+  adminFirstName: z.string().optional().nullable().or(emptyToUndefined),
+  adminLastNamePaternal: z.string().optional().nullable().or(emptyToUndefined),
+  adminLastNameMaternal: z.string().optional().nullable().or(emptyToUndefined),
+  adminDocumentId: z.string().optional().nullable().or(emptyToUndefined),
+  adminCellphone: z.string().optional().nullable().or(emptyToUndefined),
 });
 
 export const updateSchoolSchema = createSchoolSchema.partial();

@@ -47,4 +47,10 @@ export class SchoolController {
     const school = await this.schoolService.deactivateSchool(id);
     response.status(200).json({ status: 'success', data: school });
   };
+
+  reactivate = async (request: Request, response: Response): Promise<void> => {
+    const id = request.params.id as string;
+    const school = await this.schoolService.reactivateSchool(id);
+    response.status(200).json({ status: 'success', data: school });
+  };
 }

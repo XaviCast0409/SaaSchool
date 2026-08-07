@@ -1,3 +1,5 @@
+export type SubscriptionPlan = 'BASIC' | 'PRO' | 'ENTERPRISE';
+
 export interface School {
   id: string;
   modularCode?: string | null;
@@ -11,6 +13,8 @@ export interface School {
   department?: string | null;
   province?: string | null;
   district?: string | null;
+  plan: SubscriptionPlan;
+  planExpiresAt?: string | null;
   isActive: boolean;
 }
 
@@ -23,4 +27,6 @@ export interface UpdateSchoolPayload {
   department?: string;
   province?: string;
   district?: string;
+  plan?: SubscriptionPlan;
+  planExpiresAt?: string;
 }

@@ -29,10 +29,10 @@ export const updateObligationSchema = z.object({
 export const obligationFilterSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(10),
-  status: z.enum(['PENDING', 'PARTIAL', 'PAID', 'CANCELLED']).optional(),
+  status: z.enum(['PENDING', 'PARTIAL', 'PAID', 'CANCELLED']).optional().nullable().or(emptyToUndefined),
   classroomId: z.string().uuid().optional().nullable().or(emptyToUndefined),
   enrollmentId: z.string().uuid().optional().nullable().or(emptyToUndefined),
-  search: z.string().optional(),
+  search: z.string().optional().nullable().or(emptyToUndefined),
 });
 
 export const createTransactionSchema = z.object({

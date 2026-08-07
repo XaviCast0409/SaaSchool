@@ -82,6 +82,7 @@ async function main(): Promise<void> {
 
   // Limpiar datos existentes en orden correcto (respetando FK)
   console.log('🧹 Limpiando datos existentes...');
+  await prisma.announcement.deleteMany();
   await prisma.attendance.deleteMany();
   await prisma.grade.deleteMany();
   await prisma.gradeEntry.deleteMany();
@@ -149,7 +150,26 @@ async function main(): Promise<void> {
   const passwordTeacher = await hashPassword('Teacher123!');
   const passwordParent = await hashPassword('Parent123!');
 
-  // ── Usuarios San Ignacio ──
+  // ── Usuario SUPER_ADMIN Global SaaS ──
+  await prisma.user.upsert({
+    where: { email: 'superadmin@saaschool.com' },
+    update: {
+      role: 'SUPER_ADMIN',
+      passwordHash: passwordAdmin,
+    },
+    create: {
+      schoolId: schoolSanIgnacio.id,
+      email: 'superadmin@saaschool.com',
+      passwordHash: passwordAdmin,
+      role: 'SUPER_ADMIN',
+      firstName: 'Super',
+      lastNamePaternal: 'Admin',
+      lastNameMaternal: 'SaaS',
+      documentType: 'DNI',
+      documentId: '00000000',
+      cellphone: '999999999',
+    },
+  });
   const _adminSanIgnacio = await prisma.user.create({
     data: {
       schoolId: schoolSanIgnacio.id,

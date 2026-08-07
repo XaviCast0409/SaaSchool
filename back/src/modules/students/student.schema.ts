@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { EducationLevel } from '@prisma/client';
 
+const emptyToUndefined = z.literal('').transform(() => undefined);
+
 export const createStudentSchema = z.object({
   firstNames: z.string().min(2, 'Nombres requeridos'),
   lastNamePaternal: z.string().min(2, 'Apellido paterno requerido'),
@@ -25,11 +27,11 @@ export const updateStudentSchema = createStudentSchema.partial();
 export const studentFilterSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(10),
-  search: z.string().optional(),
-  classroomId: z.string().uuid().optional(),
-  educationLevel: z.nativeEnum(EducationLevel).optional(),
-  grade: z.coerce.number().int().optional(),
-  section: z.string().optional(),
+  search: z.string().optional().or(emptyToUndefined),
+  classroomId: z.string().uuid().optional().or(emptyToUndefined),
+  educationLevel: z.nativeEnum(EducationLevel).optional().or(emptyToUndefined),
+  grade: z.coerce.number().int().optional().or(emptyToUndefined),
+  section: z.string().optional().or(emptyToUndefined),
 });
 
 export type CreateStudentDto = z.infer<typeof createStudentSchema>;

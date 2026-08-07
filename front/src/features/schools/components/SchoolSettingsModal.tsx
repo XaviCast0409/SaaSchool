@@ -18,6 +18,7 @@ interface SchoolFormValues {
   department: string;
   province: string;
   district: string;
+  plan?: 'BASIC' | 'PRO' | 'ENTERPRISE';
 }
 
 export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
@@ -41,6 +42,7 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
         department: school.department || '',
         province: school.province || '',
         district: school.district || '',
+        plan: school.plan || 'BASIC',
       });
     }
   }, [school, reset]);
@@ -205,6 +207,24 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
                   className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
+            </div>
+
+            {/* Plan de Suscripción Contratado */}
+            <div className="p-3 rounded-xl bg-secondary/50 border border-border space-y-1.5">
+              <label className="block text-xs font-bold text-foreground uppercase">
+                Plan de Suscripción Contratado
+              </label>
+              <select
+                {...register('plan')}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+              >
+                <option value="BASIC">Plan BASIC (Fase 1 - Directorio, Cobranzas, Asistencia, Comunicados)</option>
+                <option value="PRO">Plan PRO (Fase 2 - Fase 1 + Registro de Notas SIAGIE, Libretas)</option>
+                <option value="ENTERPRISE">Plan ENTERPRISE (Fase 3 - Todo Incluido + Facturación SUNAT)</option>
+              </select>
+              <p className="text-[11px] text-muted-foreground">
+                Cambiar el plan desbloquea o bloquea los módulos en tiempo real para todos los usuarios de este colegio.
+              </p>
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">

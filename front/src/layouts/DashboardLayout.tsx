@@ -15,6 +15,7 @@ import {
   Megaphone,
   Settings,
   School as SchoolIcon,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/button';
@@ -37,18 +38,33 @@ export const DashboardLayout: React.FC = () => {
     document.documentElement.classList.toggle('dark');
   };
 
+  const PLAN_HIERARCHY: Record<string, number> = {
+    BASIC: 1,
+    PRO: 2,
+    ENTERPRISE: 3,
+  };
+
+  const currentPlan = school?.plan || 'BASIC';
+  const currentPlanLevel = PLAN_HIERARCHY[currentPlan] || 1;
+
   const allNavItems = [
-    { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT'] },
-    { label: 'Comunicados', path: '/announcements', icon: Megaphone, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT'] },
-    { label: 'Directorio', path: '/directory', icon: Users, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'] },
-    { label: 'Estudiantes', path: '/students', icon: GraduationCap, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT'] },
-    { label: 'Cobranzas y Pagos', path: '/payments', icon: CreditCard, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'PARENT'] },
-    { label: 'Registro de Notas', path: '/grades', icon: BookOpenCheck, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT'] },
-    { label: 'Asistencia', path: '/attendance', icon: CalendarCheck, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'] },
+    { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT'], minPlan: 'BASIC' },
+    { label: 'Comunicados', path: '/announcements', icon: Megaphone, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT'], minPlan: 'BASIC' },
+    { label: 'Directorio', path: '/directory', icon: Users, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'], minPlan: 'BASIC' },
+    { label: 'Estudiantes', path: '/students', icon: GraduationCap, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT'], minPlan: 'BASIC' },
+    { label: 'Cobranzas y Pagos', path: '/payments', icon: CreditCard, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'PARENT'], minPlan: 'BASIC' },
+    { label: 'Asistencia', path: '/attendance', icon: CalendarCheck, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'], minPlan: 'BASIC' },
+    { label: 'Registro de Notas', path: '/grades', icon: BookOpenCheck, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT'], minPlan: 'PRO' },
+    { label: 'Panel SuperAdmin', path: '/super-admin', icon: ShieldCheck, roles: ['SUPER_ADMIN'], minPlan: 'BASIC' },
   ];
 
   const userRole = user?.role || 'PARENT';
-  const navItems = allNavItems.filter((item) => item.roles.includes(userRole));
+  const navItems = allNavItems.filter((item) => {
+    const hasRole = item.roles.includes(userRole);
+    const requiredLevel = PLAN_HIERARCHY[item.minPlan] || 1;
+    const hasPlan = userRole === 'SUPER_ADMIN' || currentPlanLevel >= requiredLevel;
+    return hasRole && hasPlan;
+  });
   const canManageSchool = userRole === 'SUPER_ADMIN' || userRole === 'SCHOOL_ADMIN';
 
   return (

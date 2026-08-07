@@ -33,4 +33,9 @@ export class SchoolService {
     await this.getSchoolById(schoolId);
     return this.schoolRepository.deactivate(schoolId);
   }
+
+  async reactivateSchool(schoolId: string): Promise<School> {
+    await this.getSchoolById(schoolId);
+    return this.schoolRepository.reactivate(schoolId);
+  }
 }

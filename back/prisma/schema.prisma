@@ -92,25 +92,33 @@ enum AnnouncementPriority {
 }
 
 
+enum SubscriptionPlan {
+  BASIC
+  PRO
+  ENTERPRISE
+}
+
 // ============================================================================
 // 3. CORE & TENANCY (El Colegio y los Usuarios)
 // ============================================================================
 model School {
-  id              String   @id @default(uuid())
-  modularCode     String?  @unique // Código Modular MINEDU
-  localCode       String?  @unique // Código de Local MINEDU
+  id              String           @id @default(uuid())
+  modularCode     String?          @unique // Código Modular MINEDU
+  localCode       String?          @unique // Código de Local MINEDU
   name            String
-  documentId      String   @unique // RUC
+  documentId      String           @unique // RUC
   email           String?
   phone           String?
   address         String?
-  logoUrl         String?  // URL pública del logo cargado en Cloudinary
-  department      String?  // Ej: LIMA
+  logoUrl         String?          // URL pública del logo cargado en Cloudinary
+  department      String?          // Ej: LIMA
   province        String?
   district        String?
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  plan            SubscriptionPlan @default(BASIC) // Plan contratado (BASIC, PRO, ENTERPRISE)
+  planExpiresAt   DateTime?        // Fecha límite de vigencia del plan
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   // Relaciones Multi-Tenant
   users               User[]

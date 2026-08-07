@@ -36,8 +36,6 @@ export class StudentRepository {
               { firstNames: { contains: search, mode: 'insensitive' } },
               { lastNamePaternal: { contains: search, mode: 'insensitive' } },
               { lastNameMaternal: { contains: search, mode: 'insensitive' } },
-              { documentId: { contains: search, mode: 'insensitive' } },
-              { studentCode: { contains: search, mode: 'insensitive' } },
             ],
           }
         : {}),

@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { Role } from '@prisma/client';
 
+const emptyToUndefined = z.literal('').transform(() => undefined);
+
 export const createUserSchema = z.object({
   email: z.string().email('Email inválido'),
   password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
@@ -23,8 +25,8 @@ export const updateUserSchema = createUserSchema.omit({ password: true }).partia
 export const userFilterSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(10),
-  role: z.nativeEnum(Role).optional(),
-  search: z.string().optional(),
+  role: z.nativeEnum(Role).optional().or(emptyToUndefined),
+  search: z.string().optional().or(emptyToUndefined),
 });
 
 export type CreateUserDto = z.infer<typeof createUserSchema>;
