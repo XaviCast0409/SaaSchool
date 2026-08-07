@@ -1,13 +1,17 @@
 import { AppError } from '../../core/errors/app-error';
 import type { UserRepository } from './user.repository';
-import type { CreateUserDto, UpdateUserDto } from './user.schema';
+import type { CreateUserDto, UpdateUserDto, UserFilterDto } from './user.schema';
 import type { User } from '@prisma/client';
+import type { PaginatedResult } from '../../core/interfaces/global.interfaces';
 
 export class UserService {
   constructor(private readonly userRepository: UserRepository) {}
 
-  async getAllUsers(schoolId: string, role?: string): Promise<Omit<User, 'passwordHash'>[]> {
-    return this.userRepository.findAllBySchool(schoolId, role);
+  async getAllUsers(
+    schoolId: string,
+    filters: UserFilterDto = { page: 1, limit: 10 },
+  ): Promise<PaginatedResult<Omit<User, 'passwordHash'>>> {
+    return this.userRepository.findAllBySchool(schoolId, filters);
   }
 
   async getUserById(userId: string, schoolId: string): Promise<Omit<User, 'passwordHash'>> {

@@ -13,44 +13,44 @@ export const attendanceRouter = Router();
 
 attendanceRouter.use(authMiddleware, tenantMiddleware);
 
-// Reporte / Resumen mensual de asistencia
+// Reporte / Resumen mensual de asistencia (Exclusivo para Admins)
 attendanceRouter.get(
   '/summary',
-  authorizeRoles('SCHOOL_ADMIN', 'TEACHER'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
   attendanceController.getSummary,
 );
 
-// Consulta por fecha y/o aula
+// Consulta por fecha y/o aula (Exclusivo para Admins)
 attendanceRouter.get(
   '/',
-  authorizeRoles('SCHOOL_ADMIN', 'TEACHER'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
   attendanceController.getAll,
 );
 
-// Asistencia por matrícula (histórico de un estudiante)
+// Asistencia por matrícula (histórico de un estudiante) (Exclusivo para Admins)
 attendanceRouter.get(
   '/enrollment/:enrollmentId',
-  authorizeRoles('SCHOOL_ADMIN', 'TEACHER'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
   attendanceController.getByEnrollment,
 );
 
-// Registro individual
+// Registro individual (Exclusivo para Admins)
 attendanceRouter.post(
   '/',
-  authorizeRoles('TEACHER', 'SCHOOL_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
   attendanceController.register,
 );
 
-// Registro masivo por sección (bulk)
+// Registro masivo por sección (bulk) (Exclusivo para Admins)
 attendanceRouter.post(
   '/bulk',
-  authorizeRoles('TEACHER', 'SCHOOL_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
   attendanceController.registerBulk,
 );
 
-// Corregir asistencia ya registrada
+// Corregir asistencia ya registrada (Exclusivo para Admins)
 attendanceRouter.patch(
   '/:id',
-  authorizeRoles('TEACHER', 'SCHOOL_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
   attendanceController.update,
 );

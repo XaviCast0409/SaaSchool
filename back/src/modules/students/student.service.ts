@@ -1,13 +1,17 @@
 import { AppError } from '../../core/errors/app-error';
 import type { StudentRepository } from './student.repository';
-import type { CreateStudentDto, UpdateStudentDto } from './student.schema';
+import type { CreateStudentDto, UpdateStudentDto, StudentFilterDto } from './student.schema';
 import type { Student } from '@prisma/client';
+import type { PaginatedResult } from '../../core/interfaces/global.interfaces';
 
 export class StudentService {
   constructor(private readonly studentRepository: StudentRepository) {}
 
-  async getAllStudents(schoolId: string): Promise<Student[]> {
-    return this.studentRepository.findAllBySchool(schoolId);
+  async getAllStudents(
+    schoolId: string,
+    filters: StudentFilterDto = { page: 1, limit: 10 },
+  ): Promise<PaginatedResult<Student>> {
+    return this.studentRepository.findAllBySchool(schoolId, filters);
   }
 
   async getStudentById(studentId: string, schoolId: string): Promise<Student> {

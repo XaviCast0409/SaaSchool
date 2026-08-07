@@ -15,9 +15,9 @@ export const userRouter = Router();
 userRouter.use(authMiddleware, tenantMiddleware);
 
 // CRUD de usuarios (Profesores, Padres, Admin)
-userRouter.get('/', authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'), userController.getAll);
+userRouter.get('/', authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'TEACHER'), userController.getAll);
 userRouter.post('/', authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'), userController.create);
-userRouter.get('/:id', authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'), userController.getById);
+userRouter.get('/:id', authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'TEACHER'), userController.getById);
 userRouter.patch('/:id', authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'), userController.update);
 userRouter.delete('/:id', authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'), userController.deactivate);
 

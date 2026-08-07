@@ -1,18 +1,40 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Users, UserPlus } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useStudents } from '../api/useStudents';
 import { StudentTable } from '../components/StudentTable';
+import { EnrollStudentModal } from '../components/EnrollStudentModal';
 import { Button } from '@/components/ui/button';
 
 export const StudentsPage: React.FC = () => {
   const { user } = useAuthStore();
-  const { data: students = [], isLoading, isError, refetch } = useStudents();
-
   const isAdmin = user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN';
 
+  // Estados del modal de matrícula
+  const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
+
+  // Estados de paginación y filtros jerárquicos
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [search, setSearch] = useState('');
+  const [classroomId, setClassroomId] = useState<string | undefined>(undefined);
+  const [educationLevel, setEducationLevel] = useState<'INITIAL' | 'PRIMARY' | 'SECONDARY' | undefined>(undefined);
+  const [grade, setGrade] = useState<number | undefined>(undefined);
+
+  const { data: response, isLoading, isError, refetch } = useStudents({
+    page,
+    limit,
+    search,
+    classroomId,
+    educationLevel,
+    grade,
+  });
+
+  const students = response?.data || [];
+  const meta = response?.meta;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-8">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
         <div>
@@ -23,12 +45,15 @@ export const StudentsPage: React.FC = () => {
             </h1>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Gestión completa de ficha de matrícula, ubigeo y demografía MINEDU.
+            Gestión completa por Aula, Grado, Sección y datos demográficos MINEDU.
           </p>
         </div>
 
         {isAdmin && (
-          <Button className="gap-2 self-start md:self-auto">
+          <Button
+            onClick={() => setIsEnrollModalOpen(true)}
+            className="gap-2 self-start md:self-auto shadow-sm"
+          >
             <UserPlus className="w-4 h-4" />
             <span>Matricular Estudiante</span>
           </Button>
@@ -44,8 +69,45 @@ export const StudentsPage: React.FC = () => {
           </Button>
         </div>
       ) : (
-        <StudentTable students={students} isLoading={isLoading} />
+        <StudentTable
+          students={students}
+          isLoading={isLoading}
+          meta={meta}
+          page={page}
+          limit={limit}
+          search={search}
+          classroomId={classroomId}
+          educationLevel={educationLevel}
+          grade={grade}
+          onPageChange={(p) => setPage(p)}
+          onLimitChange={(l) => {
+            setLimit(l);
+            setPage(1);
+          }}
+          onSearchChange={(s) => {
+            setSearch(s);
+            setPage(1);
+          }}
+          onClassroomChange={(cId) => {
+            setClassroomId(cId);
+            setPage(1);
+          }}
+          onEducationLevelChange={(eL) => {
+            setEducationLevel(eL);
+            setPage(1);
+          }}
+          onGradeChange={(g) => {
+            setGrade(g);
+            setPage(1);
+          }}
+        />
       )}
+
+      {/* Modal de Asistente de Matrícula */}
+      <EnrollStudentModal
+        isOpen={isEnrollModalOpen}
+        onClose={() => setIsEnrollModalOpen(false)}
+      />
     </div>
   );
 };

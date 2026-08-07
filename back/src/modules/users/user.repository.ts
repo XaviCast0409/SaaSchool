@@ -1,12 +1,9 @@
 import { prisma } from '../../config/prisma';
 import { hashPassword } from '../../utils/hash.util';
 import type { User, Prisma } from '@prisma/client';
-import type { CreateUserDto, UpdateUserDto } from './user.schema';
+import type { CreateUserDto, UpdateUserDto, UserFilterDto } from './user.schema';
+import type { PaginatedResult } from '../../core/interfaces/global.interfaces';
 
-/**
- * Select explícito de todos los campos públicos del modelo User.
- * Se usa en create/update donde Prisma v5 no soporta la opción `omit`.
- */
 const USER_PUBLIC_SELECT = {
   id: true,
   schoolId: true,
@@ -26,15 +23,49 @@ const USER_PUBLIC_SELECT = {
 type PublicUser = Omit<User, 'passwordHash'>;
 
 export class UserRepository {
-  async findAllBySchool(schoolId: string, role?: string): Promise<PublicUser[]> {
-    return prisma.user.findMany({
-      where: {
-        schoolId,
-        ...(role ? { role: role as User['role'] } : {}),
+  async findAllBySchool(
+    schoolId: string,
+    filters: UserFilterDto = { page: 1, limit: 10 },
+  ): Promise<PaginatedResult<PublicUser>> {
+    const { page, limit, role, search } = filters;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.UserWhereInput = {
+      schoolId,
+      ...(role ? { role } : {}),
+      ...(search
+        ? {
+            OR: [
+              { firstName: { contains: search, mode: 'insensitive' } },
+              { lastNamePaternal: { contains: search, mode: 'insensitive' } },
+              { lastNameMaternal: { contains: search, mode: 'insensitive' } },
+              { email: { contains: search, mode: 'insensitive' } },
+              { documentId: { contains: search, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    };
+
+    const [data, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        select: USER_PUBLIC_SELECT,
+        orderBy: [{ lastNamePaternal: 'asc' }, { firstName: 'asc' }],
+      }),
+      prisma.user.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
       },
-      select: USER_PUBLIC_SELECT,
-      orderBy: { createdAt: 'desc' },
-    });
+    };
   }
 
   async findById(userId: string, schoolId: string): Promise<PublicUser | null> {

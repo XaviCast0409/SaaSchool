@@ -13,12 +13,12 @@ import type { PaymentService } from './payment.service';
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 
-  /** GET /api/payments/obligations?status=PENDING&classroomId=UUID&search=text */
+  /** GET /api/payments/obligations?status=PENDING&classroomId=UUID&search=text&page=1&limit=10 */
   getAllObligations = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
     const filters = obligationFilterSchema.parse(request.query);
-    const obligations = await this.paymentService.getAllObligations(schoolId, filters);
-    response.status(200).json({ status: 'success', data: obligations });
+    const result = await this.paymentService.getAllObligations(schoolId, filters);
+    response.status(200).json({ status: 'success', data: result.data, meta: result.meta });
   };
 
   /** GET /api/payments/obligations/my-children — deudas de los hijos del apoderado */

@@ -76,10 +76,23 @@ export interface ReceiptData {
 }
 
 export interface ObligationFilterParams {
+  page?: number;
+  limit?: number;
   status?: ObligationStatus;
   classroomId?: string;
   enrollmentId?: string;
   search?: string;
+}
+
+export interface ObligationsPaginatedResponse {
+  status: string;
+  data: PaymentObligation[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
 }
 
 export interface TransactionFilterParams {

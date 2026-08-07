@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import cors from 'cors';
 
 import { globalErrorHandler } from './core/middlewares/error-handler.middleware';
+import { authRateLimiter, apiRateLimiter } from './core/middlewares/rate-limiter.middleware';
 
 // Importar todos los routers de los módulos
 import { authRouter } from './modules/auth/auth.routes';
@@ -18,11 +19,12 @@ import { curricularAreaRouter } from './modules/curricular-areas/curricular-area
 import { gradeRouter } from './modules/grades/grade.routes';
 import { attendanceRouter } from './modules/attendance/attendance.routes';
 import { familyRelationshipRouter } from './modules/family-relationships/family-relationship.routes';
+import { announcementRouter } from './modules/announcements/announcement.routes';
 
 const app = express();
 
 // ============================================================================
-// MIDDLEWARES GLOBALES
+// MIDDLEWARES GLOBALES Y SEGURIDAD
 // ============================================================================
 app.use(helmet());
 app.use(cors());
@@ -45,7 +47,10 @@ app.get('/health', (_req, res) => {
 // ============================================================================
 const API_PREFIX = '/api';
 
-app.use(`${API_PREFIX}/auth`, authRouter);
+// Aplicar Rate Limiters
+app.use(`${API_PREFIX}/auth`, authRateLimiter, authRouter);
+app.use(API_PREFIX, apiRateLimiter);
+
 app.use(`${API_PREFIX}/schools`, schoolRouter);
 app.use(`${API_PREFIX}/users`, userRouter);
 app.use(`${API_PREFIX}/students`, studentRouter);
@@ -57,6 +62,7 @@ app.use(`${API_PREFIX}/curricular-areas`, curricularAreaRouter);
 app.use(`${API_PREFIX}/grades`, gradeRouter);
 app.use(`${API_PREFIX}/attendance`, attendanceRouter);
 app.use(`${API_PREFIX}/family-relationships`, familyRelationshipRouter);
+app.use(`${API_PREFIX}/announcements`, announcementRouter);
 
 // ============================================================================
 // RUTA NO ENCONTRADA (404)

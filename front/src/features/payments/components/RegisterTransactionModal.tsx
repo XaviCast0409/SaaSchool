@@ -7,6 +7,7 @@ import { useRegisterTransaction } from '../api/usePayments';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PaymentObligation } from '../types';
+import { toast } from 'sonner';
 
 interface RegisterTransactionModalProps {
   obligation: PaymentObligation;
@@ -44,7 +45,13 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
 
   const onSubmit = (data: RegisterTransactionFormData) => {
     registerTransaction(data, {
-      onSuccess: () => onClose(),
+      onSuccess: () => {
+        toast.success(`💵 Pago de S/ ${data.amountPaid.toFixed(2)} registrado con éxito para ${studentName}.`);
+        onClose();
+      },
+      onError: (err: any) => {
+        toast.error(err?.response?.data?.message || 'Error al registrar el cobro.');
+      },
     });
   };
 

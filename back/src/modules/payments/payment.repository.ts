@@ -1,5 +1,6 @@
 import { prisma } from '../../config/prisma';
 import type { PaymentObligation, PaymentTransaction, Prisma } from '@prisma/client';
+import type { PaginatedResult } from '../../core/interfaces/global.interfaces';
 import type {
   CreateObligationDto,
   CreateTransactionDto,
@@ -77,12 +78,16 @@ const TRANSACTION_INCLUDE = {
 
 export class PaymentRepository {
   /**
-   * Obtiene las obligaciones de pago de un colegio filtrando por estado, aula o búsqueda.
+   * Obtiene las obligaciones de pago de un colegio filtrando por estado, aula o búsqueda con paginación.
    */
   async findAllObligationsBySchool(
     schoolId: string,
-    filters: ObligationFilterDto = {},
-  ): Promise<PaymentObligation[]> {
+    filters: ObligationFilterDto = { page: 1, limit: 10 },
+  ): Promise<PaginatedResult<PaymentObligation>> {
+    const page = filters.page || 1;
+    const limit = filters.limit || 10;
+    const skip = (page - 1) * limit;
+
     const where: Prisma.PaymentObligationWhereInput = {
       schoolId,
       ...(filters.status ? { status: filters.status } : {}),
@@ -116,11 +121,26 @@ export class PaymentRepository {
         : {}),
     };
 
-    return prisma.paymentObligation.findMany({
-      where,
-      include: OBLIGATION_INCLUDE,
-      orderBy: { dueDate: 'asc' },
-    });
+    const [data, total] = await Promise.all([
+      prisma.paymentObligation.findMany({
+        where,
+        skip,
+        take: limit,
+        include: OBLIGATION_INCLUDE,
+        orderBy: { dueDate: 'asc' },
+      }),
+      prisma.paymentObligation.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    };
   }
 
   /**

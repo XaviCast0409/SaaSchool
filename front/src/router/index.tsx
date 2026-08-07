@@ -9,6 +9,7 @@ import { PaymentsPage } from '@/features/payments/pages/PaymentsPage';
 import { GradesPage } from '@/features/grades/pages/GradesPage';
 import { AttendancePage } from '@/features/attendance/pages/AttendancePage';
 import { DirectoryPage } from '@/features/users/pages/DirectoryPage';
+import { AnnouncementsPage } from '@/features/announcements/pages/AnnouncementsPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const token = useAuthStore((state) => state.token);
@@ -63,6 +64,14 @@ export const AppRouter: React.FC = () => {
           <Route path="/dashboard" element={<DashboardPage />} />
 
           {/* Rutas protegidas por Rol */}
+          <Route
+            path="/announcements"
+            element={
+              <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT']}>
+                <AnnouncementsPage />
+              </RoleGuard>
+            }
+          />
           <Route
             path="/directory"
             element={

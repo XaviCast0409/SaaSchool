@@ -1,16 +1,24 @@
 import { z } from 'zod';
 
+const emptyToUndefined = z.literal('').transform(() => undefined);
+
 export const createSchoolSchema = z.object({
   name: z.string().min(3, 'El nombre del colegio es requerido'),
-  documentId: z.string().min(11, 'RUC inválido').max(11, 'RUC inválido'),
-  modularCode: z.string().optional(),
-  localCode: z.string().optional(),
-  email: z.string().email().optional(),
-  phone: z.string().optional(),
-  address: z.string().optional(),
-  department: z.string().optional(),
-  province: z.string().optional(),
-  district: z.string().optional(),
+  documentId: z.string().min(11, 'RUC debe tener 11 dígitos').max(11, 'RUC debe tener 11 dígitos'),
+  modularCode: z.string().optional().nullable().or(emptyToUndefined),
+  localCode: z.string().optional().nullable().or(emptyToUndefined),
+  email: z.string().email('Email institucional inválido').optional().nullable().or(emptyToUndefined),
+  phone: z
+    .string()
+    .regex(/^(\+?51)?\s?9\d{8}$|^0\d{1,2}\d{6,7}$/, 'Número telefónico o celular peruano inválido')
+    .optional()
+    .nullable()
+    .or(emptyToUndefined),
+  address: z.string().optional().nullable().or(emptyToUndefined),
+  logoUrl: z.string().url('URL del logo inválida').optional().nullable().or(emptyToUndefined),
+  department: z.string().optional().nullable().or(emptyToUndefined),
+  province: z.string().optional().nullable().or(emptyToUndefined),
+  district: z.string().optional().nullable().or(emptyToUndefined),
 });
 
 export const updateSchoolSchema = createSchoolSchema.partial();

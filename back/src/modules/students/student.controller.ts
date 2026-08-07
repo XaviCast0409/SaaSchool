@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { createStudentSchema, updateStudentSchema } from './student.schema';
+import { createStudentSchema, updateStudentSchema, studentFilterSchema } from './student.schema';
 import type { StudentService } from './student.service';
 
 export class StudentController {
@@ -7,8 +7,14 @@ export class StudentController {
 
   getAll = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
-    const students = await this.studentService.getAllStudents(schoolId);
-    response.status(200).json({ status: 'success', data: students });
+    const queryFilters = studentFilterSchema.parse(request.query);
+    const result = await this.studentService.getAllStudents(schoolId, queryFilters);
+
+    response.status(200).json({
+      status: 'success',
+      data: result.data,
+      meta: result.meta,
+    });
   };
 
   getById = async (request: Request, response: Response): Promise<void> => {

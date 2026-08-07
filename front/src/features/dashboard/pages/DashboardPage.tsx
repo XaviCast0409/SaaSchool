@@ -7,11 +7,18 @@ import {
   CalendarCheck,
   Building2,
   ArrowRight,
-  School,
+  UserPlus,
+  PlusCircle,
+  Megaphone,
+  TrendingUp,
+  DollarSign,
+  CheckCircle2,
+  Clock,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useStudents } from '@/features/students/api/useStudents';
 import { usePayments } from '@/features/payments/api/usePayments';
+import { useGetAnnouncements } from '@/features/announcements/api/useAnnouncements';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
@@ -20,101 +27,241 @@ export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
 
   const isTeacher = user?.role === 'TEACHER';
-  const canViewFinances = user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'PARENT';
+  const isAdmin = user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN';
+  const canViewFinances = isAdmin || user?.role === 'PARENT';
 
-  const { data: students = [] } = useStudents();
-  const { data: obligations = [] } = usePayments({}, canViewFinances);
+  const { data: studentsResponse } = useStudents({ page: 1, limit: 100 });
+  const totalStudentsCount = studentsResponse?.meta?.total || 0;
+  const { data: obligationsResponse } = usePayments({ page: 1, limit: 100 }, canViewFinances);
+  const obligations = obligationsResponse?.data || [];
+  const { data: announcementsData } = useGetAnnouncements({ page: 1, limit: 3 });
 
-  const paidTotal = canViewFinances
-    ? obligations
-        .filter((o) => o.status === 'PAID')
-        .reduce((acc, curr) => acc + curr.amountDue, 0)
-    : 0;
+  const totalAmountDue = obligations.reduce((acc, curr) => acc + curr.amountDue, 0);
+  const paidTotal = obligations
+    .filter((o) => o.status === 'PAID')
+    .reduce((acc, curr) => acc + curr.amountDue, 0);
+  const pendingTotal = Math.max(0, totalAmountDue - paidTotal);
+  const collectionPercentage = totalAmountDue > 0 ? Math.round((paidTotal / totalAmountDue) * 100) : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-8">
       {/* Welcome Banner */}
-      <div className="p-6 rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 space-y-2">
-        <div className="flex items-center gap-2 text-primary font-semibold text-sm">
-          <Building2 className="w-4 h-4" />
-          <span>SaaS B2B Multi-Tenant Activo</span>
+      <div className="relative overflow-hidden p-6 sm:p-8 rounded-2xl bg-gradient-to-r from-primary/15 via-primary/5 to-card border border-primary/20 shadow-sm">
+        <div className="relative z-10 space-y-2">
+          <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
+            <Building2 className="w-4 h-4" />
+            <span>SaaS B2B Escolar • Entorno Seguro</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+            ¡Hola, {user?.firstName} {user?.lastNamePaternal}!
+          </h1>
+          <p className="text-sm text-muted-foreground max-w-2xl">
+            {isAdmin
+              ? 'Panel de control ejecutivo. Supervisa matriculados, estado de cobranzas y emite avisos oficiales.'
+              : isTeacher
+              ? 'Panel docente para control de asistencia diario e ingreso de evaluaciones SIAGIE.'
+              : 'Bienvenido al portal familiar. Consulta el estado de pensiones, notas y avisos oficiales.'}
+          </p>
         </div>
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
-          ¡Bienvenido, {user?.firstName} {user?.lastNamePaternal}!
-        </h1>
-        <p className="text-sm text-muted-foreground max-w-2xl">
-          {isTeacher
-            ? 'Panel docente para control de asistencia diario e ingreso de evaluaciones SIAGIE.'
-            : 'Estás conectado al entorno Multi-Tenant con token de autenticación asignado a tu colegio.'}
-        </p>
       </div>
 
-      {/* Primary KPIs */}
+      {/* Botonera VIP de Acciones Rápidas para el Administrador */}
+      {isAdmin && (
+        <div className="space-y-3">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Acciones Rápidas de Administración
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <button
+              onClick={() => navigate('/students')}
+              className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-primary/10 hover:border-primary/40 text-foreground transition-all shadow-sm group"
+            >
+              <div className="p-2.5 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <UserPlus className="w-5 h-5" />
+              </div>
+              <div className="text-left">
+                <span className="block font-bold text-sm leading-tight">Nuevo Alumno</span>
+                <span className="text-[11px] text-muted-foreground">Registrar matrícula</span>
+              </div>
+            </button>
+
+            <button
+              onClick={() => navigate('/payments')}
+              className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-emerald-500/10 hover:border-emerald-500/40 text-foreground transition-all shadow-sm group"
+            >
+              <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                <DollarSign className="w-5 h-5" />
+              </div>
+              <div className="text-left">
+                <span className="block font-bold text-sm leading-tight">Registrar Pago</span>
+                <span className="text-[11px] text-muted-foreground">Ingreso manual</span>
+              </div>
+            </button>
+
+            <button
+              onClick={() => navigate('/payments')}
+              className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-amber-500/10 hover:border-amber-500/40 text-foreground transition-all shadow-sm group"
+            >
+              <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 group-hover:bg-amber-500 group-hover:text-white transition-colors">
+                <PlusCircle className="w-5 h-5" />
+              </div>
+              <div className="text-left">
+                <span className="block font-bold text-sm leading-tight">Cobros Masivos</span>
+                <span className="text-[11px] text-muted-foreground">Generar por aula</span>
+              </div>
+            </button>
+
+            <button
+              onClick={() => navigate('/announcements')}
+              className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-primary/10 hover:border-primary/40 text-foreground transition-all shadow-sm group"
+            >
+              <div className="p-2.5 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <Megaphone className="w-5 h-5" />
+              </div>
+              <div className="text-left">
+                <span className="block font-bold text-sm leading-tight">Publicar Aviso</span>
+                <span className="text-[11px] text-muted-foreground">Comunicados</span>
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Indicadores Principales / KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total Estudiantes */}
         <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Estudiantes</CardTitle>
             <Users className="w-4 h-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{students.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">Matriculados en el colegio</p>
+            <div className="text-2xl font-extrabold text-foreground">{totalStudentsCount}</div>
+            <p className="text-xs text-muted-foreground mt-1">Alumnos matriculados activos</p>
           </CardContent>
         </Card>
 
-        {/* Solo mostrar finanzas a Admins y Apoderados */}
-        {canViewFinances ? (
+        {/* Recaudado del Mes */}
+        {canViewFinances && (
           <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Cobranzas Recaudadas</CardTitle>
+              <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Recaudación Total</CardTitle>
               <CreditCard className="w-4 h-4 text-emerald-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+              <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
                 S/ {paidTotal.toFixed(2)}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">{obligations.length} obligaciones registradas</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Rol Docente</CardTitle>
-              <School className="w-4 h-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">Profesor</div>
-              <p className="text-xs text-muted-foreground mt-1">Acceso pedagógico y evaluación</p>
+              <p className="text-xs text-muted-foreground mt-1">{collectionPercentage}% cobrado de obligaciones</p>
             </CardContent>
           </Card>
         )}
 
+        {/* Notas SIAGIE */}
         <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Registro Notas</CardTitle>
+            <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Evaluación CNEB</CardTitle>
             <BookOpenCheck className="w-4 h-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">Escala AD / A / B / C</div>
-            <p className="text-xs text-muted-foreground mt-1">SIAGIE Minedu evaluativo</p>
+            <div className="text-2xl font-extrabold text-foreground">Escala AD / A / B / C</div>
+            <p className="text-xs text-muted-foreground mt-1">Matriz cualitativa MINEDU</p>
           </CardContent>
         </Card>
 
+        {/* Asistencia */}
         <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Asistencia</CardTitle>
+            <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Asistencia Hoy</CardTitle>
             <CalendarCheck className="w-4 h-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">Diario</div>
-            <p className="text-xs text-muted-foreground mt-1">Registro de presente/falta</p>
+            <div className="text-2xl font-extrabold text-foreground">Diario</div>
+            <p className="text-xs text-muted-foreground mt-1">Panel de control por fecha</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Quick Navigation Cards */}
+      {/* Salud Financiera del Colegio (Barra de Avance para Admin) */}
+      {canViewFinances && obligations.length > 0 && (
+        <Card className="p-6 border-border bg-card">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <div>
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                <TrendingUp className="w-4 h-4" />
+                Salud de Recaudación Financiera
+              </div>
+              <h3 className="text-lg font-bold text-foreground">
+                S/ {paidTotal.toFixed(2)} <span className="text-xs font-normal text-muted-foreground">cobrados de S/ {totalAmountDue.toFixed(2)} en total</span>
+              </h3>
+            </div>
+            <div className="flex items-center gap-4 text-xs font-medium">
+              <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Cobrado: S/ {paidTotal.toFixed(2)}</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+                <Clock className="w-4 h-4" />
+                <span>Pendiente: S/ {pendingTotal.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="w-full h-3 rounded-full bg-secondary overflow-hidden">
+            <div
+              className="h-full bg-emerald-500 transition-all duration-500"
+              style={{ width: `${collectionPercentage}%` }}
+            />
+          </div>
+        </Card>
+      )}
+
+      {/* Widget de Comunicados Recientes */}
+      {announcementsData?.data && announcementsData.data.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-bold tracking-tight text-foreground flex items-center gap-2">
+              <Megaphone className="w-4 h-4 text-primary" />
+              Últimos Comunicados del Colegio
+            </h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs font-semibold text-primary"
+              onClick={() => navigate('/announcements')}
+            >
+              <span>Ver todos los avisos</span>
+              <ArrowRight className="w-3.5 h-3.5 ml-1" />
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {announcementsData.data.slice(0, 3).map((announcement) => (
+              <div
+                key={announcement.id}
+                onClick={() => navigate('/announcements')}
+                className="cursor-pointer p-4 rounded-xl border border-border bg-card hover:border-primary/40 hover:shadow-sm transition-all space-y-2"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary">
+                    {announcement.priority}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    {new Date(announcement.publishedAt).toLocaleDateString('es-PE')}
+                  </span>
+                </div>
+                <h4 className="font-bold text-sm text-foreground line-clamp-1">{announcement.title}</h4>
+                <p className="text-xs text-muted-foreground line-clamp-2">{announcement.content}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Módulos de Acceso Rápido */}
       <div className="space-y-3">
-        <h2 className="text-lg font-bold tracking-tight text-foreground">Secciones Disponibles</h2>
+        <h2 className="text-base font-bold tracking-tight text-foreground">Módulos del Sistema</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="flex flex-col justify-between hover:border-primary/50 transition-colors">
             <CardHeader>
@@ -123,7 +270,7 @@ export const DashboardPage: React.FC = () => {
                 Estudiantes
               </CardTitle>
               <CardDescription className="text-xs">
-                Directorio con TanStack Table y datos demográficos SIAGIE.
+                Directorio matriculado y datos demográficos SIAGIE.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-0">

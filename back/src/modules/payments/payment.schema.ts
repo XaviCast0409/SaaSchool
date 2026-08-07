@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+const emptyToUndefined = z.literal('').transform(() => undefined);
+
 export const createObligationSchema = z.object({
   enrollmentId: z.string().uuid('ID de matrícula inválido'),
   title: z.string().min(1, 'El título es requerido'),
@@ -9,7 +11,7 @@ export const createObligationSchema = z.object({
 });
 
 export const bulkCreateObligationsSchema = z.object({
-  classroomId: z.string().uuid('ID de aula inválido').optional(),
+  classroomId: z.string().uuid('ID de aula inválido').optional().nullable().or(emptyToUndefined),
   title: z.string().min(1, 'El título es requerido'),
   concept: z.string().min(1, 'El concepto es requerido'),
   amountDue: z.number().positive('El monto debe ser positivo'),
@@ -25,9 +27,11 @@ export const updateObligationSchema = z.object({
 });
 
 export const obligationFilterSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(10),
   status: z.enum(['PENDING', 'PARTIAL', 'PAID', 'CANCELLED']).optional(),
-  classroomId: z.string().uuid().optional(),
-  enrollmentId: z.string().uuid().optional(),
+  classroomId: z.string().uuid().optional().nullable().or(emptyToUndefined),
+  enrollmentId: z.string().uuid().optional().nullable().or(emptyToUndefined),
   search: z.string().optional(),
 });
 

@@ -19,4 +19,35 @@ export interface Student {
   address?: string;
   createdAt: string;
   updatedAt: string;
+  enrollments?: Array<{
+    id: string;
+    classroom?: {
+      id: string;
+      educationLevel: 'INITIAL' | 'PRIMARY' | 'SECONDARY';
+      grade: number;
+      section: string;
+      shift: string;
+    };
+  }>;
+}
+
+export interface StudentFilterParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  classroomId?: string;
+  educationLevel?: 'INITIAL' | 'PRIMARY' | 'SECONDARY';
+  grade?: number;
+  section?: string;
+}
+
+export interface StudentsPaginatedResponse {
+  status: string;
+  data: Student[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
 }

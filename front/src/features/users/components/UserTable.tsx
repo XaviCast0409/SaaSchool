@@ -7,8 +7,9 @@ import {
   flexRender,
   type ColumnDef,
 } from '@tanstack/react-table';
-import { Search, UserX, UserCheck, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, UserX, UserCheck, ChevronDown, ChevronUp, Pencil } from 'lucide-react';
 import { useDeactivateUser, useReactivateUser } from '../api/useUserMutations';
+import { EditUserModal } from './EditUserModal';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,7 +24,6 @@ import {
 } from '@/components/ui/table';
 import { StudentParentsPanel } from '../family-relationships/components/StudentParentsPanel';
 import type { DirectoryUser } from '../types';
-
 import { useAuthStore } from '@/store/useAuthStore';
 
 interface UserTableProps {
@@ -46,6 +46,7 @@ export const UserTable: React.FC<UserTableProps> = ({
 
   const [globalFilter, setGlobalFilter] = useState('');
   const [expandedParentId, setExpandedParentId] = useState<string | null>(null);
+  const [selectedUserForEdit, setSelectedUserForEdit] = useState<DirectoryUser | null>(null);
 
   const { mutate: deactivate, isPending: isDeactivating } = useDeactivateUser();
   const { mutate: reactivate, isPending: isReactivating } = useReactivateUser();
@@ -87,7 +88,7 @@ export const UserTable: React.FC<UserTableProps> = ({
       accessorKey: 'cellphone',
       header: 'Celular',
       cell: ({ row }) => (
-        <span className="text-xs text-muted-foreground">
+        <span className="text-xs text-muted-foreground font-mono">
           {row.original.cellphone || '—'}
         </span>
       ),
@@ -111,6 +112,19 @@ export const UserTable: React.FC<UserTableProps> = ({
 
         return (
           <div className="flex items-center gap-1.5">
+            {/* Botón Editar Usuario (Solo Admins) */}
+            {isAdmin && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs text-primary hover:bg-primary/10"
+                onClick={() => setSelectedUserForEdit(user)}
+              >
+                <Pencil className="w-3.5 h-3.5 mr-1" />
+                Editar
+              </Button>
+            )}
+
             {/* Toggle Activo/Inactivo (Solo Admins) */}
             {isAdmin &&
               (user.isActive ? (
@@ -279,6 +293,13 @@ export const UserTable: React.FC<UserTableProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Modal de Edición de Usuario */}
+      <EditUserModal
+        user={selectedUserForEdit}
+        isOpen={!!selectedUserForEdit}
+        onClose={() => setSelectedUserForEdit(null)}
+      />
     </div>
   );
 };

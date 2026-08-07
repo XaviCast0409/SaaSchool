@@ -85,6 +85,13 @@ enum AssessmentType {
   SUMMATIVE
 }
 
+enum AnnouncementPriority {
+  NORMAL
+  IMPORTANT
+  URGENT
+}
+
+
 // ============================================================================
 // 3. CORE & TENANCY (El Colegio y los Usuarios)
 // ============================================================================
@@ -97,6 +104,7 @@ model School {
   email           String?
   phone           String?
   address         String?
+  logoUrl         String?  // URL pública del logo cargado en Cloudinary
   department      String?  // Ej: LIMA
   province        String?
   district        String?
@@ -115,6 +123,7 @@ model School {
   transactions        PaymentTransaction[]
   attendances         Attendance[]
   courseAssignments   CourseAssignment[]
+  announcements       Announcement[]
 }
 
 model User {
@@ -141,6 +150,7 @@ model User {
   // Relaciones
   familyRelations  FamilyRelationship[]
   coursesTaught    CourseAssignment[]
+  announcements    Announcement[]
 }
 
 // ============================================================================
@@ -219,6 +229,7 @@ model Classroom {
   school         School         @relation(fields: [schoolId], references: [id])
   enrollments    Enrollment[]
   assignments    CourseAssignment[]
+  announcements  Announcement[]
 }
 
 model Enrollment {
@@ -378,3 +389,27 @@ model Attendance {
 
   @@unique([enrollmentId, date])
 }
+
+// ============================================================================
+// 9. MURO DE COMUNICADOS (Fase 1)
+// ============================================================================
+model Announcement {
+  id           String               @id @default(uuid())
+  schoolId     String
+  authorId     String
+  classroomId  String?              // Opcional: si está dirigido a un aula específica
+  title        String
+  content      String
+  priority     AnnouncementPriority @default(NORMAL)
+  targetRoles  Role[]               // Roles que pueden ver este comunicado (TEACHER, PARENT, etc.)
+  publishedAt  DateTime             @default(now())
+  expiresAt    DateTime?
+  isActive     Boolean              @default(true)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  school       School               @relation(fields: [schoolId], references: [id])
+  author       User                 @relation(fields: [authorId], references: [id])
+  classroom    Classroom?           @relation(fields: [classroomId], references: [id])
+}
+

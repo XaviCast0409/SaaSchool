@@ -7,6 +7,7 @@ import {
   ReceiptData,
   ObligationFilterParams,
   TransactionFilterParams,
+  ObligationsPaginatedResponse,
 } from '../types';
 import type {
   CreateObligationFormData,
@@ -44,9 +45,11 @@ interface ReceiptResponse {
   data: ReceiptData;
 }
 
-/** Hook para obtener las obligaciones de pago del colegio con filtros de estado, sección y búsqueda */
+/** Hook para obtener las obligaciones de pago del colegio con filtros de estado, sección, búsqueda y paginación */
 export const usePayments = (filters: ObligationFilterParams = {}, enabled: boolean = true) => {
   const queryParams = new URLSearchParams();
+  if (filters.page) queryParams.append('page', String(filters.page));
+  if (filters.limit) queryParams.append('limit', String(filters.limit));
   if (filters.status) queryParams.append('status', filters.status);
   if (filters.classroomId) queryParams.append('classroomId', filters.classroomId);
   if (filters.enrollmentId) queryParams.append('enrollmentId', filters.enrollmentId);
@@ -56,34 +59,36 @@ export const usePayments = (filters: ObligationFilterParams = {}, enabled: boole
   const url = `/payments/obligations${queryString ? `?${queryString}` : ''}`;
 
   return useQuery({
-    queryKey: ['payments-obligations', filters.status, filters.classroomId, filters.search],
+    queryKey: ['payments-obligations', filters.page, filters.limit, filters.status, filters.classroomId, filters.search],
     queryFn: async () => {
-      const response = await api.get<ObligationsResponse>(url);
-      return response.data.data;
+      const response = await api.get<ObligationsPaginatedResponse>(url);
+      return response.data;
     },
     enabled,
   });
 };
 
 /** Hook para obtener las deudas del apoderado (Portal de Padres) */
-export const useParentPayments = () => {
+export const useParentPayments = (enabled: boolean = true) => {
   return useQuery({
     queryKey: ['parent-payments-obligations'],
     queryFn: async () => {
       const response = await api.get<ObligationsResponse>('/payments/obligations/my-children');
       return response.data.data;
     },
+    enabled,
   });
 };
 
 /** Hook para obtener el resumen financiero en tiempo real */
-export const useFinancialSummary = () => {
+export const useFinancialSummary = (enabled: boolean = true) => {
   return useQuery({
     queryKey: ['financial-summary'],
     queryFn: async () => {
       const response = await api.get<SummaryResponse>('/payments/summary');
       return response.data.data;
     },
+    enabled,
   });
 };
 
@@ -140,10 +145,10 @@ export const useBulkCreateObligations = () => {
 
   return useMutation({
     mutationFn: async (data: BulkCreateObligationsFormData) => {
-      const response = await api.post<{ status: string; data: { count: number } }>(
-        '/payments/obligations/bulk',
-        data
-      );
+      const response = await api.post<{
+        status: string;
+        data: { count: number; skippedCount: number; totalMatriculados: number };
+      }>('/payments/obligations/bulk', data);
       return response.data.data;
     },
     onSuccess: () => {

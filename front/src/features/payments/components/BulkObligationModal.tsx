@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Layers, X, Save, School } from 'lucide-react';
+import { Layers, X, Save, School, Calendar } from 'lucide-react';
+import { toast } from 'sonner';
 import { bulkCreateObligationsSchema, type BulkCreateObligationsFormData } from '../schemas/payment.schema';
 import { useBulkCreateObligations } from '../api/usePayments';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
@@ -12,29 +13,76 @@ interface BulkObligationModalProps {
   onClose: () => void;
 }
 
+const PRESET_PENSIONS = [
+  { label: 'Pensión Marzo 2026', title: 'Pensión Marzo 2026', concept: 'PENSION', dueDate: '2026-03-31' },
+  { label: 'Pensión Abril 2026', title: 'Pensión Abril 2026', concept: 'PENSION', dueDate: '2026-04-30' },
+  { label: 'Pensión Mayo 2026', title: 'Pensión Mayo 2026', concept: 'PENSION', dueDate: '2026-05-31' },
+  { label: 'Pensión Junio 2026', title: 'Pensión Junio 2026', concept: 'PENSION', dueDate: '2026-06-30' },
+  { label: 'Pensión Julio 2026', title: 'Pensión Julio 2026', concept: 'PENSION', dueDate: '2026-07-31' },
+  { label: 'Pensión Agosto 2026', title: 'Pensión Agosto 2026', concept: 'PENSION', dueDate: '2026-08-31' },
+  { label: 'Pensión Septiembre 2026', title: 'Pensión Septiembre 2026', concept: 'PENSION', dueDate: '2026-09-30' },
+  { label: 'Pensión Octubre 2026', title: 'Pensión Octubre 2026', concept: 'PENSION', dueDate: '2026-10-31' },
+  { label: 'Pensión Noviembre 2026', title: 'Pensión Noviembre 2026', concept: 'PENSION', dueDate: '2026-11-30' },
+  { label: 'Pensión Diciembre 2026', title: 'Pensión Diciembre 2026', concept: 'PENSION', dueDate: '2026-12-31' },
+  { label: 'Matrícula Escolar 2026', title: 'Matrícula Escolar 2026', concept: 'MATRICULA', dueDate: '2026-03-01' },
+  { label: 'Cuota de Ingreso 2026', title: 'Cuota de Ingreso 2026', concept: 'CUOTA_INGRESO', dueDate: '2026-03-01' },
+  { label: 'Pensión Enero 2026', title: 'Pensión Enero 2026', concept: 'PENSION', dueDate: '2026-01-31' },
+  { label: 'Pensión Febrero 2026', title: 'Pensión Febrero 2026', concept: 'PENSION', dueDate: '2026-02-28' },
+  { label: '✏️ Otro concepto personalizado...', title: 'CUSTOM', concept: 'CUSTOM', dueDate: '' },
+];
+
 export const BulkObligationModal: React.FC<BulkObligationModalProps> = ({ onClose }) => {
   const { mutate: bulkCreate, isPending, error } = useBulkCreateObligations();
   const { data: classrooms = [] } = useClassrooms();
+  const [selectedPreset, setSelectedPreset] = useState<string>('Pensión Marzo 2026');
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<BulkCreateObligationsFormData>({
     resolver: zodResolver(bulkCreateObligationsSchema),
     defaultValues: {
-      title: 'Pensión Escolar',
+      title: 'Pensión Marzo 2026',
       concept: 'PENSION',
       amountDue: 350.0,
-      dueDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0)
-        .toISOString()
-        .split('T')[0],
+      dueDate: '2026-03-31',
     },
   });
 
+  const handlePresetChange = (presetTitle: string) => {
+    setSelectedPreset(presetTitle);
+    const preset = PRESET_PENSIONS.find((p) => p.title === presetTitle);
+    if (preset && preset.title !== 'CUSTOM') {
+      setValue('title', preset.title, { shouldValidate: true });
+      setValue('concept', preset.concept, { shouldValidate: true });
+      setValue('dueDate', preset.dueDate, { shouldValidate: true });
+    } else if (presetTitle === 'CUSTOM') {
+      setValue('title', '', { shouldValidate: true });
+      setValue('concept', 'PENSION', { shouldValidate: true });
+    }
+  };
+
   const onSubmit = (data: BulkCreateObligationsFormData) => {
-    bulkCreate(data, {
-      onSuccess: () => onClose(),
+    const payload = {
+      ...data,
+      classroomId: data.classroomId?.trim() === '' ? undefined : data.classroomId,
+    };
+    bulkCreate(payload, {
+      onSuccess: (res) => {
+        const count = res.count || 0;
+        const skipped = res.skippedCount || 0;
+        toast.success(
+          `✨ Cronograma generado: Se emitieron ${count} pensiones correctamente${
+            skipped > 0 ? ` (${skipped} omitidas por ya estar al día)` : ''
+          }.`
+        );
+        onClose();
+      },
+      onError: (err: any) => {
+        toast.error(err?.response?.data?.message || 'Error al generar el cronograma masivo.');
+      },
     });
   };
 
@@ -50,7 +98,7 @@ export const BulkObligationModal: React.FC<BulkObligationModalProps> = ({ onClos
                 Generar Cronograma Masivo de Pagos
               </h2>
               <p className="text-xs text-muted-foreground mt-1">
-                Genera cobros de pensiones para todos los alumnos matriculados.
+                Selecciona la pensión del mes correspondiente para emitirla masivamente.
               </p>
             </div>
           </div>
@@ -71,6 +119,25 @@ export const BulkObligationModal: React.FC<BulkObligationModalProps> = ({ onClos
             </div>
           )}
 
+          {/* Selector de Mes / Pensión Predeterminada */}
+          <div className="space-y-1">
+            <label className="text-xs font-semibold uppercase tracking-wide text-foreground flex items-center gap-1">
+              <Calendar className="w-3.5 h-3.5 text-primary" />
+              <span>Seleccionar Mes / Pensión a Cobrar</span>
+            </label>
+            <select
+              value={selectedPreset}
+              onChange={(e) => handlePresetChange(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer shadow-sm"
+            >
+              {PRESET_PENSIONS.map((p) => (
+                <option key={p.title} value={p.title}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Alcance / Sección */}
           <div className="space-y-1">
             <label className="text-xs font-semibold uppercase tracking-wide text-foreground flex items-center gap-1">
@@ -79,7 +146,7 @@ export const BulkObligationModal: React.FC<BulkObligationModalProps> = ({ onClos
             </label>
             <select
               {...register('classroomId')}
-              className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-xs font-medium text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
             >
               <option value="">✨ TODO EL COLEGIO (Todos los matriculados)</option>
               {classrooms.map((c) => (
@@ -88,29 +155,30 @@ export const BulkObligationModal: React.FC<BulkObligationModalProps> = ({ onClos
                 </option>
               ))}
             </select>
-            <p className="text-[11px] text-muted-foreground">
-              Puedes aplicar la pensión a todo el colegio o solo a un aula específica.
-            </p>
           </div>
 
-          {/* Título y Concepto */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase tracking-wide text-foreground">
-                Título del Cobro
-              </label>
-              <Input placeholder="Ej: Pensión Marzo 2026" {...register('title')} className="h-9 text-xs" />
-              {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
-            </div>
+          {/* Si se selecciona CUSTOM o desea personalizar el título */}
+          {selectedPreset === 'CUSTOM' ? (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold uppercase tracking-wide text-foreground">
+                  Título del Cobro Personalizado
+                </label>
+                <Input placeholder="Ej: Talleres de Verano" {...register('title')} className="h-9 text-xs" />
+                {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
+              </div>
 
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase tracking-wide text-foreground">
-                Concepto
-              </label>
-              <Input placeholder="Ej: PENSION, MATRICULA" {...register('concept')} className="h-9 text-xs" />
-              {errors.concept && <p className="text-xs text-destructive">{errors.concept.message}</p>}
+              <div className="space-y-1">
+                <label className="text-xs font-semibold uppercase tracking-wide text-foreground">
+                  Concepto
+                </label>
+                <Input placeholder="Ej: TALLER" {...register('concept')} className="h-9 text-xs" />
+                {errors.concept && <p className="text-xs text-destructive">{errors.concept.message}</p>}
+              </div>
             </div>
-          </div>
+          ) : (
+            <input type="hidden" {...register('title')} />
+          )}
 
           {/* Monto y Fecha Vencimiento */}
           <div className="grid grid-cols-2 gap-3">
@@ -118,7 +186,7 @@ export const BulkObligationModal: React.FC<BulkObligationModalProps> = ({ onClos
               <label className="text-xs font-semibold uppercase tracking-wide text-foreground">
                 Monto a Cobrar (S/)
               </label>
-              <Input type="number" step="0.01" {...register('amountDue')} className="h-9 text-sm font-semibold" />
+              <Input type="number" step="0.01" {...register('amountDue')} className="h-9 text-sm font-bold text-primary" />
               {errors.amountDue && <p className="text-xs text-destructive">{errors.amountDue.message}</p>}
             </div>
 

@@ -1,6 +1,7 @@
 import { AppError } from '../../core/errors/app-error';
 import { prisma } from '../../config/prisma';
 import { sendReminderNotification } from '../../utils/notification.util';
+import type { PaginatedResult } from '../../core/interfaces/global.interfaces';
 import type { PaymentRepository } from './payment.repository';
 import type {
   BulkCreateObligationsDto,
@@ -17,8 +18,8 @@ export class PaymentService {
 
   async getAllObligations(
     schoolId: string,
-    filters: ObligationFilterDto = {},
-  ): Promise<PaymentObligation[]> {
+    filters: ObligationFilterDto = { page: 1, limit: 10 },
+  ): Promise<PaginatedResult<PaymentObligation>> {
     return this.paymentRepository.findAllObligationsBySchool(schoolId, filters);
   }
 
@@ -46,13 +47,30 @@ export class PaymentService {
     schoolId: string,
     createObligationDto: CreateObligationDto,
   ): Promise<PaymentObligation> {
+    const existing = await prisma.paymentObligation.findFirst({
+      where: {
+        schoolId,
+        enrollmentId: createObligationDto.enrollmentId,
+        title: { equals: createObligationDto.title, mode: 'insensitive' },
+        concept: { equals: createObligationDto.concept, mode: 'insensitive' },
+        status: { not: 'CANCELLED' },
+      },
+    });
+
+    if (existing) {
+      throw new AppError(
+        `Ya existe una pensión/obligación emitida con el título "${createObligationDto.title}" para este estudiante.`,
+        400,
+      );
+    }
+
     return this.paymentRepository.createObligation(schoolId, createObligationDto);
   }
 
   async bulkCreateObligations(
     schoolId: string,
     bulkDto: BulkCreateObligationsDto,
-  ): Promise<{ count: number }> {
+  ): Promise<{ count: number; skippedCount: number; totalMatriculados: number }> {
     // Buscar matrículas activas del colegio (filtrando por aula si se provee)
     const enrollments = await prisma.enrollment.findMany({
       where: {
@@ -68,12 +86,41 @@ export class PaymentService {
     }
 
     const enrollmentIds = enrollments.map((e) => e.id);
-    return this.paymentRepository.bulkCreateObligations(schoolId, enrollmentIds, {
+
+    // Buscar obligaciones ya creadas para este mismo título y concepto
+    const existingObligations = await prisma.paymentObligation.findMany({
+      where: {
+        schoolId,
+        enrollmentId: { in: enrollmentIds },
+        title: { equals: bulkDto.title, mode: 'insensitive' },
+        concept: { equals: bulkDto.concept, mode: 'insensitive' },
+        status: { not: 'CANCELLED' },
+      },
+      select: { enrollmentId: true },
+    });
+
+    const existingEnrollmentIds = new Set(existingObligations.map((o) => o.enrollmentId));
+    const newEnrollmentIds = enrollmentIds.filter((id) => !existingEnrollmentIds.has(id));
+
+    if (newEnrollmentIds.length === 0) {
+      throw new AppError(
+        `Todas las matrículas seleccionadas (${enrollments.length}) ya tienen registrada la pensión "${bulkDto.title}".`,
+        400,
+      );
+    }
+
+    const createdResult = await this.paymentRepository.bulkCreateObligations(schoolId, newEnrollmentIds, {
       title: bulkDto.title,
       concept: bulkDto.concept,
       amountDue: bulkDto.amountDue,
       dueDate: bulkDto.dueDate,
     });
+
+    return {
+      count: createdResult.count,
+      skippedCount: existingEnrollmentIds.size,
+      totalMatriculados: enrollments.length,
+    };
   }
 
   async updateObligation(
@@ -304,7 +351,7 @@ export class PaymentService {
     schoolId: string,
     channel: 'WHATSAPP' | 'EMAIL' | 'BOTH' = 'BOTH',
   ) {
-    const obligations = await this.getAllObligations(schoolId, { status: 'PENDING' });
+    const { data: obligations } = await this.getAllObligations(schoolId, { status: 'PENDING', page: 1, limit: 1000 });
     const now = new Date();
     const overdueObligations = obligations.filter((o) => new Date(o.dueDate) < now);
 

@@ -8,7 +8,6 @@ import {
   Layers,
   Send,
   FileText,
-  School,
   Ban,
   Search,
 } from 'lucide-react';
@@ -27,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
+import { Pagination } from '@/components/ui/Pagination';
 import { RegisterTransactionModal } from '../components/RegisterTransactionModal';
 import { BulkObligationModal } from '../components/BulkObligationModal';
 import { ReceiptModal } from '../components/ReceiptModal';
@@ -38,7 +38,9 @@ export const PaymentsPage: React.FC = () => {
   const isParent = user?.role === 'PARENT';
   const isAdmin = user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN';
 
-  // State
+  // State de paginación y filtros
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [selectedClassroomId, setSelectedClassroomId] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -51,13 +53,15 @@ export const PaymentsPage: React.FC = () => {
 
   // Queries & Mutations
   const { data: classrooms = [] } = useClassrooms();
-  const { data: financialSummary, isLoading: isLoadingSummary } = useFinancialSummary();
+  const { data: financialSummary, isLoading: isLoadingSummary } = useFinancialSummary(isAdmin);
 
   const {
-    data: adminObligations = [],
+    data: adminObligationsResponse,
     isLoading: isLoadingAdminObligations,
   } = usePayments(
     {
+      page,
+      limit,
       status: filterStatus !== 'ALL' ? (filterStatus as ObligationStatus) : undefined,
       classroomId: selectedClassroomId || undefined,
       search: searchTerm || undefined,
@@ -68,10 +72,13 @@ export const PaymentsPage: React.FC = () => {
   const {
     data: parentObligations = [],
     isLoading: isLoadingParentObligations,
-  } = useParentPayments();
+  } = useParentPayments(isParent);
 
   const { mutate: sendBulkReminders, isPending: isSendingBulk } = useSendBulkReminders();
   const { mutate: cancelObligation, isPending: isCancelling } = useCancelObligation();
+
+  const adminObligations = adminObligationsResponse?.data || [];
+  const obligationsMeta = adminObligationsResponse?.meta;
 
   const obligations = isParent ? parentObligations : adminObligations;
   const isLoading = isParent ? isLoadingParentObligations : isLoadingAdminObligations;
@@ -83,7 +90,7 @@ export const PaymentsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-8">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
         <div>
@@ -100,187 +107,175 @@ export const PaymentsPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Admin Action Buttons */}
         {isAdmin && (
-          <div className="flex items-center gap-2 flex-wrap self-start md:self-auto">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
               size="sm"
+              className="gap-2 text-xs"
               onClick={handleBulkReminders}
-              isLoading={isSendingBulk}
-              className="gap-1.5 text-xs text-amber-600 dark:text-amber-400 border-amber-500/30"
+              disabled={isSendingBulk}
             >
-              <Send className="w-3.5 h-3.5" />
-              <span>Recordatorios Morosos</span>
+              <Send className="w-3.5 h-3.5 text-amber-500" />
+              <span>{isSendingBulk ? 'Enviando...' : 'Recordatorios Morosos'}</span>
             </Button>
-
             <Button
               size="sm"
+              className="gap-2 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
               onClick={() => setIsBulkModalOpen(true)}
-              className="gap-1.5 text-xs"
             >
               <Layers className="w-3.5 h-3.5" />
-              <span>Generar Cronograma Masivo</span>
+              <span>Generar Pensiones</span>
             </Button>
           </div>
         )}
       </div>
 
-      {/* Admin KPI Financial Summary Cards */}
+      {/* Financial Summary Cards (Solo Admins) */}
       {isAdmin && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-card">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Recaudación Total</CardTitle>
-              <DollarSign className="w-4 h-4 text-emerald-500" />
+              <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Total Proyectado</CardTitle>
+              <DollarSign className="w-4 h-4 text-primary" />
             </CardHeader>
             <CardContent>
               {isLoadingSummary ? (
-                <Skeleton className="h-8 w-24" />
+                <Skeleton className="h-7 w-24" />
               ) : (
-                <>
-                  <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                    S/ {financialSummary?.totalCollected.toFixed(2) || '0.00'}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Cobrado exitosamente</p>
-                </>
+                <div className="text-xl font-extrabold text-foreground">
+                  S/ {financialSummary?.totalExpected.toFixed(2) || '0.00'}
+                </div>
               )}
+              <p className="text-[11px] text-muted-foreground mt-1">Obligaciones emitidas</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-card">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Por Cobrar (Pendiente)</CardTitle>
+              <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Recaudado (Caja)</CardTitle>
+              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+            </CardHeader>
+            <CardContent>
+              {isLoadingSummary ? (
+                <Skeleton className="h-7 w-24" />
+              ) : (
+                <div className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400">
+                  S/ {financialSummary?.totalCollected.toFixed(2) || '0.00'}
+                </div>
+              )}
+              <p className="text-[11px] text-muted-foreground mt-1">Pagos confirmados</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Pendiente de Cobro</CardTitle>
               <Clock className="w-4 h-4 text-amber-500" />
             </CardHeader>
             <CardContent>
               {isLoadingSummary ? (
-                <Skeleton className="h-8 w-24" />
+                <Skeleton className="h-7 w-24" />
               ) : (
-                <>
-                  <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-                    S/ {financialSummary?.totalPending.toFixed(2) || '0.00'}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Saldo pendiente acumulado</p>
-                </>
+                <div className="text-xl font-extrabold text-amber-600 dark:text-amber-400">
+                  S/ {financialSummary?.totalPending.toFixed(2) || '0.00'}
+                </div>
               )}
+              <p className="text-[11px] text-muted-foreground mt-1">Por cobrar este mes</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-card">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Total Proyectado</CardTitle>
-              <CheckCircle2 className="w-4 h-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              {isLoadingSummary ? (
-                <Skeleton className="h-8 w-24" />
-              ) : (
-                <>
-                  <div className="text-2xl font-bold text-foreground">
-                    S/ {financialSummary?.totalExpected.toFixed(2) || '0.00'}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">{financialSummary?.totalObligations} obligaciones en total</p>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Morosidad (Deudas Vencidas)</CardTitle>
+              <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Alumnos en Mora</CardTitle>
               <AlertCircle className="w-4 h-4 text-destructive" />
             </CardHeader>
             <CardContent>
               {isLoadingSummary ? (
-                <Skeleton className="h-8 w-24" />
+                <Skeleton className="h-7 w-20" />
               ) : (
-                <>
-                  <div className="text-2xl font-bold text-destructive">
-                    {financialSummary?.overdueCount || 0}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Alumnos con pago vencido</p>
-                </>
+                <div className="text-xl font-extrabold text-destructive">
+                  {financialSummary?.overdueCount || 0}
+                </div>
               )}
+              <p className="text-[11px] text-muted-foreground mt-1">Pensiones vencidas</p>
             </CardContent>
           </Card>
         </div>
       )}
 
-      {/* Filters Bar */}
+      {/* Controls & Table Container */}
       <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-          {/* Search & Classroom Filter */}
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por concepto o estudiante..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 h-9 text-xs"
-              />
-            </div>
-
-            {isAdmin && (
-              <div className="flex items-center gap-1.5 bg-card p-1.5 rounded-lg border border-border">
-                <School className="w-4 h-4 text-muted-foreground ml-1 shrink-0" />
-                <select
-                  value={selectedClassroomId}
-                  onChange={(e) => setSelectedClassroomId(e.target.value)}
-                  className="h-6 border-none bg-transparent text-xs font-semibold focus-visible:ring-0 text-foreground cursor-pointer"
-                >
-                  <option value="">— Todas las Secciones —</option>
-                  {classrooms.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.grade}° {c.section} ({c.educationLevel})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+        {/* Filters Bar */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-xl bg-card border border-border shadow-sm">
+          <div className="relative w-full sm:w-80">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar alumno, DNI o concepto..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setPage(1);
+              }}
+              className="pl-9 h-9 text-xs rounded-xl"
+            />
           </div>
 
-          {/* Status Tabs */}
-          <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto">
-            {['ALL', 'PENDING', 'PARTIAL', 'PAID', 'CANCELLED'].map((status) => (
-              <button
-                key={status}
-                onClick={() => setFilterStatus(status)}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
-                  filterStatus === status
-                    ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
-                    : 'bg-muted/60 text-muted-foreground hover:bg-muted'
-                }`}
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            {/* Filter by Status */}
+            <select
+              value={filterStatus}
+              onChange={(e) => {
+                setFilterStatus(e.target.value);
+                setPage(1);
+              }}
+              className="rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
+            >
+              <option value="ALL">Todos los Estados</option>
+              <option value="PENDING">Pendiente</option>
+              <option value="PARTIAL">Pago Parcial</option>
+              <option value="PAID">Pagado (Al día)</option>
+              <option value="CANCELLED">Anulado</option>
+            </select>
+
+            {/* Filter by Classroom */}
+            {isAdmin && (
+              <select
+                value={selectedClassroomId}
+                onChange={(e) => {
+                  setSelectedClassroomId(e.target.value);
+                  setPage(1);
+                }}
+                className="rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
               >
-                {status === 'ALL'
-                  ? 'Todos'
-                  : status === 'PENDING'
-                  ? 'Pendientes'
-                  : status === 'PARTIAL'
-                  ? 'Parciales'
-                  : status === 'PAID'
-                  ? 'Pagados'
-                  : 'Anulados'}
-              </button>
-            ))}
+                <option value="">Todas las Aulas</option>
+                {classrooms.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.grade}° "{c.section}" - {c.educationLevel}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         </div>
 
-        {/* Obligations Table */}
+        {/* Table */}
         {isLoading ? (
-          <Skeleton className="h-64 w-full rounded-md" />
+          <div className="space-y-3">
+            <Skeleton className="h-10 w-full rounded-xl" />
+            <Skeleton className="h-64 w-full rounded-xl" />
+          </div>
         ) : (
-          <div className="rounded-md border border-border bg-card shadow-sm overflow-x-auto">
+          <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
             <Table>
               <TableHeader className="bg-muted/40">
                 <TableRow>
-                  <TableHead className="text-xs font-bold uppercase">Estudiante / Aula</TableHead>
-                  <TableHead className="text-xs font-bold uppercase">Concepto / Cobro</TableHead>
-                  <TableHead className="text-xs font-bold uppercase">Monto</TableHead>
-                  <TableHead className="text-xs font-bold uppercase">Vencimiento</TableHead>
-                  <TableHead className="text-xs font-bold uppercase">Estado</TableHead>
-                  <TableHead className="text-xs font-bold uppercase">Acciones / Cobranza</TableHead>
+                  <TableHead className="text-xs font-bold uppercase tracking-wider">Estudiante / Aula</TableHead>
+                  <TableHead className="text-xs font-bold uppercase tracking-wider">Concepto</TableHead>
+                  <TableHead className="text-xs font-bold uppercase tracking-wider">Monto Soles</TableHead>
+                  <TableHead className="text-xs font-bold uppercase tracking-wider">Vencimiento</TableHead>
+                  <TableHead className="text-xs font-bold uppercase tracking-wider">Estado</TableHead>
+                  <TableHead className="text-xs font-bold uppercase tracking-wider text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -288,47 +283,51 @@ export const PaymentsPage: React.FC = () => {
                   obligations.map((item) => {
                     const student = item.enrollment?.student;
                     const classroom = item.enrollment?.classroom;
-                    const studentName = student
-                      ? `${student.lastNamePaternal} ${student.lastNameMaternal}, ${student.firstNames}`
-                      : 'Estudiante';
+                    const isOverdue = item.status === 'PENDING' && new Date(item.dueDate) < new Date();
 
                     return (
-                      <TableRow key={item.id} className="hover:bg-muted/20">
+                      <TableRow key={item.id} className="hover:bg-muted/30 transition-colors">
                         <TableCell>
-                          <div className="font-semibold text-foreground text-sm">{studentName}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {classroom ? `${classroom.grade}° ${classroom.section}` : '—'}
+                          <div>
+                            <div className="font-semibold text-foreground text-sm">
+                              {student ? `${student.lastNamePaternal} ${student.lastNameMaternal}, ${student.firstNames}` : 'Alumno s/n'}
+                            </div>
+                            <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                              {student?.documentId && <span className="font-mono">DNI: {student.documentId}</span>}
+                              {classroom && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-secondary text-secondary-foreground">
+                                  {classroom.grade}° "{classroom.section}"
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </TableCell>
-
                         <TableCell>
-                          <div className="font-semibold text-foreground">{item.title}</div>
-                          <div className="text-xs text-muted-foreground font-mono">{item.concept}</div>
+                          <div>
+                            <div className="font-medium text-foreground text-xs">{item.title}</div>
+                            <div className="text-[11px] text-muted-foreground">{item.concept}</div>
+                          </div>
                         </TableCell>
-
-                        <TableCell className="font-bold text-foreground">
-                          S/ {item.amountDue.toFixed(2)}
-                        </TableCell>
-
-                        <TableCell className="text-xs text-muted-foreground">
-                          {new Date(item.dueDate).toLocaleDateString('es-PE', {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
-                        </TableCell>
-
                         <TableCell>
-                          {item.status === 'PAID' && <Badge variant="success">PAGADO</Badge>}
-                          {item.status === 'PENDING' && <Badge variant="destructive">PENDIENTE</Badge>}
-                          {item.status === 'PARTIAL' && <Badge variant="warning">PARCIAL</Badge>}
-                          {item.status === 'CANCELLED' && <Badge variant="outline">ANULADO</Badge>}
+                          <span className="font-extrabold text-foreground text-sm">
+                            S/ {item.amountDue.toFixed(2)}
+                          </span>
                         </TableCell>
-
-                        {/* Action Buttons */}
                         <TableCell>
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            {/* Admin: Register Payment (Cobrar) */}
+                          <span className={`text-xs ${isOverdue ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
+                            {new Date(item.dueDate).toLocaleDateString('es-PE')}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {item.status === 'PAID' && <Badge variant="success">Pagado</Badge>}
+                          {item.status === 'PENDING' && !isOverdue && <Badge variant="warning">Pendiente</Badge>}
+                          {item.status === 'PENDING' && isOverdue && <Badge variant="destructive">Vencido / Mora</Badge>}
+                          {item.status === 'PARTIAL' && <Badge variant="secondary">Pago Parcial</Badge>}
+                          {item.status === 'CANCELLED' && <Badge variant="outline">Anulado</Badge>}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {/* Registrar Cobro Manual */}
                             {isAdmin && item.status !== 'PAID' && item.status !== 'CANCELLED' && (
                               <Button
                                 size="sm"
@@ -340,22 +339,20 @@ export const PaymentsPage: React.FC = () => {
                               </Button>
                             )}
 
-                            {/* View Receipt Voucher */}
+                            {/* Ver Recibo / Boleta */}
                             {item.transactions && item.transactions.length > 0 && (
                               <Button
                                 size="sm"
                                 variant="outline"
                                 className="h-7 text-xs gap-1"
-                                onClick={() =>
-                                  setSelectedTransactionIdForReceipt(item.transactions[0].id)
-                                }
+                                onClick={() => setSelectedTransactionIdForReceipt(item.transactions[0].id)}
                               >
-                                <FileText className="w-3.5 h-3.5" />
-                                <span>Ver Recibo</span>
+                                <FileText className="w-3.5 h-3.5 text-primary" />
+                                <span>Boleta</span>
                               </Button>
                             )}
 
-                            {/* Admin: Send Reminder WA/Email */}
+                            {/* Admin: Recordatorio Individual */}
                             {isAdmin && item.status !== 'PAID' && item.status !== 'CANCELLED' && (
                               <Button
                                 size="sm"
@@ -387,12 +384,27 @@ export const PaymentsPage: React.FC = () => {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
-                      No hay obligaciones de pago registradas.
+                      No hay obligaciones de pago registradas con los filtros seleccionados.
                     </TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
+
+            {/* Paginación Conectada al Backend */}
+            {!isParent && obligationsMeta && (
+              <Pagination
+                currentPage={page}
+                totalPages={obligationsMeta.totalPages}
+                totalItems={obligationsMeta.total}
+                limit={limit}
+                onPageChange={(p) => setPage(p)}
+                onLimitChange={(l) => {
+                  setLimit(l);
+                  setPage(1);
+                }}
+              />
+            )}
           </div>
         )}
       </div>

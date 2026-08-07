@@ -1,16 +1,21 @@
 import { Request, Response } from 'express';
-import { createUserSchema, updateUserSchema } from './user.schema';
+import { createUserSchema, updateUserSchema, userFilterSchema } from './user.schema';
 import type { UserService } from './user.service';
 
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  /** GET /api/users?role=TEACHER | PARENT | SCHOOL_ADMIN */
+  /** GET /api/users?role=TEACHER&page=1&limit=10&search=juan */
   getAll = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
-    const role = request.query.role as string | undefined;
-    const users = await this.userService.getAllUsers(schoolId, role);
-    response.status(200).json({ status: 'success', data: users });
+    const queryFilters = userFilterSchema.parse(request.query);
+    const result = await this.userService.getAllUsers(schoolId, queryFilters);
+
+    response.status(200).json({
+      status: 'success',
+      data: result.data,
+      meta: result.meta,
+    });
   };
 
   getById = async (request: Request, response: Response): Promise<void> => {

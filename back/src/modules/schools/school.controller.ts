@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { createSchoolSchema, updateSchoolSchema } from './school.schema';
 import type { SchoolService } from './school.service';
+import { AppError } from '../../core/errors/app-error';
 
 export class SchoolController {
   constructor(private readonly schoolService: SchoolService) {}
@@ -12,6 +13,12 @@ export class SchoolController {
 
   getById = async (request: Request, response: Response): Promise<void> => {
     const id = request.params.id as string;
+    const user = request.user!;
+
+    if (user.role !== 'SUPER_ADMIN' && user.schoolId !== id) {
+      throw new AppError('No tienes acceso a los datos de este colegio', 403);
+    }
+
     const school = await this.schoolService.getSchoolById(id);
     response.status(200).json({ status: 'success', data: school });
   };
@@ -24,6 +31,12 @@ export class SchoolController {
 
   update = async (request: Request, response: Response): Promise<void> => {
     const id = request.params.id as string;
+    const user = request.user!;
+
+    if (user.role !== 'SUPER_ADMIN' && user.schoolId !== id) {
+      throw new AppError('No tienes permiso para actualizar los datos de este colegio', 403);
+    }
+
     const updateSchoolDto = updateSchoolSchema.parse(request.body);
     const school = await this.schoolService.updateSchool(id, updateSchoolDto);
     response.status(200).json({ status: 'success', data: school });

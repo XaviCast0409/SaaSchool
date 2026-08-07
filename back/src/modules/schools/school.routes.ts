@@ -12,9 +12,9 @@ export const schoolRouter = Router();
 
 schoolRouter.use(authMiddleware);
 
-// Solo SUPER_ADMIN puede crear/desactivar colegios
+// Rutas administrativas de Colegios
 schoolRouter.get('/', authorizeRoles('SUPER_ADMIN'), schoolController.getAll);
 schoolRouter.post('/', authorizeRoles('SUPER_ADMIN'), schoolController.create);
-schoolRouter.get('/:id', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'), schoolController.getById);
-schoolRouter.patch('/:id', authorizeRoles('SUPER_ADMIN'), schoolController.update);
+schoolRouter.get('/:id', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT'), schoolController.getById);
+schoolRouter.patch('/:id', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'), schoolController.update);
 schoolRouter.delete('/:id', authorizeRoles('SUPER_ADMIN'), schoolController.deactivate);

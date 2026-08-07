@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { Role } from '@prisma/client';
 
 export const createUserSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -9,10 +10,23 @@ export const createUserSchema = z.object({
   role: z.enum(['SCHOOL_ADMIN', 'TEACHER', 'PARENT']).default('PARENT'),
   documentType: z.enum(['DNI', 'CE', 'PASSPORT', 'PNA', 'OTHER']).default('DNI'),
   documentId: z.string().optional(),
-  cellphone: z.string().optional(),
+  cellphone: z
+    .string()
+    .regex(/^(\+?51)?\s?9\d{8}$/, 'Número de celular peruano inválido (debe tener 9 dígitos y empezar con 9)')
+    .optional()
+    .nullable()
+    .or(z.string().length(0)),
 });
 
 export const updateUserSchema = createUserSchema.omit({ password: true }).partial();
 
+export const userFilterSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(10),
+  role: z.nativeEnum(Role).optional(),
+  search: z.string().optional(),
+});
+
 export type CreateUserDto = z.infer<typeof createUserSchema>;
 export type UpdateUserDto = z.infer<typeof updateUserSchema>;
+export type UserFilterDto = z.infer<typeof userFilterSchema>;
