@@ -10,10 +10,21 @@ export const useGetActiveSchool = () => {
     queryKey: ['school', schoolId],
     queryFn: async () => {
       if (!schoolId) return null;
-      const response = await api.get<{ status: string; data: School }>(`/schools/${schoolId}`);
-      return response.data.data;
+      try {
+        const response = await api.get<{ status: string; data: School }>(`/schools/${schoolId}`);
+        return response.data.data;
+      } catch (err: any) {
+        if (err?.response?.status === 404) {
+          useAuthStore.getState().logout();
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
+        }
+        throw err;
+      }
     },
     enabled: !!schoolId,
+    retry: false,
   });
 };
 

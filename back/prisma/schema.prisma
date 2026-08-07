@@ -116,6 +116,7 @@ model School {
   district        String?
   plan            SubscriptionPlan @default(BASIC) // Plan contratado (BASIC, PRO, ENTERPRISE)
   planExpiresAt   DateTime?        // Fecha límite de vigencia del plan
+  offeredLevels   EducationLevel[] @default([PRIMARY, SECONDARY]) // Niveles que opera el colegio
   isActive        Boolean          @default(true)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
@@ -337,6 +338,9 @@ model CourseAssignment {
   teacher        User           @relation(fields: [teacherId], references: [id]) 
   
   gradeEntries   GradeEntry[]
+
+  // Un curso en un aula tiene exactamente un docente asignado
+  @@unique([classroomId, areaId])
 }
 
 model GradeEntry {

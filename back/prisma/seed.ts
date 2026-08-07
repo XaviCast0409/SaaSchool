@@ -118,6 +118,7 @@ async function main(): Promise<void> {
       department: 'LIMA',
       province: 'LIMA',
       district: 'SAN MIGUEL',
+      offeredLevels: ['INITIAL', 'PRIMARY', 'SECONDARY'],
       isActive: true,
     },
   });
@@ -134,6 +135,7 @@ async function main(): Promise<void> {
       department: 'AREQUIPA',
       province: 'AREQUIPA',
       district: 'AREQUIPA',
+      offeredLevels: ['INITIAL', 'PRIMARY', 'SECONDARY'],
       isActive: true,
     },
   });

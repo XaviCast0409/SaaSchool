@@ -20,6 +20,8 @@ import { gradeRouter } from './modules/grades/grade.routes';
 import { attendanceRouter } from './modules/attendance/attendance.routes';
 import { familyRelationshipRouter } from './modules/family-relationships/family-relationship.routes';
 import { announcementRouter } from './modules/announcements/announcement.routes';
+import { catalogRouter } from './modules/catalog/catalog.routes';
+import { courseAssignmentRouter } from './modules/course-assignments/course-assignment.routes';
 
 const app = express();
 
@@ -63,6 +65,10 @@ app.use(`${API_PREFIX}/grades`, gradeRouter);
 app.use(`${API_PREFIX}/attendance`, attendanceRouter);
 app.use(`${API_PREFIX}/family-relationships`, familyRelationshipRouter);
 app.use(`${API_PREFIX}/announcements`, announcementRouter);
+
+// Catálogos MINEDU — sin autenticación (datos de referencia del sistema)
+app.use(`${API_PREFIX}/catalog`, catalogRouter);
+app.use(`${API_PREFIX}/course-assignments`, courseAssignmentRouter);
 
 // ============================================================================
 // RUTA NO ENCONTRADA (404)

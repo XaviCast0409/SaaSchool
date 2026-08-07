@@ -20,13 +20,19 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Interceptor para manejar tokens expirados (401) automáticamente
+// Interceptor para manejar tokens o sesiones invalidadas (401) automáticamente
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status;
+
+    if (status === 401) {
       useAuthStore.getState().logout();
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
     }
+
     return Promise.reject(error);
   }
 );

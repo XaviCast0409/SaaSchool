@@ -16,6 +16,7 @@ import {
   Settings,
   School as SchoolIcon,
   ShieldCheck,
+  UserCheck,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/button';
@@ -51,6 +52,9 @@ export const DashboardLayout: React.FC = () => {
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT'], minPlan: 'BASIC' },
     { label: 'Comunicados', path: '/announcements', icon: Megaphone, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT'], minPlan: 'BASIC' },
     { label: 'Directorio', path: '/directory', icon: Users, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'], minPlan: 'BASIC' },
+    { label: 'Grados y Aulas', path: '/classrooms', icon: SchoolIcon, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'], minPlan: 'BASIC' },
+    { label: 'Cursos y Áreas SIAGIE', path: '/curricular-areas', icon: BookOpenCheck, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'], minPlan: 'BASIC' },
+    { label: 'Carga Horaria Docente', path: '/teacher-assignments', icon: UserCheck, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'], minPlan: 'BASIC' },
     { label: 'Estudiantes', path: '/students', icon: GraduationCap, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT'], minPlan: 'BASIC' },
     { label: 'Cobranzas y Pagos', path: '/payments', icon: CreditCard, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'PARENT'], minPlan: 'BASIC' },
     { label: 'Asistencia', path: '/attendance', icon: CalendarCheck, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'], minPlan: 'BASIC' },

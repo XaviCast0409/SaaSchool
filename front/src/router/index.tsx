@@ -10,6 +10,9 @@ import { GradesPage } from '@/features/grades/pages/GradesPage';
 import { AttendancePage } from '@/features/attendance/pages/AttendancePage';
 import { DirectoryPage } from '@/features/users/pages/DirectoryPage';
 import { AnnouncementsPage } from '@/features/announcements/pages/AnnouncementsPage';
+import { ClassroomsPage } from '@/features/classrooms/pages/ClassroomsPage';
+import { CurricularAreasPage } from '@/features/curricular-areas/pages/CurricularAreasPage';
+import { TeacherAssignmentsPage } from '@/features/course-assignments/pages/TeacherAssignmentsPage';
 import { SuperAdminPage } from '@/features/super-admin/pages/SuperAdminPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -34,6 +37,14 @@ const RoleGuard: React.FC<{ allowedRoles: string[]; children: React.ReactNode }>
   children,
 }) => {
   const user = useAuthStore((state) => state.user);
+  const token = useAuthStore((state) => state.token);
+
+  // Si hay token pero user aún no está hidratado (primer render), no redirigimos.
+  // El ProtectedRoute padre ya maneja el caso de token ausente.
+  if (token && !user) {
+    return null; // Esperar hidratación del store desde localStorage
+  }
+
   if (!user || !allowedRoles.includes(user.role)) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -78,6 +89,30 @@ export const AppRouter: React.FC = () => {
             element={
               <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
                 <DirectoryPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="/classrooms"
+            element={
+              <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
+                <ClassroomsPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="/curricular-areas"
+            element={
+              <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
+                <CurricularAreasPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="/teacher-assignments"
+            element={
+              <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
+                <TeacherAssignmentsPage />
               </RoleGuard>
             }
           />
