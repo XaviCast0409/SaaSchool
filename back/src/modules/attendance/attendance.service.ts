@@ -1,12 +1,22 @@
 import { AppError } from '../../core/errors/app-error';
-import type { AttendanceRepository, AttendanceMonthlySummary } from './attendance.repository';
+import type {
+  AttendanceRepository,
+  AttendanceMonthlySummary,
+  AttendanceExportRow,
+  AttendanceMatrixData,
+  StudentAttendanceDetail,
+} from './attendance.repository';
 import type {
   AttendanceFilterDto,
   AttendanceSummaryQueryDto,
+  AttendanceExportQueryDto,
+  AttendanceMatrixQueryDto,
+  StudentAttendanceQueryDto,
   BulkAttendanceDto,
   CreateAttendanceDto,
   UpdateAttendanceDto,
 } from './attendance.schema';
+import type { PaginatedResult } from '../../core/interfaces/global.interfaces';
 import type { Attendance } from '@prisma/client';
 
 export class AttendanceService {
@@ -15,7 +25,7 @@ export class AttendanceService {
   async getAttendanceByFilters(
     schoolId: string,
     filters: AttendanceFilterDto,
-  ): Promise<Attendance[]> {
+  ): Promise<PaginatedResult<Attendance>> {
     return this.attendanceRepository.findBySchoolAndFilters(schoolId, filters);
   }
 
@@ -59,5 +69,35 @@ export class AttendanceService {
     query: AttendanceSummaryQueryDto,
   ): Promise<AttendanceMonthlySummary> {
     return this.attendanceRepository.getMonthlySummary(schoolId, query);
+  }
+
+  async getMonthlyExportData(
+    schoolId: string,
+    query: AttendanceExportQueryDto,
+  ): Promise<AttendanceExportRow[]> {
+    return this.attendanceRepository.getMonthlyExportData(schoolId, query);
+  }
+
+  async getMonthlyMatrixData(
+    schoolId: string,
+    query: AttendanceMatrixQueryDto,
+  ): Promise<AttendanceMatrixData> {
+    return this.attendanceRepository.getMonthlyMatrixData(schoolId, query);
+  }
+
+  async getStudentMonthlyDetail(
+    schoolId: string,
+    enrollmentId: string,
+    query: StudentAttendanceQueryDto,
+  ): Promise<StudentAttendanceDetail> {
+    try {
+      return await this.attendanceRepository.getStudentMonthlyDetail(
+        schoolId,
+        enrollmentId,
+        query,
+      );
+    } catch (err: any) {
+      throw new AppError(err.message || 'Error al obtener expediente de estudiante', 404);
+    }
   }
 }

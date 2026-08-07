@@ -7,7 +7,7 @@ import {
   flexRender,
   type ColumnDef,
 } from '@tanstack/react-table';
-import { Search, UserX, UserCheck, ChevronDown, ChevronUp, Pencil } from 'lucide-react';
+import { Search, UserX, UserCheck, Pencil } from 'lucide-react';
 import { useDeactivateUser, useReactivateUser } from '../api/useUserMutations';
 import { EditUserModal } from './EditUserModal';
 import { Input } from '@/components/ui/input';
@@ -22,30 +22,35 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { StudentParentsPanel } from '../family-relationships/components/StudentParentsPanel';
 import type { DirectoryUser } from '../types';
 import { useAuthStore } from '@/store/useAuthStore';
 
 interface UserTableProps {
   users: DirectoryUser[];
   isLoading: boolean;
-  /** Solo para PARENT: lista de padres disponibles para vincular a alumnos */
-  allParents?: DirectoryUser[];
-  /** Solo para columnas de Apoderado: mostrar subpanel de alumnos vinculados */
+  /** Opción para subpaneles si fuera necesario */
   showStudentLinks?: boolean;
 }
+
+const ROLE_CONFIG: Record<string, { label: string; badgeClass: string }> = {
+  TEACHER: {
+    label: 'Profesor / Docente',
+    badgeClass: 'bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/30 font-bold',
+  },
+  SCHOOL_ADMIN: {
+    label: 'Personal Administrativo',
+    badgeClass: 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30 font-bold',
+  },
+};
 
 export const UserTable: React.FC<UserTableProps> = ({
   users,
   isLoading,
-  allParents = [],
-  showStudentLinks = false,
 }) => {
   const { user: currentUser } = useAuthStore();
   const isAdmin = currentUser?.role === 'SCHOOL_ADMIN' || currentUser?.role === 'SUPER_ADMIN';
 
   const [globalFilter, setGlobalFilter] = useState('');
-  const [expandedParentId, setExpandedParentId] = useState<string | null>(null);
   const [selectedUserForEdit, setSelectedUserForEdit] = useState<DirectoryUser | null>(null);
 
   const { mutate: deactivate, isPending: isDeactivating } = useDeactivateUser();
@@ -67,17 +72,33 @@ export const UserTable: React.FC<UserTableProps> = ({
       ),
     },
     {
+      accessorKey: 'role',
+      header: 'Cargo / Rol Institucional',
+      cell: ({ row }) => {
+        const role = row.original.role;
+        const config = ROLE_CONFIG[role] || {
+          label: role,
+          badgeClass: 'bg-muted text-muted-foreground border-border',
+        };
+        return (
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] border ${config.badgeClass}`}>
+            {config.label}
+          </span>
+        );
+      },
+    },
+    {
       accessorKey: 'email',
-      header: 'Correo',
+      header: 'Correo Electrónico',
       cell: ({ row }) => (
-        <span className="text-xs text-muted-foreground truncate max-w-[180px] block">
+        <span className="text-xs text-muted-foreground truncate max-w-[180px] block font-mono">
           {row.original.email}
         </span>
       ),
     },
     {
       accessorKey: 'documentId',
-      header: 'Documento',
+      header: 'Documento ID',
       cell: ({ row }) => (
         <span className="text-xs font-mono">
           {row.original.documentType}: {row.original.documentId || '—'}
@@ -86,7 +107,7 @@ export const UserTable: React.FC<UserTableProps> = ({
     },
     {
       accessorKey: 'cellphone',
-      header: 'Celular',
+      header: 'Celular / Teléfono',
       cell: ({ row }) => (
         <span className="text-xs text-muted-foreground font-mono">
           {row.original.cellphone || '—'}
@@ -108,7 +129,6 @@ export const UserTable: React.FC<UserTableProps> = ({
       header: 'Acciones',
       cell: ({ row }) => {
         const user = row.original;
-        const isParent = user.role === 'PARENT';
 
         return (
           <div className="flex items-center gap-1.5">
@@ -150,26 +170,6 @@ export const UserTable: React.FC<UserTableProps> = ({
                   Reactivar
                 </Button>
               ))}
-
-            {/* Expand Apoderado → ver alumnos vinculados */}
-            {showStudentLinks && isParent && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 px-2 text-xs"
-                onClick={() =>
-                  setExpandedParentId(
-                    expandedParentId === user.id ? null : user.id
-                  )
-                }
-              >
-                {expandedParentId === user.id ? (
-                  <ChevronUp className="w-3.5 h-3.5" />
-                ) : (
-                  <ChevronDown className="w-3.5 h-3.5" />
-                )}
-              </Button>
-            )}
           </div>
         );
       },
@@ -202,15 +202,15 @@ export const UserTable: React.FC<UserTableProps> = ({
       <div className="relative max-w-sm">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Buscar por nombre, DNI o correo..."
+          placeholder="Buscar personal por nombre, DNI o correo..."
           value={globalFilter ?? ''}
           onChange={(e) => setGlobalFilter(e.target.value)}
-          className="pl-9 h-9"
+          className="pl-9 h-9 text-xs rounded-xl"
         />
       </div>
 
       {/* Table */}
-      <div className="rounded-md border border-border bg-card shadow-sm">
+      <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
         <Table>
           <TableHeader className="bg-muted/40">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -226,43 +226,18 @@ export const UserTable: React.FC<UserTableProps> = ({
           <TableBody>
             {table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
-                <React.Fragment key={row.id}>
-                  <TableRow className="hover:bg-muted/30">
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-
-                  {/* Subpanel de alumnos vinculados al apoderado */}
-                  {showStudentLinks &&
-                    row.original.role === 'PARENT' &&
-                    expandedParentId === row.original.id && (
-                      <TableRow>
-                        <TableCell
-                          colSpan={columns.length}
-                          className="p-0 bg-muted/20 border-t border-dashed border-border"
-                        >
-                          <div className="px-4 py-3">
-                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                              Alumnos vinculados a este apoderado:
-                            </p>
-                            <StudentParentsPanel
-                              studentId={row.original.id}
-                              studentName={`${row.original.firstName} ${row.original.lastNamePaternal}`}
-                              availableParents={allParents}
-                            />
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                </React.Fragment>
+                <TableRow key={row.id} className="hover:bg-muted/30 transition-colors">
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
               ))
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">
-                  No se encontraron usuarios.
+                  No se encontraron miembros del personal en esta lista.
                 </TableCell>
               </TableRow>
             )}
@@ -274,20 +249,20 @@ export const UserTable: React.FC<UserTableProps> = ({
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>
           Página {table.getState().pagination.pageIndex + 1} de {table.getPageCount() || 1} —{' '}
-          {table.getFilteredRowModel().rows.length} registros
+          {table.getFilteredRowModel().rows.length} miembros del personal
         </span>
         <div className="flex gap-2">
           <button
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
-            className="px-3 py-1 rounded border border-border hover:bg-accent disabled:opacity-40"
+            className="px-3 py-1 rounded-lg border border-border hover:bg-accent disabled:opacity-40 font-medium"
           >
             Anterior
           </button>
           <button
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
-            className="px-3 py-1 rounded border border-border hover:bg-accent disabled:opacity-40"
+            className="px-3 py-1 rounded-lg border border-border hover:bg-accent disabled:opacity-40 font-medium"
           >
             Siguiente
           </button>

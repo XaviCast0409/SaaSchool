@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { X, School as SchoolIcon, Save, Loader2 } from 'lucide-react';
+import { X, School as SchoolIcon, Save, Loader2, Lock } from 'lucide-react';
 import { useGetActiveSchool, useUpdateSchool } from '../api/useSchool';
 import { toast } from 'sonner';
 
@@ -18,7 +18,6 @@ interface SchoolFormValues {
   department: string;
   province: string;
   district: string;
-  plan?: 'BASIC' | 'PRO' | 'ENTERPRISE';
 }
 
 export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
@@ -42,7 +41,6 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
         department: school.department || '',
         province: school.province || '',
         district: school.district || '',
-        plan: school.plan || 'BASIC',
       });
     }
   }, [school, reset]);
@@ -69,7 +67,7 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
         <div className="flex items-center justify-between pb-4 border-b border-border">
           <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
             <SchoolIcon className="w-5 h-5 text-primary" />
-            Ajustes del Colegio Cliente
+            Ajustes de la Institución Educativa
           </h2>
           <button
             onClick={onClose}
@@ -209,21 +207,19 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
               </div>
             </div>
 
-            {/* Plan de Suscripción Contratado */}
-            <div className="p-3 rounded-xl bg-secondary/50 border border-border space-y-1.5">
-              <label className="block text-xs font-bold text-foreground uppercase">
-                Plan de Suscripción Contratado
-              </label>
-              <select
-                {...register('plan')}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
-              >
-                <option value="BASIC">Plan BASIC (Fase 1 - Directorio, Cobranzas, Asistencia, Comunicados)</option>
-                <option value="PRO">Plan PRO (Fase 2 - Fase 1 + Registro de Notas SIAGIE, Libretas)</option>
-                <option value="ENTERPRISE">Plan ENTERPRISE (Fase 3 - Todo Incluido + Facturación SUNAT)</option>
-              </select>
-              <p className="text-[11px] text-muted-foreground">
-                Cambiar el plan desbloquea o bloquea los módulos en tiempo real para todos los usuarios de este colegio.
+            {/* Plan de Suscripción Contratado (Solo Lectura) */}
+            <div className="p-4 rounded-xl bg-secondary/40 border border-border space-y-1.5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-foreground uppercase flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-amber-500" />
+                  Plan de Suscripción Contratado
+                </span>
+                <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-primary/10 text-primary border border-primary/20">
+                  PLAN {school?.plan || 'BASIC'}
+                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground pt-1">
+                🔒 El plan de suscripción solo puede ser gestionado por el Administrador General SaaS (SuperAdmin). Para cambiar tu plan, solicita un Upgrade a Soporte.
               </p>
             </div>
 

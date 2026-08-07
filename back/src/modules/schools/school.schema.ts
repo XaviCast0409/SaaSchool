@@ -31,7 +31,32 @@ export const createSchoolSchema = z.object({
   adminCellphone: z.string().optional().nullable().or(emptyToUndefined),
 });
 
-export const updateSchoolSchema = createSchoolSchema.partial();
+/**
+ * Schema de actualización: excluye los campos de onboarding del administrador y
+ * relaja la validación del teléfono para aceptar números ya guardados en cualquier
+ * formato válido (con/sin código de país, con/sin espacios).
+ */
+export const updateSchoolSchema = createSchoolSchema
+  .omit({
+    adminEmail: true,
+    adminPassword: true,
+    adminFirstName: true,
+    adminLastNamePaternal: true,
+    adminLastNameMaternal: true,
+    adminDocumentId: true,
+    adminCellphone: true,
+  })
+  .extend({
+    // En actualización, phone acepta cualquier formato de 6-20 caracteres (más permisivo)
+    phone: z
+      .string()
+      .min(6, 'El teléfono debe tener al menos 6 dígitos')
+      .max(20, 'El teléfono no puede exceder 20 caracteres')
+      .optional()
+      .nullable()
+      .or(emptyToUndefined),
+  })
+  .partial();
 
 export type CreateSchoolDto = z.infer<typeof createSchoolSchema>;
 export type UpdateSchoolDto = z.infer<typeof updateSchoolSchema>;

@@ -5,18 +5,21 @@ import {
   bulkAttendanceSchema,
   attendanceFilterSchema,
   attendanceSummaryQuerySchema,
+  attendanceExportQuerySchema,
+  attendanceMatrixQuerySchema,
+  studentAttendanceQuerySchema,
 } from './attendance.schema';
 import type { AttendanceService } from './attendance.service';
 
 export class AttendanceController {
   constructor(private readonly attendanceService: AttendanceService) {}
 
-  /** GET /api/attendance?date=YYYY-MM-DD&classroomId=UUID */
+  /** GET /api/attendance?date=YYYY-MM-DD&classroomId=UUID&page=1&limit=50 */
   getAll = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
     const filters = attendanceFilterSchema.parse(request.query);
-    const attendances = await this.attendanceService.getAttendanceByFilters(schoolId, filters);
-    response.status(200).json({ status: 'success', data: attendances });
+    const result = await this.attendanceService.getAttendanceByFilters(schoolId, filters);
+    response.status(200).json({ status: 'success', ...result });
   };
 
   /** GET /api/attendance/summary?month=YYYY-MM&classroomId=UUID */
@@ -25,6 +28,35 @@ export class AttendanceController {
     const query = attendanceSummaryQuerySchema.parse(request.query);
     const summary = await this.attendanceService.getMonthlySummary(schoolId, query);
     response.status(200).json({ status: 'success', data: summary });
+  };
+
+  /** GET /api/attendance/export?month=YYYY-MM&classroomId=UUID */
+  getExport = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const query = attendanceExportQuerySchema.parse(request.query);
+    const rows = await this.attendanceService.getMonthlyExportData(schoolId, query);
+    response.status(200).json({ status: 'success', data: rows });
+  };
+
+  /** GET /api/attendance/matrix?month=YYYY-MM&classroomId=UUID — Sábana mensual interactiva por días (1..31) */
+  getMatrix = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const query = attendanceMatrixQuerySchema.parse(request.query);
+    const matrix = await this.attendanceService.getMonthlyMatrixData(schoolId, query);
+    response.status(200).json({ status: 'success', data: matrix });
+  };
+
+  /** GET /api/attendance/student/:enrollmentId/summary?month=YYYY-MM — Expediente individual del alumno */
+  getStudentDetail = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const enrollmentId = String(request.params.enrollmentId);
+    const query = studentAttendanceQuerySchema.parse(request.query);
+    const detail = await this.attendanceService.getStudentMonthlyDetail(
+      schoolId,
+      enrollmentId,
+      query,
+    );
+    response.status(200).json({ status: 'success', data: detail });
   };
 
   /** GET /api/attendance/enrollment/:enrollmentId */

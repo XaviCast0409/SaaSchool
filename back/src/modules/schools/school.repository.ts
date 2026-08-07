@@ -81,17 +81,7 @@ export class SchoolRepository {
   }
 
   async update(schoolId: string, data: UpdateSchoolDto): Promise<School> {
-    const {
-      planExpiresAt,
-      adminEmail,
-      adminPassword,
-      adminFirstName,
-      adminLastNamePaternal,
-      adminLastNameMaternal,
-      adminDocumentId,
-      adminCellphone,
-      ...schoolData
-    } = data;
+    const { planExpiresAt, ...schoolData } = data;
 
     return prisma.school.update({
       where: { id: schoolId },

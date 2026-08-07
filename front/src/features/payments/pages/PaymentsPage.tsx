@@ -10,6 +10,7 @@ import {
   FileText,
   Ban,
   Search,
+  School,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import {
@@ -260,7 +261,19 @@ export const PaymentsPage: React.FC = () => {
         </div>
 
         {/* Table */}
-        {isLoading ? (
+        {!isParent && !selectedClassroomId && !searchTerm && filterStatus === 'ALL' ? (
+          <div className="py-16 text-center text-muted-foreground border border-dashed border-border rounded-xl space-y-3 bg-card p-6">
+            <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
+              <School className="w-6 h-6" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="font-bold text-base text-foreground">Selecciona un Aula o Filtra por Búsqueda</h3>
+              <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                Para mantener una velocidad óptima y evitar sobrecargar la base de datos, por favor selecciona un Aula/Sección o realiza una búsqueda por estudiante/concepto para consultar las pensiones y deudas.
+              </p>
+            </div>
+          </div>
+        ) : isLoading ? (
           <div className="space-y-3">
             <Skeleton className="h-10 w-full rounded-xl" />
             <Skeleton className="h-64 w-full rounded-xl" />

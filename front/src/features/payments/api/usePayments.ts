@@ -45,8 +45,8 @@ interface ReceiptResponse {
   data: ReceiptData;
 }
 
-/** Hook para obtener las obligaciones de pago del colegio con filtros de estado, sección, búsqueda y paginación */
-export const usePayments = (filters: ObligationFilterParams = {}, enabled: boolean = true) => {
+/** Hook para obtener las obligaciones de pago con enabled estricto para evitar peticiones masivas sin sección/búsqueda */
+export const usePayments = (filters: ObligationFilterParams = {}, enabledOverride?: boolean) => {
   const queryParams = new URLSearchParams();
   if (filters.page) queryParams.append('page', String(filters.page));
   if (filters.limit) queryParams.append('limit', String(filters.limit));
@@ -58,13 +58,23 @@ export const usePayments = (filters: ObligationFilterParams = {}, enabled: boole
   const queryString = queryParams.toString();
   const url = `/payments/obligations${queryString ? `?${queryString}` : ''}`;
 
+  const isEnabled =
+    enabledOverride !== undefined
+      ? enabledOverride
+      : Boolean(
+          filters.classroomId ||
+            filters.search ||
+            filters.status ||
+            filters.enrollmentId
+        );
+
   return useQuery({
     queryKey: ['payments-obligations', filters.page, filters.limit, filters.status, filters.classroomId, filters.search],
     queryFn: async () => {
       const response = await api.get<ObligationsPaginatedResponse>(url);
       return response.data;
     },
-    enabled,
+    enabled: isEnabled,
   });
 };
 

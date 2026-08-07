@@ -38,6 +38,13 @@ export class SchoolController {
     }
 
     const updateSchoolDto = updateSchoolSchema.parse(request.body);
+
+    // RESTRICCIÓN DE SEGURIDAD: Solo SUPER_ADMIN puede modificar el plan o fecha de expiración
+    if (user.role !== 'SUPER_ADMIN') {
+      delete updateSchoolDto.plan;
+      delete updateSchoolDto.planExpiresAt;
+    }
+
     const school = await this.schoolService.updateSchool(id, updateSchoolDto);
     response.status(200).json({ status: 'success', data: school });
   };

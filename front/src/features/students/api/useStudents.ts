@@ -20,7 +20,18 @@ export interface CreateStudentPayload {
 
 export type UpdateStudentPayload = Partial<CreateStudentPayload>;
 
-export const useStudents = (filters: StudentFilterParams = {}) => {
+/** Hook para obtener estudiantes requeridos obligatoriamente por filtro de sección, búsqueda o nivel */
+export const useStudents = (filters: StudentFilterParams = {}, enabledOverride?: boolean) => {
+  const isEnabled =
+    enabledOverride !== undefined
+      ? enabledOverride
+      : Boolean(
+          filters.classroomId ||
+            filters.search ||
+            filters.educationLevel ||
+            filters.grade !== undefined
+        );
+
   return useQuery({
     queryKey: ['students', filters],
     queryFn: async () => {
@@ -36,6 +47,7 @@ export const useStudents = (filters: StudentFilterParams = {}) => {
       const response = await api.get<StudentsPaginatedResponse>(`/students?${params.toString()}`);
       return response.data;
     },
+    enabled: isEnabled,
   });
 };
 

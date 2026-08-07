@@ -14,11 +14,13 @@ interface BulkAttendanceModalProps {
   onClose: () => void;
 }
 
+// Fix #3: LATE_JUSTIFIED añadido como estado válido según MINEDU
 const STATUS_CONFIG: Array<{ value: AttendanceStatus; label: string; activeClass: string }> = [
   { value: 'PRESENT', label: 'Presente', activeClass: 'bg-emerald-600 text-white font-semibold shadow-sm' },
   { value: 'ABSENT_UNJUSTIFIED', label: 'Falta Inj.', activeClass: 'bg-destructive text-destructive-foreground font-semibold shadow-sm' },
   { value: 'ABSENT_JUSTIFIED', label: 'Falta Just.', activeClass: 'bg-amber-600 text-white font-semibold shadow-sm' },
-  { value: 'LATE_UNJUSTIFIED', label: 'Tardanza', activeClass: 'bg-amber-500 text-white font-semibold shadow-sm' },
+  { value: 'LATE_UNJUSTIFIED', label: 'Tardanza Inj.', activeClass: 'bg-amber-500 text-white font-semibold shadow-sm' },
+  { value: 'LATE_JUSTIFIED', label: 'Tardanza Just.', activeClass: 'bg-sky-600 text-white font-semibold shadow-sm' },
 ];
 
 export const BulkAttendanceModal: React.FC<BulkAttendanceModalProps> = ({
