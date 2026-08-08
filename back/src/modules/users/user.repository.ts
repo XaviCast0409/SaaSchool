@@ -79,6 +79,12 @@ export class UserRepository {
     return prisma.user.findUnique({ where: { email } });
   }
 
+  async findByDocumentId(schoolId: string, documentId: string): Promise<User | null> {
+    return prisma.user.findFirst({
+      where: { schoolId, documentId },
+    });
+  }
+
   async create(schoolId: string, data: CreateUserDto): Promise<PublicUser> {
     const passwordHash = await hashPassword(data.password);
 

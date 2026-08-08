@@ -92,6 +92,18 @@ export class StudentRepository {
     });
   }
 
+  async findByDocumentId(schoolId: string, documentId: string): Promise<Student | null> {
+    return prisma.student.findFirst({
+      where: { schoolId, documentId },
+    });
+  }
+
+  async findByStudentCode(schoolId: string, studentCode: string): Promise<Student | null> {
+    return prisma.student.findFirst({
+      where: { schoolId, studentCode },
+    });
+  }
+
   async create(schoolId: string, data: CreateStudentDto): Promise<Student> {
     return prisma.student.create({
       data: {

@@ -25,6 +25,26 @@ export class StudentService {
   }
 
   async createStudent(schoolId: string, createStudentDto: CreateStudentDto): Promise<Student> {
+    if (createStudentDto.documentId) {
+      const existingDoc = await this.studentRepository.findByDocumentId(schoolId, createStudentDto.documentId);
+      if (existingDoc) {
+        throw new AppError(
+          `El DNI/Documento "${createStudentDto.documentId}" ya se encuentra registrado para el alumno "${existingDoc.firstNames} ${existingDoc.lastNamePaternal}".`,
+          409,
+        );
+      }
+    }
+
+    if (createStudentDto.studentCode) {
+      const existingCode = await this.studentRepository.findByStudentCode(schoolId, createStudentDto.studentCode);
+      if (existingCode) {
+        throw new AppError(
+          `El Código SIAGIE "${createStudentDto.studentCode}" ya pertenece al alumno "${existingCode.firstNames} ${existingCode.lastNamePaternal}".`,
+          409,
+        );
+      }
+    }
+
     return this.studentRepository.create(schoolId, createStudentDto);
   }
 
@@ -34,6 +54,17 @@ export class StudentService {
     updateStudentDto: UpdateStudentDto,
   ): Promise<Student> {
     await this.getStudentById(studentId, schoolId);
+
+    if (updateStudentDto.documentId) {
+      const existingDoc = await this.studentRepository.findByDocumentId(schoolId, updateStudentDto.documentId);
+      if (existingDoc && existingDoc.id !== studentId) {
+        throw new AppError(
+          `El DNI/Documento "${updateStudentDto.documentId}" ya está registrado para otro estudiante (${existingDoc.firstNames} ${existingDoc.lastNamePaternal}).`,
+          409,
+        );
+      }
+    }
+
     return this.studentRepository.update(studentId, schoolId, updateStudentDto);
   }
 

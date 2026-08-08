@@ -28,6 +28,24 @@ export class UserService {
     schoolId: string,
     createUserDto: CreateUserDto,
   ): Promise<Omit<User, 'passwordHash'>> {
+    const existingEmail = await this.userRepository.findByEmail(createUserDto.email);
+    if (existingEmail) {
+      throw new AppError(
+        `El correo electrónico "${createUserDto.email}" ya está registrado a nombre de ${existingEmail.firstName} ${existingEmail.lastNamePaternal}.`,
+        409,
+      );
+    }
+
+    if (createUserDto.documentId) {
+      const existingDoc = await this.userRepository.findByDocumentId(schoolId, createUserDto.documentId);
+      if (existingDoc) {
+        throw new AppError(
+          `El DNI/Documento "${createUserDto.documentId}" ya se encuentra registrado para ${existingDoc.firstName} ${existingDoc.lastNamePaternal}.`,
+          409,
+        );
+      }
+    }
+
     return this.userRepository.create(schoolId, createUserDto);
   }
 
