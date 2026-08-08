@@ -1,7 +1,7 @@
 import type { CourseAssignment } from '@prisma/client';
 import { AppError } from '../../core/errors/app-error';
 import type { CourseAssignmentRepository } from './course-assignment.repository';
-import type { CreateCourseAssignmentDto, BulkAssignUnidocenteDto } from './course-assignment.schema';
+import type { CreateCourseAssignmentDto, BulkAssignUnidocenteDto, SyncTeacherAssignmentsDto } from './course-assignment.schema';
 
 export class CourseAssignmentService {
   constructor(private readonly courseAssignmentRepository: CourseAssignmentRepository) {}
@@ -41,5 +41,16 @@ export class CourseAssignmentService {
     }
 
     await this.courseAssignmentRepository.delete(assignmentId, schoolId);
+  }
+
+  async syncTeacherAssignments(
+    schoolId: string,
+    dto: SyncTeacherAssignmentsDto,
+  ): Promise<{ count: number }> {
+    return this.courseAssignmentRepository.syncTeacherAssignments(
+      schoolId,
+      dto.teacherId,
+      dto.assignments,
+    );
   }
 }

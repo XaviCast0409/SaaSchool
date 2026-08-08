@@ -13,6 +13,7 @@ import { AnnouncementsPage } from '@/features/announcements/pages/AnnouncementsP
 import { ClassroomsPage } from '@/features/classrooms/pages/ClassroomsPage';
 import { CurricularAreasPage } from '@/features/curricular-areas/pages/CurricularAreasPage';
 import { TeacherAssignmentsPage } from '@/features/course-assignments/pages/TeacherAssignmentsPage';
+import { AcademicYearsPage } from '@/features/academic-years/pages/AcademicYearsPage';
 import { SuperAdminPage } from '@/features/super-admin/pages/SuperAdminPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -39,10 +40,8 @@ const RoleGuard: React.FC<{ allowedRoles: string[]; children: React.ReactNode }>
   const user = useAuthStore((state) => state.user);
   const token = useAuthStore((state) => state.token);
 
-  // Si hay token pero user aún no está hidratado (primer render), no redirigimos.
-  // El ProtectedRoute padre ya maneja el caso de token ausente.
   if (token && !user) {
-    return null; // Esperar hidratación del store desde localStorage
+    return null;
   }
 
   if (!user || !allowedRoles.includes(user.role)) {
@@ -89,6 +88,14 @@ export const AppRouter: React.FC = () => {
             element={
               <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
                 <DirectoryPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="/academic-years"
+            element={
+              <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER']}>
+                <AcademicYearsPage />
               </RoleGuard>
             }
           />

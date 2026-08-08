@@ -32,4 +32,11 @@ export class AcademicYearController {
     const academicYear = await this.academicYearService.updateAcademicYear(id, schoolId, updateDto);
     response.status(200).json({ status: 'success', data: academicYear });
   };
+
+  delete = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const id = request.params.id as string;
+    await this.academicYearService.deleteAcademicYear(id, schoolId);
+    response.status(200).json({ status: 'success', message: 'Año Lectivo eliminado correctamente.' });
+  };
 }

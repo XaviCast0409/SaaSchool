@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import {
   createCourseAssignmentSchema,
   bulkAssignUnidocenteSchema,
+  syncTeacherAssignmentsSchema,
 } from './course-assignment.schema';
 import type { CourseAssignmentService } from './course-assignment.service';
 
@@ -66,6 +67,21 @@ export class CourseAssignmentController {
     response.status(200).json({
       status: 'success',
       message: 'Asignación docente eliminada correctamente.',
+    });
+  };
+
+  /**
+   * POST /api/course-assignments/sync-teacher
+   * Sincroniza la carga horaria completa de un profesor (Checklist batch).
+   */
+  syncTeacher = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const dto = syncTeacherAssignmentsSchema.parse(request.body);
+    const result = await this.courseAssignmentService.syncTeacherAssignments(schoolId, dto);
+    response.status(200).json({
+      status: 'success',
+      message: `Carga horaria actualizada correctamente (${result.count} cursos asignados).`,
+      data: result,
     });
   };
 }

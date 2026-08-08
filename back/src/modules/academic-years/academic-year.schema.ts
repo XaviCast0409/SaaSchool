@@ -1,10 +1,10 @@
 import { z } from 'zod';
 
 export const createAcademicYearSchema = z.object({
-  year: z.number().int().min(2000).max(2100),
+  year: z.coerce.number().int().min(2000, 'El año debe ser mayor a 2000').max(2100, 'El año es inválido'),
   name: z.string().optional(),
-  startDate: z.string().datetime({ message: 'Fecha de inicio inválida (ISO 8601)' }),
-  endDate: z.string().datetime({ message: 'Fecha de fin inválida (ISO 8601)' }),
+  startDate: z.string().min(1, 'La fecha de inicio es requerida'),
+  endDate: z.string().min(1, 'La fecha de fin es requerida'),
   isActive: z.boolean().default(true),
 });
 

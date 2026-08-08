@@ -13,5 +13,16 @@ export const bulkAssignUnidocenteSchema = z.object({
   areaIds: z.array(z.string().uuid()).min(1, 'Debe especificar al menos un área curricular'),
 });
 
+export const syncTeacherAssignmentsSchema = z.object({
+  teacherId: z.string().uuid('ID de docente inválido'),
+  assignments: z.array(
+    z.object({
+      classroomId: z.string().uuid('ID de aula inválido'),
+      areaId: z.string().uuid('ID de área inválido'),
+    }),
+  ),
+});
+
 export type CreateCourseAssignmentDto = z.infer<typeof createCourseAssignmentSchema>;
 export type BulkAssignUnidocenteDto = z.infer<typeof bulkAssignUnidocenteSchema>;
+export type SyncTeacherAssignmentsDto = z.infer<typeof syncTeacherAssignmentsSchema>;

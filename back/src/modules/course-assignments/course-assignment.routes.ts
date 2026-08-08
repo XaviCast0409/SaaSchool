@@ -41,6 +41,13 @@ courseAssignmentRouter.post(
   controller.bulkAssign,
 );
 
+// Sincronizar carga horaria completa de un profesor (Checklist batch)
+courseAssignmentRouter.post(
+  '/sync-teacher',
+  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'),
+  controller.syncTeacher,
+);
+
 // Solo ADMIN puede eliminar asignaciones
 courseAssignmentRouter.delete(
   '/:id',

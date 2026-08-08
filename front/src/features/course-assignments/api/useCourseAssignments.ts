@@ -86,12 +86,19 @@ export const useBulkAssignUnidocente = () => {
   });
 };
 
-/** Elimina una asignación docente. */
-export const useDeleteCourseAssignment = () => {
+/** Sincroniza la carga horaria completa de un profesor (Checklist batch). */
+export const useSyncTeacherAssignments = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      await api.delete(`/course-assignments/${id}`);
+    mutationFn: async (payload: {
+      teacherId: string;
+      assignments: { classroomId: string; areaId: string }[];
+    }) => {
+      const response = await api.post<{ status: string; message: string; data: { count: number } }>(
+        '/course-assignments/sync-teacher',
+        payload,
+      );
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['course-assignments'] });

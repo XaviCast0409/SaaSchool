@@ -125,8 +125,22 @@ export class CourseAssignmentRepository {
    * Elimina una asignación. Valida schoolId para aislamiento multi-tenant.
    */
   async delete(assignmentId: string, schoolId: string): Promise<CourseAssignment> {
-    return prisma.courseAssignment.delete({
-      where: { id: assignmentId, schoolId },
+    return prisma.$transaction(async (tx) => {
+      await tx.grade.deleteMany({
+        where: {
+          entry: {
+            courseAssignmentId: assignmentId,
+          },
+        },
+      });
+      await tx.gradeEntry.deleteMany({
+        where: {
+          courseAssignmentId: assignmentId,
+        },
+      });
+      return tx.courseAssignment.delete({
+        where: { id: assignmentId, schoolId },
+      });
     });
   }
 
@@ -140,5 +154,76 @@ export class CourseAssignmentRepository {
       select: { id: true },
     });
     return assignments.map((a) => a.id);
+  }
+
+  /**
+   * Sincroniza atómicamente la carga horaria completa de un profesor.
+   * Reasigna combinaciones existentes y elimina las desmarcadas para este docente.
+   */
+  async syncTeacherAssignments(
+    schoolId: string,
+    teacherId: string,
+    desiredAssignments: { classroomId: string; areaId: string }[],
+  ): Promise<{ count: number }> {
+    return prisma.$transaction(async (tx) => {
+      // 1. Obtener asignaciones actuales de este profesor
+      const currentAssignments = await tx.courseAssignment.findMany({
+        where: { schoolId, teacherId },
+        select: { id: true, classroomId: true, areaId: true },
+      });
+
+      const desiredSet = new Set(
+        desiredAssignments.map((item) => `${item.classroomId}:${item.areaId}`),
+      );
+
+      // Eliminar asignaciones que el profesor tenía antes pero que fueron desmarcadas
+      const toDeleteIds = currentAssignments
+        .filter((item) => !desiredSet.has(`${item.classroomId}:${item.areaId}`))
+        .map((item) => item.id);
+
+      if (toDeleteIds.length > 0) {
+        // Eliminar en cascada notas y entradas de evaluación asociadas a las asignaciones desmarcadas
+        await tx.grade.deleteMany({
+          where: {
+            entry: {
+              courseAssignmentId: { in: toDeleteIds },
+            },
+          },
+        });
+
+        await tx.gradeEntry.deleteMany({
+          where: {
+            courseAssignmentId: { in: toDeleteIds },
+          },
+        });
+
+        await tx.courseAssignment.deleteMany({
+          where: { id: { in: toDeleteIds }, schoolId },
+        });
+      }
+
+      // 2. Procesar las asignaciones deseadas (upsert por combinación classroomId + areaId)
+      for (const item of desiredAssignments) {
+        await tx.courseAssignment.upsert({
+          where: {
+            classroomId_areaId: {
+              classroomId: item.classroomId,
+              areaId: item.areaId,
+            },
+          },
+          update: {
+            teacherId,
+          },
+          create: {
+            schoolId,
+            classroomId: item.classroomId,
+            areaId: item.areaId,
+            teacherId,
+          },
+        });
+      }
+
+      return { count: desiredAssignments.length };
+    });
   }
 }

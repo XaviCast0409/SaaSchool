@@ -13,7 +13,8 @@ export const academicYearRouter = Router();
 
 academicYearRouter.use(authMiddleware, tenantMiddleware);
 
-academicYearRouter.get('/', authorizeRoles('SCHOOL_ADMIN', 'TEACHER'), academicYearController.getAll);
-academicYearRouter.post('/', authorizeRoles('SCHOOL_ADMIN'), academicYearController.create);
-academicYearRouter.get('/:id', authorizeRoles('SCHOOL_ADMIN', 'TEACHER'), academicYearController.getById);
-academicYearRouter.patch('/:id', authorizeRoles('SCHOOL_ADMIN'), academicYearController.update);
+academicYearRouter.get('/', authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'TEACHER'), academicYearController.getAll);
+academicYearRouter.post('/', authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'), academicYearController.create);
+academicYearRouter.get('/:id', authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'TEACHER'), academicYearController.getById);
+academicYearRouter.patch('/:id', authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'), academicYearController.update);
+academicYearRouter.delete('/:id', authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'), academicYearController.delete);
