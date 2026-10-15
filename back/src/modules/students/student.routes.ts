@@ -10,34 +10,48 @@ const studentRepository = new StudentRepository();
 const studentService = new StudentService(studentRepository);
 const studentController = new StudentController(studentService);
 
-export const studentRouter = Router();
+export const studentRouter: Router = Router();
 
 studentRouter.use(authMiddleware, tenantMiddleware);
+
+// Catálogos oficiales SIAGIE (debe ir antes de /:id)
+studentRouter.get(
+  '/catalogs',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),
+  studentController.getCatalogs,
+);
+
+// Ficha Unificada de Matrícula SIAGIE (Transaccional)
+studentRouter.post(
+  '/ficha-matricula',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
+  studentController.registerFicha,
+);
 
 // CRUD de estudiantes
 studentRouter.get(
   '/',
-  authorizeRoles('SCHOOL_ADMIN', 'TEACHER', 'SUPER_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),
   studentController.getAll,
 );
 studentRouter.post(
   '/',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
   studentController.create,
 );
 studentRouter.get(
   '/:id',
-  authorizeRoles('SCHOOL_ADMIN', 'TEACHER', 'SUPER_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),
   studentController.getById,
 );
 studentRouter.patch(
   '/:id',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
   studentController.update,
 );
 studentRouter.delete(
   '/:id',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
   studentController.delete,
 );
 
@@ -45,6 +59,6 @@ studentRouter.delete(
 // GET /api/students/:studentId/parents
 studentRouter.get(
   '/:studentId/parents',
-  authorizeRoles('SCHOOL_ADMIN', 'TEACHER', 'SUPER_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),
   familyRelationshipController.getByStudent,
 );

@@ -5,13 +5,14 @@ import {
   flexRender,
   type ColumnDef,
 } from '@tanstack/react-table';
-import { Search, UserCheck, ChevronDown, ChevronUp, Users, Filter, Accessibility, BookOpen, Pencil, School } from 'lucide-react';
+import { Search, UserCheck, ChevronDown, ChevronUp, Users, Filter, Accessibility, BookOpen, Pencil, School, FileText } from 'lucide-react';
 import { Student } from '../types';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useUsers } from '@/features/users/api/useUsers';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
 import { StudentParentsPanel } from '@/features/users/family-relationships/components/StudentParentsPanel';
 import { EditStudentModal } from './EditStudentModal';
+import { StudentFichaModal } from './StudentFichaModal';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -60,10 +61,14 @@ export const StudentTable: React.FC<StudentTableProps> = ({
   onGradeChange,
 }) => {
   const { user } = useAuthStore();
-  const isAdmin = user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN';
+  const canManageStudents =
+    user?.role === 'SCHOOL_ADMIN' ||
+    user?.role === 'SUPER_ADMIN' ||
+    user?.role === 'ADMINISTRATIVE';
 
   const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null);
   const [selectedStudentForEdit, setSelectedStudentForEdit] = useState<Student | null>(null);
+  const [selectedStudentForFicha, setSelectedStudentForFicha] = useState<string | null>(null);
 
   const { data: allParents = [] } = useUsers('PARENT');
   const { data: classrooms = [] } = useClassrooms();
@@ -140,7 +145,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({
 
         return (
           <div className="flex items-center gap-1">
-            {isAdmin && (
+            {canManageStudents && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -151,6 +156,17 @@ export const StudentTable: React.FC<StudentTableProps> = ({
                 <span>Editar</span>
               </Button>
             )}
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2 gap-1 text-xs text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
+              onClick={() => setSelectedStudentForFicha(student.id)}
+              title="Ver Ficha Única de Matrícula SIAGIE"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Ficha SIAGIE</span>
+            </Button>
 
             <Button
               variant="ghost"
@@ -324,7 +340,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
-                            {isAdmin && (
+                            {canManageStudents && (
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -335,6 +351,17 @@ export const StudentTable: React.FC<StudentTableProps> = ({
                                 <span>Editar</span>
                               </Button>
                             )}
+
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 px-2 gap-1 text-xs text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
+                              onClick={() => setSelectedStudentForFicha(student.id)}
+                              title="Ver Ficha Única de Matrícula SIAGIE"
+                            >
+                              <FileText className="w-3.5 h-3.5" />
+                              <span>Ficha SIAGIE</span>
+                            </Button>
 
                             <Button
                               variant="ghost"
@@ -400,6 +427,13 @@ export const StudentTable: React.FC<StudentTableProps> = ({
         student={selectedStudentForEdit}
         isOpen={!!selectedStudentForEdit}
         onClose={() => setSelectedStudentForEdit(null)}
+      />
+
+      {/* Modal de Ficha Única de Matrícula SIAGIE */}
+      <StudentFichaModal
+        studentId={selectedStudentForFicha}
+        isOpen={Boolean(selectedStudentForFicha)}
+        onClose={() => setSelectedStudentForFicha(null)}
       />
     </div>
   );

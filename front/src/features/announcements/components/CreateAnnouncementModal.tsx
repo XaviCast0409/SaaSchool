@@ -37,7 +37,7 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
 
   if (!isOpen) return null;
 
-  const handleRoleToggle = (role: 'SUPER_ADMIN' | 'SCHOOL_ADMIN' | 'TEACHER' | 'PARENT') => {
+  const handleRoleToggle = (role: 'SUPER_ADMIN' | 'SCHOOL_ADMIN' | 'ADMINISTRATIVE' | 'TEACHER' | 'PARENT') => {
     if (selectedRoles.includes(role)) {
       setValue('targetRoles', selectedRoles.filter((r) => r !== role));
     } else {
@@ -129,7 +129,8 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
               {[
                 { role: 'PARENT', label: 'Apoderados / Padres' },
                 { role: 'TEACHER', label: 'Profesores / Docentes' },
-                { role: 'SCHOOL_ADMIN', label: 'Administrativos' },
+                { role: 'ADMINISTRATIVE', label: 'Personal Administrativo' },
+                { role: 'SCHOOL_ADMIN', label: 'Dirección' },
               ].map(({ role, label }) => {
                 const isSelected = selectedRoles.includes(role as any);
                 return (

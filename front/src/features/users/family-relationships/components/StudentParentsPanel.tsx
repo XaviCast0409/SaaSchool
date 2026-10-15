@@ -32,7 +32,10 @@ export const StudentParentsPanel: React.FC<StudentParentsPanelProps> = ({
   const { mutate: deleteRelationship, isPending: isDeleting } = useDeleteRelationship(studentId);
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
 
-  const isAdmin = user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN';
+  const canManage =
+    user?.role === 'SCHOOL_ADMIN' ||
+    user?.role === 'SUPER_ADMIN' ||
+    user?.role === 'ADMINISTRATIVE';
 
   if (isLoading) {
     return (
@@ -50,7 +53,7 @@ export const StudentParentsPanel: React.FC<StudentParentsPanelProps> = ({
         <span className="text-sm font-semibold text-foreground">
           Apoderados registrados ({relationships.length})
         </span>
-        {isAdmin && (
+        {canManage && (
           <Button
             size="sm"
             variant="outline"
@@ -113,7 +116,7 @@ export const StudentParentsPanel: React.FC<StudentParentsPanelProps> = ({
               </div>
 
               {/* Desvincular */}
-              {isAdmin && (
+              {canManage && (
                 <button
                   onClick={() => deleteRelationship(rel.id)}
                   disabled={isDeleting}

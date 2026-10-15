@@ -19,18 +19,18 @@ announcementRouter.get('/:id', announcementController.getById);
 
 announcementRouter.post(
   '/',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'TEACHER'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),
   announcementController.create,
 );
 
 announcementRouter.put(
   '/:id',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'TEACHER'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),
   announcementController.update,
 );
 
 announcementRouter.delete(
   '/:id',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'),
+  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ADMINISTRATIVE'),
   announcementController.delete,
 );

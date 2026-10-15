@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   ShieldCheck,
   Building2,
@@ -11,8 +12,12 @@ import {
   XCircle,
   Power,
   RotateCcw,
+  ExternalLink,
+  Pencil,
+  Key,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuthStore } from '@/store/useAuthStore';
 import {
   useGetAllSchools,
   useDeactivateSchool,
@@ -21,6 +26,8 @@ import {
 import { SchoolWithStats } from '../types';
 import { CreateSchoolModal } from '../components/CreateSchoolModal';
 import { EditSchoolPlanModal } from '../components/EditSchoolPlanModal';
+import { EditSchoolInfoModal } from '../components/EditSchoolInfoModal';
+import { ResetAdminPasswordModal } from '../components/ResetAdminPasswordModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -34,11 +41,33 @@ const PLAN_PRICES: Record<string, number> = {
   ENTERPRISE: 150,
 };
 
+const PLAN_STUDENT_QUOTAS: Record<string, number> = {
+  BASIC: 150,
+  PRO: 500,
+  ENTERPRISE: Infinity,
+};
+
 export const SuperAdminPage: React.FC = () => {
+  const navigate = useNavigate();
+  const setImpersonatedSchool = useAuthStore((state) => state.setImpersonatedSchool);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filterPlan, setFilterPlan] = useState<string>('ALL');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedSchoolForPlan, setSelectedSchoolForPlan] = useState<SchoolWithStats | null>(null);
+  const [selectedSchoolForEdit, setSelectedSchoolForEdit] = useState<SchoolWithStats | null>(null);
+  const [selectedSchoolForReset, setSelectedSchoolForReset] = useState<SchoolWithStats | null>(null);
+
+  const handleImpersonate = (school: SchoolWithStats) => {
+    setImpersonatedSchool({
+      id: school.id,
+      name: school.name,
+      logoUrl: school.logoUrl,
+      plan: school.plan,
+    });
+    toast.info(`Accediendo en Modo Soporte a "${school.name}".`);
+    navigate('/dashboard');
+  };
 
   const { data: schools = [], isLoading } = useGetAllSchools();
   const { mutate: deactivateSchool, isPending: isDeactivating } = useDeactivateSchool();
@@ -256,8 +285,16 @@ export const SuperAdminPage: React.FC = () => {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <div className="text-xs font-medium text-foreground">
-                            <strong>{item._count?.students || 0}</strong> alumnos / <strong>{item._count?.users || 0}</strong> usuarios
+                          <div className="space-y-0.5">
+                            <div className="text-xs font-medium text-foreground">
+                              <strong>{item._count?.students || 0}</strong>
+                              <span className="text-muted-foreground text-[11px]">
+                                /{PLAN_STUDENT_QUOTAS[item.plan] === Infinity ? '∞' : PLAN_STUDENT_QUOTAS[item.plan]} alumnos
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-muted-foreground">
+                              {item._count?.users || 0} usuarios
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -286,12 +323,42 @@ export const SuperAdminPage: React.FC = () => {
                           <div className="flex items-center justify-end gap-1.5">
                             <Button
                               size="sm"
+                              variant="secondary"
+                              className="h-7 text-xs gap-1 border border-border hover:bg-primary hover:text-primary-foreground transition-colors"
+                              onClick={() => handleImpersonate(item)}
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                              <span>Ver Colegio</span>
+                            </Button>
+
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs gap-1"
+                              onClick={() => setSelectedSchoolForEdit(item)}
+                            >
+                              <Pencil className="w-3.5 h-3.5 text-primary" />
+                              <span>Editar</span>
+                            </Button>
+
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs gap-1"
+                              onClick={() => setSelectedSchoolForReset(item)}
+                            >
+                              <Key className="w-3.5 h-3.5 text-amber-500" />
+                              <span>Clave</span>
+                            </Button>
+
+                            <Button
+                              size="sm"
                               variant="outline"
                               className="h-7 text-xs gap-1"
                               onClick={() => setSelectedSchoolForPlan(item)}
                             >
                               <Sparkles className="w-3.5 h-3.5 text-primary" />
-                              <span>Cambiar Plan</span>
+                              <span>Plan</span>
                             </Button>
 
                             <Button
@@ -336,6 +403,18 @@ export const SuperAdminPage: React.FC = () => {
         school={selectedSchoolForPlan}
         isOpen={!!selectedSchoolForPlan}
         onClose={() => setSelectedSchoolForPlan(null)}
+      />
+
+      <EditSchoolInfoModal
+        school={selectedSchoolForEdit}
+        isOpen={!!selectedSchoolForEdit}
+        onClose={() => setSelectedSchoolForEdit(null)}
+      />
+
+      <ResetAdminPasswordModal
+        school={selectedSchoolForReset}
+        isOpen={!!selectedSchoolForReset}
+        onClose={() => setSelectedSchoolForReset(null)}
       />
     </div>
   );

@@ -14,6 +14,6 @@ export const gradeRouter = Router();
 
 gradeRouter.use(authMiddleware, tenantMiddleware, requirePlan('PRO', 'ENTERPRISE'));
 
-gradeRouter.get('/enrollment/:enrollmentId', authorizeRoles('SCHOOL_ADMIN', 'TEACHER'), gradeController.getByEnrollment);
-gradeRouter.post('/entries', authorizeRoles('TEACHER', 'SCHOOL_ADMIN'), gradeController.createEntry);
-gradeRouter.post('/', authorizeRoles('TEACHER', 'SCHOOL_ADMIN'), gradeController.createGrade);
+gradeRouter.get('/enrollment/:enrollmentId', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT'), gradeController.getByEnrollment);
+gradeRouter.post('/entries', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'), gradeController.createEntry);
+gradeRouter.post('/', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'), gradeController.createGrade);

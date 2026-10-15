@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const createFamilyRelationshipSchema = z.object({
   studentId: z.string().uuid('ID de estudiante inválido'),
   userId: z.string().uuid('ID de usuario/padre inválido'),
-  relationshipType: z.enum(['MOTHER', 'FATHER', 'GRANDPARENT', 'UNCLE_AUNT', 'OTHER']),
+  relationshipType: z.enum(['MOTHER', 'FATHER', 'TUTOR_LEGAL', 'GRANDPARENT', 'UNCLE_AUNT', 'OTHER']),
   isLegalGuardian: z.boolean().default(false),
   isFinancialResponsible: z.boolean().default(false),
   livesWithStudent: z.boolean().default(true),

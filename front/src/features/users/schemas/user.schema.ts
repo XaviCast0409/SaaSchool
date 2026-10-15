@@ -6,7 +6,7 @@ export const createUserSchema = z.object({
   firstName: z.string().min(2, 'Nombre requerido (mínimo 2 caracteres)'),
   lastNamePaternal: z.string().min(2, 'Apellido paterno requerido'),
   lastNameMaternal: z.string().min(2, 'Apellido materno requerido'),
-  role: z.enum(['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT']),
+  role: z.enum(['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT']),
   documentType: z.enum(['DNI', 'CE', 'PASSPORT', 'PNA', 'OTHER']).default('DNI'),
   documentId: z.string().optional(),
   cellphone: z.string().optional(),

@@ -20,6 +20,12 @@ export const tenantMiddleware = async (
     throw new AppError('Usuario no autenticado. Aplica authMiddleware primero.', 401);
   }
 
+  // Si el usuario es SUPER_ADMIN y envía un header 'x-school-id', conmutar al colegio de soporte
+  const impersonatedSchoolId = request.headers['x-school-id'] as string | undefined;
+  if (request.user.role === 'SUPER_ADMIN' && impersonatedSchoolId) {
+    request.user.schoolId = impersonatedSchoolId;
+  }
+
   if (!request.user.schoolId) {
     throw new AppError('Contexto de colegio no encontrado. Acceso denegado.', 403);
   }

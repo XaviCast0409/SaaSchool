@@ -8,7 +8,10 @@ import { Button } from '@/components/ui/button';
 
 export const StudentsPage: React.FC = () => {
   const { user } = useAuthStore();
-  const isAdmin = user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN';
+  const canManageStudents =
+    user?.role === 'SCHOOL_ADMIN' ||
+    user?.role === 'SUPER_ADMIN' ||
+    user?.role === 'ADMINISTRATIVE';
 
   // Estados del modal de matrícula
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
@@ -49,7 +52,7 @@ export const StudentsPage: React.FC = () => {
           </p>
         </div>
 
-        {isAdmin && (
+        {canManageStudents && (
           <Button
             onClick={() => setIsEnrollModalOpen(true)}
             className="gap-2 self-start md:self-auto shadow-sm"

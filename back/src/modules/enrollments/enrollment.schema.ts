@@ -5,6 +5,7 @@ export const createEnrollmentSchema = z.object({
   academicYearId: z.string().uuid(),
   classroomId: z.string().uuid(),
   previousSchoolModularCode: z.string().optional(),
+  condition: z.enum(['INGRESANTE', 'CONTINUO', 'TRASLADO', 'REENTRANTE']).default('CONTINUO'),
   repeatingGrade: z.boolean().default(false),
 });
 

@@ -37,7 +37,10 @@ import { PaymentObligation, ObligationStatus } from '../types';
 export const PaymentsPage: React.FC = () => {
   const { user } = useAuthStore();
   const isParent = user?.role === 'PARENT';
-  const isAdmin = user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN';
+  const isAdmin =
+    user?.role === 'SCHOOL_ADMIN' ||
+    user?.role === 'SUPER_ADMIN' ||
+    user?.role === 'ADMINISTRATIVE';
 
   // State de paginación y filtros
   const [page, setPage] = useState(1);

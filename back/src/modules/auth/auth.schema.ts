@@ -15,7 +15,7 @@ export const registerSchema = z.object({
   documentType: z.enum(['DNI', 'CE', 'PASSPORT', 'PNA', 'OTHER']).default('DNI'),
   documentId: z.string().optional(),
   cellphone: z.string().optional(),
-  role: z.enum(['SCHOOL_ADMIN', 'TEACHER', 'PARENT']).default('PARENT'),
+  role: z.enum(['SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT']).default('PARENT'),
 });
 
 export type LoginDto = z.infer<typeof loginSchema>;

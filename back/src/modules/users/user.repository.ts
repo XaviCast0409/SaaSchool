@@ -15,6 +15,7 @@ const USER_PUBLIC_SELECT = {
   documentType: true,
   documentId: true,
   cellphone: true,
+  educationLevel: true,
   isActive: true,
   createdAt: true,
   updatedAt: true,
@@ -95,11 +96,12 @@ export class UserRepository {
         passwordHash,
         firstName: data.firstName,
         lastNamePaternal: data.lastNamePaternal,
-        lastNameMaternal: data.lastNameMaternal,
+        lastNameMaternal: data.lastNameMaternal || '',
         role: data.role,
         documentType: data.documentType,
         documentId: data.documentId,
         cellphone: data.cellphone,
+        educationLevel: data.educationLevel,
       },
       select: USER_PUBLIC_SELECT,
     });
@@ -108,7 +110,10 @@ export class UserRepository {
   async update(userId: string, schoolId: string, data: UpdateUserDto): Promise<PublicUser> {
     return prisma.user.update({
       where: { id: userId, schoolId },
-      data,
+      data: {
+        ...data,
+        lastNameMaternal: data.lastNameMaternal === null ? '' : data.lastNameMaternal,
+      },
       select: USER_PUBLIC_SELECT,
     });
   }

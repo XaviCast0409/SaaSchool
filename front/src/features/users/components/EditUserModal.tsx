@@ -95,7 +95,8 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ user, isOpen, onCl
             >
               <option value="TEACHER">Profesor(a)</option>
               <option value="PARENT">Apoderado / Padre de Familia</option>
-              <option value="SCHOOL_ADMIN">Administrador del Colegio</option>
+              <option value="ADMINISTRATIVE">Personal Administrativo (Secretaría / Caja)</option>
+              <option value="SCHOOL_ADMIN">Director / Promotor (Administrador General)</option>
             </select>
           </div>
 

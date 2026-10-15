@@ -8,7 +8,7 @@ const schoolRepository = new SchoolRepository();
 const schoolService = new SchoolService(schoolRepository);
 const schoolController = new SchoolController(schoolService);
 
-export const schoolRouter = Router();
+export const schoolRouter: Router = Router();
 
 schoolRouter.use(authMiddleware);
 
@@ -19,3 +19,6 @@ schoolRouter.get('/:id', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'
 schoolRouter.patch('/:id/reactivate', authorizeRoles('SUPER_ADMIN'), schoolController.reactivate);
 schoolRouter.patch('/:id', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'), schoolController.update);
 schoolRouter.delete('/:id', authorizeRoles('SUPER_ADMIN'), schoolController.deactivate);
+
+// Acción exclusiva de SuperAdmin: Restablecer clave del administrador principal
+schoolRouter.post('/:id/reset-admin-password', authorizeRoles('SUPER_ADMIN'), schoolController.resetAdminPassword);

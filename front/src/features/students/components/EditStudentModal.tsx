@@ -9,20 +9,44 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { Student } from '../types';
 
-const editStudentSchema = z.object({
-  firstNames: z.string().min(2, 'Nombres requeridos'),
-  lastNamePaternal: z.string().min(2, 'Apellido paterno requerido'),
-  lastNameMaternal: z.string().min(2, 'Apellido materno requerido'),
-  documentType: z.string().default('DNI'),
-  documentId: z.string().min(1, 'Documento de identidad requerido'),
-  gender: z.enum(['MALE', 'FEMALE']),
-  birthDate: z.string().min(1, 'Fecha de nacimiento requerida'),
-  studentCode: z.string().optional(),
-  motherTongue: z.string().default('CASTELLANO'),
-  hasDisability: z.boolean().default(false),
-  disabilityType: z.string().optional(),
-  address: z.string().optional(),
-});
+const editStudentSchema = z
+  .object({
+    firstNames: z.string().trim().min(2, 'Nombres requeridos'),
+    lastNamePaternal: z.string().trim().min(2, 'Apellido paterno requerido'),
+    lastNameMaternal: z.string().trim().optional(),
+    documentType: z.string().default('DNI'),
+    documentId: z.string().trim().min(1, 'Documento de identidad requerido'),
+    gender: z.enum(['MALE', 'FEMALE']),
+    birthDate: z.string().min(1, 'Fecha de nacimiento requerida'),
+    birthCountry: z.string().trim().default('PERÚ'),
+    birthUbigeo: z.string().trim().optional(),
+    residenceUbigeo: z.string().trim().optional(),
+    studentCode: z.string().trim().optional(),
+    motherTongue: z.string().default('CASTELLANO'),
+    hasDisability: z.boolean().default(false),
+    disabilityType: z.string().optional(),
+    address: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.documentType === 'DNI') {
+      if (!/^\d{8}$/.test(data.documentId.trim())) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'El DNI debe tener 8 dígitos numéricos',
+          path: ['documentId'],
+        });
+      }
+    }
+    if (data.birthUbigeo && data.birthUbigeo.trim().length > 0) {
+      if (!/^\d{6}$/.test(data.birthUbigeo.trim())) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'El Ubigeo consta de 6 dígitos INEI',
+          path: ['birthUbigeo'],
+        });
+      }
+    }
+  });
 
 type EditStudentFormData = z.infer<typeof editStudentSchema>;
 
@@ -49,16 +73,18 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isO
 
   useEffect(() => {
     if (student) {
-      // Format birthDate to YYYY-MM-DD for standard date input
       const formattedDate = student.birthDate ? new Date(student.birthDate).toISOString().split('T')[0] : '';
       reset({
         firstNames: student.firstNames,
         lastNamePaternal: student.lastNamePaternal,
-        lastNameMaternal: student.lastNameMaternal,
+        lastNameMaternal: student.lastNameMaternal || '',
         documentType: student.documentType,
         documentId: student.documentId,
         gender: student.gender,
         birthDate: formattedDate,
+        birthCountry: student.birthCountry || 'PERÚ',
+        birthUbigeo: student.birthUbigeo || '',
+        residenceUbigeo: student.residenceUbigeo || '',
         studentCode: student.studentCode || '',
         motherTongue: student.motherTongue || 'CASTELLANO',
         hasDisability: student.hasDisability || false,
@@ -76,10 +102,13 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isO
         id: student.id,
         payload: {
           ...data,
+          lastNameMaternal: data.lastNameMaternal?.trim() || null,
           birthDate: new Date(data.birthDate).toISOString(),
-          studentCode: data.studentCode || undefined,
-          disabilityType: data.hasDisability ? data.disabilityType : undefined,
-          address: data.address || undefined,
+          birthUbigeo: data.birthUbigeo?.trim() || null,
+          residenceUbigeo: data.residenceUbigeo?.trim() || null,
+          studentCode: data.studentCode?.trim() || null,
+          disabilityType: data.hasDisability ? data.disabilityType?.trim() || null : null,
+          address: data.address?.trim() || null,
         },
       },
       {
@@ -105,7 +134,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isO
               Editar Ficha de Estudiante (SIAGIE)
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Modifica los datos demográficos del estudiante matriculado.
+              Modifica los datos demográficos y de identificación del estudiante.
             </p>
           </div>
           <button
@@ -124,23 +153,23 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isO
             </div>
           )}
 
-          {/* Nombres y Apellidos */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Nombres y Apellidos Separados */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-foreground">Nombres *</label>
-              <Input {...register('firstNames')} className="h-9 text-xs" />
-              {errors.firstNames && <span className="text-[10px] text-destructive">{errors.firstNames.message}</span>}
-            </div>
-            <div>
-              <label className="text-xs font-medium text-foreground">Apellido Paterno *</label>
+              <label className="text-xs font-medium text-foreground">Primer Apellido (Paterno) *</label>
               <Input {...register('lastNamePaternal')} className="h-9 text-xs" />
               {errors.lastNamePaternal && <span className="text-[10px] text-destructive">{errors.lastNamePaternal.message}</span>}
             </div>
             <div>
-              <label className="text-xs font-medium text-foreground">Apellido Materno *</label>
-              <Input {...register('lastNameMaternal')} className="h-9 text-xs" />
-              {errors.lastNameMaternal && <span className="text-[10px] text-destructive">{errors.lastNameMaternal.message}</span>}
+              <label className="text-xs font-medium text-foreground">Segundo Apellido (Materno)</label>
+              <Input {...register('lastNameMaternal')} placeholder="Opcional" className="h-9 text-xs" />
             </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-foreground">Nombres Completos *</label>
+            <Input {...register('firstNames')} className="h-9 text-xs" />
+            {errors.firstNames && <span className="text-[10px] text-destructive">{errors.firstNames.message}</span>}
           </div>
 
           {/* Documento y Género */}
@@ -151,10 +180,12 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isO
                 {...register('documentType')}
                 className="w-full h-9 rounded-md border border-border bg-background px-3 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               >
-                <option value="DNI">DNI</option>
-                <option value="CE">Carnet de Extranjería</option>
+                <option value="DNI">DNI (8 dígitos)</option>
+                <option value="CARNET_EXTRANJERIA">Carné Extranjería (CE)</option>
                 <option value="PASSPORT">Pasaporte</option>
-                <option value="PNA">PNA (Partida Nacimiento)</option>
+                <option value="PNA">Partida Nacimiento</option>
+                <option value="CODIGO_TEMPORAL">Cód. Temporal SIAGIE</option>
+                <option value="OTHER">Otro</option>
               </select>
             </div>
             <div>
@@ -174,7 +205,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isO
             </div>
           </div>
 
-          {/* Fecha Nacimiento, SIAGIE, Lengua Materna */}
+          {/* Fecha Nacimiento, País, Código SIAGIE */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="text-xs font-medium text-foreground">Fecha Nacimiento *</label>
@@ -182,19 +213,38 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isO
               {errors.birthDate && <span className="text-[10px] text-destructive">{errors.birthDate.message}</span>}
             </div>
             <div>
-              <label className="text-xs font-medium text-foreground">Código SIAGIE</label>
-              <Input {...register('studentCode')} className="h-9 text-xs font-mono" />
+              <label className="text-xs font-medium text-foreground">País de Nacimiento</label>
+              <Input {...register('birthCountry')} className="h-9 text-xs" />
             </div>
+            <div>
+              <label className="text-xs font-medium text-foreground">Código SIAGIE</label>
+              <Input {...register('studentCode')} placeholder="14 dígitos" className="h-9 text-xs font-mono" />
+            </div>
+          </div>
+
+          {/* Ubigeos INEI */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium text-foreground">Ubigeo Nacimiento (6 dígitos)</label>
+              <Input {...register('birthUbigeo')} placeholder="Ej: 150101" maxLength={6} className="h-9 text-xs font-mono" />
+              {errors.birthUbigeo && <span className="text-[10px] text-destructive">{errors.birthUbigeo.message}</span>}
+            </div>
+            <div>
+              <label className="text-xs font-medium text-foreground">Ubigeo Residencia (6 dígitos)</label>
+              <Input {...register('residenceUbigeo')} placeholder="Ej: 150101" maxLength={6} className="h-9 text-xs font-mono" />
+            </div>
+          </div>
+
+          {/* Dirección y Lengua Materna */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-foreground">Lengua Materna</label>
               <Input {...register('motherTongue')} className="h-9 text-xs" />
             </div>
-          </div>
-
-          {/* Dirección */}
-          <div>
-            <label className="text-xs font-medium text-foreground">Dirección de Residencia</label>
-            <Input {...register('address')} placeholder="Ej. Av. Larco 123, Miraflores" className="h-9 text-xs" />
+            <div>
+              <label className="text-xs font-medium text-foreground">Dirección Domiciliaria</label>
+              <Input {...register('address')} placeholder="Av, Jr, Mz, Lt, Urb" className="h-9 text-xs" />
+            </div>
           </div>
 
           {/* NEE / Discapacidad */}

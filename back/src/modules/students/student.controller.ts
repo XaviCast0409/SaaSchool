@@ -1,9 +1,19 @@
 import { Request, Response } from 'express';
-import { createStudentSchema, updateStudentSchema, studentFilterSchema } from './student.schema';
+import {
+  createStudentSchema,
+  updateStudentSchema,
+  studentFilterSchema,
+  registerFichaMatriculaSchema,
+} from './student.schema';
 import type { StudentService } from './student.service';
 
 export class StudentController {
   constructor(private readonly studentService: StudentService) {}
+
+  getCatalogs = async (_request: Request, response: Response): Promise<void> => {
+    const catalogs = this.studentService.getCatalogs();
+    response.status(200).json({ status: 'success', data: catalogs });
+  };
 
   getAll = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
@@ -28,6 +38,13 @@ export class StudentController {
     const schoolId = request.user!.schoolId;
     const createStudentDto = createStudentSchema.parse(request.body);
     const student = await this.studentService.createStudent(schoolId, createStudentDto);
+    response.status(201).json({ status: 'success', data: student });
+  };
+
+  registerFicha = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const dto = registerFichaMatriculaSchema.parse(request.body);
+    const student = await this.studentService.registerFichaMatricula(schoolId, dto);
     response.status(201).json({ status: 'success', data: student });
   };
 

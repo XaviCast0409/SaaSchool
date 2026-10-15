@@ -16,6 +16,7 @@ export const AnnouncementCard: React.FC<AnnouncementCardProps> = ({
   const canDelete =
     currentUser?.role === 'SUPER_ADMIN' ||
     currentUser?.role === 'SCHOOL_ADMIN' ||
+    currentUser?.role === 'ADMINISTRATIVE' ||
     (currentUser?.role === 'TEACHER' && announcement.authorId === currentUser.id);
 
   const getPriorityBadge = () => {

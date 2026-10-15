@@ -27,6 +27,7 @@ export const AnnouncementsPage: React.FC = () => {
   const canCreate =
     currentUser?.role === 'SUPER_ADMIN' ||
     currentUser?.role === 'SCHOOL_ADMIN' ||
+    currentUser?.role === 'ADMINISTRATIVE' ||
     currentUser?.role === 'TEACHER';
 
   const handleDelete = async (id: string) => {

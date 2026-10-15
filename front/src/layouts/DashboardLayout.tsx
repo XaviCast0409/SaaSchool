@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   GraduationCap,
   Users,
@@ -17,6 +17,7 @@ import {
   Settings,
   School as SchoolIcon,
   ShieldCheck,
+  ShieldAlert,
   UserCheck,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -27,13 +28,17 @@ import { SchoolSettingsModal } from '@/features/schools/components/SchoolSetting
 import { Toaster } from 'sonner';
 
 export const DashboardLayout: React.FC = () => {
-  const { user, logout } = useAuthStore();
+  const { user, logout, impersonatedSchool, setImpersonatedSchool } = useAuthStore();
   const location = useLocation();
+  const navigate = useNavigate();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const { data: school } = useGetActiveSchool();
+
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const isImpersonating = !!impersonatedSchool;
 
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
@@ -46,45 +51,81 @@ export const DashboardLayout: React.FC = () => {
     ENTERPRISE: 3,
   };
 
-  const currentPlan = school?.plan || 'BASIC';
+  const currentPlan = (isImpersonating ? impersonatedSchool.plan : school?.plan) || 'BASIC';
   const currentPlanLevel = PLAN_HIERARCHY[currentPlan] || 1;
+  const userRole = user?.role || 'PARENT';
 
-  const allNavItems = [
-    { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT'], minPlan: 'BASIC' },
-    { label: 'Comunicados', path: '/announcements', icon: Megaphone, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT'], minPlan: 'BASIC' },
-    { label: 'Directorio', path: '/directory', icon: Users, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'], minPlan: 'BASIC' },
-    { label: 'Años Lectivos', path: '/academic-years', icon: Calendar, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'], minPlan: 'BASIC' },
-    { label: 'Grados y Aulas', path: '/classrooms', icon: SchoolIcon, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'], minPlan: 'BASIC' },
-    { label: 'Cursos y Áreas SIAGIE', path: '/curricular-areas', icon: BookOpenCheck, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'], minPlan: 'BASIC' },
-    { label: 'Carga Horaria Docente', path: '/teacher-assignments', icon: UserCheck, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'], minPlan: 'BASIC' },
-    { label: 'Estudiantes', path: '/students', icon: GraduationCap, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT'], minPlan: 'BASIC' },
-    { label: 'Cobranzas y Pagos', path: '/payments', icon: CreditCard, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'PARENT'], minPlan: 'BASIC' },
-    { label: 'Asistencia', path: '/attendance', icon: CalendarCheck, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'], minPlan: 'BASIC' },
-    { label: 'Registro de Notas', path: '/grades', icon: BookOpenCheck, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT'], minPlan: 'PRO' },
-    { label: 'Panel SuperAdmin', path: '/super-admin', icon: ShieldCheck, roles: ['SUPER_ADMIN'], minPlan: 'BASIC' },
+  // SuperAdmin en modo SaaS puro: solo herramientas de negocio de plataforma
+  const superAdminNavItems = [
+    { label: 'Torre de Control SaaS', path: '/super-admin', icon: ShieldCheck },
   ];
 
-  const userRole = user?.role || 'PARENT';
-  const navItems = allNavItems.filter((item) => {
-    const hasRole = item.roles.includes(userRole);
-    const requiredLevel = PLAN_HIERARCHY[item.minPlan] || 1;
-    const hasPlan = userRole === 'SUPER_ADMIN' || currentPlanLevel >= requiredLevel;
-    return hasRole && hasPlan;
-  });
-  const canManageSchool = userRole === 'SUPER_ADMIN' || userRole === 'SCHOOL_ADMIN';
+  // Menú estándar operativo de colegio
+  const schoolNavItems = [
+    { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT'], minPlan: 'BASIC' },
+    { label: 'Comunicados', path: '/announcements', icon: Megaphone, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT'], minPlan: 'BASIC' },
+    { label: 'Directorio', path: '/directory', icon: Users, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'], minPlan: 'BASIC' },
+    { label: 'Años Lectivos', path: '/academic-years', icon: Calendar, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'], minPlan: 'BASIC' },
+    { label: 'Grados y Aulas', path: '/classrooms', icon: SchoolIcon, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'], minPlan: 'BASIC' },
+    { label: 'Cursos y Áreas SIAGIE', path: '/curricular-areas', icon: BookOpenCheck, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'], minPlan: 'BASIC' },
+    {
+      label: userRole === 'TEACHER' ? 'Mis Cursos Asignados' : 'Carga Horaria Docente',
+      path: '/teacher-assignments',
+      icon: UserCheck,
+      roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'],
+      minPlan: 'BASIC',
+    },
+    { label: 'Estudiantes', path: '/students', icon: GraduationCap, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'], minPlan: 'BASIC' },
+    {
+      label: userRole === 'PARENT' ? 'Mis Pagos y Pensiones' : userRole === 'ADMINISTRATIVE' ? 'Caja y Cobranzas' : 'Cobranzas y Pagos',
+      path: '/payments',
+      icon: CreditCard,
+      roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'PARENT'],
+      minPlan: 'BASIC',
+    },
+    { label: 'Asistencia', path: '/attendance', icon: CalendarCheck, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'], minPlan: 'BASIC' },
+    {
+      label: userRole === 'PARENT' ? 'Libreta de Calificaciones' : 'Registro de Notas',
+      path: '/grades',
+      icon: BookOpenCheck,
+      roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT'],
+      minPlan: 'PRO',
+    },
+  ];
+
+  const navItems = isSuperAdmin && !isImpersonating
+    ? superAdminNavItems
+    : schoolNavItems.filter((item) => {
+        const hasRole = item.roles.includes(userRole);
+        const requiredLevel = PLAN_HIERARCHY[item.minPlan] || 1;
+        const hasPlan = userRole === 'SUPER_ADMIN' || currentPlanLevel >= requiredLevel;
+        return hasRole && hasPlan;
+      });
+
+  const canManageSchool = isImpersonating || userRole === 'SCHOOL_ADMIN';
 
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row">
       {/* Mobile Top Bar */}
       <div className="md:hidden flex items-center justify-between p-4 border-b border-border bg-card">
         <div className="flex items-center gap-2.5">
-          {school?.logoUrl ? (
-            <img src={school.logoUrl} alt={school.name} className="w-7 h-7 object-contain rounded-md" />
+          {isSuperAdmin && !isImpersonating ? (
+            <ShieldCheck className="w-6 h-6 text-primary" />
+          ) : (isImpersonating ? impersonatedSchool.logoUrl : school?.logoUrl) ? (
+            <img
+              src={(isImpersonating ? impersonatedSchool.logoUrl : school?.logoUrl)!}
+              alt="Logo"
+              className="w-7 h-7 object-contain rounded-md"
+            />
           ) : (
             <GraduationCap className="w-6 h-6 text-primary" />
           )}
           <span className="font-bold text-base truncate max-w-[180px]">
-            {school?.name || 'SaaSchool'}
+            {isSuperAdmin && !isImpersonating
+              ? 'SaaSchool Platform'
+              : isImpersonating
+              ? impersonatedSchool.name
+              : school?.name || 'SaaSchool'}
           </span>
         </div>
         <Button variant="ghost" size="icon" onClick={() => setIsMobileOpen(!isMobileOpen)}>
@@ -102,18 +143,32 @@ export const DashboardLayout: React.FC = () => {
           {/* Dynamic School Brand Header */}
           <div className="hidden md:flex items-center gap-3 px-2 py-1">
             <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden shrink-0">
-              {school?.logoUrl ? (
-                <img src={school.logoUrl} alt={school.name} className="w-full h-full object-contain p-1" />
+              {isSuperAdmin && !isImpersonating ? (
+                <ShieldCheck className="w-5 h-5 text-primary" />
+              ) : (isImpersonating ? impersonatedSchool.logoUrl : school?.logoUrl) ? (
+                <img
+                  src={(isImpersonating ? impersonatedSchool.logoUrl : school?.logoUrl)!}
+                  alt={isImpersonating ? impersonatedSchool.name : school?.name}
+                  className="w-full h-full object-contain p-1"
+                />
               ) : (
                 <GraduationCap className="w-5 h-5 text-primary" />
               )}
             </div>
             <div className="overflow-hidden">
               <h1 className="font-bold text-sm leading-tight truncate text-foreground">
-                {school?.name || 'SaaSchool'}
+                {isSuperAdmin && !isImpersonating
+                  ? 'SaaSchool Platform'
+                  : isImpersonating
+                  ? impersonatedSchool.name
+                  : school?.name || 'SaaSchool'}
               </h1>
               <span className="text-[10px] text-muted-foreground font-medium block truncate">
-                Plataforma Escolar SaaS
+                {isSuperAdmin && !isImpersonating
+                  ? 'Torre de Control SaaS'
+                  : isImpersonating
+                  ? 'Modo Soporte Técnico'
+                  : 'Plataforma Escolar SaaS'}
               </span>
             </div>
           </div>
@@ -125,13 +180,22 @@ export const DashboardLayout: React.FC = () => {
                 <span className="text-xs font-bold truncate text-foreground">
                   {user?.firstName} {user?.lastNamePaternal}
                 </span>
-                <Badge variant={user?.role === 'SCHOOL_ADMIN' ? 'default' : 'secondary'} className="text-[9px] px-1.5 py-0">
+                <Badge variant={user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN' ? 'default' : 'secondary'} className="text-[9px] px-1.5 py-0">
                   {user?.role || 'USER'}
                 </Badge>
               </div>
               <div className="flex items-center gap-1 text-[11px] text-muted-foreground truncate">
-                <SchoolIcon className="w-3 h-3 text-primary shrink-0" />
-                <span className="truncate">{school?.name || 'Colegio'}</span>
+                {isSuperAdmin && !isImpersonating ? (
+                  <>
+                    <ShieldCheck className="w-3 h-3 text-primary shrink-0" />
+                    <span className="truncate font-semibold text-primary">Plataforma Global</span>
+                  </>
+                ) : (
+                  <>
+                    <SchoolIcon className="w-3 h-3 text-primary shrink-0" />
+                    <span className="truncate">{isImpersonating ? impersonatedSchool.name : school?.name || 'Colegio'}</span>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -197,9 +261,37 @@ export const DashboardLayout: React.FC = () => {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6">
-        <Outlet />
-      </main>
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Support Mode Top Banner */}
+        {isSuperAdmin && isImpersonating && (
+          <div className="bg-amber-500/15 border-b border-amber-500/30 px-4 py-2.5 text-xs flex flex-wrap items-center justify-between gap-3 text-amber-900 dark:text-amber-200">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+              <span>
+                <strong>Modo Soporte Técnico:</strong> Visualizando la operativa de <strong>{impersonatedSchool.name}</strong>
+              </span>
+              <Badge variant="outline" className="text-[10px] bg-amber-500/10 border-amber-500/30 font-bold">
+                Plan {impersonatedSchool.plan}
+              </Badge>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setImpersonatedSchool(null);
+                navigate('/super-admin');
+              }}
+              className="h-6 text-xs bg-background hover:bg-muted text-foreground border-amber-500/40 font-medium"
+            >
+              Salir al Panel SaaS
+            </Button>
+          </div>
+        )}
+
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6">
+          <Outlet />
+        </main>
+      </div>
 
       {/* Modal de Ajustes del Colegio */}
       {canManageSchool && (

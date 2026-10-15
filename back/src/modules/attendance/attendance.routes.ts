@@ -30,48 +30,48 @@ attendanceRouter.get(
 // Matriz sábana mensual interactiva por días (1..31)
 attendanceRouter.get(
   '/matrix',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'),
   attendanceController.getMatrix,
 );
 
 // Expediente individual del estudiante por matrícula
 attendanceRouter.get(
   '/student/:enrollmentId/summary',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT'),
   attendanceController.getStudentDetail,
 );
 
 // Consulta paginada por fecha y/o aula
 attendanceRouter.get(
   '/',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'),
   attendanceController.getAll,
 );
 
 // Asistencia por matrícula (histórico de un estudiante)
 attendanceRouter.get(
   '/enrollment/:enrollmentId',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT'),
   attendanceController.getByEnrollment,
 );
 
 // Registro individual
 attendanceRouter.post(
   '/',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'),
   attendanceController.register,
 );
 
 // Registro masivo por sección (bulk)
 attendanceRouter.post(
   '/bulk',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'),
   attendanceController.registerBulk,
 );
 
 // Corregir asistencia ya registrada
 attendanceRouter.patch(
   '/:id',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'),
   attendanceController.update,
 );

@@ -13,8 +13,8 @@ export const academicYearRouter = Router();
 
 academicYearRouter.use(authMiddleware, tenantMiddleware);
 
-academicYearRouter.get('/', authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'TEACHER'), academicYearController.getAll);
-academicYearRouter.post('/', authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'), academicYearController.create);
-academicYearRouter.get('/:id', authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'TEACHER'), academicYearController.getById);
-academicYearRouter.patch('/:id', authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'), academicYearController.update);
-academicYearRouter.delete('/:id', authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'), academicYearController.delete);
+academicYearRouter.get('/', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'), academicYearController.getAll);
+academicYearRouter.post('/', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'), academicYearController.create);
+academicYearRouter.get('/:id', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'), academicYearController.getById);
+academicYearRouter.patch('/:id', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'), academicYearController.update);
+academicYearRouter.delete('/:id', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'), academicYearController.delete);

@@ -7,7 +7,7 @@ import { UserFormModal } from '../components/UserFormModal';
 import { Button } from '@/components/ui/button';
 import type { UserRole } from '../types';
 
-type TabKey = 'ALL_STAFF' | 'TEACHER' | 'SCHOOL_ADMIN';
+type TabKey = 'ALL_STAFF' | 'TEACHER' | 'ADMINISTRATIVE' | 'SCHOOL_ADMIN';
 
 interface Tab {
   key: TabKey;
@@ -30,10 +30,16 @@ const TABS: Tab[] = [
     description: 'Plana docente y profesores de aula.',
   },
   {
+    key: 'ADMINISTRATIVE',
+    label: 'Secretaría / Caja',
+    icon: Users,
+    description: 'Personal administrativo de atención, matrículas y cobranza en ventanilla.',
+  },
+  {
     key: 'SCHOOL_ADMIN',
-    label: 'Personal Administrativo',
+    label: 'Dirección y Promotoría',
     icon: Shield,
-    description: 'Directores, coordinadores y personal administrativo del colegio.',
+    description: 'Directores, coordinadores académicos y administradores generales.',
   },
 ];
 
@@ -46,9 +52,9 @@ export const DirectoryPage: React.FC = () => {
 
   const { data: rawUsers = [], isLoading, isError, refetch } = useUsers(selectedRoleParam);
 
-  // Filtrar estrictamente: solo Profesores (TEACHER) y Administrativos (SCHOOL_ADMIN). Excluir Padres y SuperAdmin.
+  // Filtrar estrictamente: solo Profesores (TEACHER), Administrativos (ADMINISTRATIVE) y Directores (SCHOOL_ADMIN).
   const staffUsers = rawUsers.filter(
-    (u) => u.role === 'TEACHER' || u.role === 'SCHOOL_ADMIN'
+    (u) => u.role === 'TEACHER' || u.role === 'ADMINISTRATIVE' || u.role === 'SCHOOL_ADMIN'
   );
 
   const isAdmin = user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN';
@@ -56,8 +62,12 @@ export const DirectoryPage: React.FC = () => {
   const currentTab = TABS.find((t) => t.key === activeTab)!;
   const TabIcon = currentTab.icon;
 
-  const defaultRoleForCreate: 'TEACHER' | 'SCHOOL_ADMIN' =
-    activeTab === 'SCHOOL_ADMIN' ? 'SCHOOL_ADMIN' : 'TEACHER';
+  const defaultRoleForCreate: 'TEACHER' | 'ADMINISTRATIVE' | 'SCHOOL_ADMIN' =
+    activeTab === 'SCHOOL_ADMIN'
+      ? 'SCHOOL_ADMIN'
+      : activeTab === 'ADMINISTRATIVE'
+      ? 'ADMINISTRATIVE'
+      : 'TEACHER';
 
   return (
     <div className="space-y-6 pb-8">

@@ -1,5 +1,5 @@
 export type AnnouncementPriority = 'NORMAL' | 'IMPORTANT' | 'URGENT';
-export type UserRole = 'SUPER_ADMIN' | 'SCHOOL_ADMIN' | 'TEACHER' | 'PARENT';
+export type UserRole = 'SUPER_ADMIN' | 'SCHOOL_ADMIN' | 'ADMINISTRATIVE' | 'TEACHER' | 'PARENT';
 
 export interface Announcement {
   id: string;

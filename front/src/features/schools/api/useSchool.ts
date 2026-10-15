@@ -4,7 +4,13 @@ import type { School, UpdateSchoolPayload } from '../types';
 import { useAuthStore } from '@/store/useAuthStore';
 
 export const useGetActiveSchool = () => {
-  const schoolId = useAuthStore((state) => state.user?.schoolId);
+  const user = useAuthStore((state) => state.user);
+  const impersonatedSchool = useAuthStore((state) => state.impersonatedSchool);
+
+  // Si es SUPER_ADMIN, solo consulta si está en modo soporte (impersonatedSchool)
+  const schoolId = user?.role === 'SUPER_ADMIN'
+    ? impersonatedSchool?.id || null
+    : user?.schoolId || null;
 
   return useQuery({
     queryKey: ['school', schoolId],

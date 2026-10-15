@@ -8,12 +8,15 @@ export const api = axios.create({
   },
 });
 
-// Interceptor para inyectar el Bearer token automáticamente en cada request
+// Interceptor para inyectar el Bearer token y header de impersonación automáticamente en cada request
 api.interceptors.request.use(
   (config) => {
-    const token = useAuthStore.getState().token;
+    const { token, user, impersonatedSchool } = useAuthStore.getState();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    if (user?.role === 'SUPER_ADMIN' && impersonatedSchool?.id) {
+      config.headers['x-school-id'] = impersonatedSchool.id;
     }
     return config;
   },

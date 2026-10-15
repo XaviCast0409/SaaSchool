@@ -18,7 +18,7 @@ paymentRouter.use(authMiddleware, tenantMiddleware);
 // ──────────────────────────────────────────────────────────────────
 paymentRouter.get(
   '/summary',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
   paymentController.getSummary,
 );
 
@@ -35,56 +35,56 @@ paymentRouter.get(
 // Generación masiva de cronograma (por aula o colegio completo)
 paymentRouter.post(
   '/obligations/bulk',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
   paymentController.bulkCreateObligations,
 );
 
 // Recordatorio masivo por morosidad
 paymentRouter.post(
   '/obligations/remind-overdue',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
   paymentController.sendBulkReminders,
 );
 
 // Recordatorio individual (WA/Email)
 paymentRouter.post(
   '/obligations/:id/remind',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
   paymentController.sendReminder,
 );
 
 // Listar todas las obligaciones (con filtros de estado, sección, búsqueda)
 paymentRouter.get(
   '/obligations',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
   paymentController.getAllObligations,
 );
 
 // Detalle de obligación específica
 paymentRouter.get(
   '/obligations/:id',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'PARENT'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'PARENT'),
   paymentController.getObligationById,
 );
 
 // Crear obligación individual
 paymentRouter.post(
   '/obligations',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
   paymentController.createObligation,
 );
 
 // Editar obligación (monto, vencimiento, concepto)
 paymentRouter.patch(
   '/obligations/:id',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
   paymentController.updateObligation,
 );
 
 // Anular/Cancelar obligación
 paymentRouter.delete(
   '/obligations/:id',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
   paymentController.cancelObligation,
 );
 
@@ -94,27 +94,27 @@ paymentRouter.delete(
 // Historial de cobros/transacciones (Caja diaria)
 paymentRouter.get(
   '/transactions',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
   paymentController.getAllTransactions,
 );
 
 // Registrar cobro manual (Efectivo, Transferencia, Tarjeta)
 paymentRouter.post(
   '/transactions',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
   paymentController.registerTransaction,
 );
 
 // Datos formateados de recibo/boleta de pago
 paymentRouter.get(
   '/transactions/:id/receipt',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'PARENT'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'PARENT'),
   paymentController.getTransactionReceipt,
 );
 
 // Anular pago registrado por error (recalcula la deuda)
 paymentRouter.delete(
   '/transactions/:id',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'),
+  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ADMINISTRATIVE'),
   paymentController.deleteTransaction,
 );

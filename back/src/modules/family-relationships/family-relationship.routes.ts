@@ -16,35 +16,35 @@ familyRelationshipRouter.use(authMiddleware, tenantMiddleware);
 // Listado general de relaciones del colegio
 familyRelationshipRouter.get(
   '/',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
   familyRelationshipController.getAll,
 );
 
 // Detalle de una relación específica
 familyRelationshipRouter.get(
   '/:id',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
   familyRelationshipController.getById,
 );
 
 // Crear vínculo padre ↔ alumno
 familyRelationshipRouter.post(
   '/',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
   familyRelationshipController.create,
 );
 
 // Actualizar tipo de relación o apoderado legal
 familyRelationshipRouter.patch(
   '/:id',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
   familyRelationshipController.update,
 );
 
 // Eliminar vínculo
 familyRelationshipRouter.delete(
   '/:id',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
   familyRelationshipController.delete,
 );
 

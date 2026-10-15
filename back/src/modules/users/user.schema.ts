@@ -8,9 +8,9 @@ export const createUserSchema = z.object({
   password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
   firstName: z.string().min(2, 'Nombre requerido'),
   lastNamePaternal: z.string().min(2, 'Apellido paterno requerido'),
-  lastNameMaternal: z.string().min(2, 'Apellido materno requerido'),
-  role: z.enum(['SCHOOL_ADMIN', 'TEACHER', 'PARENT']).default('PARENT'),
-  documentType: z.enum(['DNI', 'CE', 'PASSPORT', 'PNA', 'OTHER']).default('DNI'),
+  lastNameMaternal: z.string().optional().nullable().or(z.literal('')),
+  role: z.enum(['SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT']).default('PARENT'),
+  documentType: z.enum(['DNI', 'CE', 'CARNET_EXTRANJERIA', 'PASSPORT', 'PNA', 'CODIGO_TEMPORAL', 'OTHER']).default('DNI'),
   documentId: z.string().optional(),
   cellphone: z
     .string()
@@ -18,6 +18,7 @@ export const createUserSchema = z.object({
     .optional()
     .nullable()
     .or(z.string().length(0)),
+  educationLevel: z.string().optional().nullable().or(z.literal('')),
 });
 
 export const updateUserSchema = createUserSchema.omit({ password: true }).partial();

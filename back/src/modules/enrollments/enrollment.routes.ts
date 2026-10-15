@@ -13,7 +13,7 @@ export const enrollmentRouter = Router();
 
 enrollmentRouter.use(authMiddleware, tenantMiddleware);
 
-enrollmentRouter.get('/', authorizeRoles('SCHOOL_ADMIN', 'TEACHER'), enrollmentController.getAll);
-enrollmentRouter.post('/', authorizeRoles('SCHOOL_ADMIN'), enrollmentController.create);
-enrollmentRouter.get('/:id', authorizeRoles('SCHOOL_ADMIN', 'TEACHER'), enrollmentController.getById);
-enrollmentRouter.patch('/:id', authorizeRoles('SCHOOL_ADMIN'), enrollmentController.update);
+enrollmentRouter.get('/', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'), enrollmentController.getAll);
+enrollmentRouter.post('/', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'), enrollmentController.create);
+enrollmentRouter.get('/:id', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'), enrollmentController.getById);
+enrollmentRouter.patch('/:id', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'), enrollmentController.update);

@@ -83,3 +83,32 @@ export const useReactivateSchool = () => {
     },
   });
 };
+
+/** Hook para actualizar datos de contacto e institucionales de un colegio (SUPER_ADMIN) */
+export const useUpdateSchoolInfo = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<SchoolWithStats> }) => {
+      const response = await api.patch<{ status: string; data: SchoolWithStats }>(`/schools/${id}`, data);
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['superadmin-schools'] });
+      queryClient.invalidateQueries({ queryKey: ['school'] });
+    },
+  });
+};
+
+/** Hook para restablecer la contraseña del Administrador/Director de un colegio */
+export const useResetAdminPassword = () => {
+  return useMutation({
+    mutationFn: async ({ id, password }: { id: string; password?: string }) => {
+      const response = await api.post<{
+        status: string;
+        data: { adminEmail: string; newPassword: string; adminName: string };
+      }>(`/schools/${id}/reset-admin-password`, { password });
+      return response.data.data;
+    },
+  });
+};

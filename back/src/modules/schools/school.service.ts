@@ -38,4 +38,12 @@ export class SchoolService {
     await this.getSchoolById(schoolId);
     return this.schoolRepository.reactivate(schoolId);
   }
+
+  async resetAdminPassword(
+    schoolId: string,
+    newPassword?: string,
+  ): Promise<{ adminEmail: string; newPassword: string; adminName: string }> {
+    await this.getSchoolById(schoolId);
+    return this.schoolRepository.resetAdminPassword(schoolId, newPassword);
+  }
 }

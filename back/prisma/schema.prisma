@@ -16,6 +16,7 @@ datasource db {
 enum Role {
   SUPER_ADMIN
   SCHOOL_ADMIN
+  ADMINISTRATIVE
   TEACHER
   PARENT
 }
@@ -23,8 +24,10 @@ enum Role {
 enum DocumentType {
   DNI
   CE
+  CARNET_EXTRANJERIA
   PASSPORT
   PNA // Partida de Nacimiento
+  CODIGO_TEMPORAL
   OTHER
 }
 
@@ -56,7 +59,15 @@ enum RelationshipType {
   FATHER
   GRANDPARENT
   UNCLE_AUNT
+  TUTOR_LEGAL
   OTHER
+}
+
+enum EnrollmentCondition {
+  INGRESANTE
+  CONTINUO
+  TRASLADO
+  REENTRANTE
 }
 
 enum ObligationStatus {
@@ -150,6 +161,7 @@ model User {
   documentType     DocumentType @default(DNI)
   documentId       String?
   cellphone        String?
+  educationLevel   String?      // Grado de instrucción MINEDU/SIAGIE
   isActive         Boolean      @default(true)
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
@@ -160,6 +172,8 @@ model User {
   familyRelations  FamilyRelationship[]
   coursesTaught    CourseAssignment[]
   announcements    Announcement[]
+
+  @@index([schoolId, role])
 }
 
 // ============================================================================
@@ -173,15 +187,17 @@ model Student {
   // Requisitos SIAGIE
   firstNames         String
   lastNamePaternal   String
-  lastNameMaternal   String
+  lastNameMaternal   String?
   documentType       DocumentType @default(DNI)
   documentId         String
   gender             Gender
   birthDate          DateTime
   birthCountry       String       @default("PERÚ")
+  birthUbigeo        String?      // Código INEI 6 dígitos (ej: 150101)
   birthDepartment    String?
   birthProvince      String?
   birthDistrict      String?
+  residenceUbigeo    String?      // Código INEI 6 dígitos actual
   motherTongue       String       @default("CASTELLANO")
   hasDisability      Boolean      @default(false)
   disabilityType     String?
@@ -193,6 +209,10 @@ model Student {
   school             School       @relation(fields: [schoolId], references: [id])
   familyRelations    FamilyRelationship[]
   enrollments        Enrollment[]
+
+  @@unique([schoolId, documentType, documentId])
+  @@index([schoolId, documentId])
+  @@index([schoolId, studentCode])
 }
 
 model FamilyRelationship {
@@ -239,6 +259,8 @@ model Classroom {
   enrollments    Enrollment[]
   assignments    CourseAssignment[]
   announcements  Announcement[]
+
+  @@index([schoolId, educationLevel, grade])
 }
 
 model Enrollment {
@@ -247,11 +269,12 @@ model Enrollment {
   studentId                 String
   academicYearId            String
   classroomId               String
-  enrollmentDate            DateTime        @default(now())
-  enrollmentState           EnrollmentState @default(REGISTERED)
+  enrollmentDate            DateTime            @default(now())
+  enrollmentState           EnrollmentState     @default(REGISTERED)
+  condition                 EnrollmentCondition @default(CONTINUO)
   previousSchoolModularCode String?
-  repeatingGrade            Boolean         @default(false)
-  isActive                  Boolean         @default(true)
+  repeatingGrade            Boolean             @default(false)
+  isActive                  Boolean             @default(true)
 
   student                   Student         @relation(fields: [studentId], references: [id])
   academicYear              AcademicYear    @relation(fields: [academicYearId], references: [id])
@@ -262,6 +285,8 @@ model Enrollment {
   grades                    Grade[]
 
   @@unique([studentId, academicYearId])
+  @@index([schoolId, academicYearId])
+  @@index([schoolId, classroomId])
 }
 
 // ============================================================================
@@ -282,6 +307,9 @@ model PaymentObligation {
   school       School           @relation(fields: [schoolId], references: [id])
   enrollment   Enrollment       @relation(fields: [enrollmentId], references: [id])
   transactions PaymentTransaction[]
+
+  @@index([schoolId, status])
+  @@index([schoolId, dueDate])
 }
 
 model PaymentTransaction {
@@ -298,6 +326,8 @@ model PaymentTransaction {
 
   school           School            @relation(fields: [schoolId], references: [id])
   obligation       PaymentObligation @relation(fields: [obligationId], references: [id])
+
+  @@index([schoolId, paymentDate])
 }
 
 // ============================================================================
@@ -341,6 +371,7 @@ model CourseAssignment {
 
   // Un curso en un aula tiene exactamente un docente asignado
   @@unique([classroomId, areaId])
+  @@index([schoolId, teacherId])
 }
 
 model GradeEntry {
@@ -400,6 +431,7 @@ model Attendance {
   enrollment   Enrollment       @relation(fields: [enrollmentId], references: [id])
 
   @@unique([enrollmentId, date])
+  @@index([schoolId, date])
 }
 
 // ============================================================================
@@ -423,5 +455,7 @@ model Announcement {
   school       School               @relation(fields: [schoolId], references: [id])
   author       User                 @relation(fields: [authorId], references: [id])
   classroom    Classroom?           @relation(fields: [classroomId], references: [id])
+
+  @@index([schoolId, isActive])
 }
 

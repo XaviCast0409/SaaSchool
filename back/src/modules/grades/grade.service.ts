@@ -27,7 +27,7 @@ export class GradeService {
       enrollmentId,
       schoolId,
       // Pasamos undefined para ADMIN (ve todo), teacherId para TEACHER (la BD filtra)
-      isTeacher ? undefined : undefined, // El filtro completo se hace dentro del repo con teacherId
+      isTeacher ? userContext.userId : undefined,
     );
   }
 

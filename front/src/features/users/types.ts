@@ -1,4 +1,4 @@
-export type UserRole = 'SUPER_ADMIN' | 'SCHOOL_ADMIN' | 'TEACHER' | 'PARENT';
+export type UserRole = 'SUPER_ADMIN' | 'SCHOOL_ADMIN' | 'ADMINISTRATIVE' | 'TEACHER' | 'PARENT';
 export type DocumentType = 'DNI' | 'CE' | 'PASSPORT' | 'PNA' | 'OTHER';
 
 export interface DirectoryUser {

@@ -2,6 +2,7 @@ import { prisma } from '../../config/prisma';
 import bcrypt from 'bcryptjs';
 import type { School } from '@prisma/client';
 import type { CreateSchoolDto, UpdateSchoolDto } from './school.schema';
+import { AppError } from '../../core/errors/app-error';
 
 /**
  * SchoolRepository: Acceso a datos del modelo School.
@@ -106,5 +107,36 @@ export class SchoolRepository {
       where: { id: schoolId },
       data: { isActive: true },
     });
+  }
+
+  async resetAdminPassword(
+    schoolId: string,
+    newPassword?: string,
+  ): Promise<{ adminEmail: string; newPassword: string; adminName: string }> {
+    const adminUser = await prisma.user.findFirst({
+      where: { schoolId, role: 'SCHOOL_ADMIN', isActive: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (!adminUser) {
+      throw new AppError('No se encontró un usuario Administrador activo para este colegio', 404);
+    }
+
+    const passwordToSet = newPassword && newPassword.trim().length >= 6
+      ? newPassword.trim()
+      : `Colegio${Math.floor(1000 + Math.random() * 9000)}!`;
+
+    const passwordHash = await bcrypt.hash(passwordToSet, 10);
+
+    await prisma.user.update({
+      where: { id: adminUser.id },
+      data: { passwordHash },
+    });
+
+    return {
+      adminEmail: adminUser.email,
+      newPassword: passwordToSet,
+      adminName: `${adminUser.firstName} ${adminUser.lastNamePaternal}`,
+    };
   }
 }

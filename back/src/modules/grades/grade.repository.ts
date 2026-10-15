@@ -7,20 +7,20 @@ export class GradeRepository {
   /**
    * Busca notas de una matrícula específica.
    * REGLA MULTI-TENANT: filtra por schoolId vía enrollment.
-   * Si teacherAssignmentIds está definido, filtra además por los cursos del docente.
+   * Si teacherId está definido, filtra además por los cursos del docente.
    */
   async findGradesByEnrollment(
     enrollmentId: string,
     schoolId: string,
-    teacherAssignmentIds?: string[],
+    teacherId?: string,
   ): Promise<Grade[]> {
     return prisma.grade.findMany({
       where: {
         enrollmentId,
         enrollment: { schoolId },
-        // SEGURIDAD: Si se proveen IDs de asignación, limitar a los del docente
-        ...(teacherAssignmentIds
-          ? { entry: { courseAssignmentId: { in: teacherAssignmentIds } } }
+        // SEGURIDAD: Si se provee teacherId, limitar a los cursos del docente
+        ...(teacherId
+          ? { entry: { assignment: { teacherId } } }
           : {}),
       },
       include: {

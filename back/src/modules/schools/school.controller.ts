@@ -60,4 +60,11 @@ export class SchoolController {
     const school = await this.schoolService.reactivateSchool(id);
     response.status(200).json({ status: 'success', data: school });
   };
+
+  resetAdminPassword = async (request: Request, response: Response): Promise<void> => {
+    const id = request.params.id as string;
+    const { password } = request.body || {};
+    const result = await this.schoolService.resetAdminPassword(id, password);
+    response.status(200).json({ status: 'success', data: result });
+  };
 }

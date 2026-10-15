@@ -8,12 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 interface UserFormModalProps {
-  defaultRole?: 'TEACHER' | 'PARENT' | 'SCHOOL_ADMIN';
+  defaultRole?: 'TEACHER' | 'PARENT' | 'SCHOOL_ADMIN' | 'ADMINISTRATIVE';
   onClose: () => void;
 }
 
 const ROLE_LABELS: Record<string, string> = {
-  SCHOOL_ADMIN: 'Administrador',
+  SCHOOL_ADMIN: 'Director / Promotor (Administrador General)',
+  ADMINISTRATIVE: 'Personal Administrativo (Secretaría / Caja)',
   TEACHER: 'Profesor(a)',
   PARENT: 'Apoderado / Padre de Familia',
 };
@@ -65,7 +66,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PAR
             </div>
           )}
 
-          {/* Role (readonly, driven by defaultRole) */}
+          {/* Role */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold uppercase tracking-wide text-foreground">Rol</label>
             <select
@@ -74,7 +75,8 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PAR
             >
               <option value="TEACHER">Profesor(a)</option>
               <option value="PARENT">Apoderado / Padre de Familia</option>
-              <option value="SCHOOL_ADMIN">Administrador del Colegio</option>
+              <option value="ADMINISTRATIVE">Personal Administrativo (Secretaría / Caja)</option>
+              <option value="SCHOOL_ADMIN">Director / Promotor (Administrador General)</option>
             </select>
           </div>
 

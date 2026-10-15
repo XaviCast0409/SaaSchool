@@ -4,64 +4,69 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   X,
-  User,
   GraduationCap,
-  Users,
   CheckCircle2,
   ChevronRight,
   ChevronLeft,
   Loader2,
-  Plus,
   Search,
+  BookOpen,
 } from 'lucide-react';
-import { useCreateStudent } from '../api/useStudents';
-import { useCreateEnrollment } from '@/features/enrollments/api/useEnrollments';
+import { useRegisterFichaMatricula, useSiagieCatalogs } from '../api/useStudents';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
 import { useAcademicYears } from '@/features/academic-years/api/useAcademicYears';
-import { useUsers, useCreateUser } from '@/features/users/api/useUsers';
-import { useLinkParent } from '@/features/users/family-relationships/api/useFamilyRelationships';
+import { useUsers } from '@/features/users/api/useUsers';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 const enrollWizardSchema = z
   .object({
-    // Paso 1: Datos Alumno
-    firstNames: z.string().min(2, 'Nombres requeridos (mínimo 2 letras)'),
-    lastNamePaternal: z.string().min(2, 'Apellido paterno requerido'),
-    lastNameMaternal: z.string().min(2, 'Apellido materno requerido'),
-    documentType: z.string().default('DNI'),
-    documentId: z.string().min(1, 'Número de documento requerido'),
+    // Paso 1: Datos Alumno (Campos estrictamente separados)
+    firstNames: z.string().trim().min(2, 'Nombres requeridos (mínimo 2 letras)'),
+    lastNamePaternal: z.string().trim().min(2, 'Apellido paterno requerido'),
+    lastNameMaternal: z.string().trim().optional(),
+    documentType: z.enum(['DNI', 'CE', 'CARNET_EXTRANJERIA', 'PASSPORT', 'PNA', 'CODIGO_TEMPORAL', 'OTHER']).default('DNI'),
+    documentId: z.string().trim().min(1, 'Número de documento requerido'),
     gender: z.enum(['MALE', 'FEMALE']),
     birthDate: z.string().min(1, 'Fecha de nacimiento requerida'),
-    studentCode: z.string().optional(),
+    birthCountry: z.string().trim().default('PERÚ'),
+    birthUbigeo: z.string().trim().optional(),
+    residenceUbigeo: z.string().trim().optional(),
+    address: z.string().trim().optional(),
     motherTongue: z.string().default('CASTELLANO'),
     hasDisability: z.boolean().default(false),
     disabilityType: z.string().optional(),
-    address: z.string().optional(),
+    studentCode: z.string().trim().optional(),
 
-    // Paso 2: Aula y Año Lectivo
+    // Paso 2: Matrícula y Asignación Escolar
     academicYearId: z.string().min(1, 'Selecciona el Año Lectivo Escolar'),
     classroomId: z.string().min(1, 'Selecciona el Grado y Sección'),
+    condition: z.enum(['INGRESANTE', 'CONTINUO', 'TRASLADO', 'REENTRANTE']).default('CONTINUO'),
+    previousSchoolModularCode: z.string().trim().optional(),
+    repeatingGrade: z.boolean().default(false),
 
-    // Paso 3: Apoderado
+    // Paso 3: Apoderado y Familia
     parentMode: z.enum(['EXISTING', 'NEW']).default('EXISTING'),
     existingParentId: z.string().optional(),
 
-    // Datos para Nuevo Apoderado (si parentMode === 'NEW')
-    newParentFirstName: z.string().optional(),
-    newParentLastNamePaternal: z.string().optional(),
-    newParentLastNameMaternal: z.string().optional(),
-    newParentDocumentId: z.string().optional(),
-    newParentEmail: z.string().optional(),
-    newParentCellphone: z.string().optional(),
+    // Datos para Nuevo Apoderado (Campos estrictamente separados)
+    newParentFirstName: z.string().trim().optional(),
+    newParentLastNamePaternal: z.string().trim().optional(),
+    newParentLastNameMaternal: z.string().trim().optional(),
+    newParentDocumentType: z.string().default('DNI'),
+    newParentDocumentId: z.string().trim().optional(),
+    newParentEmail: z.string().trim().optional(),
+    newParentCellphone: z.string().trim().optional(),
+    newParentEducationLevel: z.string().default('SECUNDARIA_COMPLETA'),
 
-    // Tipo de relación
+    // Atributos de Relación Familiar
     relationshipType: z
-      .enum(['FATHER', 'MOTHER', 'GRANDPARENT', 'UNCLE_AUNT', 'OTHER'])
+      .enum(['MOTHER', 'FATHER', 'TUTOR_LEGAL', 'GRANDPARENT', 'UNCLE_AUNT', 'OTHER'])
       .default('FATHER'),
     isLegalGuardian: z.boolean().default(true),
     isFinancialResponsible: z.boolean().default(true),
+    livesWithStudent: z.boolean().default(true),
   })
   .superRefine((data, ctx) => {
     // Validar DNI de Alumno (8 dígitos numéricos exactos si es DNI)
@@ -70,8 +75,29 @@ const enrollWizardSchema = z
       if (!/^\d{8}$/.test(cleanDoc)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: 'El DNI peruano debe tener exactamente 8 dígitos numéricos sin letras ni espacios (ej: 72819203)',
+          message: 'El DNI peruano debe tener exactamente 8 dígitos numéricos (ej: 72819203)',
           path: ['documentId'],
+        });
+      }
+    }
+
+    // Validar Ubigeos (6 dígitos si se ingresan)
+    if (data.birthUbigeo && data.birthUbigeo.trim().length > 0) {
+      if (!/^\d{6}$/.test(data.birthUbigeo.trim())) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'El Ubigeo de nacimiento consta de 6 dígitos INEI (ej: 150101)',
+          path: ['birthUbigeo'],
+        });
+      }
+    }
+
+    if (data.residenceUbigeo && data.residenceUbigeo.trim().length > 0) {
+      if (!/^\d{6}$/.test(data.residenceUbigeo.trim())) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'El Ubigeo de residencia consta de 6 dígitos INEI (ej: 150101)',
+          path: ['residenceUbigeo'],
         });
       }
     }
@@ -84,6 +110,17 @@ const enrollWizardSchema = z
           code: z.ZodIssueCode.custom,
           message: 'El código SIAGIE consta de 14 dígitos numéricos (ej: 20261234567890)',
           path: ['studentCode'],
+        });
+      }
+    }
+
+    // Validar Código modular si es traslado
+    if (data.condition === 'TRASLADO') {
+      if (!data.previousSchoolModularCode || !/^\d{7}$/.test(data.previousSchoolModularCode.trim())) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'El Código Modular de la I.E. de origen debe constar de 7 dígitos numéricos',
+          path: ['previousSchoolModularCode'],
         });
       }
     }
@@ -107,7 +144,7 @@ const enrollWizardSchema = z
       if (!data.newParentEmail || !z.string().email().safeParse(data.newParentEmail).success) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: 'Ingresa un correo electrónico válido para el apoderado (ej: padre@gmail.com)',
+          message: 'Ingresa un correo electrónico válido para el apoderado',
           path: ['newParentEmail'],
         });
       }
@@ -132,11 +169,10 @@ const enrollWizardSchema = z
         }
       }
     } else {
-      // MODO EXISTING: Debe haber seleccionado un apoderado existente
       if (!data.existingParentId) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: 'Debes seleccionar un apoderado del directorio o cambiar al modo "Crear Nuevo Apoderado"',
+          message: 'Debes seleccionar un apoderado del directorio o cambiar a "Crear Nuevo Apoderado"',
           path: ['existingParentId'],
         });
       }
@@ -155,14 +191,12 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
   const [parentSearch, setParentSearch] = useState('');
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  const { data: catalogs } = useSiagieCatalogs();
   const { data: classrooms = [] } = useClassrooms();
   const { data: academicYears = [] } = useAcademicYears();
   const { data: existingParents = [] } = useUsers('PARENT');
 
-  const { mutateAsync: createStudent } = useCreateStudent();
-  const { mutateAsync: createEnrollment } = useCreateEnrollment();
-  const { mutateAsync: createUser } = useCreateUser();
-  const { mutateAsync: linkRelationship } = useLinkParent();
+  const { mutateAsync: registerFichaMatricula, isPending: isSubmitting } = useRegisterFichaMatricula();
 
   const {
     register,
@@ -170,24 +204,31 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
     watch,
     setValue,
     trigger,
-    formState: { errors, isSubmitting },
+    formState: { errors },
     reset,
   } = useForm<EnrollWizardFormData>({
     resolver: zodResolver(enrollWizardSchema),
     defaultValues: {
       documentType: 'DNI',
       gender: 'MALE',
+      birthCountry: 'PERÚ',
       motherTongue: 'CASTELLANO',
       hasDisability: false,
+      condition: 'CONTINUO',
+      repeatingGrade: false,
       parentMode: 'EXISTING',
       relationshipType: 'FATHER',
+      newParentDocumentType: 'DNI',
+      newParentEducationLevel: 'SECUNDARIA_COMPLETA',
       isLegalGuardian: true,
       isFinancialResponsible: true,
+      livesWithStudent: true,
     },
   });
 
   const parentMode = watch('parentMode');
   const hasDisability = watch('hasDisability');
+  const condition = watch('condition');
   const selectedParentId = watch('existingParentId');
 
   const filteredParents = existingParents.filter(
@@ -207,88 +248,89 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
       'lastNameMaternal',
       'documentType',
       'documentId',
+      'gender',
       'birthDate',
+      'birthCountry',
+      'birthUbigeo',
+      'residenceUbigeo',
       'studentCode',
     ]);
     if (valid) {
       setStep(2);
     } else {
-      toast.error('Corrige los datos resaltados en la ficha del alumno.');
+      toast.error('Corrige los datos obligatorios de la ficha del alumno.');
     }
   };
 
   const handleNextStep2 = async () => {
     setSubmitError(null);
-    const valid = await trigger(['academicYearId', 'classroomId']);
+    const valid = await trigger(['academicYearId', 'classroomId', 'condition', 'previousSchoolModularCode']);
     if (valid) {
       setStep(3);
     } else {
-      toast.error('Selecciona el Año Escolar y el Aula antes de continuar.');
+      toast.error('Completa los datos de matrícula y aula antes de continuar.');
     }
   };
 
   const onSubmit = async (data: EnrollWizardFormData) => {
     setSubmitError(null);
     try {
-      // 1. Crear Estudiante
-      const newStudent = await createStudent({
-        firstNames: data.firstNames.trim(),
-        lastNamePaternal: data.lastNamePaternal.trim(),
-        lastNameMaternal: data.lastNameMaternal.trim(),
-        documentType: data.documentType,
-        documentId: data.documentId.trim(),
-        gender: data.gender,
-        birthDate: new Date(data.birthDate).toISOString(),
-        studentCode: data.studentCode ? data.studentCode.trim() : undefined,
-        motherTongue: data.motherTongue,
-        hasDisability: data.hasDisability,
-        disabilityType: data.hasDisability ? data.disabilityType : undefined,
-        address: data.address ? data.address.trim() : undefined,
-      });
-
-      // 2. Registrar Matrícula en Aula
-      await createEnrollment({
-        studentId: newStudent.id,
-        academicYearId: data.academicYearId,
-        classroomId: data.classroomId,
-      });
-
-      // 3. Vincular Apoderado
-      let parentUserId = data.existingParentId;
-
-      if (data.parentMode === 'NEW') {
-        const newParent = await createUser({
-          firstName: data.newParentFirstName!.trim(),
-          lastNamePaternal: data.newParentLastNamePaternal!.trim(),
-          lastNameMaternal: (data.newParentLastNameMaternal || '').trim(),
-          email: data.newParentEmail!.trim(),
-          documentType: 'DNI',
-          documentId: data.newParentDocumentId ? data.newParentDocumentId.trim() : undefined,
-          cellphone: data.newParentCellphone ? data.newParentCellphone.trim() : undefined,
-          role: 'PARENT',
-        });
-        parentUserId = newParent.id;
-      }
-
-      if (parentUserId) {
-        await linkRelationship({
-          studentId: newStudent.id,
-          userId: parentUserId,
+      await registerFichaMatricula({
+        student: {
+          firstNames: data.firstNames.trim(),
+          lastNamePaternal: data.lastNamePaternal.trim(),
+          lastNameMaternal: data.lastNameMaternal?.trim() || null,
+          documentType: data.documentType,
+          documentId: data.documentId.trim(),
+          gender: data.gender,
+          birthDate: new Date(data.birthDate).toISOString(),
+          birthCountry: data.birthCountry,
+          birthUbigeo: data.birthUbigeo?.trim() || null,
+          residenceUbigeo: data.residenceUbigeo?.trim() || null,
+          motherTongue: data.motherTongue,
+          hasDisability: data.hasDisability,
+          disabilityType: data.hasDisability ? data.disabilityType?.trim() || null : null,
+          address: data.address?.trim() || null,
+          studentCode: data.studentCode?.trim() || null,
+        },
+        enrollment: {
+          academicYearId: data.academicYearId,
+          classroomId: data.classroomId,
+          condition: data.condition,
+          previousSchoolModularCode: data.condition === 'TRASLADO' ? data.previousSchoolModularCode?.trim() : null,
+          repeatingGrade: data.repeatingGrade,
+        },
+        guardian: {
+          mode: data.parentMode,
+          existingUserId: data.parentMode === 'EXISTING' ? data.existingParentId : null,
           relationshipType: data.relationshipType,
           isLegalGuardian: data.isLegalGuardian,
           isFinancialResponsible: data.isFinancialResponsible,
-          livesWithStudent: true,
-        });
-      }
+          livesWithStudent: data.livesWithStudent,
+          newGuardian:
+            data.parentMode === 'NEW'
+              ? {
+                  firstName: data.newParentFirstName!.trim(),
+                  lastNamePaternal: data.newParentLastNamePaternal!.trim(),
+                  lastNameMaternal: data.newParentLastNameMaternal?.trim() || null,
+                  email: data.newParentEmail!.trim(),
+                  documentType: data.newParentDocumentType,
+                  documentId: data.newParentDocumentId?.trim() || null,
+                  cellphone: data.newParentCellphone?.trim() || null,
+                  educationLevel: data.newParentEducationLevel,
+                }
+              : undefined,
+        },
+      });
 
       reset();
       setStep(1);
       toast.success(
-        `✨ Alumno ${data.firstNames} ${data.lastNamePaternal} matriculado exitosamente con su aula y apoderado.`,
+        `✨ Ficha SIAGIE de ${data.firstNames} ${data.lastNamePaternal} registrada y matriculada con éxito.`,
       );
       onClose();
     } catch (err: any) {
-      console.error('Error al matricular alumno:', err);
+      console.error('Error al registrar ficha de matrícula:', err);
       const msg = err?.response?.data?.message || err?.message || 'Error al procesar la matrícula';
       setSubmitError(msg);
       toast.error(msg);
@@ -303,10 +345,10 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
           <div>
             <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
               <GraduationCap className="w-6 h-6 text-primary" />
-              Matricular Nuevo Estudiante (SIAGIE)
+              Ficha Única de Matrícula SIAGIE (MINEDU)
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Ficha de admisión, asignación de grado/sección y vinculación del apoderado.
+              Registro estandarizado de admisión, datos demográficos, asignación escolar y familia.
             </p>
           </div>
           <button
@@ -318,465 +360,649 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
         </div>
 
         {/* Wizard Indicator */}
-        <div className="grid grid-cols-3 gap-2 text-center text-xs font-semibold">
-          <div
-            className={`p-2.5 rounded-xl border transition-all flex items-center justify-center gap-2 ${
-              step === 1
-                ? 'bg-primary text-primary-foreground border-primary'
-                : step > 1
-                ? 'bg-primary/10 text-primary border-primary/30'
-                : 'bg-muted text-muted-foreground border-border'
-            }`}
-          >
-            <User className="w-4 h-4" />
-            <span className="hidden sm:inline">1. Alumno</span>
+        <div className="flex items-center justify-between gap-2 px-2 py-3 rounded-xl bg-secondary/50 border border-border/50 text-xs">
+          <div className={`flex items-center gap-2 ${step >= 1 ? 'font-bold text-primary' : 'text-muted-foreground'}`}>
+            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${step >= 1 ? 'bg-primary text-primary-foreground font-bold' : 'bg-muted text-muted-foreground'}`}>
+              1
+            </span>
+            <span>1. Datos del Alumno</span>
           </div>
-          <div
-            className={`p-2.5 rounded-xl border transition-all flex items-center justify-center gap-2 ${
-              step === 2
-                ? 'bg-primary text-primary-foreground border-primary'
-                : step > 2
-                ? 'bg-primary/10 text-primary border-primary/30'
-                : 'bg-muted text-muted-foreground border-border'
-            }`}
-          >
-            <GraduationCap className="w-4 h-4" />
-            <span className="hidden sm:inline">2. Aula & Año</span>
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          <div className={`flex items-center gap-2 ${step >= 2 ? 'font-bold text-primary' : 'text-muted-foreground'}`}>
+            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${step >= 2 ? 'bg-primary text-primary-foreground font-bold' : 'bg-muted text-muted-foreground'}`}>
+              2
+            </span>
+            <span>2. Matrícula Escolar</span>
           </div>
-          <div
-            className={`p-2.5 rounded-xl border transition-all flex items-center justify-center gap-2 ${
-              step === 3
-                ? 'bg-primary text-primary-foreground border-primary'
-                : 'bg-muted text-muted-foreground border-border'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span className="hidden sm:inline">3. Apoderado</span>
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          <div className={`flex items-center gap-2 ${step === 3 ? 'font-bold text-primary' : 'text-muted-foreground'}`}>
+            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${step === 3 ? 'bg-primary text-primary-foreground font-bold' : 'bg-muted text-muted-foreground'}`}>
+              3
+            </span>
+            <span>3. Apoderado y Familia</span>
           </div>
         </div>
 
         {submitError && (
-          <div className="p-3.5 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs font-semibold space-y-1">
-            <div className="font-bold flex items-center gap-1.5">
-              <span>⚠️ Error de Validación</span>
-            </div>
-            <div>{submitError}</div>
+          <div className="p-3 text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-xl">
+            {submitError}
           </div>
         )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* PASO 1: DATOS DEL ESTUDIANTE */}
+          {/* ======================================================== */}
+          {/* PASO 1: DATOS DEL ESTUDIANTE (CAMPOS SEPARADOS)           */}
+          {/* ======================================================== */}
           {step === 1 && (
             <div className="space-y-4 animate-in fade-in duration-150">
-              <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">
-                1. Datos Demográficos del Alumno
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Primer Apellido */}
                 <div>
-                  <label className="text-xs font-medium text-foreground">Nombres *</label>
-                  <Input {...register('firstNames')} placeholder="Ej. Juan Carlos" className="h-9 text-xs" />
-                  {errors.firstNames && (
-                    <span className="text-[10px] text-destructive block mt-0.5 font-medium">
-                      {errors.firstNames.message}
-                    </span>
-                  )}
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-foreground">Apellido Paterno *</label>
-                  <Input {...register('lastNamePaternal')} placeholder="Ej. Pérez" className="h-9 text-xs" />
+                  <label className="text-xs font-semibold text-foreground block mb-1">
+                    Primer Apellido (Paterno) *
+                  </label>
+                  <Input
+                    {...register('lastNamePaternal')}
+                    placeholder="Ej: Castillo"
+                    className="text-xs rounded-xl"
+                  />
                   {errors.lastNamePaternal && (
-                    <span className="text-[10px] text-destructive block mt-0.5 font-medium">
-                      {errors.lastNamePaternal.message}
-                    </span>
+                    <p className="text-[10px] text-destructive mt-1 font-medium">{errors.lastNamePaternal.message}</p>
                   )}
                 </div>
+
+                {/* Segundo Apellido */}
                 <div>
-                  <label className="text-xs font-medium text-foreground">Apellido Materno *</label>
-                  <Input {...register('lastNameMaternal')} placeholder="Ej. Quispe" className="h-9 text-xs" />
+                  <label className="text-xs font-semibold text-foreground block mb-1">
+                    Segundo Apellido (Materno) <span className="text-[10px] font-normal text-muted-foreground">(Opcional)</span>
+                  </label>
+                  <Input
+                    {...register('lastNameMaternal')}
+                    placeholder="Ej: Mendoza"
+                    className="text-xs rounded-xl"
+                  />
                   {errors.lastNameMaternal && (
-                    <span className="text-[10px] text-destructive block mt-0.5 font-medium">
-                      {errors.lastNameMaternal.message}
-                    </span>
+                    <p className="text-[10px] text-destructive mt-1 font-medium">{errors.lastNameMaternal.message}</p>
                   )}
                 </div>
               </div>
 
+              {/* Nombres Completos */}
+              <div>
+                <label className="text-xs font-semibold text-foreground block mb-1">
+                  Nombres Completos *
+                </label>
+                <Input
+                  {...register('firstNames')}
+                  placeholder="Ej: Javier Alejandro"
+                  className="text-xs rounded-xl"
+                />
+                {errors.firstNames && (
+                  <p className="text-[10px] text-destructive mt-1 font-medium">{errors.firstNames.message}</p>
+                )}
+              </div>
+
+              {/* Tipo y Número de Documento */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-foreground">Tipo Doc. *</label>
+                  <label className="text-xs font-semibold text-foreground block mb-1">
+                    Tipo de Documento *
+                  </label>
                   <select
                     {...register('documentType')}
-                    className="w-full h-9 rounded-md border border-border bg-background px-3 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full text-xs rounded-xl border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   >
-                    <option value="DNI">DNI (Perú)</option>
-                    <option value="CE">Carnet de Extranjería</option>
+                    <option value="DNI">DNI (8 dígitos)</option>
+                    <option value="CARNET_EXTRANJERIA">Carné Extranjería (CE)</option>
                     <option value="PASSPORT">Pasaporte</option>
-                    <option value="PNA">PNA (Partida Nacimiento)</option>
+                    <option value="PNA">Partida de Nacimiento</option>
+                    <option value="CODIGO_TEMPORAL">Cód. Temporal SIAGIE</option>
+                    <option value="OTHER">Otro</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-xs font-medium text-foreground">Número de Doc. *</label>
-                  <Input {...register('documentId')} placeholder="72819203" className="h-9 text-xs font-mono" />
-                  {errors.documentId ? (
-                    <span className="text-[10px] text-destructive block mt-0.5 font-medium">
-                      {errors.documentId.message}
-                    </span>
-                  ) : (
-                    <span className="text-[10px] text-muted-foreground block mt-0.5">
-                      💡 DNI: 8 dígitos numéricos sin espacios.
-                    </span>
+                  <label className="text-xs font-semibold text-foreground block mb-1">
+                    Número de Documento *
+                  </label>
+                  <Input
+                    {...register('documentId')}
+                    placeholder="8 dígitos para DNI"
+                    maxLength={15}
+                    className="text-xs rounded-xl font-mono"
+                  />
+                  {errors.documentId && (
+                    <p className="text-[10px] text-destructive mt-1 font-medium">{errors.documentId.message}</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="text-xs font-medium text-foreground">Género *</label>
+                  <label className="text-xs font-semibold text-foreground block mb-1">
+                    Género *
+                  </label>
                   <select
                     {...register('gender')}
-                    className="w-full h-9 rounded-md border border-border bg-background px-3 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full text-xs rounded-xl border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   >
-                    <option value="MALE">Masculino</option>
-                    <option value="FEMALE">Femenino</option>
+                    <option value="MALE">Masculino (M)</option>
+                    <option value="FEMALE">Femenino (F)</option>
                   </select>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Fecha y País de Nacimiento */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-foreground">Fecha Nacimiento *</label>
-                  <Input type="date" {...register('birthDate')} className="h-9 text-xs" />
+                  <label className="text-xs font-semibold text-foreground block mb-1">
+                    Fecha de Nacimiento *
+                  </label>
+                  <Input
+                    type="date"
+                    {...register('birthDate')}
+                    className="text-xs rounded-xl"
+                  />
                   {errors.birthDate && (
-                    <span className="text-[10px] text-destructive block mt-0.5 font-medium">
-                      {errors.birthDate.message}
-                    </span>
+                    <p className="text-[10px] text-destructive mt-1 font-medium">{errors.birthDate.message}</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="text-xs font-medium text-foreground">Código SIAGIE MINEDU</label>
-                  <Input {...register('studentCode')} placeholder="14 dígitos" className="h-9 text-xs font-mono" />
-                  {errors.studentCode ? (
-                    <span className="text-[10px] text-destructive block mt-0.5 font-medium">
-                      {errors.studentCode.message}
-                    </span>
-                  ) : (
-                    <span className="text-[10px] text-muted-foreground block mt-0.5">
-                      💡 Código oficial de 14 dígitos.
-                    </span>
-                  )}
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-foreground">Lengua Materna</label>
-                  <Input {...register('motherTongue')} placeholder="CASTELLANO" className="h-9 text-xs" />
+                  <label className="text-xs font-semibold text-foreground block mb-1">
+                    País de Nacimiento
+                  </label>
+                  <Input
+                    {...register('birthCountry')}
+                    placeholder="PERÚ"
+                    defaultValue="PERÚ"
+                    className="text-xs rounded-xl"
+                  />
                 </div>
               </div>
 
-              <div className="p-3 rounded-xl bg-muted/40 border border-border space-y-2">
-                <label className="flex items-center gap-2 text-xs font-semibold text-foreground cursor-pointer">
+              {/* Ubigeos INEI (Nacimiento y Residencia) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-foreground block mb-1">
+                    Ubigeo Nacimiento (6 dígitos INEI)
+                  </label>
+                  <Input
+                    {...register('birthUbigeo')}
+                    list="ubigeos-list"
+                    placeholder="Ej: 150101 (Lima/Lima/Lima)"
+                    maxLength={6}
+                    className="text-xs rounded-xl font-mono"
+                  />
+                  {errors.birthUbigeo && (
+                    <p className="text-[10px] text-destructive mt-1 font-medium">{errors.birthUbigeo.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-foreground block mb-1">
+                    Ubigeo Residencia (6 dígitos INEI)
+                  </label>
+                  <Input
+                    {...register('residenceUbigeo')}
+                    list="ubigeos-list"
+                    placeholder="Ej: 150101 (Distrito actual)"
+                    maxLength={6}
+                    className="text-xs rounded-xl font-mono"
+                  />
+                  {errors.residenceUbigeo && (
+                    <p className="text-[10px] text-destructive mt-1 font-medium">{errors.residenceUbigeo.message}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Datalist de Ubigeos Comunes SIAGIE */}
+              <datalist id="ubigeos-list">
+                {catalogs?.commonUbigeos?.map((u) => (
+                  <option key={u.code} value={u.code}>
+                    {u.department} - {u.province} - {u.district}
+                  </option>
+                ))}
+              </datalist>
+
+              {/* Dirección detallada */}
+              <div>
+                <label className="text-xs font-semibold text-foreground block mb-1">
+                  Dirección Domiciliaria (Vía, Nro, Mz/Lt, Urb)
+                </label>
+                <Input
+                  {...register('address')}
+                  placeholder="Ej: Av. Las Palmeras 450, Mz B Lote 12, Urb. San Felipe"
+                  className="text-xs rounded-xl"
+                />
+              </div>
+
+              {/* Lengua Materna y Código SIAGIE */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-foreground block mb-1">
+                    Lengua Materna
+                  </label>
+                  <select
+                    {...register('motherTongue')}
+                    className="w-full text-xs rounded-xl border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="CASTELLANO">Castellano / Español</option>
+                    <option value="QUECHUA">Quechua</option>
+                    <option value="AYMARA">Aymara</option>
+                    <option value="ASHANINKA">Asháninka</option>
+                    <option value="AWAJUN">Awajún</option>
+                    <option value="OTRA">Otra Lengua</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-foreground block mb-1">
+                    Código de Estudiante SIAGIE (14 dígitos)
+                  </label>
+                  <Input
+                    {...register('studentCode')}
+                    placeholder="Ej: 20261234567890 (opcional)"
+                    maxLength={14}
+                    className="text-xs rounded-xl font-mono"
+                  />
+                  {errors.studentCode && (
+                    <p className="text-[10px] text-destructive mt-1 font-medium">{errors.studentCode.message}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Inclusión / Salud */}
+              <div className="p-3 rounded-xl border border-border bg-secondary/20 space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-foreground">
                   <input
                     type="checkbox"
                     {...register('hasDisability')}
-                    className="rounded border-border text-primary focus:ring-primary h-4 w-4"
+                    className="rounded border-input text-primary focus:ring-primary w-4 h-4"
                   />
-                  <span>¿Tiene Discapacidad / Necesidad Educativa Especial (NEE)?</span>
+                  <span>El estudiante cuenta con Necesidad Educativa Especial (NEE / Discapacidad)</span>
                 </label>
 
                 {hasDisability && (
-                  <div>
-                    <label className="text-xs font-medium text-foreground">Detalle / Tipo de Discapacidad</label>
-                    <Input {...register('disabilityType')} placeholder="Ej. Visual, Motora, TEA..." className="h-9 text-xs" />
+                  <div className="pt-2 animate-in fade-in duration-150">
+                    <label className="text-xs font-medium text-foreground block mb-1">
+                      Tipo de Discapacidad / Diagnóstico
+                    </label>
+                    <select
+                      {...register('disabilityType')}
+                      className="w-full text-xs rounded-xl border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                    >
+                      <option value="VISUAL">Discapacidad Visual</option>
+                      <option value="AUDITIVA">Discapacidad Auditiva</option>
+                      <option value="MOTORA">Discapacidad Motora / Física</option>
+                      <option value="INTELECTUAL">Discapacidad Intelectual</option>
+                      <option value="TEA">Trastorno del Espectro Autista (TEA)</option>
+                      <option value="PSICOSOCIAL">Discapacidad Psicosocial</option>
+                      <option value="OTRA">Otra condición NEE</option>
+                    </select>
                   </div>
                 )}
               </div>
 
               <div className="flex justify-end pt-2">
-                <Button type="button" onClick={handleNextStep1} className="gap-2 text-xs font-bold">
-                  <span>Siguiente: Asignar Aula</span>
+                <Button type="button" onClick={handleNextStep1} className="gap-2 text-xs">
+                  <span>Siguiente: Matrícula Escolar</span>
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
             </div>
           )}
 
-          {/* PASO 2: AULA Y AÑO LECTIVO */}
+          {/* ======================================================== */}
+          {/* PASO 2: MATRÍCULA Y ASIGNACIÓN ESCOLAR                   */}
+          {/* ======================================================== */}
           {step === 2 && (
             <div className="space-y-4 animate-in fade-in duration-150">
-              <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">
-                2. Asignación Académica y Matricular en Aula
-              </h3>
-
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs font-medium text-foreground">Año Lectivo Escolar *</label>
-                  <select
-                    {...register('academicYearId')}
-                    className="w-full h-10 rounded-xl border border-border bg-background px-3 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    <option value="">-- Selecciona el Año Escolar --</option>
-                    {academicYears.map((ay) => (
-                      <option key={ay.id} value={ay.id}>
-                        Año Escolar {ay.year} {ay.isActive ? '(Activo)' : ''}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.academicYearId && (
-                    <span className="text-[10px] text-destructive block mt-0.5 font-medium">
-                      {errors.academicYearId.message}
-                    </span>
-                  )}
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-foreground">Aula / Grado y Sección *</label>
-                  <select
-                    {...register('classroomId')}
-                    className="w-full h-10 rounded-xl border border-border bg-background px-3 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    <option value="">-- Selecciona el Aula --</option>
-                    {classrooms.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.grade}° "{c.section}" - {c.educationLevel} ({c.shift})
-                      </option>
-                    ))}
-                  </select>
-                  {errors.classroomId && (
-                    <span className="text-[10px] text-destructive block mt-0.5 font-medium">
-                      {errors.classroomId.message}
-                    </span>
-                  )}
-                </div>
+              <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 text-xs text-primary flex items-center gap-2">
+                <BookOpen className="w-4 h-4 shrink-0" />
+                <span>Asignación de aula, año escolar y condición académica según normativa MINEDU.</span>
               </div>
 
-              <div className="flex justify-between pt-4">
+              {/* Año Lectivo */}
+              <div>
+                <label className="text-xs font-semibold text-foreground block mb-1">
+                  Año Lectivo Escolar *
+                </label>
+                <select
+                  {...register('academicYearId')}
+                  className="w-full text-xs rounded-xl border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="">-- Selecciona el Año Lectivo --</option>
+                  {academicYears.map((ay) => (
+                    <option key={ay.id} value={ay.id}>
+                      {ay.name || `Año Escolar ${ay.year}`} {ay.isActive ? '(Vigente Activo)' : ''}
+                    </option>
+                  ))}
+                </select>
+                {errors.academicYearId && (
+                  <p className="text-[10px] text-destructive mt-1 font-medium">{errors.academicYearId.message}</p>
+                )}
+              </div>
+
+              {/* Aula / Grado / Sección */}
+              <div>
+                <label className="text-xs font-semibold text-foreground block mb-1">
+                  Aula / Grado / Sección *
+                </label>
+                <select
+                  {...register('classroomId')}
+                  className="w-full text-xs rounded-xl border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="">-- Selecciona Aula y Sección --</option>
+                  {classrooms.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.educationLevel} - {c.grade}° "{c.section}" ({c.shift === 'MORNING' ? 'Turno Mañana' : 'Turno Tarde'}) · Capacidad: {c.capacity}
+                    </option>
+                  ))}
+                </select>
+                {errors.classroomId && (
+                  <p className="text-[10px] text-destructive mt-1 font-medium">{errors.classroomId.message}</p>
+                )}
+              </div>
+
+              {/* Condición de Matrícula */}
+              <div>
+                <label className="text-xs font-semibold text-foreground block mb-1">
+                  Condición de Matrícula SIAGIE *
+                </label>
+                <select
+                  {...register('condition')}
+                  className="w-full text-xs rounded-xl border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="CONTINUO">Continuo / Promovido (Permanece en la misma I.E.)</option>
+                  <option value="INGRESANTE">Ingresante (Primera matrícula en el sistema educativo)</option>
+                  <option value="TRASLADO">Traslado (Proviene de otra institución educativa)</option>
+                  <option value="REENTRANTE">Reentrante (Retoma estudios tras retiro temporal)</option>
+                </select>
+              </div>
+
+              {/* Si es Traslado: Código Modular de Origen */}
+              {condition === 'TRASLADO' && (
+                <div className="p-3 rounded-xl border border-border bg-muted/30 animate-in fade-in duration-150">
+                  <label className="text-xs font-semibold text-foreground block mb-1">
+                    Código Modular del Colegio de Origen (7 dígitos) *
+                  </label>
+                  <Input
+                    {...register('previousSchoolModularCode')}
+                    placeholder="Ej: 0382910"
+                    maxLength={7}
+                    className="text-xs rounded-xl font-mono"
+                  />
+                  {errors.previousSchoolModularCode && (
+                    <p className="text-[10px] text-destructive mt-1 font-medium">
+                      {errors.previousSchoolModularCode.message}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Repitente */}
+              <div className="p-3 rounded-xl border border-border bg-secondary/20">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-foreground">
+                  <input
+                    type="checkbox"
+                    {...register('repeatingGrade')}
+                    className="rounded border-input text-primary focus:ring-primary w-4 h-4"
+                  />
+                  <span>¿El estudiante se encuentra repitiendo este grado?</span>
+                </label>
+              </div>
+
+              <div className="flex justify-between pt-2">
                 <Button type="button" variant="outline" onClick={() => setStep(1)} className="gap-2 text-xs">
                   <ChevronLeft className="w-4 h-4" />
                   <span>Atrás</span>
                 </Button>
-                <Button type="button" onClick={handleNextStep2} className="gap-2 text-xs font-bold">
-                  <span>Siguiente: Apoderado</span>
+                <Button type="button" onClick={handleNextStep2} className="gap-2 text-xs">
+                  <span>Siguiente: Apoderado y Familia</span>
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
             </div>
           )}
 
-          {/* PASO 3: APODERADO / PADRE DE FAMILIA */}
+          {/* ======================================================== */}
+          {/* PASO 3: APODERADO Y VINCULACIÓN FAMILIAR                */}
+          {/* ======================================================== */}
           {step === 3 && (
             <div className="space-y-4 animate-in fade-in duration-150">
-              <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">
-                3. Vinculación de Apoderado / Padre de Familia
-              </h3>
-
               {/* Selector de Modo */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="flex rounded-xl p-1 bg-secondary border border-border">
                 <button
                   type="button"
                   onClick={() => setValue('parentMode', 'EXISTING')}
-                  className={`p-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                  className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                     parentMode === 'EXISTING'
-                      ? 'bg-primary/10 border-primary text-primary'
-                      : 'bg-card border-border text-muted-foreground hover:text-foreground'
+                      ? 'bg-card text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  <Search className="w-4 h-4" />
-                  <span>Buscar Padre Existente</span>
+                  Seleccionar del Directorio
                 </button>
-
                 <button
                   type="button"
                   onClick={() => setValue('parentMode', 'NEW')}
-                  className={`p-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                  className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                     parentMode === 'NEW'
-                      ? 'bg-primary/10 border-primary text-primary'
-                      : 'bg-card border-border text-muted-foreground hover:text-foreground'
+                      ? 'bg-card text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  <Plus className="w-4 h-4" />
-                  <span>Crear Nuevo Apoderado</span>
+                  Registrar Nuevo Apoderado
                 </button>
               </div>
 
-              {/* MODO A: APODERADO EXISTENTE */}
+              {/* Modo Existente */}
               {parentMode === 'EXISTING' && (
-                <div className="space-y-3 p-3 rounded-xl bg-muted/20 border border-border">
+                <div className="space-y-2">
                   <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Buscar por nombre o DNI de apoderado..."
+                      placeholder="Buscar por DNI, nombres o apellidos..."
                       value={parentSearch}
                       onChange={(e) => setParentSearch(e.target.value)}
-                      className="pl-9 h-9 text-xs"
+                      className="pl-9 text-xs rounded-xl"
                     />
                   </div>
 
-                  {errors.existingParentId && (
-                    <span className="text-[10px] text-destructive block font-medium">
-                      {errors.existingParentId.message}
-                    </span>
-                  )}
-
-                  <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
-                    {filteredParents.length ? (
+                  <div className="max-h-48 overflow-y-auto space-y-1.5 p-1 border border-border rounded-xl">
+                    {filteredParents.length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-4">
+                        No se encontraron apoderados con ese criterio.
+                      </p>
+                    ) : (
                       filteredParents.map((parent) => (
                         <div
                           key={parent.id}
                           onClick={() => setValue('existingParentId', parent.id)}
                           className={`p-2.5 rounded-lg border text-xs cursor-pointer flex items-center justify-between transition-colors ${
                             selectedParentId === parent.id
-                              ? 'bg-primary/15 border-primary text-foreground font-semibold'
-                              : 'bg-card border-border hover:bg-muted/40'
+                              ? 'border-primary bg-primary/10 text-primary font-semibold'
+                              : 'border-border/60 hover:bg-secondary/60 text-foreground'
                           }`}
                         >
                           <div>
-                            <span className="block text-foreground">
+                            <div className="font-semibold">
                               {parent.firstName} {parent.lastNamePaternal} {parent.lastNameMaternal}
-                            </span>
-                            <span className="text-[11px] text-muted-foreground">
-                              DNI: {parent.documentId || 'S/N'} • {parent.email}
-                            </span>
+                            </div>
+                            <div className="text-[10px] text-muted-foreground">
+                              {parent.email} · DNI: {parent.documentId || 'S/N'}
+                            </div>
                           </div>
                           {selectedParentId === parent.id && <CheckCircle2 className="w-4 h-4 text-primary" />}
                         </div>
                       ))
-                    ) : (
-                      <p className="text-xs text-muted-foreground text-center py-4">
-                        No se encontraron apoderados en el directorio.
-                      </p>
                     )}
                   </div>
+                  {errors.existingParentId && (
+                    <p className="text-[10px] text-destructive mt-1 font-medium">{errors.existingParentId.message}</p>
+                  )}
                 </div>
               )}
 
-              {/* MODO B: CREAR NUEVO APODERADO */}
+              {/* Modo Nuevo Apoderado */}
               {parentMode === 'NEW' && (
-                <div className="space-y-3 p-4 rounded-xl bg-muted/20 border border-border">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-3 p-3 rounded-xl border border-border bg-secondary/10">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-medium text-foreground">Nombres del Padre *</label>
-                      <Input {...register('newParentFirstName')} placeholder="Ej. Carlos" className="h-9 text-xs" />
-                      {errors.newParentFirstName && (
-                        <span className="text-[10px] text-destructive block mt-0.5 font-medium">
-                          {errors.newParentFirstName.message}
-                        </span>
-                      )}
+                      <label className="text-xs font-semibold text-foreground block mb-1">
+                        Primer Apellido (Paterno) *
+                      </label>
+                      <Input
+                        {...register('newParentLastNamePaternal')}
+                        placeholder="Ej: Castillo"
+                        className="text-xs rounded-xl"
+                      />
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-foreground">Apellido Paterno *</label>
-                      <Input {...register('newParentLastNamePaternal')} placeholder="Ej. Pérez" className="h-9 text-xs" />
-                      {errors.newParentLastNamePaternal && (
-                        <span className="text-[10px] text-destructive block mt-0.5 font-medium">
-                          {errors.newParentLastNamePaternal.message}
-                        </span>
-                      )}
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-foreground">Apellido Materno</label>
-                      <Input {...register('newParentLastNameMaternal')} placeholder="Ej. García" className="h-9 text-xs" />
+                      <label className="text-xs font-semibold text-foreground block mb-1">
+                        Segundo Apellido (Materno)
+                      </label>
+                      <Input
+                        {...register('newParentLastNameMaternal')}
+                        placeholder="Ej: Mendoza"
+                        className="text-xs rounded-xl"
+                      />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-foreground block mb-1">
+                      Nombres Completos *
+                    </label>
+                    <Input
+                      {...register('newParentFirstName')}
+                      placeholder="Ej: Carlos Alberto"
+                      className="text-xs rounded-xl"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-medium text-foreground">DNI del Padre *</label>
-                      <Input {...register('newParentDocumentId')} placeholder="10293847" className="h-9 text-xs font-mono" />
-                      {errors.newParentDocumentId ? (
-                        <span className="text-[10px] text-destructive block mt-0.5 font-medium">
-                          {errors.newParentDocumentId.message}
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-muted-foreground block mt-0.5">
-                          💡 DNI: 8 dígitos numéricos.
-                        </span>
-                      )}
+                      <label className="text-xs font-semibold text-foreground block mb-1">
+                        DNI del Apoderado (8 dígitos)
+                      </label>
+                      <Input
+                        {...register('newParentDocumentId')}
+                        placeholder="8 dígitos numéricos"
+                        maxLength={8}
+                        className="text-xs rounded-xl font-mono"
+                      />
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-foreground">Email de Contacto *</label>
-                      <Input type="email" {...register('newParentEmail')} placeholder="padre@gmail.com" className="h-9 text-xs" />
-                      {errors.newParentEmail ? (
-                        <span className="text-[10px] text-destructive block mt-0.5 font-medium">
-                          {errors.newParentEmail.message}
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-muted-foreground block mt-0.5">
-                          💡 Recibirá accesos e informes.
-                        </span>
-                      )}
+                      <label className="text-xs font-semibold text-foreground block mb-1">
+                        Celular (9 dígitos)
+                      </label>
+                      <Input
+                        {...register('newParentCellphone')}
+                        placeholder="Ej: 987654321"
+                        maxLength={9}
+                        className="text-xs rounded-xl font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-semibold text-foreground block mb-1">
+                        Correo Electrónico *
+                      </label>
+                      <Input
+                        type="email"
+                        {...register('newParentEmail')}
+                        placeholder="padre@ejemplo.com"
+                        className="text-xs rounded-xl"
+                      />
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-foreground">Celular Peruano *</label>
-                      <Input {...register('newParentCellphone')} placeholder="912345678" className="h-9 text-xs font-mono" />
-                      {errors.newParentCellphone ? (
-                        <span className="text-[10px] text-destructive block mt-0.5 font-medium">
-                          {errors.newParentCellphone.message}
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-muted-foreground block mt-0.5">
-                          💡 9 dígitos (ej. 987654321).
-                        </span>
-                      )}
+                      <label className="text-xs font-semibold text-foreground block mb-1">
+                        Grado de Instrucción (SIAGIE)
+                      </label>
+                      <select
+                        {...register('newParentEducationLevel')}
+                        className="w-full text-xs rounded-xl border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                      >
+                        <option value="SECUNDARIA_COMPLETA">Secundaria Completa</option>
+                        <option value="SECUNDARIA_INCOMPLETA">Secundaria Incompleta</option>
+                        <option value="PRIMARIA_COMPLETA">Primaria Completa</option>
+                        <option value="SUPERIOR_NO_UNIVERSITARIA_COMPLETA">Superior Técnica Completa</option>
+                        <option value="SUPERIOR_UNIVERSITARIA_COMPLETA">Superior Universitaria Completa</option>
+                        <option value="POSTGRADO">Postgrado (Maestría/Doctorado)</option>
+                        <option value="SIN_INSTRUCCION">Sin Instrucción</option>
+                      </select>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* DETALLES DE VINCULACIÓN FAMILIAR */}
-              <div className="p-3 rounded-xl bg-muted/40 border border-border space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="text-xs font-medium text-foreground">Parentesco *</label>
-                    <select
-                      {...register('relationshipType')}
-                      className="w-full h-9 rounded-md border border-border bg-background px-3 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                      <option value="FATHER">PADRE</option>
-                      <option value="MOTHER">MADRE</option>
-                      <option value="GRANDPARENT">ABUELO / ABUELA</option>
-                      <option value="UNCLE_AUNT">TÍO / TÍA</option>
-                      <option value="OTHER">TUTOR LEGAL / OTRO</option>
-                    </select>
-                  </div>
-
-                  <div className="flex items-center gap-2 pt-4">
-                    <input
-                      type="checkbox"
-                      id="isLegalGuardian"
-                      {...register('isLegalGuardian')}
-                      className="rounded border-border text-primary focus:ring-primary h-4 w-4"
-                    />
-                    <label htmlFor="isLegalGuardian" className="text-xs font-medium text-foreground cursor-pointer">
-                      ¿Es Apoderado Legal?
-                    </label>
-                  </div>
-
-                  <div className="flex items-center gap-2 pt-4">
-                    <input
-                      type="checkbox"
-                      id="isFinancialResponsible"
-                      {...register('isFinancialResponsible')}
-                      className="rounded border-border text-primary focus:ring-primary h-4 w-4"
-                    />
-                    <label htmlFor="isFinancialResponsible" className="text-xs font-medium text-foreground cursor-pointer">
-                      ¿Responsable de Pagos?
-                    </label>
-                  </div>
+              {/* Atributos del Parentesco */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="text-xs font-semibold text-foreground block mb-1">
+                    Parentesco con el Alumno *
+                  </label>
+                  <select
+                    {...register('relationshipType')}
+                    className="w-full text-xs rounded-xl border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="FATHER">Padre</option>
+                    <option value="MOTHER">Madre</option>
+                    <option value="TUTOR_LEGAL">Tutor / Apoderado Legal</option>
+                    <option value="GRANDPARENT">Abuelo / Abuela</option>
+                    <option value="UNCLE_AUNT">Tío / Tía</option>
+                    <option value="OTHER">Otro Apoderado</option>
+                  </select>
                 </div>
               </div>
 
-              {/* Botones de acción */}
-              <div className="flex justify-between pt-4">
-                <Button type="button" variant="outline" onClick={() => setStep(2)} className="gap-2 text-xs font-medium">
+              {/* Checkboxes de Atributos */}
+              <div className="space-y-2 p-3 rounded-xl border border-border bg-card text-xs">
+                <label className="flex items-center gap-2 cursor-pointer font-medium">
+                  <input
+                    type="checkbox"
+                    {...register('isLegalGuardian')}
+                    className="rounded border-input text-primary focus:ring-primary w-4 h-4"
+                  />
+                  <span>Apoderado oficial / legal ante el colegio y MINEDU</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer font-medium">
+                  <input
+                    type="checkbox"
+                    {...register('isFinancialResponsible')}
+                    className="rounded border-input text-primary focus:ring-primary w-4 h-4"
+                  />
+                  <span>Responsable económico de pago (emisión de comprobantes y pensiones)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer font-medium">
+                  <input
+                    type="checkbox"
+                    {...register('livesWithStudent')}
+                    className="rounded border-input text-primary focus:ring-primary w-4 h-4"
+                  />
+                  <span>Convive en el mismo domicilio que el estudiante</span>
+                </label>
+              </div>
+
+              <div className="flex justify-between pt-2">
+                <Button type="button" variant="outline" onClick={() => setStep(2)} className="gap-2 text-xs">
                   <ChevronLeft className="w-4 h-4" />
                   <span>Atrás</span>
                 </Button>
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="gap-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md"
-                >
-                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                  <span>Finalizar Matrícula</span>
+                <Button type="submit" disabled={isSubmitting} className="gap-2 text-xs shadow-md">
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Registrando Ficha SIAGIE...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Registrar Ficha de Matrícula SIAGIE</span>
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
