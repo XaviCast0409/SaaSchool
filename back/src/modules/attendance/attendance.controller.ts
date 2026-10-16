@@ -8,6 +8,7 @@ import {
   attendanceExportQuerySchema,
   attendanceMatrixQuerySchema,
   studentAttendanceQuerySchema,
+  scanAttendanceSchema,
 } from './attendance.schema';
 import type { AttendanceService } from './attendance.service';
 
@@ -103,5 +104,13 @@ export class AttendanceController {
       updateAttendanceDto,
     );
     response.status(200).json({ status: 'success', data: attendance });
+  };
+
+  /** POST /api/attendance/scan — Escaneo rápido de código QR / código de barras en puerta o kiosco */
+  scan = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const scanDto = scanAttendanceSchema.parse(request.body);
+    const result = await this.attendanceService.scanAttendance(schoolId, scanDto);
+    response.status(200).json({ status: 'success', data: result });
   };
 }

@@ -1,5 +1,5 @@
 import { prisma } from '../../config/prisma';
-import type { Attendance, AttendanceStatus, Prisma } from '@prisma/client';
+import type { Attendance, AttendanceStatus, AttendanceOrigin, Prisma } from '@prisma/client';
 import type {
   AttendanceFilterDto,
   AttendanceSummaryQueryDto,
@@ -27,6 +27,17 @@ export interface AttendanceMonthlySummary {
     absentRate: number;
     lateRate: number;
   };
+}
+
+export interface AttendanceStatsSummary {
+  total: number;
+  present: number;
+  absent: number;
+  late: number;
+}
+
+export interface AttendancePaginatedWithStats extends PaginatedResult<Attendance> {
+  stats: AttendanceStatsSummary;
 }
 
 /** Datos de alumno para el reporte de exportación mensual */
@@ -144,24 +155,49 @@ export class AttendanceRepository {
   async findBySchoolAndFilters(
     schoolId: string,
     filters: AttendanceFilterDto,
-  ): Promise<PaginatedResult<Attendance>> {
+  ): Promise<AttendancePaginatedWithStats> {
     const page = filters.page ?? 1;
-    const limit = filters.limit ?? 50;
+    const limit = filters.limit ?? 15;
     const skip = (page - 1) * limit;
+
+    const enrollmentWhere: Prisma.EnrollmentWhereInput = {};
+    if (filters.classroomId) {
+      enrollmentWhere.classroomId = filters.classroomId;
+    }
+    if (filters.search?.trim()) {
+      const searchTerms = filters.search.trim();
+      enrollmentWhere.student = {
+        OR: [
+          { firstNames: { contains: searchTerms, mode: 'insensitive' } },
+          { lastNamePaternal: { contains: searchTerms, mode: 'insensitive' } },
+          { lastNameMaternal: { contains: searchTerms, mode: 'insensitive' } },
+          { documentId: { contains: searchTerms, mode: 'insensitive' } },
+        ],
+      };
+    }
 
     const where: Prisma.AttendanceWhereInput = {
       schoolId,
       ...(filters.date ? { date: new Date(filters.date) } : {}),
-      ...(filters.classroomId
-        ? {
-            enrollment: {
-              classroomId: filters.classroomId,
-            },
-          }
+      ...(Object.keys(enrollmentWhere).length > 0 ? { enrollment: enrollmentWhere } : {}),
+      ...(filters.status && filters.status !== 'ALL'
+        ? filters.status === 'ABSENT'
+          ? { status: { in: ['ABSENT_JUSTIFIED', 'ABSENT_UNJUSTIFIED'] } }
+          : filters.status === 'LATE'
+            ? { status: { in: ['LATE_JUSTIFIED', 'LATE_UNJUSTIFIED'] } }
+            : filters.status === 'PRESENT'
+              ? { status: 'PRESENT' }
+              : { status: filters.status as AttendanceStatus }
         : {}),
     };
 
-    const [data, total] = await Promise.all([
+    const statsWhere: Prisma.AttendanceWhereInput = {
+      schoolId,
+      ...(filters.date ? { date: new Date(filters.date) } : {}),
+      ...(filters.classroomId ? { enrollment: { classroomId: filters.classroomId } } : {}),
+    };
+
+    const [data, total, statusGroups] = await Promise.all([
       prisma.attendance.findMany({
         where,
         skip,
@@ -176,7 +212,29 @@ export class AttendanceRepository {
         },
       }),
       prisma.attendance.count({ where }),
+      prisma.attendance.groupBy({
+        by: ['status'],
+        where: statsWhere,
+        _count: { status: true },
+      }),
     ]);
+
+    let present = 0;
+    let absent = 0;
+    let late = 0;
+    let statsTotal = 0;
+
+    for (const group of statusGroups) {
+      const count = group._count.status;
+      statsTotal += count;
+      if (group.status === 'PRESENT') {
+        present += count;
+      } else if (group.status.startsWith('ABSENT')) {
+        absent += count;
+      } else if (group.status.startsWith('LATE')) {
+        late += count;
+      }
+    }
 
     return {
       data,
@@ -185,6 +243,12 @@ export class AttendanceRepository {
         page,
         limit,
         totalPages: Math.ceil(total / limit) || 1,
+      },
+      stats: {
+        total: statsTotal,
+        present,
+        absent,
+        late,
       },
     };
   }
@@ -195,6 +259,96 @@ export class AttendanceRepository {
       where: { enrollmentId, schoolId },
       include: ATTENDANCE_INCLUDE,
       orderBy: { date: 'desc' },
+    });
+  }
+
+  /** Busca un estudiante con matrícula activa por código de estudiante, DNI o ID. */
+  async findActiveEnrollmentByCode(schoolId: string, code: string) {
+    const trimmed = code.trim();
+    return prisma.enrollment.findFirst({
+      where: {
+        schoolId,
+        isActive: true,
+        OR: [
+          { student: { studentCode: trimmed } },
+          { student: { documentId: trimmed } },
+          { student: { id: trimmed } },
+          { id: trimmed },
+        ],
+      },
+      include: {
+        student: {
+          select: {
+            id: true,
+            firstNames: true,
+            lastNamePaternal: true,
+            lastNameMaternal: true,
+            documentId: true,
+            studentCode: true,
+          },
+        },
+        classroom: {
+          select: {
+            id: true,
+            grade: true,
+            section: true,
+            educationLevel: true,
+            shift: true,
+          },
+        },
+      },
+    });
+  }
+
+  /** Busca la asistencia de un alumno para una fecha específica (ej. hoy). */
+  async findAttendanceByDate(
+    schoolId: string,
+    enrollmentId: string,
+    date: Date,
+  ): Promise<Attendance | null> {
+    return prisma.attendance.findFirst({
+      where: {
+        schoolId,
+        enrollmentId,
+        date,
+      },
+      include: ATTENDANCE_INCLUDE,
+    });
+  }
+
+  /** Registra o actualiza la asistencia por escaneo rápido de QR / Código de barras. */
+  async recordScanAttendance(params: {
+    schoolId: string;
+    enrollmentId: string;
+    date: Date;
+    status: AttendanceStatus;
+    checkInTime: Date;
+    origin: AttendanceOrigin;
+    notes?: string;
+  }): Promise<Attendance> {
+    return prisma.attendance.upsert({
+      where: {
+        enrollmentId_date: {
+          enrollmentId: params.enrollmentId,
+          date: params.date,
+        },
+      },
+      update: {
+        status: params.status,
+        checkInTime: params.checkInTime,
+        origin: params.origin,
+        notes: params.notes,
+      },
+      create: {
+        schoolId: params.schoolId,
+        enrollmentId: params.enrollmentId,
+        date: params.date,
+        status: params.status,
+        checkInTime: params.checkInTime,
+        origin: params.origin,
+        notes: params.notes,
+      },
+      include: ATTENDANCE_INCLUDE,
     });
   }
 

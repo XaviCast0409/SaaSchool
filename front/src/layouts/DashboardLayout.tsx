@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   ShieldAlert,
   UserCheck,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/button';
@@ -68,6 +69,13 @@ export const DashboardLayout: React.FC = () => {
     { label: 'Años Lectivos', path: '/academic-years', icon: Calendar, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'], minPlan: 'BASIC' },
     { label: 'Grados y Aulas', path: '/classrooms', icon: SchoolIcon, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'], minPlan: 'BASIC' },
     { label: 'Cursos y Áreas SIAGIE', path: '/curricular-areas', icon: BookOpenCheck, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'], minPlan: 'BASIC' },
+    {
+      label: 'Criterios de Calificación',
+      path: '/evaluation-criteria',
+      icon: SlidersHorizontal,
+      roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
+      minPlan: 'PRO',
+    },
     {
       label: userRole === 'TEACHER' ? 'Mis Cursos Asignados' : 'Carga Horaria Docente',
       path: '/teacher-assignments',

@@ -45,7 +45,7 @@ interface ReceiptResponse {
   data: ReceiptData;
 }
 
-/** Hook para obtener las obligaciones de pago con enabled estricto para evitar peticiones masivas sin sección/búsqueda */
+/** Hook para obtener las obligaciones de pago con paginación */
 export const usePayments = (filters: ObligationFilterParams = {}, enabledOverride?: boolean) => {
   const queryParams = new URLSearchParams();
   if (filters.page) queryParams.append('page', String(filters.page));
@@ -58,15 +58,7 @@ export const usePayments = (filters: ObligationFilterParams = {}, enabledOverrid
   const queryString = queryParams.toString();
   const url = `/payments/obligations${queryString ? `?${queryString}` : ''}`;
 
-  const isEnabled =
-    enabledOverride !== undefined
-      ? enabledOverride
-      : Boolean(
-          filters.classroomId ||
-            filters.search ||
-            filters.status ||
-            filters.enrollmentId
-        );
+  const isEnabled = enabledOverride !== undefined ? enabledOverride : true;
 
   return useQuery({
     queryKey: ['payments-obligations', filters.page, filters.limit, filters.status, filters.classroomId, filters.search],

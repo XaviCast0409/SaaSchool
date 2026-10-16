@@ -1,6 +1,6 @@
 import { prisma } from '../../config/prisma';
 import { hashPassword } from '../../utils/hash.util';
-import type { User, Prisma } from '@prisma/client';
+import type { User, Prisma, Role } from '@prisma/client';
 import type { CreateUserDto, UpdateUserDto, UserFilterDto } from './user.schema';
 import type { PaginatedResult } from '../../core/interfaces/global.interfaces';
 
@@ -26,14 +26,26 @@ type PublicUser = Omit<User, 'passwordHash'>;
 export class UserRepository {
   async findAllBySchool(
     schoolId: string,
-    filters: UserFilterDto = { page: 1, limit: 10 },
+    filters: Partial<UserFilterDto> = {},
   ): Promise<PaginatedResult<PublicUser>> {
-    const { page, limit, role, search } = filters;
+    const { page = 1, limit = 500, role, roles, staffOnly, search } = filters;
     const skip = (page - 1) * limit;
+
+    let roleFilter: Prisma.UserWhereInput['role'] = undefined;
+    if (role) {
+      roleFilter = role;
+    } else if (roles) {
+      const parsed = roles.split(',').map((r) => r.trim()).filter(Boolean) as Role[];
+      if (parsed.length > 0) {
+        roleFilter = { in: parsed };
+      }
+    } else if (staffOnly) {
+      roleFilter = { in: ['SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'] };
+    }
 
     const where: Prisma.UserWhereInput = {
       schoolId,
-      ...(role ? { role } : {}),
+      ...(roleFilter ? { role: roleFilter } : {}),
       ...(search
         ? {
             OR: [

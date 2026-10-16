@@ -15,6 +15,9 @@ import {
   MessageSquare,
   Grid3X3,
   BarChart3,
+  QrCode,
+  Search,
+  X,
 } from 'lucide-react';
 import { useAttendance, useUpdateAttendance } from '../api/useAttendance';
 import { AttendanceStatusBadge } from '../components/AttendanceStatusBadge';
@@ -22,6 +25,7 @@ import { AttendanceMonthlyReport } from '../components/AttendanceMonthlyReport';
 import { AttendanceMatrixGrid } from '../components/AttendanceMatrixGrid';
 import { BulkAttendanceModal } from '../components/BulkAttendanceModal';
 import { EditNotesModal } from '../components/EditNotesModal';
+import { QrScannerModal } from '../components/QrScannerModal';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -38,28 +42,21 @@ const STATUS_OPTIONS: Array<{ value: AttendanceStatus; label: string; color: str
   { value: 'LATE_JUSTIFIED', label: 'Tardanza Just.', color: 'hover:bg-sky-500/10 hover:text-sky-600' },
 ];
 
-function navigateMonth(currentMonthStr: string, delta: number): string {
-  const [y, m] = currentMonthStr.split('-').map(Number);
-  const date = new Date(y, m - 1 + delta, 1);
-  const nextY = date.getFullYear();
-  const nextM = String(date.getMonth() + 1).padStart(2, '0');
-  return `${nextY}-${nextM}`;
-}
-
 export const AttendancePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'DAILY' | 'MATRIX' | 'MONTHLY'>('DAILY');
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split('T')[0]
   );
-  const [selectedMonth, setSelectedMonth] = useState<string>(
-    new Date().toISOString().slice(0, 7)
-  );
+  const selectedMonth = new Date().toISOString().slice(0, 7);
   const [selectedClassroomId, setSelectedClassroomId] = useState<string>('');
   const [editingAttendanceId, setEditingAttendanceId] = useState<string | null>(null);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ABSENT' | 'LATE' | 'PRESENT'>('ALL');
+  const [searchTerm, setSearchTerm] = useState('');
   const [notesModalRecord, setNotesModalRecord] = useState<AttendanceRecord | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 50;
+  const [pageSize, setPageSize] = useState(15);
 
   // Queries
   const { data: classrooms = [] } = useClassrooms();
@@ -71,20 +68,26 @@ export const AttendancePage: React.FC = () => {
   } = useAttendance({
     date: selectedDate,
     classroomId: selectedClassroomId || undefined,
+    status: statusFilter,
+    search: searchTerm || undefined,
     page: currentPage,
-    limit: PAGE_SIZE,
+    limit: pageSize,
   });
 
   const attendanceList = paginatedResult?.data ?? [];
   const meta = paginatedResult?.meta;
+  const stats = paginatedResult?.stats;
+
+  // Mostramos directamente la lista paginada del backend
+  const displayedAttendance = attendanceList;
 
   const { mutate: updateAttendance, isPending: isUpdating } = useUpdateAttendance();
 
-  // Metrics
-  const total = attendanceList.length;
-  const presentCount = attendanceList.filter((a) => a.status === 'PRESENT').length;
-  const absentCount = attendanceList.filter((a) => a.status.startsWith('ABSENT')).length;
-  const lateCount = attendanceList.filter((a) => a.status.startsWith('LATE')).length;
+  // Metrics exactas de todo el día/aula desde el backend
+  const total = stats?.total ?? meta?.total ?? attendanceList.length;
+  const presentCount = stats?.present ?? 0;
+  const absentCount = stats?.absent ?? 0;
+  const lateCount = stats?.late ?? 0;
   const presentPct = total > 0 ? Math.round((presentCount / total) * 100) : 0;
   const absentPct = total > 0 ? Math.round((absentCount / total) * 100) : 0;
   const latePct = total > 0 ? Math.round((lateCount / total) * 100) : 0;
@@ -126,77 +129,25 @@ export const AttendancePage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap self-start md:self-auto">
+          {/* Lector QR / Kiosco en Puerta */}
+          <Button
+            onClick={() => setIsQrScannerOpen(true)}
+            className="gap-2 shadow-sm bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
+          >
+            <QrCode className="w-4 h-4" />
+            <span>Kiosco Lector QR</span>
+          </Button>
+
           {/* Tomar Asistencia Masiva Button */}
           <Button
+            variant="outline"
             onClick={() => setIsBulkModalOpen(true)}
             className="gap-2 shadow-sm"
           >
-            <UserCheck className="w-4 h-4" />
+            <UserCheck className="w-4 h-4 text-emerald-600" />
             <span>Tomar Asistencia del Aula</span>
           </Button>
 
-          {/* Classroom & Date Selectors */}
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Classroom Selector */}
-            <div className="flex items-center gap-1.5 bg-card p-1.5 rounded-lg border border-border">
-              <School className="w-4 h-4 text-muted-foreground ml-1 shrink-0" />
-              <select
-                value={selectedClassroomId}
-                onChange={(e) => handleClassroomChange(e.target.value)}
-                className="h-8 border-none bg-transparent text-xs font-semibold focus-visible:ring-0 text-foreground cursor-pointer"
-              >
-                <option value="">— Todas las Secciones —</option>
-                {classrooms.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.grade}° {c.section} ({c.educationLevel})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Date or Month Picker with Previous/Next Navigation */}
-            {activeTab === 'DAILY' ? (
-              <div className="flex items-center gap-1.5 bg-card p-1.5 rounded-lg border border-border">
-                <CalendarIcon className="w-4 h-4 text-muted-foreground ml-1 shrink-0" />
-                <Input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => handleDateChange(e.target.value)}
-                  className="h-8 border-none bg-transparent text-xs font-semibold focus-visible:ring-0 w-36"
-                />
-              </div>
-            ) : (
-              <div className="flex items-center gap-1 bg-card p-1 rounded-lg border border-border">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                  title="Mes Anterior"
-                  onClick={() => setSelectedMonth((m) => navigateMonth(m, -1))}
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <div className="flex items-center gap-1 px-1">
-                  <CalendarIcon className="w-4 h-4 text-primary shrink-0" />
-                  <Input
-                    type="month"
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
-                    className="h-7 border-none bg-transparent text-xs font-bold focus-visible:ring-0 w-32 p-0 cursor-pointer"
-                  />
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                  title="Mes Siguiente"
-                  onClick={() => setSelectedMonth((m) => navigateMonth(m, 1))}
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
@@ -211,7 +162,7 @@ export const AttendancePage: React.FC = () => {
           }`}
         >
           <CalendarCheck className="w-4 h-4" />
-          <span>Control Diario ({selectedDate})</span>
+          <span>Control Diario</span>
         </button>
 
         <button
@@ -235,7 +186,7 @@ export const AttendancePage: React.FC = () => {
           }`}
         >
           <BarChart3 className="w-4 h-4 text-sky-600" />
-          <span>Reporte & KPIs ({selectedMonth})</span>
+          <span>Reporte & KPIs</span>
         </button>
       </div>
 
@@ -317,20 +268,129 @@ export const AttendancePage: React.FC = () => {
             </Card>
           </div>
 
-          {/* Attendance Table */}
-          {!selectedClassroomId ? (
-            <div className="py-16 text-center text-muted-foreground border border-dashed border-border rounded-xl space-y-3 bg-card p-6">
-              <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
-                <School className="w-6 h-6" />
+          {/* Barra de Búsqueda, Selector de Aula y Filtros de Estado */}
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 p-3 rounded-xl bg-card border border-border">
+            {/* Fecha, Buscador de Alumno y Selector de Aula */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1">
+              {/* Selector de Fecha */}
+              <div className="flex items-center gap-1.5 bg-background px-2.5 h-9 rounded-md border border-input shrink-0">
+                <CalendarIcon className="w-4 h-4 text-primary shrink-0" />
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => handleDateChange(e.target.value)}
+                  className="bg-transparent border-none text-xs font-semibold focus:outline-none text-foreground cursor-pointer"
+                />
               </div>
-              <div className="space-y-1">
-                <h3 className="font-bold text-base text-foreground">Selecciona una Sección Educativa</h3>
-                <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                  Para optimizar el rendimiento y evitar tráfico masivo en el sistema, por favor selecciona un Aula/Sección en el desplegable superior para consultar la asistencia diaria.
-                </p>
+
+              {/* Buscador de Alumno / DNI */}
+              <div className="relative flex-1 min-w-[180px]">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Buscar alumno por nombre o DNI..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="pl-9 pr-8 h-9 text-xs bg-background"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => {
+                      setSearchTerm('');
+                      setCurrentPage(1);
+                    }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    title="Limpiar búsqueda"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Selector de Aula al lado del buscador */}
+              <div className="flex items-center gap-2 bg-background px-3 h-9 rounded-md border border-input min-w-[210px]">
+                <School className="w-4 h-4 text-primary shrink-0" />
+                <select
+                  value={selectedClassroomId}
+                  onChange={(e) => handleClassroomChange(e.target.value)}
+                  className="w-full border-none bg-transparent text-xs font-semibold focus:outline-none text-foreground cursor-pointer"
+                >
+                  <option value="">— Todas las Aulas / Secciones —</option>
+                  {classrooms.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.grade}° "{c.section}" — {c.educationLevel === 'PRIMARY' ? 'Primaria' : c.educationLevel === 'SECONDARY' ? 'Secundaria' : 'Inicial'}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
-          ) : isLoading ? (
+
+            {/* Botones de Filtro Rápido por Estado */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <Button
+                size="sm"
+                variant={statusFilter === 'ALL' ? 'default' : 'outline'}
+                className="h-8 text-xs font-semibold"
+                onClick={() => {
+                  setStatusFilter('ALL');
+                  setCurrentPage(1);
+                }}
+              >
+                Todos ({total})
+              </Button>
+              <Button
+                size="sm"
+                variant={statusFilter === 'ABSENT' ? 'default' : 'outline'}
+                className={`h-8 text-xs font-semibold ${
+                  statusFilter === 'ABSENT'
+                    ? 'bg-destructive text-destructive-foreground'
+                    : 'text-destructive hover:bg-destructive/10'
+                }`}
+                onClick={() => {
+                  setStatusFilter('ABSENT');
+                  setCurrentPage(1);
+                }}
+              >
+                Solo Faltas ({absentCount})
+              </Button>
+              <Button
+                size="sm"
+                variant={statusFilter === 'LATE' ? 'default' : 'outline'}
+                className={`h-8 text-xs font-semibold ${
+                  statusFilter === 'LATE'
+                    ? 'bg-amber-600 text-white'
+                    : 'text-amber-600 hover:bg-amber-500/10'
+                }`}
+                onClick={() => {
+                  setStatusFilter('LATE');
+                  setCurrentPage(1);
+                }}
+              >
+                Solo Tardanzas ({lateCount})
+              </Button>
+              <Button
+                size="sm"
+                variant={statusFilter === 'PRESENT' ? 'default' : 'outline'}
+                className={`h-8 text-xs font-semibold ${
+                  statusFilter === 'PRESENT'
+                    ? 'bg-emerald-600 text-white'
+                    : 'text-emerald-600 hover:bg-emerald-500/10'
+                }`}
+                onClick={() => {
+                  setStatusFilter('PRESENT');
+                  setCurrentPage(1);
+                }}
+              >
+                Solo Presentes ({presentCount})
+              </Button>
+            </div>
+          </div>
+
+          {/* Attendance Table */}
+          {isLoading ? (
             <Skeleton className="h-64 w-full rounded-md" />
           ) : isError ? (
             <div className="p-6 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive text-center space-y-3">
@@ -347,14 +407,15 @@ export const AttendancePage: React.FC = () => {
                     <TableRow>
                       <TableHead className="text-xs font-bold uppercase">Estudiante</TableHead>
                       <TableHead className="text-xs font-bold uppercase">Sección</TableHead>
+                      <TableHead className="text-xs font-bold uppercase">Hora Ingreso</TableHead>
                       <TableHead className="text-xs font-bold uppercase">Estado Actual</TableHead>
                       <TableHead className="text-xs font-bold uppercase">Observaciones</TableHead>
                       <TableHead className="text-xs font-bold uppercase">Corregir / Cambiar Estado</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {attendanceList.length ? (
-                      attendanceList.map((item) => {
+                    {displayedAttendance.length ? (
+                      displayedAttendance.map((item) => {
                         const student = item.enrollment?.student;
                         const classroom = item.enrollment?.classroom;
                         const isItemUpdating = isUpdating && editingAttendanceId === item.id;
@@ -364,13 +425,29 @@ export const AttendancePage: React.FC = () => {
                             <TableCell>
                               <div className="font-semibold text-foreground">
                                 {student
-                                  ? `${student.lastNamePaternal} ${student.lastNameMaternal}, ${student.firstNames}`
+                                  ? `${student.lastNamePaternal} ${student.lastNameMaternal || ''}, ${student.firstNames}`
                                   : 'Estudiante'}
                               </div>
                             </TableCell>
 
                             <TableCell className="text-xs text-muted-foreground">
                               {classroom ? `${classroom.grade}° ${classroom.section}` : '—'}
+                            </TableCell>
+
+                            <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                              {item.checkInTime ? (
+                                <div className="flex items-center gap-1 font-semibold text-foreground">
+                                  <Clock className="w-3.5 h-3.5 text-primary" />
+                                  <span>
+                                    {new Date(item.checkInTime).toLocaleTimeString('es-PE', {
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                    })}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground/60">—</span>
+                              )}
                             </TableCell>
 
                             <TableCell>
@@ -425,13 +502,27 @@ export const AttendancePage: React.FC = () => {
                       })
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
+                        <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
                           <div className="flex flex-col items-center justify-center gap-2">
                             <RotateCcw className="w-8 h-8 text-muted-foreground/50" />
-                            <span>No hay asistencia registrada para la fecha ({selectedDate}).</span>
-                            <p className="text-xs text-muted-foreground/70">
-                              Usa el botón "Tomar Asistencia del Aula" para registrar la asistencia del día.
-                            </p>
+                            {searchTerm ? (
+                              <span className="font-medium text-foreground">
+                                No se encontraron alumnos para "{searchTerm}".
+                              </span>
+                            ) : statusFilter !== 'ALL' ? (
+                              <span className="font-medium text-foreground">
+                                No se encontraron registros con el estado seleccionado para la fecha ({selectedDate}).
+                              </span>
+                            ) : (
+                              <>
+                                <span className="font-medium text-foreground">
+                                  No hay asistencia registrada para la fecha ({selectedDate}).
+                                </span>
+                                <p className="text-xs text-muted-foreground/70">
+                                  Usa el botón "Tomar Asistencia del Aula" para registrar la asistencia del día.
+                                </p>
+                              </>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -440,35 +531,67 @@ export const AttendancePage: React.FC = () => {
                 </Table>
               </div>
 
-              {meta && meta.totalPages > 1 && (
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>
-                    Mostrando {(meta.page - 1) * meta.limit + 1}–
-                    {Math.min(meta.page * meta.limit, meta.total)} de {meta.total} registros
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 w-7 p-0"
-                      disabled={currentPage <= 1}
-                      onClick={() => setCurrentPage((p) => p - 1)}
-                    >
-                      <ChevronLeft className="w-3.5 h-3.5" />
-                    </Button>
-                    <span className="px-2 font-medium">
-                      Pág. {meta.page} / {meta.totalPages}
+              {meta && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground px-1 py-2">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span>
+                      Mostrando{' '}
+                      <span className="font-semibold text-foreground">
+                        {meta.total === 0 ? 0 : (meta.page - 1) * meta.limit + 1}
+                      </span>
+                      {' '}–{' '}
+                      <span className="font-semibold text-foreground">
+                        {Math.min(meta.page * meta.limit, meta.total)}
+                      </span>
+                      {' '}de{' '}
+                      <span className="font-semibold text-foreground">{meta.total}</span> alumnos
                     </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 w-7 p-0"
-                      disabled={currentPage >= meta.totalPages}
-                      onClick={() => setCurrentPage((p) => p + 1)}
-                    >
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </Button>
+
+                    <div className="flex items-center gap-1.5 ml-2">
+                      <span>Filas por pág:</span>
+                      <select
+                        value={pageSize}
+                        onChange={(e) => {
+                          setPageSize(Number(e.target.value));
+                          setCurrentPage(1);
+                        }}
+                        className="h-7 px-2 border rounded-md bg-card border-border text-xs font-semibold text-foreground cursor-pointer"
+                      >
+                        <option value={10}>10</option>
+                        <option value={15}>15</option>
+                        <option value={25}>25</option>
+                        <option value={50}>50</option>
+                      </select>
+                    </div>
                   </div>
+
+                  {meta.totalPages > 1 && (
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 px-2.5 text-xs gap-1"
+                        disabled={currentPage <= 1}
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                        <span>Anterior</span>
+                      </Button>
+                      <span className="px-3 font-semibold text-foreground">
+                        Pág. {meta.page} / {meta.totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 px-2.5 text-xs gap-1"
+                        disabled={currentPage >= meta.totalPages}
+                        onClick={() => setCurrentPage((p) => Math.min(meta.totalPages, p + 1))}
+                      >
+                        <span>Siguiente</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </>
@@ -487,8 +610,8 @@ export const AttendancePage: React.FC = () => {
       {/* Tab 3: Reporte & KPIs */}
       {activeTab === 'MONTHLY' && (
         <AttendanceMonthlyReport
-          month={selectedMonth}
-          classroomId={selectedClassroomId || undefined}
+          initialMonth={selectedMonth}
+          initialClassroomId={selectedClassroomId}
         />
       )}
 
@@ -507,6 +630,11 @@ export const AttendancePage: React.FC = () => {
           record={notesModalRecord}
           onClose={() => setNotesModalRecord(null)}
         />
+      )}
+
+      {/* Modal Kiosco Lector QR en Puerta / Ingreso */}
+      {isQrScannerOpen && (
+        <QrScannerModal onClose={() => setIsQrScannerOpen(false)} />
       )}
     </div>
   );

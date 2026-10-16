@@ -5,14 +5,16 @@ import {
   flexRender,
   type ColumnDef,
 } from '@tanstack/react-table';
-import { Search, UserCheck, ChevronDown, ChevronUp, Users, Filter, Accessibility, BookOpen, Pencil, School, FileText } from 'lucide-react';
+import { Search, UserCheck, ChevronDown, ChevronUp, Users, Filter, Accessibility, BookOpen, Pencil, School, FileText, QrCode } from 'lucide-react';
 import { Student } from '../types';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useUsers } from '@/features/users/api/useUsers';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
+import { useGetActiveSchool } from '@/features/schools/api/useSchool';
 import { StudentParentsPanel } from '@/features/users/family-relationships/components/StudentParentsPanel';
 import { EditStudentModal } from './EditStudentModal';
 import { StudentFichaModal } from './StudentFichaModal';
+import { StudentQrCardModal } from './StudentQrCardModal';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -34,13 +36,11 @@ interface StudentTableProps {
   search: string;
   classroomId?: string;
   educationLevel?: 'INITIAL' | 'PRIMARY' | 'SECONDARY';
-  grade?: number;
   onPageChange: (page: number) => void;
   onLimitChange: (limit: number) => void;
   onSearchChange: (search: string) => void;
   onClassroomChange: (classroomId?: string) => void;
   onEducationLevelChange: (level?: 'INITIAL' | 'PRIMARY' | 'SECONDARY') => void;
-  onGradeChange: (grade?: number) => void;
 }
 
 export const StudentTable: React.FC<StudentTableProps> = ({
@@ -52,13 +52,11 @@ export const StudentTable: React.FC<StudentTableProps> = ({
   search,
   classroomId,
   educationLevel,
-  grade,
   onPageChange,
   onLimitChange,
   onSearchChange,
   onClassroomChange,
   onEducationLevelChange,
-  onGradeChange,
 }) => {
   const { user } = useAuthStore();
   const canManageStudents =
@@ -69,9 +67,11 @@ export const StudentTable: React.FC<StudentTableProps> = ({
   const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null);
   const [selectedStudentForEdit, setSelectedStudentForEdit] = useState<Student | null>(null);
   const [selectedStudentForFicha, setSelectedStudentForFicha] = useState<string | null>(null);
+  const [selectedStudentForQr, setSelectedStudentForQr] = useState<Student | null>(null);
 
   const { data: allParents = [] } = useUsers('PARENT');
   const { data: classrooms = [] } = useClassrooms();
+  const { data: school } = useGetActiveSchool();
 
   const columns: ColumnDef<Student>[] = [
     {
@@ -160,6 +160,17 @@ export const StudentTable: React.FC<StudentTableProps> = ({
             <Button
               variant="ghost"
               size="sm"
+              className="h-8 px-2 gap-1 text-xs text-primary hover:bg-primary/10"
+              onClick={() => setSelectedStudentForQr(student)}
+              title="Ver e Imprimir Carnet QR"
+            >
+              <QrCode className="w-3.5 h-3.5" />
+              <span>Carnet QR</span>
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
               className="h-8 px-2 gap-1 text-xs text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
               onClick={() => setSelectedStudentForFicha(student.id)}
               title="Ver Ficha Única de Matrícula SIAGIE"
@@ -240,26 +251,11 @@ export const StudentTable: React.FC<StudentTableProps> = ({
             <option value="PRIMARY">Primaria</option>
             <option value="SECONDARY">Secundaria</option>
           </select>
-
-          {/* Filtro por Grado */}
-          <select
-            value={grade !== undefined ? String(grade) : ''}
-            onChange={(e) => onGradeChange(e.target.value !== '' ? Number(e.target.value) : undefined)}
-            className="rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
-          >
-            <option value="">Todos los Grados</option>
-            <option value="1">1° Grado</option>
-            <option value="2">2° Grado</option>
-            <option value="3">3° Grado</option>
-            <option value="4">4° Grado</option>
-            <option value="5">5° Grado</option>
-            <option value="6">6° Grado</option>
-          </select>
         </div>
       </div>
 
       {/* Render Table */}
-      {!classroomId && !search && !educationLevel && grade === undefined ? (
+      {!classroomId && !search && !educationLevel ? (
         <div className="py-16 text-center text-muted-foreground border border-dashed border-border rounded-xl space-y-3 bg-card p-6">
           <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
             <School className="w-6 h-6" />
@@ -355,6 +351,17 @@ export const StudentTable: React.FC<StudentTableProps> = ({
                             <Button
                               variant="ghost"
                               size="sm"
+                              className="h-8 px-2 gap-1 text-xs text-primary hover:bg-primary/10 font-bold"
+                              onClick={() => setSelectedStudentForQr(student)}
+                              title="Ver e Imprimir Carnet QR"
+                            >
+                              <QrCode className="w-3.5 h-3.5" />
+                              <span>Carnet QR</span>
+                            </Button>
+
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               className="h-8 px-2 gap-1 text-xs text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
                               onClick={() => setSelectedStudentForFicha(student.id)}
                               title="Ver Ficha Única de Matrícula SIAGIE"
@@ -435,6 +442,20 @@ export const StudentTable: React.FC<StudentTableProps> = ({
         isOpen={Boolean(selectedStudentForFicha)}
         onClose={() => setSelectedStudentForFicha(null)}
       />
+
+      {/* Modal de Carnet Escolar QR Individual */}
+      {selectedStudentForQr && (
+        <StudentQrCardModal
+          studentName={`${selectedStudentForQr.lastNamePaternal} ${selectedStudentForQr.lastNameMaternal || ''}, ${selectedStudentForQr.firstNames}`.trim()}
+          documentId={selectedStudentForQr.documentId}
+          studentCode={selectedStudentForQr.studentCode}
+          grade={selectedStudentForQr.enrollments?.[0]?.classroom?.grade || ''}
+          section={selectedStudentForQr.enrollments?.[0]?.classroom?.section || ''}
+          educationLevel={selectedStudentForQr.enrollments?.[0]?.classroom?.educationLevel || ''}
+          schoolName={school?.name}
+          onClose={() => setSelectedStudentForQr(null)}
+        />
+      )}
     </div>
   );
 };

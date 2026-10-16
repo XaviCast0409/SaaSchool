@@ -11,6 +11,8 @@ export interface AttendanceRecord {
   enrollmentId: string;
   date: string;
   status: AttendanceStatus;
+  checkInTime?: string | null;
+  origin?: 'MANUAL' | 'QR_SCAN' | 'BARCODE';
   notes?: string;
   enrollment?: {
     id: string;
@@ -32,6 +34,21 @@ export interface AttendanceRecord {
   };
 }
 
+export interface ScanAttendanceResult {
+  alreadyRegistered: boolean;
+  message: string;
+  attendance: AttendanceRecord;
+  student: {
+    id: string;
+    fullName: string;
+    documentId: string;
+    studentCode: string | null;
+    classroom: string;
+  };
+  status: AttendanceStatus;
+  checkInTime: string;
+}
+
 export interface AttendancePaginatedResult {
   status: string;
   data: AttendanceRecord[];
@@ -40,6 +57,12 @@ export interface AttendancePaginatedResult {
     page: number;
     limit: number;
     totalPages: number;
+  };
+  stats?: {
+    total: number;
+    present: number;
+    absent: number;
+    late: number;
   };
 }
 
@@ -136,6 +159,8 @@ export interface StudentAttendanceDetail {
 export interface AttendanceFilterParams {
   date?: string;
   classroomId?: string;
+  status?: string;
+  search?: string;
   page?: number;
   limit?: number;
 }

@@ -14,11 +14,11 @@ export const paymentRouter = Router();
 paymentRouter.use(authMiddleware, tenantMiddleware);
 
 // ──────────────────────────────────────────────────────────────────
-// RESUMEN FINANCIERO Y REPORTES
+// RESUMEN FINANCIERO Y REPORTES (Exclusivo Dirección)
 // ──────────────────────────────────────────────────────────────────
 paymentRouter.get(
   '/summary',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
   paymentController.getSummary,
 );
 

@@ -91,6 +91,12 @@ enum AttendanceStatus {
   LATE_UNJUSTIFIED
 }
 
+enum AttendanceOrigin {
+  MANUAL
+  QR_SCAN
+  BARCODE
+}
+
 enum AssessmentType {
   FORMATIVE
   SUMMATIVE
@@ -144,6 +150,10 @@ model School {
   attendances         Attendance[]
   courseAssignments   CourseAssignment[]
   announcements       Announcement[]
+  evaluationCriteria  EvaluationCriterion[]
+  detailedGrades      DetailedGrade[]
+  competenceConclusions CompetenceConclusion[]
+  gradingPeriodLocks  GradingPeriodLock[]
 }
 
 model User {
@@ -172,6 +182,7 @@ model User {
   familyRelations  FamilyRelationship[]
   coursesTaught    CourseAssignment[]
   announcements    Announcement[]
+  lockedGradingPeriods GradingPeriodLock[]
 
   @@index([schoolId, role])
 }
@@ -259,6 +270,7 @@ model Classroom {
   enrollments    Enrollment[]
   assignments    CourseAssignment[]
   announcements  Announcement[]
+  gradingPeriodLocks GradingPeriodLock[]
 
   @@index([schoolId, educationLevel, grade])
 }
@@ -283,6 +295,8 @@ model Enrollment {
   obligations               PaymentObligation[]
   attendances               Attendance[]
   grades                    Grade[]
+  detailedGrades            DetailedGrade[]
+  competenceConclusions     CompetenceConclusion[]
 
   @@unique([studentId, academicYearId])
   @@index([schoolId, academicYearId])
@@ -353,6 +367,8 @@ model CurricularCompetence {
 
   area           CurricularArea @relation(fields: [areaId], references: [id])
   grades         Grade[]
+  detailedGrades DetailedGrade[]
+  conclusions    CompetenceConclusion[]
 }
 
 model CourseAssignment {
@@ -368,6 +384,8 @@ model CourseAssignment {
   teacher        User           @relation(fields: [teacherId], references: [id]) 
   
   gradeEntries   GradeEntry[]
+  detailedGrades DetailedGrade[]
+  competenceConclusions CompetenceConclusion[]
 
   // Un curso en un aula tiene exactamente un docente asignado
   @@unique([classroomId, areaId])
@@ -416,6 +434,70 @@ model GradingScale {
   school         School         @relation(fields: [schoolId], references: [id])
 }
 
+model EvaluationCriterion {
+  id             String          @id @default(uuid())
+  schoolId       String
+  name           String          // Ej: "Práctica Calificada", "Conducta", "Revisión de Cuaderno", "Examen Bimestral"
+  shortName      String          // Ej: "PC", "COND", "RC", "EB"
+  weight         Float           @default(1.0)
+  order          Int             @default(1)
+  educationLevel EducationLevel? // Opcional: si aplica solo a INICIAL, PRIMARIA o SECUNDARIA
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  school         School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  detailedGrades DetailedGrade[]
+
+  @@index([schoolId, isActive])
+  @@index([schoolId, order])
+}
+
+model DetailedGrade {
+  id                 String               @id @default(uuid())
+  schoolId           String
+  enrollmentId       String
+  courseAssignmentId String
+  competenceId       String
+  criterionId        String
+  periodNumber       Int                  // 1, 2, 3, 4 (Bimestres)
+  numericScore       Float                // 0.0 - 20.0
+  comment            String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  school             School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  enrollment         Enrollment           @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  assignment         CourseAssignment     @relation(fields: [courseAssignmentId], references: [id], onDelete: Cascade)
+  competence         CurricularCompetence @relation(fields: [competenceId], references: [id], onDelete: Cascade)
+  criterion          EvaluationCriterion  @relation(fields: [criterionId], references: [id], onDelete: Cascade)
+
+  @@unique([enrollmentId, courseAssignmentId, competenceId, criterionId, periodNumber])
+  @@index([schoolId, courseAssignmentId, periodNumber])
+  @@index([enrollmentId, periodNumber])
+}
+
+model CompetenceConclusion {
+  id                 String               @id @default(uuid())
+  schoolId           String
+  enrollmentId       String
+  courseAssignmentId String
+  competenceId       String
+  periodNumber       Int                  // 1, 2, 3, 4 (Bimestres)
+  conclusion         String               @db.Text
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  school             School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  enrollment         Enrollment           @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  assignment         CourseAssignment     @relation(fields: [courseAssignmentId], references: [id], onDelete: Cascade)
+  competence         CurricularCompetence @relation(fields: [competenceId], references: [id], onDelete: Cascade)
+
+  @@unique([enrollmentId, courseAssignmentId, competenceId, periodNumber])
+  @@index([schoolId, courseAssignmentId, periodNumber])
+  @@index([enrollmentId, periodNumber])
+}
+
 // ============================================================================
 // 8. ASISTENCIA
 // ============================================================================
@@ -425,6 +507,8 @@ model Attendance {
   enrollmentId String
   date         DateTime         @default(now()) @db.Date
   status       AttendanceStatus @default(PRESENT)
+  checkInTime  DateTime?
+  origin       AttendanceOrigin @default(MANUAL)
   notes        String?
 
   school       School           @relation(fields: [schoolId], references: [id])
@@ -457,5 +541,28 @@ model Announcement {
   classroom    Classroom?           @relation(fields: [classroomId], references: [id])
 
   @@index([schoolId, isActive])
+}
+
+// ============================================================================
+// 10. CIERRE Y BLOQUEO DE ACTAS / PERIODOS (Auditoría Dirección)
+// ============================================================================
+model GradingPeriodLock {
+  id           String     @id @default(uuid())
+  schoolId     String
+  classroomId  String?    // Si es null, aplica a todo el colegio; si tiene ID, aplica a esa aula específica
+  periodNumber Int        // 1, 2, 3, 4 (Bimestres)
+  isLocked     Boolean    @default(true)
+  lockedAt     DateTime   @default(now())
+  lockedById   String     // Usuario (Director) que ejecutó el cierre
+  reason       String?    // Motivo u observación del cierre
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  school       School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classroom    Classroom? @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  lockedBy     User       @relation(fields: [lockedById], references: [id])
+
+  @@unique([schoolId, classroomId, periodNumber])
+  @@index([schoolId, periodNumber])
 }
 

@@ -25,8 +25,12 @@ export const updateUserSchema = createUserSchema.omit({ password: true }).partia
 
 export const userFilterSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(10),
+  limit: z.coerce.number().int().min(1).max(1000).default(500),
   role: z.nativeEnum(Role).optional().or(emptyToUndefined),
+  roles: z.string().optional().or(emptyToUndefined),
+  staffOnly: z
+    .union([z.boolean(), z.string().transform((val) => val === 'true')])
+    .optional(),
   search: z.string().optional().or(emptyToUndefined),
 });
 

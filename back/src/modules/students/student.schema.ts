@@ -112,7 +112,7 @@ export const updateStudentSchema = z
 
 export const studentFilterSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(10),
+  limit: z.coerce.number().int().min(1).max(200).default(10),
   search: z.string().optional().or(emptyToUndefined),
   classroomId: z.string().uuid().optional().or(emptyToUndefined),
   educationLevel: z.nativeEnum(EducationLevel).optional().or(emptyToUndefined),

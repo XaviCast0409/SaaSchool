@@ -44,6 +44,16 @@ export class CourseAssignmentRepository {
       include: {
         classroom: true,
         area: { include: { competences: true } },
+        teacher: {
+          select: {
+            id: true,
+            firstName: true,
+            lastNamePaternal: true,
+            lastNameMaternal: true,
+            email: true,
+            role: true,
+          },
+        },
       },
       orderBy: [
         { classroom: { educationLevel: 'asc' } },

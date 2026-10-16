@@ -49,8 +49,16 @@ export const attendanceFilterSchema = z.object({
     .uuid('ID de aula inválido')
     .optional()
     .or(emptyToUndefined),
+  status: z
+    .string()
+    .optional()
+    .or(emptyToUndefined),
+  search: z
+    .string()
+    .optional()
+    .or(emptyToUndefined),
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(50),
+  limit: z.coerce.number().int().min(1).max(100).default(15),
 });
 
 export const attendanceSummaryQuerySchema = z.object({
@@ -98,6 +106,25 @@ export const studentAttendanceQuerySchema = z.object({
     .or(emptyToUndefined),
 });
 
+// Schema para escaneo rápido de QR o código de barras
+export const scanAttendanceSchema = z.object({
+  code: z.string().min(1, 'El código o token de escaneo es requerido'),
+  toleranceTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Hora de tolerancia inválida (HH:mm)')
+    .optional()
+    .or(emptyToUndefined),
+  statusOverride: z
+    .enum([
+      'PRESENT',
+      'ABSENT_JUSTIFIED',
+      'ABSENT_UNJUSTIFIED',
+      'LATE_JUSTIFIED',
+      'LATE_UNJUSTIFIED',
+    ])
+    .optional(),
+});
+
 export type CreateAttendanceDto = z.infer<typeof createAttendanceSchema>;
 export type UpdateAttendanceDto = z.infer<typeof updateAttendanceSchema>;
 export type BulkAttendanceDto = z.infer<typeof bulkAttendanceSchema>;
@@ -106,3 +133,4 @@ export type AttendanceSummaryQueryDto = z.infer<typeof attendanceSummaryQuerySch
 export type AttendanceExportQueryDto = z.infer<typeof attendanceExportQuerySchema>;
 export type AttendanceMatrixQueryDto = z.infer<typeof attendanceMatrixQuerySchema>;
 export type StudentAttendanceQueryDto = z.infer<typeof studentAttendanceQuerySchema>;
+export type ScanAttendanceDto = z.infer<typeof scanAttendanceSchema>;

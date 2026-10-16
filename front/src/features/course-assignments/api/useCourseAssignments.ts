@@ -18,6 +18,7 @@ export interface CourseAssignment {
     id: string;
     name: string;
     officialCode?: string;
+    competences?: Array<{ id: string; name: string }>;
   };
   teacher: {
     id: string;
@@ -34,24 +35,26 @@ interface ApiResponse<T> {
 }
 
 /** Lista todas las asignaciones del colegio (Admin). */
-export const useCourseAssignments = () => {
+export const useCourseAssignments = (options?: { enabled?: boolean }) => {
   return useQuery({
     queryKey: ['course-assignments'],
     queryFn: async () => {
       const response = await api.get<ApiResponse<CourseAssignment[]>>('/course-assignments');
       return response.data.data;
     },
+    enabled: options?.enabled ?? true,
   });
 };
 
 /** Lista solo los cursos asignados al docente autenticado. */
-export const useMyCourseAssignments = () => {
+export const useMyCourseAssignments = (options?: { enabled?: boolean }) => {
   return useQuery({
     queryKey: ['course-assignments', 'my-courses'],
     queryFn: async () => {
       const response = await api.get<ApiResponse<CourseAssignment[]>>('/course-assignments/my-courses');
       return response.data.data;
     },
+    enabled: options?.enabled ?? true,
   });
 };
 

@@ -10,7 +10,6 @@ import {
   FileText,
   Ban,
   Search,
-  School,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import {
@@ -37,10 +36,9 @@ import { PaymentObligation, ObligationStatus } from '../types';
 export const PaymentsPage: React.FC = () => {
   const { user } = useAuthStore();
   const isParent = user?.role === 'PARENT';
-  const isAdmin =
-    user?.role === 'SCHOOL_ADMIN' ||
-    user?.role === 'SUPER_ADMIN' ||
-    user?.role === 'ADMINISTRATIVE';
+  const isDirector = user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN';
+  const isAdministrative = user?.role === 'ADMINISTRATIVE';
+  const canManagePayments = isDirector || isAdministrative;
 
   // State de paginación y filtros
   const [page, setPage] = useState(1);
@@ -55,9 +53,9 @@ export const PaymentsPage: React.FC = () => {
   const [selectedTransactionIdForReceipt, setSelectedTransactionIdForReceipt] = useState<string | null>(null);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
 
-  // Queries & Mutations
+  // Queries & Mutations (Solo el Director consulta el resumen financiero macro)
   const { data: classrooms = [] } = useClassrooms();
-  const { data: financialSummary, isLoading: isLoadingSummary } = useFinancialSummary(isAdmin);
+  const { data: financialSummary, isLoading: isLoadingSummary } = useFinancialSummary(isDirector);
 
   const {
     data: adminObligationsResponse,
@@ -70,7 +68,7 @@ export const PaymentsPage: React.FC = () => {
       classroomId: selectedClassroomId || undefined,
       search: searchTerm || undefined,
     },
-    isAdmin
+    canManagePayments
   );
 
   const {
@@ -101,17 +99,23 @@ export const PaymentsPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <CreditCard className="w-6 h-6 text-primary" />
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              {isParent ? 'Mis Pensiones y Pagos' : 'Control Financiero y Pensiones'}
+              {isParent
+                ? 'Mis Pensiones y Pagos'
+                : isAdministrative
+                ? 'Caja y Cobranzas'
+                : 'Control Financiero y Pensiones'}
             </h1>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             {isParent
               ? 'Consulta el estado de deudas de tus hijos y emite comprobantes de pago.'
-              : 'Cronograma de pagos, registro manual de cobros y recordatorios por morosidad.'}
+              : isAdministrative
+              ? 'Módulo de caja y cobranzas: consulta de deudores, registro de pagos y emisión de boletas.'
+              : 'Cronograma de pagos, balance de recaudación y recordatorios por morosidad.'}
           </p>
         </div>
 
-        {isAdmin && (
+        {canManagePayments && (
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
@@ -123,20 +127,22 @@ export const PaymentsPage: React.FC = () => {
               <Send className="w-3.5 h-3.5 text-amber-500" />
               <span>{isSendingBulk ? 'Enviando...' : 'Recordatorios Morosos'}</span>
             </Button>
-            <Button
-              size="sm"
-              className="gap-2 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
-              onClick={() => setIsBulkModalOpen(true)}
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span>Generar Pensiones</span>
-            </Button>
+            {isDirector && (
+              <Button
+                size="sm"
+                className="gap-2 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                onClick={() => setIsBulkModalOpen(true)}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>Generar Pensiones</span>
+              </Button>
+            )}
           </div>
         )}
       </div>
 
-      {/* Financial Summary Cards (Solo Admins) */}
-      {isAdmin && (
+      {/* Financial Summary Cards (Exclusivo para Dirección: Total Proyectado, Recaudado, etc.) */}
+      {isDirector && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -243,7 +249,7 @@ export const PaymentsPage: React.FC = () => {
             </select>
 
             {/* Filter by Classroom */}
-            {isAdmin && (
+            {canManagePayments && (
               <select
                 value={selectedClassroomId}
                 onChange={(e) => {
@@ -264,19 +270,7 @@ export const PaymentsPage: React.FC = () => {
         </div>
 
         {/* Table */}
-        {!isParent && !selectedClassroomId && !searchTerm && filterStatus === 'ALL' ? (
-          <div className="py-16 text-center text-muted-foreground border border-dashed border-border rounded-xl space-y-3 bg-card p-6">
-            <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
-              <School className="w-6 h-6" />
-            </div>
-            <div className="space-y-1">
-              <h3 className="font-bold text-base text-foreground">Selecciona un Aula o Filtra por Búsqueda</h3>
-              <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                Para mantener una velocidad óptima y evitar sobrecargar la base de datos, por favor selecciona un Aula/Sección o realiza una búsqueda por estudiante/concepto para consultar las pensiones y deudas.
-              </p>
-            </div>
-          </div>
-        ) : isLoading ? (
+        {isLoading ? (
           <div className="space-y-3">
             <Skeleton className="h-10 w-full rounded-xl" />
             <Skeleton className="h-64 w-full rounded-xl" />
@@ -344,7 +338,7 @@ export const PaymentsPage: React.FC = () => {
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             {/* Registrar Cobro Manual */}
-                            {isAdmin && item.status !== 'PAID' && item.status !== 'CANCELLED' && (
+                            {canManagePayments && item.status !== 'PAID' && item.status !== 'CANCELLED' && (
                               <Button
                                 size="sm"
                                 className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
@@ -368,8 +362,8 @@ export const PaymentsPage: React.FC = () => {
                               </Button>
                             )}
 
-                            {/* Admin: Recordatorio Individual */}
-                            {isAdmin && item.status !== 'PAID' && item.status !== 'CANCELLED' && (
+                            {/* Recordatorio Individual */}
+                            {canManagePayments && item.status !== 'PAID' && item.status !== 'CANCELLED' && (
                               <Button
                                 size="sm"
                                 variant="ghost"
@@ -381,8 +375,8 @@ export const PaymentsPage: React.FC = () => {
                               </Button>
                             )}
 
-                            {/* Admin: Cancel Obligation */}
-                            {isAdmin && item.status !== 'CANCELLED' && item.status !== 'PAID' && (
+                            {/* Anular Obligación */}
+                            {canManagePayments && item.status !== 'CANCELLED' && item.status !== 'PAID' && (
                               <button
                                 onClick={() => cancelObligation(item.id)}
                                 disabled={isCancelling}

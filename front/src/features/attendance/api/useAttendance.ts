@@ -10,6 +10,7 @@ import {
   AttendanceExportRow,
   AttendanceMatrixData,
   StudentAttendanceDetail,
+  ScanAttendanceResult,
 } from '../types';
 
 interface SummaryResponse {
@@ -37,20 +38,30 @@ interface StudentDetailResponse {
   data: StudentAttendanceDetail;
 }
 
-/** Hook para obtener asistencias paginadas filtradas obligatoriamente por aula/sección para evitar tráfico masivo */
+/** Hook para obtener asistencias paginadas */
 export const useAttendance = (filters: AttendanceFilterParams = {}, enabledOverride?: boolean) => {
   const queryParams = new URLSearchParams();
   if (filters.date) queryParams.append('date', filters.date);
   if (filters.classroomId) queryParams.append('classroomId', filters.classroomId);
+  if (filters.status && filters.status !== 'ALL') queryParams.append('status', filters.status);
+  if (filters.search) queryParams.append('search', filters.search);
   if (filters.page) queryParams.append('page', String(filters.page));
   if (filters.limit) queryParams.append('limit', String(filters.limit));
 
   const queryString = queryParams.toString();
   const url = `/attendance${queryString ? `?${queryString}` : ''}`;
-  const isEnabled = enabledOverride !== undefined ? enabledOverride : Boolean(filters.classroomId);
+  const isEnabled = enabledOverride !== undefined ? enabledOverride : true;
 
   return useQuery({
-    queryKey: ['attendance', filters.date, filters.classroomId, filters.page, filters.limit],
+    queryKey: [
+      'attendance',
+      filters.date,
+      filters.classroomId,
+      filters.status,
+      filters.search,
+      filters.page,
+      filters.limit,
+    ],
     queryFn: async () => {
       const response = await api.get<AttendancePaginatedResult>(url);
       return response.data;
@@ -179,6 +190,30 @@ export const useBulkAttendance = () => {
       queryClient.invalidateQueries({ queryKey: ['attendance-summary'] });
       queryClient.invalidateQueries({ queryKey: ['attendance-matrix'] });
       queryClient.invalidateQueries({ queryKey: ['student-attendance-detail'] });
+    },
+  });
+};
+
+/** Mutation hook para escaneo rápido de asistencia por QR o código de barras */
+export const useScanAttendance = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: {
+      code: string;
+      toleranceTime?: string;
+      statusOverride?: AttendanceStatus;
+    }) => {
+      const response = await api.post<{ status: string; data: ScanAttendanceResult }>(
+        '/attendance/scan',
+        payload
+      );
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['attendance'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance-matrix'] });
     },
   });
 };

@@ -16,10 +16,13 @@ import {
   Clock,
   BookOpen,
   Sparkles,
+  QrCode,
+  School,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useStudents } from '@/features/students/api/useStudents';
-import { usePayments, useParentPayments } from '@/features/payments/api/usePayments';
+import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
+import { useParentPayments, useFinancialSummary } from '@/features/payments/api/usePayments';
 import { useGetAnnouncements } from '@/features/announcements/api/useAnnouncements';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,23 +46,40 @@ export const DashboardPage: React.FC = () => {
   const isAdministrative = user?.role === 'ADMINISTRATIVE';
   const isAdmin = user?.role === 'SCHOOL_ADMIN' || (user?.role === 'SUPER_ADMIN' && !!impersonatedSchool);
   const canManageStudents = isAdmin || isAdministrative;
-  const canManageFinances = isAdmin || isAdministrative;
+  const canSeeMacroFinances = isAdmin; // Estrictamente exclusivo de la Dirección del Colegio
 
   // Queries segregadas por rol para prevenir 403 y llamadas innecesarias
   const { data: studentsResponse } = useStudents({ page: 1, limit: 100 }, canManageStudents);
   const totalStudentsCount = studentsResponse?.meta?.total || 0;
 
-  const { data: adminObligationsResponse } = usePayments({ page: 1, limit: 100 }, canManageFinances);
+  const { data: classrooms = [] } = useClassrooms();
+  const classroomsCount = classrooms.length;
+
+  // Solo el director consulta el resumen macro financiero con montos en soles
+  const { data: financialSummary } = useFinancialSummary(canSeeMacroFinances);
   const { data: parentObligations = [] } = useParentPayments(isParent);
-
-  const obligations = canManageFinances ? (adminObligationsResponse?.data || []) : isParent ? parentObligations : [];
   const { data: announcementsData } = useGetAnnouncements({ page: 1, limit: 3 });
+  const announcementsCount = announcementsData?.meta?.total ?? announcementsData?.data?.length ?? 0;
 
-  const totalAmountDue = obligations.reduce((acc, curr) => acc + curr.amountDue, 0);
-  const paidTotal = obligations
-    .filter((o) => o.status === 'PAID')
-    .reduce((acc, curr) => acc + curr.amountDue, 0);
-  const pendingTotal = Math.max(0, totalAmountDue - paidTotal);
+  // Cálculos financieros en montos (Exclusivo Director o Padres para sus propias pensiones)
+  const totalAmountDue = canSeeMacroFinances
+    ? financialSummary?.totalExpected ?? 0
+    : isParent
+    ? parentObligations.reduce((acc, curr) => acc + curr.amountDue, 0)
+    : 0;
+
+  const paidTotal = canSeeMacroFinances
+    ? financialSummary?.totalCollected ?? 0
+    : isParent
+    ? parentObligations.filter((o) => o.status === 'PAID').reduce((acc, curr) => acc + curr.amountDue, 0)
+    : 0;
+
+  const pendingTotal = canSeeMacroFinances
+    ? financialSummary?.totalPending ?? 0
+    : isParent
+    ? Math.max(0, totalAmountDue - paidTotal)
+    : 0;
+
   const collectionPercentage = totalAmountDue > 0 ? Math.round((paidTotal / totalAmountDue) * 100) : 0;
 
   return (
@@ -78,7 +98,7 @@ export const DashboardPage: React.FC = () => {
             {isAdmin
               ? 'Panel de control ejecutivo. Supervisa matriculados, estado de cobranzas y emite avisos oficiales.'
               : isAdministrative
-              ? 'Panel de secretaría y caja. Gestiona matrículas, cobra pensiones en ventanilla y emite comunicados.'
+              ? 'Panel de secretaría y caja. Gestiona matrículas, cobro de pensiones en ventanilla, carnets QR y circulares.'
               : isTeacher
               ? 'Panel docente para control de asistencia diario, tus cursos a cargo e ingreso de notas SIAGIE.'
               : 'Bienvenido al portal familiar. Consulta el estado de tus pensiones, libreta de notas y avisos oficiales.'}
@@ -176,28 +196,28 @@ export const DashboardPage: React.FC = () => {
             </button>
 
             <button
-              onClick={() => navigate('/attendance')}
-              className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-amber-500/10 hover:border-amber-500/40 text-foreground transition-all shadow-sm group"
+              onClick={() => navigate('/students')}
+              className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-sky-500/10 hover:border-sky-500/40 text-foreground transition-all shadow-sm group"
             >
-              <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 group-hover:bg-amber-500 group-hover:text-white transition-colors">
-                <CalendarCheck className="w-5 h-5" />
+              <div className="p-2.5 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 group-hover:bg-sky-500 group-hover:text-white transition-colors">
+                <QrCode className="w-5 h-5" />
               </div>
               <div className="text-left">
-                <span className="block font-bold text-sm leading-tight">Control Asistencia</span>
-                <span className="text-[11px] text-muted-foreground">Revisar justificaciones</span>
+                <span className="block font-bold text-sm leading-tight">Carnets QR</span>
+                <span className="text-[11px] text-muted-foreground">Impresión por sección</span>
               </div>
             </button>
 
             <button
               onClick={() => navigate('/announcements')}
-              className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-sky-500/10 hover:border-sky-500/40 text-foreground transition-all shadow-sm group"
+              className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-amber-500/10 hover:border-amber-500/40 text-foreground transition-all shadow-sm group"
             >
-              <div className="p-2.5 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 group-hover:bg-sky-500 group-hover:text-white transition-colors">
+              <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 group-hover:bg-amber-500 group-hover:text-white transition-colors">
                 <Megaphone className="w-5 h-5" />
               </div>
               <div className="text-left">
                 <span className="block font-bold text-sm leading-tight">Publicar Aviso</span>
-                <span className="text-[11px] text-muted-foreground">Comunicados</span>
+                <span className="text-[11px] text-muted-foreground">Circular a familias</span>
               </div>
             </button>
           </div>
@@ -305,6 +325,7 @@ export const DashboardPage: React.FC = () => {
 
       {/* Indicadores Principales / KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Estudiantes (Para Dirección y Personal Administrativo) */}
         {canManageStudents && (
           <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -318,7 +339,46 @@ export const DashboardPage: React.FC = () => {
           </Card>
         )}
 
-        {canManageFinances && (
+        {/* Indicadores Operativos Exclusivos de Secretaría y Caja (Sin montos monetarios) */}
+        {isAdministrative && (
+          <>
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Aulas y Grados</CardTitle>
+                <School className="w-4 h-4 text-amber-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-extrabold text-foreground">{classroomsCount}</div>
+                <p className="text-xs text-muted-foreground mt-1">Secciones habilitadas</p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Comunicados</CardTitle>
+                <Megaphone className="w-4 h-4 text-sky-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-extrabold text-foreground">{announcementsCount}</div>
+                <p className="text-xs text-muted-foreground mt-1">Circulares y avisos vigentes</p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Ventanilla de Caja</CardTitle>
+                <CreditCard className="w-4 h-4 text-emerald-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">Atención Activa</div>
+                <p className="text-xs text-muted-foreground mt-1">Cobro de pensiones y boletas</p>
+              </CardContent>
+            </Card>
+          </>
+        )}
+
+        {/* Recaudación Total (Exclusivo Dirección del Colegio) */}
+        {canSeeMacroFinances && (
           <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Recaudación Total</CardTitle>
@@ -333,25 +393,11 @@ export const DashboardPage: React.FC = () => {
           </Card>
         )}
 
-        {isParent && (
+        {/* Pendiente de Cobro (Exclusivo Dirección del Colegio) */}
+        {canSeeMacroFinances && (
           <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Tus Pensiones Pagadas</CardTitle>
-              <CreditCard className="w-4 h-4 text-emerald-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
-                S/ {paidTotal.toFixed(2)}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Total abonado este año escolar</p>
-            </CardContent>
-          </Card>
-        )}
-
-        {isParent && (
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Pendiente de Pago</CardTitle>
+              <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Pendiente de Cobro</CardTitle>
               <Clock className="w-4 h-4 text-amber-500" />
             </CardHeader>
             <CardContent>
@@ -363,20 +409,8 @@ export const DashboardPage: React.FC = () => {
           </Card>
         )}
 
-        {/* Notas SIAGIE */}
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Evaluación CNEB</CardTitle>
-            <BookOpenCheck className="w-4 h-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-extrabold text-foreground">Escala AD / A / B / C</div>
-            <p className="text-xs text-muted-foreground mt-1">Matriz cualitativa MINEDU</p>
-          </CardContent>
-        </Card>
-
-        {/* Asistencia (Para Admin, Administrativo y Profesores) */}
-        {!isParent && (
+        {/* Asistencia (Solo Dirección y Profesores — NUNCA Administrativo ni Padres) */}
+        {(isAdmin || isTeacher) && (
           <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Asistencia Hoy</CardTitle>
@@ -388,10 +422,55 @@ export const DashboardPage: React.FC = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Notas SIAGIE (Solo Docentes y Padres — NUNCA Administrativo) */}
+        {(isTeacher || isParent) && (
+          <Card className="hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Evaluación CNEB</CardTitle>
+              <BookOpenCheck className="w-4 h-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-extrabold text-foreground">Escala AD / A / B / C</div>
+              <p className="text-xs text-muted-foreground mt-1">Matriz cualitativa MINEDU</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Portal de Padres: Pensiones */}
+        {isParent && (
+          <>
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Tus Pensiones Pagadas</CardTitle>
+                <CreditCard className="w-4 h-4 text-emerald-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
+                  S/ {paidTotal.toFixed(2)}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Total abonado este año escolar</p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Pendiente de Pago</CardTitle>
+                <Clock className="w-4 h-4 text-amber-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-extrabold text-amber-600 dark:text-amber-400">
+                  S/ {pendingTotal.toFixed(2)}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Pensiones por regularizar</p>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
-      {/* Salud Financiera del Colegio (Para Admin y Caja) */}
-      {canManageFinances && obligations.length > 0 && (
+      {/* Salud Financiera del Colegio (EXCLUSIVO Dirección del Colegio — NUNCA Personal Administrativo) */}
+      {canSeeMacroFinances && totalAmountDue > 0 && (
         <Card className="p-6 border-border bg-card">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
             <div>
@@ -400,7 +479,10 @@ export const DashboardPage: React.FC = () => {
                 Salud de Recaudación Financiera
               </div>
               <h3 className="text-lg font-bold text-foreground">
-                S/ {paidTotal.toFixed(2)} <span className="text-xs font-normal text-muted-foreground">cobrados de S/ {totalAmountDue.toFixed(2)} en total</span>
+                S/ {paidTotal.toFixed(2)}{' '}
+                <span className="text-xs font-normal text-muted-foreground">
+                  cobrados de S/ {totalAmountDue.toFixed(2)} en total
+                </span>
               </h3>
             </div>
             <div className="flex items-center gap-4 text-xs font-medium">
@@ -515,7 +597,7 @@ export const DashboardPage: React.FC = () => {
             </Card>
           )}
 
-          {(canManageFinances || isParent) && (
+          {(canSeeMacroFinances || isAdministrative || isParent) && (
             <Card className="flex flex-col justify-between hover:border-primary/50 transition-colors">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
@@ -525,6 +607,8 @@ export const DashboardPage: React.FC = () => {
                 <CardDescription className="text-xs">
                   {isParent
                     ? 'Consulta tus recibos, cronograma y estados de pago.'
+                    : isAdministrative
+                    ? 'Cobro en ventanilla, consulta de deudores y emisión de boletas.'
                     : 'Control de pensiones, boletas, morosidad y transacciones.'}
                 </CardDescription>
               </CardHeader>
@@ -542,32 +626,34 @@ export const DashboardPage: React.FC = () => {
             </Card>
           )}
 
-          <Card className="flex flex-col justify-between hover:border-primary/50 transition-colors">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <BookOpenCheck className="w-5 h-5 text-primary" />
-                {isParent ? 'Libreta de Calificaciones' : 'Registro de Notas'}
-              </CardTitle>
-              <CardDescription className="text-xs">
-                {isParent
-                  ? 'Consulta el avance académico y notas de tus hijos.'
-                  : 'Matriz evaluativa interactiva con conversión a escala CNEB.'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-between text-xs font-semibold text-primary"
-                onClick={() => navigate('/grades')}
-              >
-                <span>{isParent ? 'Ver libreta escolar' : 'Abrir registro notas'}</span>
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </CardContent>
-          </Card>
+          {!isAdministrative && (isAdmin || isTeacher || isParent) && (
+            <Card className="flex flex-col justify-between hover:border-primary/50 transition-colors">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <BookOpenCheck className="w-5 h-5 text-primary" />
+                  {isParent ? 'Libreta de Calificaciones' : 'Registro de Notas'}
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  {isParent
+                    ? 'Consulta el avance académico y notas de tus hijos.'
+                    : 'Matriz evaluativa interactiva con conversión a escala CNEB.'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-between text-xs font-semibold text-primary"
+                  onClick={() => navigate('/grades')}
+                >
+                  <span>{isParent ? 'Ver libreta escolar' : 'Abrir registro notas'}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
-          {!isParent && (
+          {(isAdmin || isTeacher) && (
             <Card className="flex flex-col justify-between hover:border-primary/50 transition-colors">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
@@ -592,15 +678,17 @@ export const DashboardPage: React.FC = () => {
             </Card>
           )}
 
-          {isParent && (
+          {(isAdministrative || isParent) && (
             <Card className="flex flex-col justify-between hover:border-primary/50 transition-colors">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Megaphone className="w-5 h-5 text-sky-500" />
-                  Avisos y Circulares
+                  {isParent ? 'Avisos y Circulares' : 'Comunicados Oficiales'}
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Comunicados oficiales emitidos por el colegio.
+                  {isParent
+                    ? 'Comunicados oficiales emitidos por el colegio.'
+                    : 'Emisión y difusión de circulares y citaciones a las familias.'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-0">
@@ -610,7 +698,7 @@ export const DashboardPage: React.FC = () => {
                   className="w-full justify-between text-xs font-semibold text-primary"
                   onClick={() => navigate('/announcements')}
                 >
-                  <span>Leer circulares</span>
+                  <span>{isParent ? 'Leer circulares' : 'Gestionar avisos'}</span>
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </CardContent>

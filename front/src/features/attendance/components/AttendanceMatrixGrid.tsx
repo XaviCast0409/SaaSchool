@@ -17,8 +17,9 @@ import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AttendanceStatus, AttendanceMatrixStudentRow } from '../types';
-import * as XLSX from 'xlsx';
+import { AttendanceStatus } from '../types';
+import { MatrixExportModal } from './MatrixExportModal';
+import { useGetActiveSchool } from '@/features/schools/api/useSchool';
 
 interface AttendanceMatrixGridProps {
   initialMonth?: string;
@@ -65,147 +66,6 @@ function navigateMonth(currentMonthStr: string, delta: number): string {
   return `${nextY}-${nextM}`;
 }
 
-/** Genera y descarga un reporte Excel profesional con encabezado oficial y días de la semana */
-function exportMatrixToExcel(
-  students: AttendanceMatrixStudentRow[],
-  monthStr: string,
-  daysInMonth: number,
-  classroomName?: string
-): void {
-  const [yearNum, monthNum] = monthStr.split('-').map(Number);
-  const periodText = formatMonthSpanish(monthStr);
-
-  const dayNameHeaders = Array.from({ length: daysInMonth }, (_, i) =>
-    getDayOfWeekShort(yearNum, monthNum, i + 1)
-  );
-
-  const dayNumberHeaders = Array.from({ length: daysInMonth }, (_, i) =>
-    String(i + 1).padStart(2, '0')
-  );
-
-  const titleRow1 = ['REPUBLICA DEL PERU - MINISTERIO DE EDUCACION'];
-  const titleRow2 = ['SISTEMA DE ASISTENCIA Y CONTROL DE PERMANENCIA ESCOLAR'];
-  const titleRow3 = [`ACTA CONSOLIDADA MENSUAL DE ASISTENCIA - PERIODO: ${periodText}`];
-  const titleRow4 = [`SECCION / AULA: ${classroomName || 'TODAS LAS SECCIONES'}`];
-  const blankRow: string[] = [];
-
-  const headerRow1 = [
-    'N°',
-    'APELLIDOS Y NOMBRES DEL ESTUDIANTE',
-    'DOC. IDENTIDAD',
-    'GRADO Y SECC.',
-    ...dayNameHeaders,
-    'RESUMEN CONSOLIDADO DEL MES',
-    '',
-    '',
-    '',
-    '',
-    '',
-    'DIAGNOSTICO DE RIESGO',
-  ];
-
-  const headerRow2 = [
-    '',
-    '',
-    '',
-    '',
-    ...dayNumberHeaders,
-    'PRES. (P)',
-    'FAL. JUST. (FJ)',
-    'FAL. INJ. (FI)',
-    'TARD. JUST. (TJ)',
-    'TARD. INJ. (TI)',
-    '% ASIST.',
-    'EVALUACION DE RIESGO',
-  ];
-
-  const dataRows = students.map((s, index) => {
-    const dailyCells = Array.from({ length: daysInMonth }, (_, i) => {
-      const day = i + 1;
-      const status = s.dailyStatus[day];
-      return status ? STATUS_CODES[status]?.code || 'P' : '-';
-    });
-
-    const totalTardanzasJust = s.counts.LATE_JUSTIFIED || 0;
-    const totalTardanzasInj = s.counts.LATE_UNJUSTIFIED || 0;
-
-    let riskLabel = 'ASISTENCIA REGULAR';
-    if (s.riskLevel === 'CRITICAL') riskLabel = 'RIESGO CRITICO';
-    else if (s.riskLevel === 'WARNING') riskLabel = 'ADVERTENCIA';
-
-    return [
-      index + 1,
-      s.studentName.toUpperCase(),
-      s.documentId,
-      `${s.grade}${s.section}`,
-      ...dailyCells,
-      s.counts.PRESENT,
-      s.counts.ABSENT_JUSTIFIED,
-      s.counts.ABSENT_UNJUSTIFIED,
-      totalTardanzasJust,
-      totalTardanzasInj,
-      `${s.attendanceRate}%`,
-      riskLabel,
-    ];
-  });
-
-  const emptyCols = Array.from({ length: daysInMonth + 3 }, () => '');
-  const legendTitle = ['', 'LEYENDA DE SIMBOLOGIA Y ESTANDAR MINEDU SIAGIE:', ...emptyCols];
-  const legendP = ['', 'P  = Presente en el aula a la hora establecida', ...emptyCols];
-  const legendFI = ['', 'FI = Falta Injustificada (Inasistencia sin justificación médica o escrita)', ...emptyCols];
-  const legendFJ = ['', 'FJ = Falta Justificada (Con papeleta o certificado médico aceptado)', ...emptyCols];
-  const legendTI = ['', 'TI = Tardanza Injustificada (Llegada posterior al límite de tolerancia)', ...emptyCols];
-  const legendTJ = ['', 'TJ = Tardanza Justificada (Llegada fuera de hora con justificación aprobada)', ...emptyCols];
-
-  const signatureRow1 = ['', '', '', '_____________________________________', ...emptyCols];
-  const signatureRow2 = ['', '', '', 'Firma y Sello del Director(a) de la I.E.', ...emptyCols];
-
-  const worksheetData = [
-    titleRow1,
-    titleRow2,
-    titleRow3,
-    titleRow4,
-    blankRow,
-    headerRow1,
-    headerRow2,
-    ...dataRows,
-    blankRow,
-    legendTitle,
-    legendP,
-    legendFI,
-    legendFJ,
-    legendTI,
-    legendTJ,
-    blankRow,
-    blankRow,
-    signatureRow1,
-    signatureRow2,
-  ];
-
-  const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-
-  const colWidths = [
-    { wch: 5 },  // N°
-    { wch: 38 }, // Apellidos y Nombres
-    { wch: 14 }, // DNI
-    { wch: 10 }, // Grado/Sec
-    ...Array.from({ length: daysInMonth }, () => ({ wch: 5 })), // Días 1..31
-    { wch: 10 }, // Presentes
-    { wch: 13 }, // Faltas Just
-    { wch: 12 }, // Faltas Inj
-    { wch: 14 }, // Tardanzas Just
-    { wch: 14 }, // Tardanzas Inj
-    { wch: 12 }, // % Asistencia
-    { wch: 22 }, // Evaluación Riesgo
-  ];
-  worksheet['!cols'] = colWidths;
-
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, `Asistencia_${periodText.replace(/\s+/g, '_')}`);
-
-  XLSX.writeFile(workbook, `Acta_Asistencia_MINEDU_${monthStr}.xlsx`);
-}
-
 export const AttendanceMatrixGrid: React.FC<AttendanceMatrixGridProps> = ({
   initialMonth = new Date().toISOString().slice(0, 7),
   initialClassroomId = '',
@@ -215,9 +75,11 @@ export const AttendanceMatrixGrid: React.FC<AttendanceMatrixGridProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [riskFilter, setRiskFilter] = useState<'ALL' | 'CRITICAL' | 'WARNING' | 'NORMAL'>('ALL');
   const [selectedEnrollmentId, setSelectedEnrollmentId] = useState<string | null>(null);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   // Queries
   const { data: classrooms = [] } = useClassrooms();
+  const { data: school } = useGetActiveSchool();
   const { data: matrixData, isLoading, isError } = useAttendanceMatrix({ month, classroomId });
 
   const students = matrixData?.students ?? [];
@@ -342,7 +204,7 @@ export const AttendanceMatrixGrid: React.FC<AttendanceMatrixGridProps> = ({
 
         {/* Exportar a Excel */}
         <Button
-          onClick={() => exportMatrixToExcel(filteredStudents, month, daysInMonth, classroomLabel)}
+          onClick={() => setIsExportModalOpen(true)}
           disabled={filteredStudents.length === 0}
           className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm text-xs w-full lg:w-auto font-bold"
         >
@@ -454,7 +316,7 @@ export const AttendanceMatrixGrid: React.FC<AttendanceMatrixGridProps> = ({
           <div className="space-y-1">
             <h3 className="font-bold text-base text-foreground">Selecciona una Sección Educativa</h3>
             <p className="text-xs text-muted-foreground max-w-md mx-auto">
-              Para optimizar el rendimiento y evitar consumo masivo de datos, por favor selecciona un Aula/Sección en el desplegable superior para consultar la sábana de asistencia.
+              Para optimizar el rendimiento y evitar consumo masivo de datos, por favor selecciona un Aula/Sección en la barra de filtros para consultar la sábana de asistencia.
             </p>
           </div>
         </div>
@@ -673,6 +535,18 @@ export const AttendanceMatrixGrid: React.FC<AttendanceMatrixGridProps> = ({
           enrollmentId={selectedEnrollmentId}
           month={month}
           onClose={() => setSelectedEnrollmentId(null)}
+        />
+      )}
+
+      {/* Modal de Opciones de Exportación Excel (Con Colores o Plantilla Vacía) */}
+      {isExportModalOpen && (
+        <MatrixExportModal
+          students={filteredStudents}
+          monthStr={month}
+          daysInMonth={daysInMonth}
+          classroomLabel={classroomLabel}
+          schoolName={school?.name}
+          onClose={() => setIsExportModalOpen(false)}
         />
       )}
     </div>

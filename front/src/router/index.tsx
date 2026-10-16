@@ -14,6 +14,7 @@ import { ClassroomsPage } from '@/features/classrooms/pages/ClassroomsPage';
 import { CurricularAreasPage } from '@/features/curricular-areas/pages/CurricularAreasPage';
 import { TeacherAssignmentsPage } from '@/features/course-assignments/pages/TeacherAssignmentsPage';
 import { AcademicYearsPage } from '@/features/academic-years/pages/AcademicYearsPage';
+import { EvaluationCriteriaPage } from '@/features/grades/pages/EvaluationCriteriaPage';
 import { SuperAdminPage } from '@/features/super-admin/pages/SuperAdminPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -152,6 +153,14 @@ export const AppRouter: React.FC = () => {
             element={
               <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER']}>
                 <AttendancePage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="/evaluation-criteria"
+            element={
+              <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
+                <EvaluationCriteriaPage />
               </RoleGuard>
             }
           />

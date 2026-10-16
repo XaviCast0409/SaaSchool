@@ -19,12 +19,35 @@ export interface CreateUserPayload {
   cellphone?: string;
 }
 
-export const useUsers = (role?: UserRole) => {
+export interface UserQueryParams {
+  role?: UserRole;
+  roles?: string;
+  staffOnly?: boolean;
+  limit?: number;
+  page?: number;
+  search?: string;
+}
+
+export const useUsers = (roleOrParams?: UserRole | UserQueryParams) => {
+  const queryParams: UserQueryParams =
+    typeof roleOrParams === 'string'
+      ? { role: roleOrParams }
+      : roleOrParams || {};
+
   return useQuery({
-    queryKey: ['users', role],
+    queryKey: ['users', queryParams],
     queryFn: async () => {
-      const params = role ? `?role=${role}` : '';
-      const response = await api.get<UsersResponse>(`/users${params}`);
+      const searchParams = new URLSearchParams();
+      if (queryParams.role) searchParams.append('role', queryParams.role);
+      if (queryParams.roles) searchParams.append('roles', queryParams.roles);
+      if (queryParams.staffOnly) searchParams.append('staffOnly', 'true');
+      if (queryParams.limit) searchParams.append('limit', String(queryParams.limit));
+      else searchParams.append('limit', '500');
+      if (queryParams.page) searchParams.append('page', String(queryParams.page));
+      if (queryParams.search) searchParams.append('search', queryParams.search);
+
+      const queryString = searchParams.toString();
+      const response = await api.get<UsersResponse>(`/users${queryString ? `?${queryString}` : ''}`);
       return response.data.data;
     },
   });

@@ -1,14 +1,30 @@
-import React, { useCallback } from 'react';
-import { CheckCircle2, XCircle, Clock, BarChart3, Download, Loader2, FileSpreadsheet, School } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import {
+  CheckCircle2,
+  XCircle,
+  Clock,
+  BarChart3,
+  Download,
+  Loader2,
+  FileSpreadsheet,
+  School,
+  Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
 import { useAttendanceSummary, useAttendanceExportData } from '../api/useAttendance';
+import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
 import type { AttendanceExportRow } from '../types';
 import * as XLSX from 'xlsx';
 
 interface AttendanceMonthlyReportProps {
-  month: string;
+  initialMonth?: string;
+  initialClassroomId?: string;
+  month?: string;
   classroomId?: string;
 }
 
@@ -21,6 +37,14 @@ function formatMonthSpanish(monthStr: string): string {
   const [y, m] = monthStr.split('-').map(Number);
   if (!y || !m) return monthStr;
   return `${SPANISH_MONTHS[m - 1].toUpperCase()} ${y}`;
+}
+
+function navigateMonth(currentMonthStr: string, delta: number): string {
+  const [y, m] = currentMonthStr.split('-').map(Number);
+  const date = new Date(y, m - 1 + delta, 1);
+  const nextY = date.getFullYear();
+  const nextM = String(date.getMonth() + 1).padStart(2, '0');
+  return `${nextY}-${nextM}`;
 }
 
 /** Genera y descarga el Acta Mensual de Asistencia en formato Excel (.xlsx) Profesional */
@@ -113,14 +137,25 @@ function downloadExcel(rows: AttendanceExportRow[], monthStr: string): void {
 }
 
 export const AttendanceMonthlyReport: React.FC<AttendanceMonthlyReportProps> = ({
-  month,
-  classroomId,
+  initialMonth = new Date().toISOString().slice(0, 7),
+  initialClassroomId = '',
+  month: propMonth,
+  classroomId: propClassroomId,
 }) => {
-  const { data: summary, isLoading, isError } = useAttendanceSummary({ month, classroomId });
+  const [month, setMonth] = useState(propMonth || initialMonth);
+  const [classroomId, setClassroomId] = useState(
+    propClassroomId !== undefined ? propClassroomId : initialClassroomId
+  );
+
+  const { data: classrooms = [] } = useClassrooms();
+  const { data: summary, isLoading, isError } = useAttendanceSummary({
+    month,
+    classroomId: classroomId || undefined,
+  });
   const {
     isFetching: isExporting,
     refetch: fetchExport,
-  } = useAttendanceExportData({ month, classroomId });
+  } = useAttendanceExportData({ month, classroomId: classroomId || undefined });
 
   const handleExport = useCallback(async () => {
     const result = await fetchExport();
@@ -129,44 +164,108 @@ export const AttendanceMonthlyReport: React.FC<AttendanceMonthlyReportProps> = (
     }
   }, [fetchExport, month]);
 
-  if (!classroomId) {
-    return (
-      <div className="py-16 text-center text-muted-foreground border border-dashed border-border rounded-xl space-y-3 bg-card p-6">
-        <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
-          <School className="w-6 h-6" />
-        </div>
-        <div className="space-y-1">
-          <h3 className="font-bold text-base text-foreground">Selecciona una Sección Educativa</h3>
-          <p className="text-xs text-muted-foreground max-w-md mx-auto">
-            Por favor selecciona un Aula/Sección en el desplegable superior para consultar las estadísticas del reporte mensual.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-28 w-full rounded-xl" />
-        <Skeleton className="h-48 w-full rounded-xl" />
-      </div>
-    );
-  }
-
-  if (isError || !summary) {
-    return (
-      <div className="p-6 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive text-center text-sm font-medium">
-        Error al cargar el resumen de asistencia del periodo {formatMonthSpanish(month)}.
-      </div>
-    );
-  }
-
-  const { counts, percentages, totalRecords } = summary;
+  const counts = summary?.counts;
+  const percentages = summary?.percentages;
+  const totalRecords = summary?.totalRecords ?? 0;
 
   return (
     <div className="space-y-6">
-      {/* Overview Cards */}
+      {/* Barra de Filtros de Aula y Mes para Reportes & KPIs */}
+      <div className="flex flex-col lg:flex-row items-center justify-between gap-3 bg-card p-4 rounded-xl border border-border shadow-sm">
+        <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
+          {/* Selector de Aula */}
+          <div className="flex items-center gap-1.5 bg-background px-3 py-1.5 rounded-lg border border-input text-xs font-semibold">
+            <School className="w-4 h-4 text-muted-foreground" />
+            <select
+              value={classroomId}
+              onChange={(e) => setClassroomId(e.target.value)}
+              className="bg-transparent border-none focus:outline-none text-foreground font-semibold cursor-pointer"
+            >
+              <option value="">— Selecciona un Aula / Sección —</option>
+              {classrooms.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.grade}° {c.section} ({c.educationLevel === 'PRIMARY' ? 'Primaria' : c.educationLevel === 'SECONDARY' ? 'Secundaria' : 'Inicial'})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Navegación por Mes (Anterior / Siguiente) */}
+          <div className="flex items-center gap-1 bg-background p-1 rounded-lg border border-input text-xs font-semibold">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+              title="Mes Anterior"
+              onClick={() => setMonth((m) => navigateMonth(m, -1))}
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </Button>
+
+            <div className="flex items-center gap-1 px-1">
+              <CalendarIcon className="w-3.5 h-3.5 text-primary" />
+              <Input
+                type="month"
+                value={month}
+                onChange={(e) => setMonth(e.target.value)}
+                className="h-6 border-none bg-transparent text-xs font-bold focus-visible:ring-0 w-32 p-0 cursor-pointer"
+              />
+            </div>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+              title="Mes Siguiente"
+              onClick={() => setMonth((m) => navigateMonth(m, 1))}
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Botón Exportar Acta Resumen (.xlsx) */}
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2 text-xs font-bold w-full lg:w-auto"
+          onClick={handleExport}
+          disabled={!classroomId || isExporting || !summary || totalRecords === 0}
+        >
+          {isExporting ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+          )}
+          <span>{isExporting ? 'Generando...' : 'Exportar Acta Resumen (.xlsx)'}</span>
+        </Button>
+      </div>
+
+      {/* Vista de Estado */}
+      {!classroomId ? (
+        <div className="py-16 text-center text-muted-foreground border border-dashed border-border rounded-xl space-y-3 bg-card p-6">
+          <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
+            <School className="w-6 h-6" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="font-bold text-base text-foreground">Selecciona una Sección Educativa</h3>
+            <p className="text-xs text-muted-foreground max-w-md mx-auto">
+              Por favor selecciona un Aula/Sección en la barra de filtros superior para consultar las estadísticas del reporte mensual.
+            </p>
+          </div>
+        </div>
+      ) : isLoading ? (
+        <div className="space-y-4">
+          <Skeleton className="h-28 w-full rounded-xl" />
+          <Skeleton className="h-48 w-full rounded-xl" />
+        </div>
+      ) : isError || !summary || !percentages || !counts ? (
+        <div className="p-6 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive text-center text-sm font-medium">
+          Error al cargar el resumen de asistencia del periodo {formatMonthSpanish(month)}.
+        </div>
+      ) : (
+        <>
+          {/* Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="bg-card">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -336,6 +435,8 @@ export const AttendanceMonthlyReport: React.FC<AttendanceMonthlyReportProps> = (
           )}
         </CardContent>
       </Card>
+        </>
+      )}
     </div>
   );
 };

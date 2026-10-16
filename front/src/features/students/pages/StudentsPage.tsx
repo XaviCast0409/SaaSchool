@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Users, UserPlus } from 'lucide-react';
+import { Users, UserPlus, QrCode } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useStudents } from '../api/useStudents';
 import { StudentTable } from '../components/StudentTable';
 import { EnrollStudentModal } from '../components/EnrollStudentModal';
+import { SectionQrCardsModal } from '../components/SectionQrCardsModal';
+import { useGetActiveSchool } from '@/features/schools/api/useSchool';
 import { Button } from '@/components/ui/button';
 
 export const StudentsPage: React.FC = () => {
@@ -13,8 +15,10 @@ export const StudentsPage: React.FC = () => {
     user?.role === 'SUPER_ADMIN' ||
     user?.role === 'ADMINISTRATIVE';
 
-  // Estados del modal de matrícula
+  // Estados del modal de matrícula y carnets QR
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
+  const [isSectionQrModalOpen, setIsSectionQrModalOpen] = useState(false);
+  const { data: school } = useGetActiveSchool();
 
   // Estados de paginación y filtros jerárquicos
   const [page, setPage] = useState(1);
@@ -22,7 +26,6 @@ export const StudentsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [classroomId, setClassroomId] = useState<string | undefined>(undefined);
   const [educationLevel, setEducationLevel] = useState<'INITIAL' | 'PRIMARY' | 'SECONDARY' | undefined>(undefined);
-  const [grade, setGrade] = useState<number | undefined>(undefined);
 
   const { data: response, isLoading, isError, refetch } = useStudents({
     page,
@@ -30,7 +33,6 @@ export const StudentsPage: React.FC = () => {
     search,
     classroomId,
     educationLevel,
-    grade,
   });
 
   const students = response?.data || [];
@@ -52,15 +54,29 @@ export const StudentsPage: React.FC = () => {
           </p>
         </div>
 
-        {canManageStudents && (
-          <Button
-            onClick={() => setIsEnrollModalOpen(true)}
-            className="gap-2 self-start md:self-auto shadow-sm"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>Matricular Estudiante</span>
-          </Button>
-        )}
+        <div className="flex items-center gap-2 self-start md:self-auto flex-wrap">
+          {canManageStudents && (
+            <Button
+              variant="outline"
+              onClick={() => setIsSectionQrModalOpen(true)}
+              className="gap-2 shadow-sm border-primary/30 text-primary hover:bg-primary/10"
+              title="Generar e imprimir carnets con QR por grado y sección en hoja A4"
+            >
+              <QrCode className="w-4 h-4" />
+              <span>Carnets QR por Sección (PDF)</span>
+            </Button>
+          )}
+
+          {canManageStudents && (
+            <Button
+              onClick={() => setIsEnrollModalOpen(true)}
+              className="gap-2 shadow-sm"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>Matricular Estudiante</span>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Content */}
@@ -81,7 +97,6 @@ export const StudentsPage: React.FC = () => {
           search={search}
           classroomId={classroomId}
           educationLevel={educationLevel}
-          grade={grade}
           onPageChange={(p) => setPage(p)}
           onLimitChange={(l) => {
             setLimit(l);
@@ -99,10 +114,6 @@ export const StudentsPage: React.FC = () => {
             setEducationLevel(eL);
             setPage(1);
           }}
-          onGradeChange={(g) => {
-            setGrade(g);
-            setPage(1);
-          }}
         />
       )}
 
@@ -111,6 +122,15 @@ export const StudentsPage: React.FC = () => {
         isOpen={isEnrollModalOpen}
         onClose={() => setIsEnrollModalOpen(false)}
       />
+
+      {/* Modal de Carnets QR por Sección en A4 */}
+      {isSectionQrModalOpen && (
+        <SectionQrCardsModal
+          initialClassroomId={classroomId}
+          schoolName={school?.name}
+          onClose={() => setIsSectionQrModalOpen(false)}
+        />
+      )}
     </div>
   );
 };

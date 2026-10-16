@@ -48,9 +48,12 @@ export const DirectoryPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabKey>('ALL_STAFF');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  const selectedRoleParam = activeTab === 'ALL_STAFF' ? undefined : (activeTab as UserRole);
+  const userQueryParams =
+    activeTab === 'ALL_STAFF'
+      ? { staffOnly: true }
+      : { role: activeTab as UserRole };
 
-  const { data: rawUsers = [], isLoading, isError, refetch } = useUsers(selectedRoleParam);
+  const { data: rawUsers = [], isLoading, isError, refetch } = useUsers(userQueryParams);
 
   // Filtrar estrictamente: solo Profesores (TEACHER), Administrativos (ADMINISTRATIVE) y Directores (SCHOOL_ADMIN).
   const staffUsers = rawUsers.filter(

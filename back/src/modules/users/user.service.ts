@@ -9,7 +9,7 @@ export class UserService {
 
   async getAllUsers(
     schoolId: string,
-    filters: UserFilterDto = { page: 1, limit: 10 },
+    filters: Partial<UserFilterDto> = {},
   ): Promise<PaginatedResult<Omit<User, 'passwordHash'>>> {
     return this.userRepository.findAllBySchool(schoolId, filters);
   }
