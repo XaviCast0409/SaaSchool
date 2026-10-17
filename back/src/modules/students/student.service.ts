@@ -104,8 +104,9 @@ export class StudentService {
       }
     }
 
-    // Contraseña por defecto para nuevo apoderado si aplica
-    const defaultPassword = 'Familia' + new Date().getFullYear() + '!';
+    // Contraseña inicial para nuevo apoderado: número de DNI para máxima practicidad
+    const parentDni = dto.guardian.newGuardian?.documentId?.trim();
+    const defaultPassword = parentDni || ('Familia' + new Date().getFullYear() + '!');
     const passwordHash = await hashPassword(defaultPassword);
 
     const result = await this.studentRepository.registerFichaMatricula(
@@ -141,5 +142,79 @@ export class StudentService {
   async deleteStudent(studentId: string, schoolId: string): Promise<Student> {
     await this.getStudentById(studentId, schoolId);
     return this.studentRepository.delete(studentId, schoolId);
+  }
+
+  async getNominaMatricula(schoolId: string, classroomId: string) {
+    const { classroom, enrollments } = await this.studentRepository.getNominaByClassroom(schoolId, classroomId);
+
+    const activeAcademicYear = enrollments[0]?.academicYear ?? null;
+
+    const students = enrollments.map((enrollment) => {
+      const student = enrollment.student;
+      const guardianRel =
+        student.familyRelations.find((rel) => rel.isLegalGuardian) ??
+        student.familyRelations[0] ??
+        null;
+
+      let guardianData = null;
+      if (guardianRel?.user) {
+        const u = guardianRel.user;
+        const fullName = `${u.lastNamePaternal} ${u.lastNameMaternal ? `${u.lastNameMaternal}, ` : ', '}${u.firstName}`.trim();
+        guardianData = {
+          relationshipType: guardianRel.relationshipType,
+          isLegalGuardian: guardianRel.isLegalGuardian,
+          documentType: u.documentType,
+          documentId: u.documentId,
+          fullName,
+          cellphone: u.cellphone,
+          email: u.email,
+        };
+      }
+
+      return {
+        id: student.id,
+        studentCode: student.studentCode,
+        documentType: student.documentType,
+        documentId: student.documentId,
+        firstNames: student.firstNames,
+        lastNamePaternal: student.lastNamePaternal,
+        lastNameMaternal: student.lastNameMaternal,
+        gender: student.gender,
+        birthDate: student.birthDate,
+        birthCountry: student.birthCountry,
+        birthUbigeo: student.birthUbigeo,
+        birthDepartment: student.birthDepartment,
+        birthProvince: student.birthProvince,
+        birthDistrict: student.birthDistrict,
+        residenceUbigeo: student.residenceUbigeo,
+        motherTongue: student.motherTongue,
+        hasDisability: student.hasDisability,
+        disabilityType: student.disabilityType,
+        address: student.address,
+        condition: enrollment.condition,
+        repeatingGrade: enrollment.repeatingGrade,
+        enrollmentDate: enrollment.enrollmentDate,
+        guardian: guardianData,
+      };
+    });
+
+    return {
+      school: classroom.school,
+      classroom: {
+        id: classroom.id,
+        grade: classroom.grade,
+        section: classroom.section,
+        educationLevel: classroom.educationLevel,
+        shift: classroom.shift,
+        tutorTeacher: classroom.tutorTeacher,
+      },
+      academicYear: activeAcademicYear,
+      totalStudents: students.length,
+      students,
+    };
+  }
+
+  async getMyChildren(schoolId: string, parentUserId: string) {
+    return this.studentRepository.findMyChildren(schoolId, parentUserId);
   }
 }

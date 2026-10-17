@@ -212,15 +212,15 @@ export const useCancelObligation = () => {
   });
 };
 
-/** Mutation para enviar recordatorio WA/Email individual */
+/** Mutation para enviar recordatorio por Email individual */
 export const useSendReminder = () => {
   return useMutation({
     mutationFn: async ({
       obligationId,
-      channel = 'BOTH',
+      channel = 'EMAIL',
     }: {
       obligationId: string;
-      channel?: 'WHATSAPP' | 'EMAIL' | 'BOTH';
+      channel?: 'EMAIL';
     }) => {
       const response = await api.post(`/payments/obligations/${obligationId}/remind`, { channel });
       return response.data.data;
@@ -228,10 +228,10 @@ export const useSendReminder = () => {
   });
 };
 
-/** Mutation para enviar recordatorios masivos a morosos */
+/** Mutation para enviar recordatorios masivos por Email a morosos */
 export const useSendBulkReminders = () => {
   return useMutation({
-    mutationFn: async (channel: 'WHATSAPP' | 'EMAIL' | 'BOTH' = 'BOTH') => {
+    mutationFn: async (channel: 'EMAIL' = 'EMAIL') => {
       const response = await api.post('/payments/obligations/remind-overdue', { channel });
       return response.data.data;
     },

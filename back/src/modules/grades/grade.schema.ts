@@ -78,7 +78,12 @@ export type BatchSaveConclusionsDto = z.infer<typeof batchSaveConclusionsSchema>
 // Consolidado SIAGIE (Dirección / Secretaría)
 // ==========================================
 export const siagieSummaryQuerySchema = z.object({
-  classroomId: z.string().uuid(),
+  classroomId: z
+    .string()
+    .uuid('classroomId debe ser un UUID válido')
+    .optional()
+    .or(z.literal(''))
+    .transform((val) => val || undefined),
   periodNumber: z.coerce.number().int().min(1).max(4),
 });
 
@@ -89,7 +94,12 @@ export type SiagieSummaryQueryDto = z.infer<typeof siagieSummaryQuerySchema>;
 // ==========================================
 export const getPeriodLockQuerySchema = z.object({
   periodNumber: z.coerce.number().int().min(1).max(4),
-  classroomId: z.string().uuid().optional(),
+  classroomId: z
+    .string()
+    .uuid('classroomId debe ser un UUID válido')
+    .optional()
+    .or(z.literal(''))
+    .transform((val) => val || undefined),
 });
 
 export const togglePeriodLockSchema = z.object({

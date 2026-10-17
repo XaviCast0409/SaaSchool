@@ -34,10 +34,18 @@ interface ApiResponse<T> {
   data: T;
 }
 
+import { useAuthStore } from '@/store/useAuthStore';
+
 /** Lista todas las asignaciones del colegio (Admin). */
 export const useCourseAssignments = (options?: { enabled?: boolean }) => {
+  const { user, impersonatedSchool } = useAuthStore();
+  const currentSchoolId =
+    user?.role === 'SUPER_ADMIN' && impersonatedSchool?.id
+      ? impersonatedSchool.id
+      : user?.schoolId;
+
   return useQuery({
-    queryKey: ['course-assignments'],
+    queryKey: ['course-assignments', currentSchoolId],
     queryFn: async () => {
       const response = await api.get<ApiResponse<CourseAssignment[]>>('/course-assignments');
       return response.data.data;
@@ -48,8 +56,14 @@ export const useCourseAssignments = (options?: { enabled?: boolean }) => {
 
 /** Lista solo los cursos asignados al docente autenticado. */
 export const useMyCourseAssignments = (options?: { enabled?: boolean }) => {
+  const { user, impersonatedSchool } = useAuthStore();
+  const currentSchoolId =
+    user?.role === 'SUPER_ADMIN' && impersonatedSchool?.id
+      ? impersonatedSchool.id
+      : user?.schoolId;
+
   return useQuery({
-    queryKey: ['course-assignments', 'my-courses'],
+    queryKey: ['course-assignments', 'my-courses', user?.id, currentSchoolId],
     queryFn: async () => {
       const response = await api.get<ApiResponse<CourseAssignment[]>>('/course-assignments/my-courses');
       return response.data.data;

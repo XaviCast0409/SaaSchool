@@ -9,6 +9,7 @@ import {
   Sparkles,
   Layers,
   CheckCircle2,
+  GraduationCap,
 } from 'lucide-react';
 import {
   useClassrooms,
@@ -18,6 +19,7 @@ import {
   type CreateClassroomPayload,
 } from '../api/useClassrooms';
 import type { Classroom } from '../types';
+import { useUsers } from '@/features/users/api/useUsers';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -79,9 +81,11 @@ export const ClassroomsPage: React.FC = () => {
     section: 'A',
     shift: 'MORNING',
     capacity: 30,
+    tutorTeacherId: null,
   });
 
   const { data: classrooms = [], isLoading, isError, refetch } = useClassrooms();
+  const { data: teachers = [] } = useUsers('TEACHER');
   const { mutateAsync: createClassroom, isPending: isCreating } = useCreateClassroom();
   const { mutateAsync: updateClassroom, isPending: isUpdating } = useUpdateClassroom();
   const { mutateAsync: deleteClassroom } = useDeleteClassroom();
@@ -96,6 +100,7 @@ export const ClassroomsPage: React.FC = () => {
       section: 'A',
       shift: 'MORNING',
       capacity: 30,
+      tutorTeacherId: null,
     });
     setIsModalOpen(true);
   };
@@ -108,6 +113,7 @@ export const ClassroomsPage: React.FC = () => {
       section: c.section,
       shift: c.shift,
       capacity: c.capacity,
+      tutorTeacherId: c.tutorTeacherId ?? null,
     });
     setIsModalOpen(true);
   };
@@ -339,6 +345,65 @@ export const ClassroomsPage: React.FC = () => {
                     </span>
                   </div>
 
+                  {/* Tutor de Aula asignado con selector directo para Director */}
+                  <div className="p-2.5 rounded-xl bg-muted/30 border border-border/70 text-xs space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1.5 text-[10px] uppercase font-bold text-muted-foreground">
+                        <GraduationCap className="w-3.5 h-3.5 text-primary" />
+                        Docente Tutor de Aula
+                      </span>
+                      {c.tutorTeacher ? (
+                        <Badge variant="outline" className="text-[9px] px-1.5 py-0 font-bold border-primary/40 text-primary bg-primary/5">
+                          Asignado
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-[9px] px-1.5 py-0 font-semibold text-muted-foreground">
+                          Sin Tutor
+                        </Badge>
+                      )}
+                    </div>
+
+                    {isAdmin ? (
+                      <select
+                        value={c.tutorTeacherId || ''}
+                        onChange={async (e) => {
+                          const newTutorId = e.target.value ? e.target.value : null;
+                          try {
+                            await updateClassroom({
+                              id: c.id,
+                              payload: { tutorTeacherId: newTutorId },
+                            });
+                            const teacherObj = teachers.find((t) => t.id === newTutorId);
+                            toast.success(
+                              newTutorId && teacherObj
+                                ? `Prof. ${teacherObj.firstName} ${teacherObj.lastNamePaternal} asignado como Tutor de ${c.grade}° "${c.section}".`
+                                : `Se retiró la tutoría de ${c.grade}° "${c.section}".`
+                            );
+                          } catch (err: any) {
+                            toast.error(err?.response?.data?.message || 'Error al asignar tutor');
+                          }
+                        }}
+                        className="w-full rounded-lg border border-input bg-background px-2.5 py-1 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer shadow-sm"
+                        title="Seleccionar tutor de aula para este grado y sección"
+                      >
+                        <option value="">— Asignar Docente Tutor —</option>
+                        {teachers.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            Prof. {t.firstName} {t.lastNamePaternal} {t.lastNameMaternal || ''}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <p className="font-semibold text-foreground truncate text-xs">
+                        {c.tutorTeacher ? (
+                          `Prof. ${c.tutorTeacher.firstName} ${c.tutorTeacher.lastNamePaternal}`
+                        ) : (
+                          <span className="text-muted-foreground/80 italic font-normal">Sin tutor asignado</span>
+                        )}
+                      </p>
+                    )}
+                  </div>
+
                   {isAdmin && (
                     <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-border">
                       <Button
@@ -478,6 +543,33 @@ export const ClassroomsPage: React.FC = () => {
                     className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground uppercase mb-1 flex items-center justify-between">
+                  <span>Docente Tutor de Aula (Opcional)</span>
+                  <span className="text-[10px] font-normal lowercase text-muted-foreground">(puede dejarse vacío)</span>
+                </label>
+                <select
+                  value={formData.tutorTeacherId || ''}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      tutorTeacherId: e.target.value ? e.target.value : null,
+                    })
+                  }
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">-- Sin tutor asignado --</option>
+                  {teachers.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      Prof. {t.firstName} {t.lastNamePaternal} {t.lastNameMaternal || ''} ({t.email})
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  El tutor tendrá autoridad para tomar lista de asistencia y registrar conducta únicamente de esta sección.
+                </p>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">

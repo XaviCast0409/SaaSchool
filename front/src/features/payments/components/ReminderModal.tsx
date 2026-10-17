@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Send, X, MessageSquare, Mail, CheckCircle2 } from 'lucide-react';
+import { Send, X, Mail, CheckCircle2 } from 'lucide-react';
 import { useSendReminder } from '../api/usePayments';
 import { Button } from '@/components/ui/button';
 import { PaymentObligation } from '../types';
@@ -10,7 +10,6 @@ interface ReminderModalProps {
 }
 
 export const ReminderModal: React.FC<ReminderModalProps> = ({ obligation, onClose }) => {
-  const [channel, setChannel] = useState<'WHATSAPP' | 'EMAIL' | 'BOTH'>('BOTH');
   const [isSuccess, setIsSuccess] = useState(false);
 
   const { mutate: sendReminder, isPending, error } = useSendReminder();
@@ -22,7 +21,7 @@ export const ReminderModal: React.FC<ReminderModalProps> = ({ obligation, onClos
 
   const handleSend = () => {
     sendReminder(
-      { obligationId: obligation.id, channel },
+      { obligationId: obligation.id, channel: 'EMAIL' },
       {
         onSuccess: () => {
           setIsSuccess(true);
@@ -58,7 +57,7 @@ export const ReminderModal: React.FC<ReminderModalProps> = ({ obligation, onClos
               <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto" />
               <h3 className="font-bold text-base text-foreground">¡Recordatorio Enviado!</h3>
               <p className="text-xs text-muted-foreground">
-                Se ha notificado exitosamente al apoderado de {studentName}.
+                Se ha notificado exitosamente al correo electrónico del apoderado de {studentName}.
               </p>
             </div>
           ) : (
@@ -86,50 +85,19 @@ export const ReminderModal: React.FC<ReminderModalProps> = ({ obligation, onClos
                 </div>
               </div>
 
-              {/* Channel Selector */}
-              <div className="space-y-2">
+              {/* Canal de Envío */}
+              <div className="space-y-1.5">
                 <label className="text-xs font-semibold uppercase tracking-wide text-foreground">
-                  Canal de Envío (API Simple)
+                  Canal de Notificación
                 </label>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setChannel('BOTH')}
-                    className={`p-3 rounded-lg border text-xs font-medium flex flex-col items-center gap-1.5 transition-all ${
-                      channel === 'BOTH'
-                        ? 'border-primary bg-primary/10 text-primary font-semibold'
-                        : 'border-border bg-background text-muted-foreground hover:bg-muted'
-                    }`}
-                  >
-                    <Send className="w-4 h-4" />
-                    <span>Ambos</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setChannel('WHATSAPP')}
-                    className={`p-3 rounded-lg border text-xs font-medium flex flex-col items-center gap-1.5 transition-all ${
-                      channel === 'WHATSAPP'
-                        ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold'
-                        : 'border-border bg-background text-muted-foreground hover:bg-muted'
-                    }`}
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    <span>WhatsApp</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setChannel('EMAIL')}
-                    className={`p-3 rounded-lg border text-xs font-medium flex flex-col items-center gap-1.5 transition-all ${
-                      channel === 'EMAIL'
-                        ? 'border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold'
-                        : 'border-border bg-background text-muted-foreground hover:bg-muted'
-                    }`}
-                  >
-                    <Mail className="w-4 h-4" />
-                    <span>Correo Email</span>
-                  </button>
+                <div className="flex items-start gap-2.5 p-3 rounded-lg border border-border bg-muted/30 text-xs">
+                  <Mail className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <p className="font-semibold text-foreground">Correo Electrónico (Email)</p>
+                    <p className="text-muted-foreground text-[11px] leading-relaxed">
+                      Se enviará el recordatorio con los detalles de la deuda y fecha límite directamente al correo registrado del apoderado financiero.
+                    </p>
+                  </div>
                 </div>
               </div>
             </>
@@ -144,7 +112,7 @@ export const ReminderModal: React.FC<ReminderModalProps> = ({ obligation, onClos
             </Button>
             <Button size="sm" isLoading={isPending} onClick={handleSend} className="gap-2">
               <Send className="w-4 h-4" />
-              <span>Enviar Alerta</span>
+              <span>Enviar por Correo</span>
             </Button>
           </div>
         )}

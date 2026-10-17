@@ -7,7 +7,6 @@ import {
   Clock,
   School,
   Check,
-  RotateCcw,
   Loader2,
   UserCheck,
   ChevronLeft,
@@ -27,12 +26,15 @@ import { BulkAttendanceModal } from '../components/BulkAttendanceModal';
 import { EditNotesModal } from '../components/EditNotesModal';
 import { QrScannerModal } from '../components/QrScannerModal';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
+import { useAuthStore } from '@/store/useAuthStore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { AttendanceStatus, AttendanceRecord } from '../types';
+
+import { ParentAttendanceView } from '@/features/parent/components/ParentAttendanceView';
 
 const STATUS_OPTIONS: Array<{ value: AttendanceStatus; label: string; color: string }> = [
   { value: 'PRESENT', label: 'Presente', color: 'hover:bg-emerald-500/10 hover:text-emerald-600' },
@@ -43,6 +45,13 @@ const STATUS_OPTIONS: Array<{ value: AttendanceStatus; label: string; color: str
 ];
 
 export const AttendancePage: React.FC = () => {
+  const user = useAuthStore((state) => state.user);
+
+  // Si el usuario es PADRE / APODERADO, mostrar la vista especializada de su hijo
+  if (user?.role === 'PARENT') {
+    return <ParentAttendanceView />;
+  }
+
   const [activeTab, setActiveTab] = useState<'DAILY' | 'MATRIX' | 'MONTHLY'>('DAILY');
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split('T')[0]
@@ -58,8 +67,21 @@ export const AttendancePage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
 
+  const isTeacher = user?.role === 'TEACHER';
+
   // Queries
   const { data: classrooms = [] } = useClassrooms();
+  const tutoredClassrooms = isTeacher
+    ? classrooms.filter((c) => c.tutorTeacherId === user?.id || c.tutorTeacher?.id === user?.id)
+    : [];
+  const isTutor = tutoredClassrooms.length > 0;
+
+  // Auto-seleccionar aula del tutor
+  React.useEffect(() => {
+    if (isTeacher && isTutor && !selectedClassroomId) {
+      setSelectedClassroomId(tutoredClassrooms[0].id);
+    }
+  }, [isTeacher, isTutor, tutoredClassrooms, selectedClassroomId]);
   const {
     data: paginatedResult,
     isLoading,
@@ -142,6 +164,7 @@ export const AttendancePage: React.FC = () => {
           <Button
             variant="outline"
             onClick={() => setIsBulkModalOpen(true)}
+            disabled={isTeacher && !isTutor}
             className="gap-2 shadow-sm"
           >
             <UserCheck className="w-4 h-4 text-emerald-600" />
@@ -150,6 +173,39 @@ export const AttendancePage: React.FC = () => {
 
         </div>
       </div>
+
+      {/* Banner Informativo de Tutoría para Docentes */}
+      {isTeacher && isTutor && (
+        <div className="flex items-center gap-3 p-3.5 rounded-xl border border-primary/20 bg-primary/5 text-xs text-foreground">
+          <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+            <School className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="font-bold text-foreground">
+              Docente Tutor Asignado: {tutoredClassrooms[0]?.grade}° "{tutoredClassrooms[0]?.section}" ({tutoredClassrooms[0]?.educationLevel === 'PRIMARY' ? 'Primaria' : tutoredClassrooms[0]?.educationLevel === 'SECONDARY' ? 'Secundaria' : 'Inicial'})
+            </p>
+            <p className="text-muted-foreground text-[11px] mt-0.5">
+              Tiene autoridad para pasar lista, justificar inasistencias y registrar la asistencia de su aula tutoriada.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {isTeacher && !isTutor && (
+        <div className="flex items-center gap-3 p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-xs text-foreground">
+          <div className="p-2 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0">
+            <UserCheck className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="font-bold text-amber-700 dark:text-amber-300">
+              Perfil Docente — Sin Aula de Tutoría Asignada
+            </p>
+            <p className="text-muted-foreground text-[11px] mt-0.5">
+              En este colegio, el control y toma de asistencia general está asignado a los <strong>Docentes Tutores</strong> de cada sección y a la <strong>Administración</strong>. Si le corresponde la tutoría de un aula, comuníquese con Dirección para que le asignen el cargo en el catálogo de Aulas.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Navigation Tabs */}
       <div className="flex items-center gap-1 border-b border-border overflow-x-auto">
@@ -317,11 +373,13 @@ export const AttendancePage: React.FC = () => {
                   value={selectedClassroomId}
                   onChange={(e) => handleClassroomChange(e.target.value)}
                   className="w-full border-none bg-transparent text-xs font-semibold focus:outline-none text-foreground cursor-pointer"
+                  disabled={isTeacher && tutoredClassrooms.length === 1}
                 >
                   <option value="">— Todas las Aulas / Secciones —</option>
-                  {classrooms.map((c) => (
+                  {(isTeacher && isTutor ? tutoredClassrooms : classrooms).map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.grade}° "{c.section}" — {c.educationLevel === 'PRIMARY' ? 'Primaria' : c.educationLevel === 'SECONDARY' ? 'Secundaria' : 'Inicial'}
+                      {c.tutorTeacherId === user?.id ? ' • Su Aula Tutoriada' : isTeacher && !isTutor ? ' (Consulta)' : ''}
                     </option>
                   ))}
                 </select>
@@ -502,25 +560,39 @@ export const AttendancePage: React.FC = () => {
                       })
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
-                          <div className="flex flex-col items-center justify-center gap-2">
-                            <RotateCcw className="w-8 h-8 text-muted-foreground/50" />
+                        <TableCell colSpan={6} className="h-44 text-center text-muted-foreground p-6">
+                          <div className="flex flex-col items-center justify-center gap-2 max-w-md mx-auto">
+                            <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                              <CalendarCheck className="w-5 h-5" />
+                            </div>
                             {searchTerm ? (
-                              <span className="font-medium text-foreground">
+                              <span className="font-semibold text-foreground text-sm">
                                 No se encontraron alumnos para "{searchTerm}".
                               </span>
                             ) : statusFilter !== 'ALL' ? (
-                              <span className="font-medium text-foreground">
+                              <span className="font-semibold text-foreground text-sm">
                                 No se encontraron registros con el estado seleccionado para la fecha ({selectedDate}).
                               </span>
                             ) : (
                               <>
-                                <span className="font-medium text-foreground">
+                                <span className="font-bold text-foreground text-sm">
                                   No hay asistencia registrada para la fecha ({selectedDate}).
                                 </span>
-                                <p className="text-xs text-muted-foreground/70">
-                                  Usa el botón "Tomar Asistencia del Aula" para registrar la asistencia del día.
+                                <p className="text-xs text-muted-foreground">
+                                  {isTeacher && !isTutor
+                                    ? 'En esta fecha aún no se ha registrado la asistencia. La toma de asistencia general la realiza el docente tutor o personal administrativo.'
+                                    : 'Aún no se ha registrado la lista de asistencia para esta fecha. Puedes registrar la asistencia del aula con un solo clic.'}
                                 </p>
+                                {(!isTeacher || isTutor) && (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => setIsBulkModalOpen(true)}
+                                    className="gap-2 mt-2 font-bold shadow-sm"
+                                  >
+                                    <UserCheck className="w-4 h-4" />
+                                    <span>Tomar Asistencia de Esta Fecha</span>
+                                  </Button>
+                                )}
                               </>
                             )}
                           </div>

@@ -20,6 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AttendanceStatus } from '../types';
 import { MatrixExportModal } from './MatrixExportModal';
 import { useGetActiveSchool } from '@/features/schools/api/useSchool';
+import { useAuthStore } from '@/store/useAuthStore';
 
 interface AttendanceMatrixGridProps {
   initialMonth?: string;
@@ -79,6 +80,21 @@ export const AttendanceMatrixGrid: React.FC<AttendanceMatrixGridProps> = ({
 
   // Queries
   const { data: classrooms = [] } = useClassrooms();
+  const user = useAuthStore((state) => state.user);
+  const isTeacher = user?.role === 'TEACHER';
+  const tutoredClassrooms = isTeacher
+    ? classrooms.filter((c) => c.tutorTeacherId === user?.id || c.tutorTeacher?.id === user?.id)
+    : [];
+  const isTutor = tutoredClassrooms.length > 0;
+  const availableClassrooms = isTeacher && isTutor ? tutoredClassrooms : classrooms;
+
+  // Auto-seleccionar aula tutoriada para docentes
+  React.useEffect(() => {
+    if (isTeacher && isTutor && availableClassrooms.length > 0 && !classroomId) {
+      setClassroomId(availableClassrooms[0].id);
+    }
+  }, [isTeacher, isTutor, availableClassrooms, classroomId]);
+
   const { data: school } = useGetActiveSchool();
   const { data: matrixData, isLoading, isError } = useAttendanceMatrix({ month, classroomId });
 
@@ -146,11 +162,13 @@ export const AttendanceMatrixGrid: React.FC<AttendanceMatrixGridProps> = ({
               value={classroomId}
               onChange={(e) => setClassroomId(e.target.value)}
               className="bg-transparent border-none focus:outline-none text-foreground font-semibold cursor-pointer"
+              disabled={isTeacher && availableClassrooms.length === 1}
             >
               <option value="">— Todas las Secciones —</option>
-              {classrooms.map((c) => (
+              {availableClassrooms.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.grade}° {c.section} ({c.educationLevel})
+                  {c.tutorTeacherId === user?.id ? ' • Su Aula Tutoriada' : isTeacher && !isTutor ? ' (Consulta)' : ''}
                 </option>
               ))}
             </select>

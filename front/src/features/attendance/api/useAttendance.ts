@@ -217,3 +217,19 @@ export const useScanAttendance = () => {
     },
   });
 };
+
+/** Hook para obtener el historial de asistencia por matrícula (Portal de Padres) */
+export const useAttendanceByEnrollment = (enrollmentId?: string, enabled = true) => {
+  return useQuery({
+    queryKey: ['attendance-by-enrollment', enrollmentId],
+    queryFn: async (): Promise<AttendanceRecord[]> => {
+      if (!enrollmentId) return [];
+      const response = await api.get<{ status: string; data: AttendanceRecord[] }>(
+        `/attendance/enrollment/${enrollmentId}`
+      );
+      return response.data.data;
+    },
+    enabled: Boolean(enrollmentId) && enabled,
+    staleTime: 1000 * 60 * 2,
+  });
+};

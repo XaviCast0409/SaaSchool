@@ -155,7 +155,7 @@ export const ResetAdminPasswordModal: React.FC<ResetAdminPasswordModalProps> = (
               </div>
 
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Copia las credenciales y envíalas al director por WhatsApp o correo para que pueda recuperar el control de su colegio.
+                Copia las credenciales y envíalas al director por correo electrónico para que pueda recuperar el control de su colegio.
               </p>
 
               <div className="flex items-center justify-between gap-2 pt-3 border-t border-border">

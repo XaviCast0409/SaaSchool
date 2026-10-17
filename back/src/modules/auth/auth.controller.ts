@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { loginSchema, registerSchema } from './auth.schema';
+import { loginSchema, registerSchema, changePasswordSchema } from './auth.schema';
 import type { AuthService } from './auth.service';
 
 /**
@@ -17,6 +17,17 @@ export class AuthController {
     response.status(200).json({
       status: 'success',
       data: authResponse,
+    });
+  };
+
+  changePassword = async (request: Request, response: Response): Promise<void> => {
+    const userId = request.user!.userId;
+    const dto = changePasswordSchema.parse(request.body);
+    const result = await this.authService.changePassword(userId, dto);
+
+    response.status(200).json({
+      status: 'success',
+      data: result,
     });
   };
 

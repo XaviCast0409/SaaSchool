@@ -33,6 +33,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { CourseCatalogSelect } from '../components/CourseCatalogSelect';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/useAuthStore';
 
@@ -533,8 +534,8 @@ export const CurricularAreasPage: React.FC = () => {
 
       {/* Modal Crear mediante Catálogo / Editar Área */}
       {isAreaModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="relative w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-8 sm:pt-14 p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
+          <div className="relative w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4 my-auto sm:my-0">
             <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-primary" />
               <span>{editingArea ? 'Editar Curso / Área' : 'Agregar Curso Oficial (Catálogo SIAGIE)'}</span>
@@ -592,23 +593,12 @@ export const CurricularAreasPage: React.FC = () => {
                     <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">
                       2. Selecciona el Curso / Área del Catálogo MINEDU *
                     </label>
-                    <select
-                      required
+                    <CourseCatalogSelect
                       value={selectedCourseCode}
-                      onChange={(e) => setSelectedCourseCode(e.target.value)}
-                      className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                      <option value="">── Seleccionar curso oficial ──</option>
-                      {Object.entries(coursesByCategory).map(([category, courses]) => (
-                        <optgroup key={category} label={`── ${category} ──`}>
-                          {courses.map((course) => (
-                            <option key={course.officialCode} value={course.officialCode}>
-                              {course.name} {course.officialCode !== 'CUSTOM' ? `(${course.officialCode})` : ''}
-                            </option>
-                          ))}
-                        </optgroup>
-                      ))}
-                    </select>
+                      onChange={setSelectedCourseCode}
+                      coursesByCategory={coursesByCategory}
+                      catalogCourses={catalogCourses}
+                    />
                   </div>
 
                   {selectedCourseCode === 'CUSTOM' && (

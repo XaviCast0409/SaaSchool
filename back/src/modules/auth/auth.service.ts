@@ -2,7 +2,7 @@ import { AppError } from '../../core/errors/app-error';
 import { hashPassword, comparePassword } from '../../utils/hash.util';
 import { signToken } from '../../utils/jwt.util';
 import type { AuthRepository } from './auth.repository';
-import type { LoginDto, RegisterDto } from './auth.schema';
+import type { LoginDto, RegisterDto, ChangePasswordDto } from './auth.schema';
 
 interface AuthResponse {
   token: string;
@@ -13,6 +13,8 @@ interface AuthResponse {
     firstName: string;
     lastNamePaternal: string;
     schoolId: string;
+    documentId?: string | null;
+    mustChangePassword?: boolean;
   };
 }
 
@@ -24,7 +26,7 @@ export class AuthService {
   constructor(private readonly authRepository: AuthRepository) {}
 
   async login(loginDto: LoginDto): Promise<AuthResponse> {
-    const existingUser = await this.authRepository.findUserByEmail(loginDto.email);
+    const existingUser = await this.authRepository.findUserByIdentifier(loginDto.email);
 
     if (!existingUser) {
       throw new AppError('Credenciales inválidas', 401);
@@ -38,6 +40,15 @@ export class AuthService {
 
     if (!isPasswordValid) {
       throw new AppError('Credenciales inválidas', 401);
+    }
+
+    // Detectar si el usuario es un apoderado usando su DNI como contraseña inicial temporal
+    let mustChangePassword = false;
+    if (existingUser.role === 'PARENT' && existingUser.documentId) {
+      const isInitialDniPassword = await comparePassword(existingUser.documentId, existingUser.passwordHash);
+      if (isInitialDniPassword) {
+        mustChangePassword = true;
+      }
     }
 
     const token = signToken({
@@ -56,8 +67,34 @@ export class AuthService {
         firstName: existingUser.firstName,
         lastNamePaternal: existingUser.lastNamePaternal,
         schoolId: existingUser.schoolId,
+        documentId: existingUser.documentId,
+        mustChangePassword,
       },
     };
+  }
+
+  async changePassword(userId: string, changePasswordDto: ChangePasswordDto): Promise<{ message: string }> {
+    const user = await this.authRepository.findUserById(userId);
+    if (!user) {
+      throw new AppError('Usuario no encontrado', 404);
+    }
+
+    if (changePasswordDto.currentPassword) {
+      const isCurrentValid = await comparePassword(changePasswordDto.currentPassword, user.passwordHash);
+      if (!isCurrentValid) {
+        throw new AppError('La contraseña actual ingresada es incorrecta', 400);
+      }
+    }
+
+    // Seguridad: la nueva contraseña no puede ser idéntica al número de DNI
+    if (user.documentId && changePasswordDto.newPassword.trim() === user.documentId.trim()) {
+      throw new AppError('La nueva contraseña no puede ser idéntica a tu número de DNI por motivos de seguridad.', 400);
+    }
+
+    const newPasswordHash = await hashPassword(changePasswordDto.newPassword);
+    await this.authRepository.updatePassword(userId, newPasswordHash);
+
+    return { message: 'Contraseña actualizada exitosamente' };
   }
 
   async register(registerDto: RegisterDto): Promise<AuthResponse> {

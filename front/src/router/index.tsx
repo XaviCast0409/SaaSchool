@@ -16,6 +16,7 @@ import { TeacherAssignmentsPage } from '@/features/course-assignments/pages/Teac
 import { AcademicYearsPage } from '@/features/academic-years/pages/AcademicYearsPage';
 import { EvaluationCriteriaPage } from '@/features/grades/pages/EvaluationCriteriaPage';
 import { SuperAdminPage } from '@/features/super-admin/pages/SuperAdminPage';
+import { StudentCoursesPage } from '@/features/course-contents/pages/StudentCoursesPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const token = useAuthStore((state) => state.token);
@@ -149,9 +150,17 @@ export const AppRouter: React.FC = () => {
             }
           />
           <Route
+            path="/virtual-classroom"
+            element={
+              <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT']}>
+                <StudentCoursesPage />
+              </RoleGuard>
+            }
+          />
+          <Route
             path="/attendance"
             element={
-              <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER']}>
+              <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT']}>
                 <AttendancePage />
               </RoleGuard>
             }

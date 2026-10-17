@@ -315,4 +315,227 @@ export class StudentRepository {
       };
     });
   }
+
+  async getNominaByClassroom(schoolId: string, classroomId: string) {
+    const classroom = await prisma.classroom.findFirst({
+      where: { id: classroomId, schoolId },
+      include: {
+        school: {
+          select: {
+            id: true,
+            name: true,
+            modularCode: true,
+            localCode: true,
+            department: true,
+            province: true,
+            district: true,
+            address: true,
+          },
+        },
+        tutorTeacher: {
+          select: {
+            id: true,
+            firstName: true,
+            lastNamePaternal: true,
+            lastNameMaternal: true,
+          },
+        },
+      },
+    });
+
+    if (!classroom) {
+      throw new AppError('Aula no encontrada o no pertenece a la institución educativa', 404);
+    }
+
+    const enrollments = await prisma.enrollment.findMany({
+      where: {
+        schoolId,
+        classroomId,
+        isActive: true,
+      },
+      include: {
+        academicYear: {
+          select: {
+            id: true,
+            year: true,
+            name: true,
+          },
+        },
+        student: {
+          include: {
+            familyRelations: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastNamePaternal: true,
+                    lastNameMaternal: true,
+                    documentType: true,
+                    documentId: true,
+                    cellphone: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: [
+        { student: { lastNamePaternal: 'asc' } },
+        { student: { lastNameMaternal: 'asc' } },
+        { student: { firstNames: 'asc' } },
+      ],
+    });
+
+    return {
+      classroom,
+      enrollments,
+    };
+  }
+
+  async findMyChildren(schoolId: string, parentUserId: string) {
+    const students = await prisma.student.findMany({
+      where: {
+        schoolId,
+        familyRelations: {
+          some: {
+            userId: parentUserId,
+          },
+        },
+      },
+      include: {
+        familyRelations: {
+          where: { userId: parentUserId },
+          select: {
+            relationshipType: true,
+            isLegalGuardian: true,
+            isFinancialResponsible: true,
+          },
+        },
+        enrollments: {
+          where: { isActive: true },
+          orderBy: { enrollmentDate: 'desc' },
+          take: 1,
+          include: {
+            classroom: {
+              include: {
+                tutorTeacher: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastNamePaternal: true,
+                    lastNameMaternal: true,
+                    cellphone: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+            academicYear: true,
+            obligations: {
+              where: { status: { in: ['PENDING', 'PARTIAL'] } },
+              orderBy: { dueDate: 'asc' },
+            },
+            attendances: {
+              orderBy: { date: 'desc' },
+              take: 31,
+            },
+          },
+        },
+      },
+      orderBy: [{ lastNamePaternal: 'asc' }, { firstNames: 'asc' }],
+    });
+
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+
+    return students.map((student) => {
+      const activeEnrollment = student.enrollments[0] || null;
+      const relationship = student.familyRelations[0] || null;
+
+      const attendances = activeEnrollment?.attendances || [];
+      const todayAttendance = attendances.find((a) => {
+        const aDate = new Date(a.date);
+        aDate.setHours(0, 0, 0, 0);
+        return aDate.getTime() === todayDate.getTime();
+      });
+
+      const totalRecordedAttendances = attendances.length;
+      const presentCount = attendances.filter(
+        (a) => a.status === 'PRESENT' || a.status === 'LATE_JUSTIFIED',
+      ).length;
+      const lateCount = attendances.filter(
+        (a) => a.status === 'LATE_UNJUSTIFIED' || a.status === 'LATE_JUSTIFIED',
+      ).length;
+      const absentCount = attendances.filter(
+        (a) => a.status === 'ABSENT_UNJUSTIFIED' || a.status === 'ABSENT_JUSTIFIED',
+      ).length;
+
+      const attendancePercentage =
+        totalRecordedAttendances > 0
+          ? Math.round((presentCount / totalRecordedAttendances) * 100)
+          : 100;
+
+      const pendingObligations = activeEnrollment?.obligations || [];
+      const totalPendingAmount = pendingObligations.reduce(
+        (sum, ob) => sum + ob.amountDue,
+        0,
+      );
+      const nextPendingObligation = pendingObligations[0] || null;
+
+      return {
+        id: student.id,
+        firstNames: student.firstNames,
+        lastNamePaternal: student.lastNamePaternal,
+        lastNameMaternal: student.lastNameMaternal || '',
+        fullName: `${student.lastNamePaternal} ${student.lastNameMaternal || ''}, ${student.firstNames}`.trim(),
+        documentType: student.documentType,
+        documentId: student.documentId,
+        studentCode: student.studentCode,
+        gender: student.gender,
+        relationshipType: relationship?.relationshipType || 'OTHER',
+        isLegalGuardian: relationship?.isLegalGuardian ?? false,
+        isFinancialResponsible: relationship?.isFinancialResponsible ?? false,
+        activeEnrollment: activeEnrollment
+          ? {
+              id: activeEnrollment.id,
+              academicYear: activeEnrollment.academicYear.year,
+              classroom: {
+                id: activeEnrollment.classroom.id,
+                grade: activeEnrollment.classroom.grade,
+                section: activeEnrollment.classroom.section,
+                educationLevel: activeEnrollment.classroom.educationLevel,
+                shift: activeEnrollment.classroom.shift,
+                label: `${activeEnrollment.classroom.grade}° "${activeEnrollment.classroom.section}" - ${activeEnrollment.classroom.educationLevel}`,
+                tutor: activeEnrollment.classroom.tutorTeacher
+                  ? {
+                      fullName: `${activeEnrollment.classroom.tutorTeacher.firstName} ${activeEnrollment.classroom.tutorTeacher.lastNamePaternal}`,
+                      cellphone: activeEnrollment.classroom.tutorTeacher.cellphone,
+                      email: activeEnrollment.classroom.tutorTeacher.email,
+                    }
+                  : null,
+              },
+              attendanceSummary: {
+                todayStatus: todayAttendance ? todayAttendance.status : 'NOT_RECORDED',
+                todayCheckIn: todayAttendance?.checkInTime || null,
+                attendancePercentage,
+                presentCount,
+                lateCount,
+                absentCount,
+                totalRecorded: totalRecordedAttendances,
+              },
+              financialSummary: {
+                hasPending: pendingObligations.length > 0,
+                pendingCount: pendingObligations.length,
+                totalPendingAmount,
+                nextDueDate: nextPendingObligation?.dueDate || null,
+                nextTitle: nextPendingObligation?.title || null,
+              },
+            }
+          : null,
+      };
+    });
+  }
 }

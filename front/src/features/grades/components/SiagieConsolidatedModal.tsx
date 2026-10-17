@@ -43,8 +43,12 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
   const [showCompetencesDetail, setShowCompetencesDetail] = useState(false);
 
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
-  const { data, isLoading, isError } = useSiagieSummary(classroomId, periodNumber);
-  const { data: periodLock } = usePeriodLock(classroomId, periodNumber);
+  const { data, isLoading, isError } = useSiagieSummary(classroomId, periodNumber, {
+    enabled: isOpen && Boolean(classroomId),
+  });
+  const { data: periodLock } = usePeriodLock(classroomId, periodNumber, {
+    enabled: isOpen && Boolean(classroomId),
+  });
   const toggleLockMutation = useTogglePeriodLock();
 
   const handleConfirmToggleLock = () => {

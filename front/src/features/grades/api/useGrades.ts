@@ -19,12 +19,20 @@ interface ApiResponse<T> {
   message?: string;
 }
 
+import { useAuthStore } from '@/store/useAuthStore';
+
 /**
  * Consulta la matriz completa de calificaciones para un curso y periodo.
  */
 export const useGradeMatrix = (courseAssignmentId: string, periodNumber: number) => {
+  const { user, impersonatedSchool } = useAuthStore();
+  const currentSchoolId =
+    user?.role === 'SUPER_ADMIN' && impersonatedSchool?.id
+      ? impersonatedSchool.id
+      : user?.schoolId;
+
   return useQuery({
-    queryKey: ['grades-matrix', courseAssignmentId, periodNumber],
+    queryKey: ['grades-matrix', courseAssignmentId, periodNumber, currentSchoolId],
     queryFn: async () => {
       const response = await api.get<ApiResponse<GradeMatrixResponse>>('/grades/matrix', {
         params: { courseAssignmentId, periodNumber },
@@ -187,16 +195,26 @@ export const useReportCard = (enrollmentId: string) => {
 /**
  * Consulta el estado de consolidación y avance para SIAGIE.
  */
-export const useSiagieSummary = (classroomId: string, periodNumber: number) => {
+export const useSiagieSummary = (
+  classroomId: string,
+  periodNumber: number,
+  options?: { enabled?: boolean },
+) => {
+  const { user, impersonatedSchool } = useAuthStore();
+  const currentSchoolId =
+    user?.role === 'SUPER_ADMIN' && impersonatedSchool?.id
+      ? impersonatedSchool.id
+      : user?.schoolId;
+
   return useQuery({
-    queryKey: ['siagie-summary', classroomId, periodNumber],
+    queryKey: ['siagie-summary', classroomId, periodNumber, currentSchoolId],
     queryFn: async () => {
       const response = await api.get<ApiResponse<SiagieSummaryData>>('/grades/siagie/summary', {
         params: { classroomId, periodNumber },
       });
       return response.data.data;
     },
-    enabled: Boolean(classroomId && periodNumber > 0),
+    enabled: (options?.enabled ?? true) && Boolean(classroomId && periodNumber > 0),
   });
 };
 
@@ -208,8 +226,14 @@ export const useCompetenceConclusions = (
   periodNumber: number,
   competenceId?: string,
 ) => {
+  const { user, impersonatedSchool } = useAuthStore();
+  const currentSchoolId =
+    user?.role === 'SUPER_ADMIN' && impersonatedSchool?.id
+      ? impersonatedSchool.id
+      : user?.schoolId;
+
   return useQuery({
-    queryKey: ['competence-conclusions', courseAssignmentId, periodNumber, competenceId],
+    queryKey: ['competence-conclusions', courseAssignmentId, periodNumber, competenceId, currentSchoolId],
     queryFn: async () => {
       const response = await api.get<ApiResponse<CompetenceConclusionsResponse>>(
         '/grades/conclusions',
@@ -270,16 +294,29 @@ export const useSaveCompetenceConclusions = () => {
 /**
  * Consulta el estado de bloqueo de un periodo para un aula específica o global.
  */
-export const usePeriodLock = (classroomId?: string, periodNumber?: number) => {
+export const usePeriodLock = (
+  classroomId?: string,
+  periodNumber?: number,
+  options?: { enabled?: boolean },
+) => {
+  const { user, impersonatedSchool } = useAuthStore();
+  const currentSchoolId =
+    user?.role === 'SUPER_ADMIN' && impersonatedSchool?.id
+      ? impersonatedSchool.id
+      : user?.schoolId;
+
   return useQuery({
-    queryKey: ['period-lock', classroomId, periodNumber],
+    queryKey: ['period-lock', classroomId, periodNumber, currentSchoolId],
     queryFn: async () => {
       const response = await api.get<ApiResponse<PeriodLockStatus>>('/grades/period-lock', {
-        params: { classroomId, periodNumber },
+        params: {
+          ...(classroomId ? { classroomId } : {}),
+          periodNumber,
+        },
       });
       return response.data.data;
     },
-    enabled: Boolean(periodNumber && periodNumber > 0),
+    enabled: (options?.enabled ?? true) && Boolean(periodNumber && periodNumber > 0 && classroomId),
   });
 };
 

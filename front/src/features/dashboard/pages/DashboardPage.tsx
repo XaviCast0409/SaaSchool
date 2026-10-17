@@ -27,6 +27,8 @@ import { useGetAnnouncements } from '@/features/announcements/api/useAnnouncemen
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
+import { ParentPortalPage } from '@/features/parent/pages/ParentPortalPage';
+
 export const DashboardPage: React.FC = () => {
   const { user, impersonatedSchool } = useAuthStore();
   const navigate = useNavigate();
@@ -41,8 +43,13 @@ export const DashboardPage: React.FC = () => {
     return null;
   }
 
+  // Si el usuario es PADRE / APODERADO, renderizar directamente su portal familiar
+  if (user?.role === 'PARENT') {
+    return <ParentPortalPage />;
+  }
+
   const isTeacher = user?.role === 'TEACHER';
-  const isParent = user?.role === 'PARENT';
+  const isParent = false;
   const isAdministrative = user?.role === 'ADMINISTRATIVE';
   const isAdmin = user?.role === 'SCHOOL_ADMIN' || (user?.role === 'SUPER_ADMIN' && !!impersonatedSchool);
   const canManageStudents = isAdmin || isAdministrative;

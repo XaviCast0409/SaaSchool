@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Users, UserPlus, QrCode } from 'lucide-react';
+import { Users, UserPlus, QrCode, FileSpreadsheet } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useStudents } from '../api/useStudents';
 import { StudentTable } from '../components/StudentTable';
 import { EnrollStudentModal } from '../components/EnrollStudentModal';
 import { SectionQrCardsModal } from '../components/SectionQrCardsModal';
+import { NominaSiagieModal } from '../components/NominaSiagieModal';
 import { useGetActiveSchool } from '@/features/schools/api/useSchool';
 import { Button } from '@/components/ui/button';
 
@@ -15,9 +16,10 @@ export const StudentsPage: React.FC = () => {
     user?.role === 'SUPER_ADMIN' ||
     user?.role === 'ADMINISTRATIVE';
 
-  // Estados del modal de matrícula y carnets QR
+  // Estados de modales
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
   const [isSectionQrModalOpen, setIsSectionQrModalOpen] = useState(false);
+  const [isNominaModalOpen, setIsNominaModalOpen] = useState(false);
   const { data: school } = useGetActiveSchool();
 
   // Estados de paginación y filtros jerárquicos
@@ -55,6 +57,18 @@ export const StudentsPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2 self-start md:self-auto flex-wrap">
+          {canManageStudents && (
+            <Button
+              variant="outline"
+              onClick={() => setIsNominaModalOpen(true)}
+              className="gap-2 shadow-sm border-emerald-600/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
+              title="Descargar Nómina Oficial de Matrícula del Salón en Excel (SIAGIE)"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              <span>Nómina SIAGIE (.xlsx)</span>
+            </Button>
+          )}
+
           {canManageStudents && (
             <Button
               variant="outline"
@@ -114,6 +128,10 @@ export const StudentsPage: React.FC = () => {
             setEducationLevel(eL);
             setPage(1);
           }}
+          onExportNomina={(cId) => {
+            if (cId) setClassroomId(cId);
+            setIsNominaModalOpen(true);
+          }}
         />
       )}
 
@@ -129,6 +147,15 @@ export const StudentsPage: React.FC = () => {
           initialClassroomId={classroomId}
           schoolName={school?.name}
           onClose={() => setIsSectionQrModalOpen(false)}
+        />
+      )}
+
+      {/* Modal de Descarga de Nómina SIAGIE en Excel */}
+      {isNominaModalOpen && (
+        <NominaSiagieModal
+          isOpen={isNominaModalOpen}
+          initialClassroomId={classroomId}
+          onClose={() => setIsNominaModalOpen(false)}
         />
       )}
     </div>

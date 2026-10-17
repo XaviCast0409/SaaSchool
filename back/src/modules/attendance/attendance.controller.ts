@@ -18,8 +18,13 @@ export class AttendanceController {
   /** GET /api/attendance?date=YYYY-MM-DD&classroomId=UUID&page=1&limit=50 */
   getAll = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
+    const userContext = {
+      userId: request.user!.userId,
+      role: request.user!.role,
+      schoolId,
+    };
     const filters = attendanceFilterSchema.parse(request.query);
-    const result = await this.attendanceService.getAttendanceByFilters(schoolId, filters);
+    const result = await this.attendanceService.getAttendanceByFilters(schoolId, filters, userContext);
     response.status(200).json({ status: 'success', ...result });
   };
 
@@ -42,8 +47,13 @@ export class AttendanceController {
   /** GET /api/attendance/matrix?month=YYYY-MM&classroomId=UUID — Sábana mensual interactiva por días (1..31) */
   getMatrix = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
+    const userContext = {
+      userId: request.user!.userId,
+      role: request.user!.role,
+      schoolId,
+    };
     const query = attendanceMatrixQuerySchema.parse(request.query);
-    const matrix = await this.attendanceService.getMonthlyMatrixData(schoolId, query);
+    const matrix = await this.attendanceService.getMonthlyMatrixData(schoolId, query, userContext);
     response.status(200).json({ status: 'success', data: matrix });
   };
 
@@ -74,10 +84,16 @@ export class AttendanceController {
   /** POST /api/attendance */
   register = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
+    const userContext = {
+      userId: request.user!.userId,
+      role: request.user!.role,
+      schoolId,
+    };
     const createAttendanceDto = createAttendanceSchema.parse(request.body);
     const attendance = await this.attendanceService.registerAttendance(
       schoolId,
       createAttendanceDto,
+      userContext,
     );
     response.status(201).json({ status: 'success', data: attendance });
   };
@@ -85,10 +101,16 @@ export class AttendanceController {
   /** POST /api/attendance/bulk */
   registerBulk = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
+    const userContext = {
+      userId: request.user!.userId,
+      role: request.user!.role,
+      schoolId,
+    };
     const bulkAttendanceDto = bulkAttendanceSchema.parse(request.body);
     const result = await this.attendanceService.registerBulkAttendance(
       schoolId,
       bulkAttendanceDto,
+      userContext,
     );
     response.status(201).json({ status: 'success', data: result });
   };
@@ -96,12 +118,18 @@ export class AttendanceController {
   /** PATCH /api/attendance/:id — Corregir asistencia */
   update = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
+    const userContext = {
+      userId: request.user!.userId,
+      role: request.user!.role,
+      schoolId,
+    };
     const id = String(request.params.id);
     const updateAttendanceDto = updateAttendanceSchema.parse(request.body);
     const attendance = await this.attendanceService.updateAttendance(
       id,
       schoolId,
       updateAttendanceDto,
+      userContext,
     );
     response.status(200).json({ status: 'success', data: attendance });
   };
@@ -109,8 +137,13 @@ export class AttendanceController {
   /** POST /api/attendance/scan — Escaneo rápido de código QR / código de barras en puerta o kiosco */
   scan = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
+    const userContext = {
+      userId: request.user!.userId,
+      role: request.user!.role,
+      schoolId,
+    };
     const scanDto = scanAttendanceSchema.parse(request.body);
-    const result = await this.attendanceService.scanAttendance(schoolId, scanDto);
+    const result = await this.attendanceService.scanAttendance(schoolId, scanDto, userContext);
     response.status(200).json({ status: 'success', data: result });
   };
 }

@@ -4,6 +4,7 @@ import {
   updateStudentSchema,
   studentFilterSchema,
   registerFichaMatriculaSchema,
+  nominaClassroomParamSchema,
 } from './student.schema';
 import type { StudentService } from './student.service';
 
@@ -34,6 +35,13 @@ export class StudentController {
     response.status(200).json({ status: 'success', data: student });
   };
 
+  getNominaMatricula = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const { classroomId } = nominaClassroomParamSchema.parse(request.params);
+    const nomina = await this.studentService.getNominaMatricula(schoolId, classroomId);
+    response.status(200).json({ status: 'success', data: nomina });
+  };
+
   create = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
     const createStudentDto = createStudentSchema.parse(request.body);
@@ -61,5 +69,13 @@ export class StudentController {
     const id = request.params.id as string;
     await this.studentService.deleteStudent(id, schoolId);
     response.status(204).send();
+  };
+
+  /** GET /api/students/my-children — hijos vinculados al apoderado autenticado */
+  getMyChildren = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const userId = request.user!.userId;
+    const children = await this.studentService.getMyChildren(schoolId, userId);
+    response.status(200).json({ status: 'success', data: children });
   };
 }

@@ -22,16 +22,27 @@ import { familyRelationshipRouter } from './modules/family-relationships/family-
 import { announcementRouter } from './modules/announcements/announcement.routes';
 import { catalogRouter } from './modules/catalog/catalog.routes';
 import { courseAssignmentRouter } from './modules/course-assignments/course-assignment.routes';
+import { courseContentRouter } from './modules/course-contents/course-content.routes';
+import { notificationRouter } from './modules/notifications/notification.routes';
+import { uploadRouter } from './modules/uploads/upload.routes';
+import path from 'path';
 
 const app = express();
 
 // ============================================================================
 // MIDDLEWARES GLOBALES Y SEGURIDAD
 // ============================================================================
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  }),
+);
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Servir archivos estáticos subidos (/uploads/materials/...)
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // ============================================================================
 // HEALTH CHECK
@@ -69,6 +80,9 @@ app.use(`${API_PREFIX}/announcements`, announcementRouter);
 // Catálogos MINEDU — sin autenticación (datos de referencia del sistema)
 app.use(`${API_PREFIX}/catalog`, catalogRouter);
 app.use(`${API_PREFIX}/course-assignments`, courseAssignmentRouter);
+app.use(`${API_PREFIX}/notifications`, notificationRouter);
+app.use(`${API_PREFIX}/uploads`, uploadRouter);
+app.use(`${API_PREFIX}/course-contents`, courseContentRouter);
 
 // ============================================================================
 // RUTA NO ENCONTRADA (404)

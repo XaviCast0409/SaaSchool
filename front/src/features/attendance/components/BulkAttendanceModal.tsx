@@ -3,6 +3,7 @@ import { X, CheckCircle2, UserCheck, Save, Users, Calendar as CalendarIcon, Scho
 import { useBulkAttendance } from '../api/useAttendance';
 import { useEnrollments } from '@/features/enrollments/api/useEnrollments';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
+import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -28,21 +29,37 @@ export const BulkAttendanceModal: React.FC<BulkAttendanceModalProps> = ({
   initialDate = new Date().toISOString().split('T')[0],
   onClose,
 }) => {
-  const [selectedClassroomId, setSelectedClassroomId] = useState(initialClassroomId);
+  const user = useAuthStore((state) => state.user);
+  const isTeacher = user?.role === 'TEACHER';
+
+  // Queries & Mutations
+  const { data: classrooms = [] } = useClassrooms();
+  const availableClassrooms = isTeacher
+    ? classrooms.filter((c) => c.tutorTeacherId === user?.id || c.tutorTeacher?.id === user?.id)
+    : classrooms;
+
+  const [selectedClassroomId, setSelectedClassroomId] = useState(
+    initialClassroomId || (availableClassrooms[0]?.id ?? '')
+  );
   const [selectedDate, setSelectedDate] = useState(initialDate);
 
   // Status mapping: enrollmentId -> AttendanceStatus
   const [attendanceState, setAttendanceState] = useState<Record<string, AttendanceStatus>>({});
 
-  // Queries & Mutations
-  const { data: classrooms = [] } = useClassrooms();
   const { data: enrollments = [], isLoading: isLoadingEnrollments } = useEnrollments();
   const { mutate: submitBulk, isPending, error } = useBulkAttendance();
 
+  // Si hay aulas disponibles y no hay seleccionada, preseleccionar la primera
+  useEffect(() => {
+    if (availableClassrooms.length > 0 && !selectedClassroomId) {
+      setSelectedClassroomId(availableClassrooms[0].id);
+    }
+  }, [availableClassrooms, selectedClassroomId]);
+
   // Filter enrollments belonging to the selected classroom
-  const filteredEnrollments = enrollments.filter(
-    (e) => !selectedClassroomId || e.classroomId === selectedClassroomId
-  );
+  const filteredEnrollments = selectedClassroomId
+    ? enrollments.filter((e) => e.classroomId === selectedClassroomId)
+    : [];
 
   // Initialize all students to "PRESENT" by default for 1-click speed
   useEffect(() => {
@@ -124,11 +141,16 @@ export const BulkAttendanceModal: React.FC<BulkAttendanceModalProps> = ({
                 value={selectedClassroomId}
                 onChange={(e) => setSelectedClassroomId(e.target.value)}
                 className="bg-transparent border-none focus:outline-none text-foreground font-semibold cursor-pointer"
+                disabled={isTeacher && availableClassrooms.length === 1}
               >
-                <option value="">— Seleccionar Aula/Sección —</option>
-                {classrooms.map((c) => (
+                {!isTeacher && <option value="">— Seleccionar Aula/Sección —</option>}
+                {isTeacher && availableClassrooms.length === 0 && (
+                  <option value="">— Sin aula tutoriada asignada —</option>
+                )}
+                {availableClassrooms.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.grade}° {c.section} ({c.educationLevel})
+                    {c.grade}° "{c.section}" ({c.educationLevel === 'PRIMARY' ? 'Primaria' : c.educationLevel === 'SECONDARY' ? 'Secundaria' : 'Inicial'})
+                    {isTeacher ? ' • Su Aula Tutoriada' : ''}
                   </option>
                 ))}
               </select>

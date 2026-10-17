@@ -268,6 +268,12 @@ export class GradeService {
         section: rawData.classroom.section,
         educationLevel: rawData.classroom.educationLevel,
         shift: rawData.classroom.shift,
+        tutorTeacher: (rawData.classroom as any).tutorTeacher
+          ? {
+              id: (rawData.classroom as any).tutorTeacher.id,
+              fullName: `Prof. ${(rawData.classroom as any).tutorTeacher.firstName} ${(rawData.classroom as any).tutorTeacher.lastNamePaternal}`,
+            }
+          : null,
       },
       academicYear: rawData.academicYear.year,
       attendanceStats,

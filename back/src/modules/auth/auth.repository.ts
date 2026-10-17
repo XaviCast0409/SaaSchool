@@ -13,6 +13,31 @@ export class AuthRepository {
     });
   }
 
+  async findUserByIdentifier(identifier: string): Promise<User | null> {
+    const clean = identifier.trim();
+    return prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: { equals: clean, mode: 'insensitive' } },
+          { documentId: clean },
+        ],
+      },
+    });
+  }
+
+  async findUserById(id: string): Promise<User | null> {
+    return prisma.user.findUnique({
+      where: { id },
+    });
+  }
+
+  async updatePassword(userId: string, passwordHash: string): Promise<User> {
+    return prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+  }
+
   async createUser(data: RegisterDto & { passwordHash: string }): Promise<User> {
     const { password: _password, ...userDataWithoutPassword } = data as RegisterDto & {
       passwordHash: string;

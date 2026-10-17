@@ -52,7 +52,10 @@ export const transactionFilterSchema = z.object({
 });
 
 export const sendReminderSchema = z.object({
-  channel: z.enum(['WHATSAPP', 'EMAIL', 'BOTH']).default('BOTH'),
+  channel: z
+    .enum(['EMAIL', 'WHATSAPP', 'BOTH'])
+    .default('EMAIL')
+    .transform(() => 'EMAIL' as const),
 });
 
 export type CreateObligationDto = z.infer<typeof createObligationSchema>;

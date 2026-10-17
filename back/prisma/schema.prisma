@@ -3,6 +3,7 @@
 // ============================================================================
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
@@ -115,6 +116,14 @@ enum SubscriptionPlan {
   ENTERPRISE
 }
 
+enum NotificationType {
+  PAYMENT
+  ATTENDANCE
+  ANNOUNCEMENT
+  ACADEMIC
+  GENERAL
+}
+
 // ============================================================================
 // 3. CORE & TENANCY (El Colegio y los Usuarios)
 // ============================================================================
@@ -154,6 +163,10 @@ model School {
   detailedGrades      DetailedGrade[]
   competenceConclusions CompetenceConclusion[]
   gradingPeriodLocks  GradingPeriodLock[]
+  notifications       Notification[]
+  pushSubscriptions   PushSubscription[]
+  courseContents      CourseContent[]
+  forumComments       ForumComment[]
 }
 
 model User {
@@ -181,8 +194,13 @@ model User {
   // Relaciones
   familyRelations  FamilyRelationship[]
   coursesTaught    CourseAssignment[]
+  tutoredClassrooms Classroom[] @relation("ClassroomTutor")
   announcements    Announcement[]
   lockedGradingPeriods GradingPeriodLock[]
+  notifications    Notification[]
+  pushSubscriptions PushSubscription[]
+  authoredContents CourseContent[]      @relation("AuthoredContents")
+  forumComments    ForumComment[]
 
   @@index([schoolId, role])
 }
@@ -265,14 +283,17 @@ model Classroom {
   section        String         // Ej: "A", "B", "Única"
   shift          Shift          @default(MORNING)
   capacity       Int            @default(30)
+  tutorTeacherId String?        // Docente asignado como tutor del aula (Opcional)
 
   school         School         @relation(fields: [schoolId], references: [id])
+  tutorTeacher   User?          @relation("ClassroomTutor", fields: [tutorTeacherId], references: [id], onDelete: SetNull)
   enrollments    Enrollment[]
   assignments    CourseAssignment[]
   announcements  Announcement[]
   gradingPeriodLocks GradingPeriodLock[]
 
   @@index([schoolId, educationLevel, grade])
+  @@index([schoolId, tutorTeacherId])
 }
 
 model Enrollment {
@@ -386,6 +407,7 @@ model CourseAssignment {
   gradeEntries   GradeEntry[]
   detailedGrades DetailedGrade[]
   competenceConclusions CompetenceConclusion[]
+  contents       CourseContent[]
 
   // Un curso en un aula tiene exactamente un docente asignado
   @@unique([classroomId, areaId])
@@ -565,4 +587,95 @@ model GradingPeriodLock {
   @@unique([schoolId, classroomId, periodNumber])
   @@index([schoolId, periodNumber])
 }
+
+// ============================================================================
+// 11. NOTIFICACIONES IN-APP (Fase 1 - Web & Mobile Push)
+// ============================================================================
+model Notification {
+  id        String           @id @default(uuid())
+  schoolId  String
+  userId    String
+  title     String
+  message   String           @db.Text
+  type      NotificationType @default(GENERAL)
+  link      String?          // Ruta interna de navegación (ej: /payments, /announcements)
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  school    School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, userId, isRead])
+  @@index([schoolId, createdAt])
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  schoolId  String
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, userId])
+}
+
+// ============================================================================
+// 12. AULA VIRTUAL Y CONTENIDOS ACADÉMICOS (LMS Ligero)
+// ============================================================================
+enum ContentType {
+  LESSON_MATERIAL
+  HOMEWORK
+  FORUM
+}
+
+model CourseContent {
+  id                 String           @id @default(uuid())
+  schoolId           String
+  courseAssignmentId String
+  teacherId          String
+  bimester           Int              // 1, 2, 3, 4
+  contentType        ContentType
+  title              String
+  description        String           @db.Text
+  fileUrl            String?
+  fileName           String?
+  fileType           String?
+  fileSize           Int?
+  dueDate            DateTime?
+  publishedAt        DateTime         @default(now())
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  school             School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  courseAssignment   CourseAssignment @relation(fields: [courseAssignmentId], references: [id], onDelete: Cascade)
+  teacher            User             @relation("AuthoredContents", fields: [teacherId], references: [id])
+  comments           ForumComment[]
+
+  @@index([schoolId, courseAssignmentId, bimester])
+  @@index([schoolId, contentType])
+}
+
+model ForumComment {
+  id              String        @id @default(uuid())
+  schoolId        String
+  courseContentId String
+  userId          String
+  content         String        @db.Text
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  school          School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  courseContent   CourseContent @relation(fields: [courseContentId], references: [id], onDelete: Cascade)
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, courseContentId, createdAt])
+}
+
 

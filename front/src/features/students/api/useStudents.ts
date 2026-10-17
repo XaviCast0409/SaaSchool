@@ -66,17 +66,9 @@ export const useSiagieCatalogs = () => {
   });
 };
 
-/** Hook para obtener estudiantes requeridos obligatoriamente por filtro de sección, búsqueda o nivel */
+/** Hook para obtener estudiantes (con paginación y filtros opcionales) */
 export const useStudents = (filters: StudentFilterParams = {}, enabledOverride?: boolean) => {
-  const isEnabled =
-    enabledOverride !== undefined
-      ? enabledOverride
-      : Boolean(
-          filters.classroomId ||
-            filters.search ||
-            filters.educationLevel ||
-            filters.grade !== undefined
-        );
+  const isEnabled = enabledOverride !== undefined ? enabledOverride : true;
 
   return useQuery({
     queryKey: ['students', filters],
@@ -152,5 +144,102 @@ export const useUpdateStudent = () => {
       queryClient.invalidateQueries({ queryKey: ['students'] });
       queryClient.invalidateQueries({ queryKey: ['student', variables.id] });
     },
+  });
+};
+
+export interface NominaMatriculaStudent {
+  id: string;
+  studentCode?: string | null;
+  documentType: string;
+  documentId: string;
+  firstNames: string;
+  lastNamePaternal: string;
+  lastNameMaternal?: string | null;
+  gender: 'MALE' | 'FEMALE';
+  birthDate: string;
+  birthCountry: string;
+  birthUbigeo?: string | null;
+  birthDepartment?: string | null;
+  birthProvince?: string | null;
+  birthDistrict?: string | null;
+  residenceUbigeo?: string | null;
+  motherTongue: string;
+  hasDisability: boolean;
+  disabilityType?: string | null;
+  address?: string | null;
+  condition: string;
+  repeatingGrade: boolean;
+  enrollmentDate: string;
+  guardian?: {
+    relationshipType: string;
+    isLegalGuardian: boolean;
+    documentType?: string;
+    documentId?: string;
+    fullName: string;
+    cellphone?: string;
+    email?: string;
+  } | null;
+}
+
+export interface NominaMatriculaResponse {
+  school: {
+    id: string;
+    name: string;
+    modularCode?: string | null;
+    localCode?: string | null;
+    department?: string | null;
+    province?: string | null;
+    district?: string | null;
+    address?: string | null;
+  };
+  classroom: {
+    id: string;
+    grade: number;
+    section: string;
+    educationLevel: 'INITIAL' | 'PRIMARY' | 'SECONDARY';
+    shift: string;
+    tutorTeacher?: {
+      id: string;
+      firstName: string;
+      lastNamePaternal: string;
+      lastNameMaternal: string;
+    } | null;
+  };
+  academicYear?: {
+    id: string;
+    year: number;
+    name?: string;
+  } | null;
+  totalStudents: number;
+  students: NominaMatriculaStudent[];
+}
+
+export const useNominaMatricula = (classroomId?: string, enabled = true) => {
+  return useQuery({
+    queryKey: ['nomina-matricula', classroomId],
+    queryFn: async () => {
+      if (!classroomId) throw new Error('ID de aula requerido');
+      const response = await api.get<{ status: string; data: NominaMatriculaResponse }>(
+        `/students/nomina-matricula/${classroomId}`
+      );
+      return response.data.data;
+    },
+    enabled: Boolean(classroomId) && enabled,
+    staleTime: 1000 * 60 * 5, // 5 minutos de caché
+  });
+};
+
+/** Hook para obtener los hijos del apoderado autenticado (Multi-Hijo) */
+export const useGetMyChildren = (enabled = true) => {
+  return useQuery({
+    queryKey: ['my-children'],
+    queryFn: async () => {
+      const { data } = await api.get<{ status: string; data: import('@/features/parent/types').ParentChildInfo[] }>(
+        '/students/my-children'
+      );
+      return data.data;
+    },
+    enabled,
+    staleTime: 1000 * 60 * 2,
   });
 };

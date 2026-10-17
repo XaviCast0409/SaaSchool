@@ -46,13 +46,13 @@ gradeRouter.delete(
 // ==========================================
 gradeRouter.get(
   '/matrix',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),
   gradeController.getMatrixData,
 );
 
 gradeRouter.post(
   '/matrix/batch',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),
   gradeController.saveBatchGrades,
 );
 
@@ -61,13 +61,13 @@ gradeRouter.post(
 // ==========================================
 gradeRouter.get(
   '/conclusions',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),
   gradeController.getConclusions,
 );
 
 gradeRouter.post(
   '/conclusions/batch',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),
   gradeController.saveBatchConclusions,
 );
 
@@ -76,7 +76,7 @@ gradeRouter.post(
 // ==========================================
 gradeRouter.get(
   '/report-card/:enrollmentId',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT'),
   gradeController.getReportCard,
 );
 
@@ -85,7 +85,7 @@ gradeRouter.get(
 // ==========================================
 gradeRouter.get(
   '/siagie/summary',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
   gradeController.getSiagieSummary,
 );
 
@@ -94,13 +94,13 @@ gradeRouter.get(
 // ==========================================
 gradeRouter.get(
   '/period-lock',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),
   gradeController.getPeriodLock,
 );
 
 gradeRouter.post(
   '/period-lock/toggle',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
   gradeController.togglePeriodLock,
 );
 

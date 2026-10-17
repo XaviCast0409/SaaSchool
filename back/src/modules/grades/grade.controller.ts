@@ -14,6 +14,7 @@ import {
 } from './grade.schema';
 import type { GradeService } from './grade.service';
 import type { EducationLevel } from '@prisma/client';
+import { AppError } from '../../core/errors/app-error';
 
 export class GradeController {
   constructor(private readonly gradeService: GradeService) {}
@@ -130,6 +131,9 @@ export class GradeController {
   getSiagieSummary = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
     const { classroomId, periodNumber } = siagieSummaryQuerySchema.parse(request.query);
+    if (!classroomId) {
+      throw new AppError('El ID del aula es obligatorio para el consolidado SIAGIE.', 400);
+    }
     const summary = await this.gradeService.getSiagieSummary(schoolId, classroomId, periodNumber);
     response.status(200).json({ status: 'success', data: summary });
   };

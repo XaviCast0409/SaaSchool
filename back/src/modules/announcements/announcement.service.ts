@@ -1,4 +1,5 @@
 import { AppError } from '../../core/errors/app-error';
+import { prisma } from '../../config/prisma';
 import type { AnnouncementRepository } from './announcement.repository';
 import type { CreateAnnouncementDto, UpdateAnnouncementDto, AnnouncementFilterDto } from './announcement.schema';
 import type { Announcement, Role } from '@prisma/client';
@@ -30,7 +31,39 @@ export class AnnouncementService {
     authorId: string,
     createDto: CreateAnnouncementDto,
   ): Promise<Announcement> {
-    return this.announcementRepository.create(schoolId, authorId, createDto);
+    const created = await this.announcementRepository.create(schoolId, authorId, createDto);
+
+    try {
+      const targetUsers = await prisma.user.findMany({
+        where: {
+          schoolId,
+          isActive: true,
+          role: { in: createDto.targetRoles },
+          id: { not: authorId },
+        },
+        select: { id: true },
+      });
+
+      if (targetUsers.length > 0) {
+        await prisma.notification.createMany({
+          data: targetUsers.map((u) => ({
+            schoolId,
+            userId: u.id,
+            title: `Nuevo Comunicado: ${createDto.title}`,
+            message:
+              createDto.content.length > 120
+                ? `${createDto.content.substring(0, 117)}...`
+                : createDto.content,
+            type: 'ANNOUNCEMENT',
+            link: '/announcements',
+          })),
+        });
+      }
+    } catch (notifErr) {
+      console.error('Error generating announcement notifications:', notifErr);
+    }
+
+    return created;
   }
 
   async updateAnnouncement(

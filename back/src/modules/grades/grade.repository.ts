@@ -602,6 +602,14 @@ export class GradeRepository {
         },
         classroom: {
           include: {
+            tutorTeacher: {
+              select: {
+                id: true,
+                firstName: true,
+                lastNamePaternal: true,
+                lastNameMaternal: true,
+              },
+            },
             assignments: {
               include: {
                 area: {

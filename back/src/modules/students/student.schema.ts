@@ -202,11 +202,11 @@ export const registerFichaMatriculaSchema = z.object({
             path: ['newGuardian', 'email'],
           });
         }
-        if (data.newGuardian?.documentType === 'DNI' && data.newGuardian?.documentId) {
-          if (!/^\d{8}$/.test(data.newGuardian.documentId.trim())) {
+        if (data.newGuardian?.documentType === 'DNI') {
+          if (!data.newGuardian?.documentId || !/^\d{8}$/.test(data.newGuardian.documentId.trim())) {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
-              message: 'El DNI del apoderado debe tener 8 dígitos numéricos',
+              message: 'El DNI del apoderado es requerido (8 dígitos numéricos) para su usuario y contraseña',
               path: ['newGuardian', 'documentId'],
             });
           }
@@ -215,7 +215,12 @@ export const registerFichaMatriculaSchema = z.object({
     }),
 });
 
+export const nominaClassroomParamSchema = z.object({
+  classroomId: z.string().uuid('ID de aula inválido'),
+});
+
 export type CreateStudentDto = z.infer<typeof createStudentSchema>;
 export type UpdateStudentDto = z.infer<typeof updateStudentSchema>;
 export type StudentFilterDto = z.infer<typeof studentFilterSchema>;
 export type RegisterFichaMatriculaDto = z.infer<typeof registerFichaMatriculaSchema>;
+export type NominaClassroomParamDto = z.infer<typeof nominaClassroomParamSchema>;

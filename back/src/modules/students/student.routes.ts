@@ -28,6 +28,14 @@ studentRouter.post(
   studentController.registerFicha,
 );
 
+// Nómina Oficial de Matrícula SIAGIE (Exportación Excel)
+// Exclusivo para directores y personal administrativo del colegio
+studentRouter.get(
+  '/nomina-matricula/:classroomId',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
+  studentController.getNominaMatricula,
+);
+
 // CRUD de estudiantes
 studentRouter.get(
   '/',
@@ -39,6 +47,13 @@ studentRouter.post(
   authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
   studentController.create,
 );
+// Listado de hijos del apoderado autenticado (Multi-Hijo)
+studentRouter.get(
+  '/my-children',
+  authorizeRoles('PARENT'),
+  studentController.getMyChildren,
+);
+
 studentRouter.get(
   '/:id',
   authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),

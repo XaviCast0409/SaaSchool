@@ -96,7 +96,9 @@ export const ReportCardModal: React.FC<ReportCardModalProps> = ({
   };
 
   const tutorTeacherName =
-    reportCard?.courses[0]?.teacherName || 'Docente Tutor de Aula';
+    (reportCard?.classroom as any)?.tutorTeacher?.fullName ||
+    reportCard?.courses[0]?.teacherName ||
+    'Dirección / Tutor de Aula';
 
   return createPortal(
     <div className="report-card-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">

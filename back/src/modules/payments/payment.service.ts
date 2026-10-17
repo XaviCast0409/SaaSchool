@@ -287,7 +287,7 @@ export class PaymentService {
   async sendObligationReminder(
     obligationId: string,
     schoolId: string,
-    channel: 'WHATSAPP' | 'EMAIL' | 'BOTH' = 'BOTH',
+    channel: 'EMAIL' = 'EMAIL',
   ) {
     const obligation = await this.getObligationById(obligationId, schoolId);
 
@@ -303,6 +303,7 @@ export class PaymentService {
           familyRelations: Array<{
             isFinancialResponsible: boolean;
             user: {
+              id: string;
               firstName: string;
               lastNamePaternal: string;
               email: string;
@@ -315,8 +316,8 @@ export class PaymentService {
 
     const student = obWithDetails.enrollment.student;
     const responsibleRelation =
-      student.familyRelations.find((r) => r.isFinancialResponsible) ||
-      student.familyRelations[0];
+      student.familyRelations?.find((r) => r.isFinancialResponsible) ||
+      student.familyRelations?.[0];
 
     const parentUser = responsibleRelation?.user;
 
@@ -339,6 +340,20 @@ export class PaymentService {
       dueDate: obWithDetails.dueDate.toISOString(),
     });
 
+    // Crear notificación In-App en la campanita para el padre/apoderado
+    if (parentUser?.id) {
+      await prisma.notification.create({
+        data: {
+          schoolId,
+          userId: parentUser.id,
+          title: 'Recordatorio de Pago Pendiente',
+          message: `Estimado(a) ${recipientName}, le recordamos el pago pendiente de S/ ${obWithDetails.amountDue.toFixed(2)} correspondiente a "${obWithDetails.title}" para ${studentName}. Vence el ${new Date(obWithDetails.dueDate).toLocaleDateString('es-PE')}.`,
+          type: 'PAYMENT',
+          link: '/payments',
+        },
+      }).catch((err: unknown) => console.error('Error creating in-app payment notification:', err));
+    }
+
     return {
       obligationId,
       studentName,
@@ -349,7 +364,7 @@ export class PaymentService {
 
   async sendBulkOverdueReminders(
     schoolId: string,
-    channel: 'WHATSAPP' | 'EMAIL' | 'BOTH' = 'BOTH',
+    channel: 'EMAIL' = 'EMAIL',
   ) {
     const { data: obligations } = await this.getAllObligations(schoolId, { status: 'PENDING', page: 1, limit: 1000 });
     const now = new Date();

@@ -5,7 +5,7 @@ import {
   flexRender,
   type ColumnDef,
 } from '@tanstack/react-table';
-import { Search, UserCheck, ChevronDown, ChevronUp, Users, Filter, Accessibility, BookOpen, Pencil, School, FileText, QrCode } from 'lucide-react';
+import { Search, UserCheck, ChevronDown, ChevronUp, Users, Filter, Accessibility, BookOpen, Pencil, FileText, QrCode, FileSpreadsheet } from 'lucide-react';
 import { Student } from '../types';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useUsers } from '@/features/users/api/useUsers';
@@ -41,6 +41,7 @@ interface StudentTableProps {
   onSearchChange: (search: string) => void;
   onClassroomChange: (classroomId?: string) => void;
   onEducationLevelChange: (level?: 'INITIAL' | 'PRIMARY' | 'SECONDARY') => void;
+  onExportNomina?: (classroomId?: string) => void;
 }
 
 export const StudentTable: React.FC<StudentTableProps> = ({
@@ -57,6 +58,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({
   onSearchChange,
   onClassroomChange,
   onEducationLevelChange,
+  onExportNomina,
 }) => {
   const { user } = useAuthStore();
   const canManageStudents =
@@ -238,6 +240,20 @@ export const StudentTable: React.FC<StudentTableProps> = ({
             ))}
           </select>
 
+          {/* Botón Rápido de Descarga Nómina SIAGIE del Aula */}
+          {canManageStudents && onExportNomina && classroomId && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onExportNomina(classroomId)}
+              className="h-8 gap-1.5 text-xs rounded-xl border-emerald-600/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 shadow-xs"
+              title="Descargar Nómina Oficial SIAGIE (.xlsx) de esta sección"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <span>Nómina SIAGIE</span>
+            </Button>
+          )}
+
           {/* Filtro por Nivel Educativo */}
           <select
             value={educationLevel || ''}
@@ -255,19 +271,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({
       </div>
 
       {/* Render Table */}
-      {!classroomId && !search && !educationLevel ? (
-        <div className="py-16 text-center text-muted-foreground border border-dashed border-border rounded-xl space-y-3 bg-card p-6">
-          <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
-            <School className="w-6 h-6" />
-          </div>
-          <div className="space-y-1">
-            <h3 className="font-bold text-base text-foreground">Selecciona un Aula o escribe un Nombre</h3>
-            <p className="text-xs text-muted-foreground max-w-md mx-auto">
-              Para optimizar la velocidad y evitar el consumo masivo de datos, por favor selecciona una Sección/Aula o realiza una búsqueda en la barra superior para consultar a los estudiantes.
-            </p>
-          </div>
-        </div>
-      ) : isLoading ? (
+      {isLoading ? (
         <div className="space-y-3">
           <Skeleton className="h-10 w-full rounded-xl" />
           <Skeleton className="h-64 w-full rounded-xl" />

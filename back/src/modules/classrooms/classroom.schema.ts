@@ -6,6 +6,7 @@ export const createClassroomSchema = z.object({
   section: z.string().min(1, 'La sección es requerida'),
   shift: z.enum(['MORNING', 'AFTERNOON', 'NIGHT']).default('MORNING'),
   capacity: z.number().int().min(1).max(60).default(30),
+  tutorTeacherId: z.string().uuid().nullable().optional(),
 });
 
 export const updateClassroomSchema = createClassroomSchema.partial();

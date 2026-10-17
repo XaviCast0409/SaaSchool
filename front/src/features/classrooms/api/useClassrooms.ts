@@ -8,6 +8,7 @@ export interface CreateClassroomPayload {
   section: string;
   shift?: 'MORNING' | 'AFTERNOON' | 'NIGHT';
   capacity?: number;
+  tutorTeacherId?: string | null;
 }
 
 interface ClassroomsResponse {

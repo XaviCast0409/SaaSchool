@@ -6,6 +6,7 @@ import { loginSchema, LoginFormData } from '../schemas/login.schema';
 import { useLogin } from '../api/useLogin';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export const LoginPage: React.FC = () => {
@@ -30,7 +31,13 @@ export const LoginPage: React.FC = () => {
 
   const setPresetUser = (email: string) => {
     setValue('email', email);
-    setValue('password', email.includes('admin') ? 'Admin123!' : 'Teacher123!');
+    if (email.includes('admin') || email.includes('secretario')) {
+      setValue('password', 'Admin123!');
+    } else if (email.includes('padre') || email.includes('alumno')) {
+      setValue('password', 'Parent123!');
+    } else {
+      setValue('password', 'Teacher123!');
+    }
   };
 
   return (
@@ -60,11 +67,11 @@ export const LoginPage: React.FC = () => {
 
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-foreground tracking-wide uppercase">
-                Correo Electrónico
+                Usuario (DNI o Correo)
               </label>
               <Input
-                type="email"
-                placeholder="ejemplo@colegio.edu.pe"
+                type="text"
+                placeholder="Ingresa tu DNI o correo institucional"
                 {...register('email')}
                 className="h-10"
               />
@@ -109,8 +116,11 @@ export const LoginPage: React.FC = () => {
                 onClick={() => setPresetUser('admin@sanignacio.edu.pe')}
                 className="p-2 rounded bg-muted/60 hover:bg-muted text-left border border-border transition-colors truncate"
               >
-                <div className="font-semibold text-foreground">Admin San Ignacio</div>
-                <div className="text-[10px] text-muted-foreground">admin@sanignacio...</div>
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-foreground">Admin San Ignacio</span>
+                  <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-slate-300">BASIC</Badge>
+                </div>
+                <div className="text-[10px] text-muted-foreground truncate">admin@sanignacio...</div>
               </button>
 
               <button
@@ -118,8 +128,11 @@ export const LoginPage: React.FC = () => {
                 onClick={() => setPresetUser('jmartinez@sanignacio.edu.pe')}
                 className="p-2 rounded bg-muted/60 hover:bg-muted text-left border border-border transition-colors truncate"
               >
-                <div className="font-semibold text-foreground">Profe Jorge M.</div>
-                <div className="text-[10px] text-muted-foreground">jmartinez@sanignacio...</div>
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-foreground">Profe Jorge M.</span>
+                  <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-slate-300">BASIC</Badge>
+                </div>
+                <div className="text-[10px] text-muted-foreground truncate">jmartinez@sanignacio...</div>
               </button>
 
               <button
@@ -127,8 +140,11 @@ export const LoginPage: React.FC = () => {
                 onClick={() => setPresetUser('admin@santarosa.edu.pe')}
                 className="p-2 rounded bg-muted/60 hover:bg-muted text-left border border-border transition-colors truncate"
               >
-                <div className="font-semibold text-foreground">Admin Santa Rosa</div>
-                <div className="text-[10px] text-muted-foreground">admin@santarosa...</div>
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-foreground">Admin Santa Rosa</span>
+                  <Badge className="text-[9px] px-1 py-0 h-4 bg-primary text-primary-foreground">PRO</Badge>
+                </div>
+                <div className="text-[10px] text-muted-foreground truncate">admin@santarosa...</div>
               </button>
 
               <button
@@ -136,8 +152,47 @@ export const LoginPage: React.FC = () => {
                 onClick={() => setPresetUser('rquispe@santarosa.edu.pe')}
                 className="p-2 rounded bg-muted/60 hover:bg-muted text-left border border-border transition-colors truncate"
               >
-                <div className="font-semibold text-foreground">Profe Ricardo Q.</div>
-                <div className="text-[10px] text-muted-foreground">rquispe@santarosa...</div>
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-foreground">Profe Ricardo Q.</span>
+                  <Badge className="text-[9px] px-1 py-0 h-4 bg-primary text-primary-foreground">PRO</Badge>
+                </div>
+                <div className="text-[10px] text-muted-foreground truncate">rquispe@santarosa...</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPresetUser('padre.pro@santarosa.edu.pe')}
+                className="p-2 rounded bg-muted/60 hover:bg-muted text-left border border-border transition-colors truncate"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-foreground">Padre PRO (Familia)</span>
+                  <Badge className="text-[9px] px-1 py-0 h-4 bg-emerald-600 text-white">PRO</Badge>
+                </div>
+                <div className="text-[10px] text-muted-foreground truncate">padre.pro@santarosa...</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPresetUser('alumno.pro@santarosa.edu.pe')}
+                className="p-2 rounded bg-muted/60 hover:bg-muted text-left border border-border transition-colors truncate"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-foreground">Alumno PRO (Estudiante)</span>
+                  <Badge className="text-[9px] px-1 py-0 h-4 bg-emerald-600 text-white">PRO</Badge>
+                </div>
+                <div className="text-[10px] text-muted-foreground truncate">alumno.pro@santarosa...</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPresetUser('secretario@gmail.com')}
+                className="p-2 rounded bg-muted/60 hover:bg-muted text-left border border-border transition-colors truncate col-span-2"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-foreground">Secretaría / Caja (Ventanilla)</span>
+                  <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">ADMINISTRATIVE</Badge>
+                </div>
+                <div className="text-[10px] text-muted-foreground truncate">secretario@gmail.com • Clave: Admin123!</div>
               </button>
             </div>
           </div>

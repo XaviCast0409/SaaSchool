@@ -11,6 +11,8 @@ import {
   Loader2,
   Search,
   BookOpen,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { useRegisterFichaMatricula, useSiagieCatalogs } from '../api/useStudents';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
@@ -149,14 +151,12 @@ const enrollWizardSchema = z
         });
       }
 
-      if (data.newParentDocumentId && data.newParentDocumentId.trim().length > 0) {
-        if (!/^\d{8}$/.test(data.newParentDocumentId.trim())) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: 'El DNI del apoderado debe tener 8 dígitos numéricos',
-            path: ['newParentDocumentId'],
-          });
-        }
+      if (!data.newParentDocumentId || !/^\d{8}$/.test(data.newParentDocumentId.trim())) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'El DNI del apoderado es requerido (8 dígitos numéricos) para su usuario y contraseña',
+          path: ['newParentDocumentId'],
+        });
       }
 
       if (data.newParentCellphone && data.newParentCellphone.trim().length > 0) {
@@ -190,6 +190,12 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [parentSearch, setParentSearch] = useState('');
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [createdGuardianCredentials, setCreatedGuardianCredentials] = useState<{
+    dni: string;
+    fullName: string;
+    studentName: string;
+  } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const { data: catalogs } = useSiagieCatalogs();
   const { data: classrooms = [] } = useClassrooms();
@@ -323,12 +329,23 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
         },
       });
 
-      reset();
-      setStep(1);
-      toast.success(
-        `✨ Ficha SIAGIE de ${data.firstNames} ${data.lastNamePaternal} registrada y matriculada con éxito.`,
-      );
-      onClose();
+      if (data.parentMode === 'NEW' && data.newParentDocumentId) {
+        setCreatedGuardianCredentials({
+          dni: data.newParentDocumentId.trim(),
+          fullName: `${data.newParentFirstName} ${data.newParentLastNamePaternal}`,
+          studentName: `${data.firstNames} ${data.lastNamePaternal}`,
+        });
+        toast.success(
+          `✨ Ficha de matrícula de ${data.firstNames} ${data.lastNamePaternal} registrada con éxito.`,
+        );
+      } else {
+        reset();
+        setStep(1);
+        toast.success(
+          `✨ Ficha SIAGIE de ${data.firstNames} ${data.lastNamePaternal} registrada y matriculada con éxito.`,
+        );
+        onClose();
+      }
     } catch (err: any) {
       console.error('Error al registrar ficha de matrícula:', err);
       const msg = err?.response?.data?.message || err?.message || 'Error al procesar la matrícula';
@@ -336,6 +353,77 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
       toast.error(msg);
     }
   };
+
+  // Pantalla de confirmación y entrega de credenciales si se creó nuevo apoderado
+  if (createdGuardianCredentials) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="relative w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-5">
+          <div className="text-center space-y-2">
+            <div className="mx-auto w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+            <h2 className="text-lg font-bold text-foreground">
+              ¡Matrícula y Cuenta de Apoderado Creadas!
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Se ha creado el acceso para la familia de <strong>{createdGuardianCredentials.studentName}</strong>.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-xl border border-border bg-muted/30 space-y-3">
+            <div className="text-xs font-semibold text-foreground flex items-center justify-between">
+              <span>Credenciales de Acceso para el Apoderado:</span>
+              <span className="text-[11px] font-normal text-muted-foreground">Rol: Apoderado</span>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between items-center p-2 rounded-lg bg-background border border-border">
+                <span className="text-muted-foreground">Usuario (DNI):</span>
+                <span className="font-mono font-bold text-primary">{createdGuardianCredentials.dni}</span>
+              </div>
+              <div className="flex justify-between items-center p-2 rounded-lg bg-background border border-border">
+                <span className="text-muted-foreground">Contraseña Inicial:</span>
+                <span className="font-mono font-bold text-primary">{createdGuardianCredentials.dni}</span>
+              </div>
+            </div>
+
+            <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-[11px] leading-relaxed">
+              ⚠️ <strong>Seguridad:</strong> El apoderado usará su número de DNI como usuario y clave. Al ingresar por primera vez, el sistema le solicitará cambiar su contraseña de manera obligatoria.
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                const text = `SaaSchool - Acceso Familiar\nEstudiante: ${createdGuardianCredentials.studentName}\nApoderado: ${createdGuardianCredentials.fullName}\nUsuario (DNI): ${createdGuardianCredentials.dni}\nContraseña Inicial: ${createdGuardianCredentials.dni}\n(Al ingresar por primera vez deberás cambiar tu contraseña por una nueva personal).`;
+                navigator.clipboard.writeText(text);
+                setCopied(true);
+                toast.success('Credenciales copiadas al portapapeles');
+                setTimeout(() => setCopied(false), 2500);
+              }}
+              className="flex-1 gap-2 text-xs"
+            >
+              {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+              <span>{copied ? '¡Copiado!' : 'Copiar Credenciales'}</span>
+            </Button>
+            <Button
+              onClick={() => {
+                setCreatedGuardianCredentials(null);
+                reset();
+                setStep(1);
+                onClose();
+              }}
+              className="flex-1 text-xs"
+            >
+              Finalizar y Cerrar
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
@@ -883,7 +971,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs font-semibold text-foreground block mb-1">
-                        DNI del Apoderado (8 dígitos)
+                        DNI del Apoderado (8 dígitos) *
                       </label>
                       <Input
                         {...register('newParentDocumentId')}
@@ -891,6 +979,12 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                         maxLength={8}
                         className="text-xs rounded-xl font-mono"
                       />
+                      {errors.newParentDocumentId && (
+                        <p className="text-[10px] text-destructive mt-1 font-medium">{errors.newParentDocumentId.message}</p>
+                      )}
+                      <span className="text-[10px] text-muted-foreground block mt-0.5">
+                        Este DNI será su usuario y contraseña inicial de acceso.
+                      </span>
                     </div>
                     <div>
                       <label className="text-xs font-semibold text-foreground block mb-1">

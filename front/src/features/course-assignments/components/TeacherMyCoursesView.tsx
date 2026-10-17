@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
+import { TeacherCourseContentsModal } from '@/features/course-contents/components/TeacherCourseContentsModal';
 
 const LEVEL_LABEL: Record<string, string> = {
   INITIAL: 'Inicial',
@@ -38,6 +39,13 @@ export const TeacherMyCoursesView: React.FC = () => {
   // Estados de Filtros: únicamente Select de Aula/Grado y Buscador
   const [selectedClassroomId, setSelectedClassroomId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedLmsAssignment, setSelectedLmsAssignment] = useState<{
+    id: string;
+    areaName: string;
+    grade: number;
+    section: string;
+    educationLevel: string;
+  } | null>(null);
 
   // Estadísticas del docente
   const totalCourses = myCourses.length;
@@ -307,7 +315,25 @@ export const TeacherMyCoursesView: React.FC = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <div className="border-t border-border pt-3">
+                  <div className="border-t border-border pt-3 grid grid-cols-2 gap-2">
+                    <Button
+                      onClick={() =>
+                        setSelectedLmsAssignment({
+                          id: course.id,
+                          areaName: course.area.name,
+                          grade: course.classroom.grade,
+                          section: course.classroom.section,
+                          educationLevel: LEVEL_LABEL[course.classroom.educationLevel] || course.classroom.educationLevel,
+                        })
+                      }
+                      size="sm"
+                      variant="outline"
+                      className="text-xs font-bold gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+                    >
+                      <GraduationCap className="w-3.5 h-3.5 shrink-0" />
+                      <span>Aula Virtual</span>
+                    </Button>
+
                     <Button
                       onClick={() =>
                         navigate(
@@ -315,10 +341,10 @@ export const TeacherMyCoursesView: React.FC = () => {
                         )
                       }
                       size="sm"
-                      className="w-full text-xs font-bold gap-2 shadow-sm bg-primary hover:bg-primary/90 text-primary-foreground"
+                      className="text-xs font-bold gap-1.5 shadow-sm bg-primary hover:bg-primary/90 text-primary-foreground"
                     >
-                      <BookOpenCheck className="w-4 h-4" />
-                      <span>Llenar Notas</span>
+                      <BookOpenCheck className="w-3.5 h-3.5 shrink-0" />
+                      <span>Notas</span>
                     </Button>
                   </div>
                 </CardContent>
@@ -327,6 +353,13 @@ export const TeacherMyCoursesView: React.FC = () => {
           })}
         </div>
       )}
+
+      {/* Modal de Gestión de Aula Virtual (Contenidos por Bimestre, Tareas y Foros) */}
+      <TeacherCourseContentsModal
+        isOpen={!!selectedLmsAssignment}
+        onClose={() => setSelectedLmsAssignment(null)}
+        assignment={selectedLmsAssignment}
+      />
     </div>
   );
 };

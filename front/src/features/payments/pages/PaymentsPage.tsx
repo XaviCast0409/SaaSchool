@@ -86,8 +86,8 @@ export const PaymentsPage: React.FC = () => {
   const isLoading = isParent ? isLoadingParentObligations : isLoadingAdminObligations;
 
   const handleBulkReminders = () => {
-    if (window.confirm('¿Deseas enviar recordatorios masivos por WhatsApp/Email a todos los apoderados con deudas vencidas?')) {
-      sendBulkReminders('BOTH');
+    if (window.confirm('¿Deseas enviar recordatorios masivos por correo electrónico a todos los apoderados con deudas vencidas?')) {
+      sendBulkReminders('EMAIL');
     }
   };
 

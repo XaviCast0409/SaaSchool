@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { queryClient } from '../lib/queryClient';
 
 export interface User {
   id: string;
@@ -7,6 +8,8 @@ export interface User {
   firstName: string;
   lastNamePaternal: string;
   schoolId: string;
+  documentId?: string | null;
+  mustChangePassword?: boolean;
 }
 
 export interface ImpersonatedSchool {
@@ -21,6 +24,7 @@ interface AuthState {
   user: User | null;
   impersonatedSchool: ImpersonatedSchool | null;
   setAuth: (token: string, user: User) => void;
+  updateUser: (updatedFields: Partial<User>) => void;
   setImpersonatedSchool: (school: ImpersonatedSchool | null) => void;
   logout: () => void;
 }
@@ -37,7 +41,17 @@ export const useAuthStore = create<AuthState>((set) => {
     setAuth: (token, user) => {
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
-      set({ token, user });
+      localStorage.removeItem('impersonatedSchool');
+      queryClient.clear();
+      set({ token, user, impersonatedSchool: null });
+    },
+    updateUser: (updatedFields) => {
+      set((state) => {
+        if (!state.user) return state;
+        const updatedUser = { ...state.user, ...updatedFields };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        return { user: updatedUser };
+      });
     },
     setImpersonatedSchool: (school) => {
       if (school) {
@@ -45,12 +59,14 @@ export const useAuthStore = create<AuthState>((set) => {
       } else {
         localStorage.removeItem('impersonatedSchool');
       }
+      queryClient.clear();
       set({ impersonatedSchool: school });
     },
     logout: () => {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       localStorage.removeItem('impersonatedSchool');
+      queryClient.clear();
       set({ token: null, user: null, impersonatedSchool: null });
     },
   };
