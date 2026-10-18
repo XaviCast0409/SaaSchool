@@ -13,6 +13,11 @@ const envSchema = z.object({
   VAPID_PUBLIC_KEY: z.string().default('BDycXn1jX1LXpQl2Adj-7gSn6FmG5pk5doNB_YYR3lKCDHBMv-0OpacqwUoXByoXxdfsG1GpcIgYxgVeenz9sFc'),
   VAPID_PRIVATE_KEY: z.string().default('lGd3yRSQ4Dt0txdXBLZ_jD83Fldw0rIN40nvds8jad4'),
   VAPID_SUBJECT: z.string().default('mailto:xavier.mont.0409@gmail.com'),
+  GOOGLE_APPLICATION_CREDENTIALS: z.string().optional(),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_REFRESH_TOKEN: z.string().optional(),
+  GOOGLE_DRIVE_FOLDER_ID: z.string().optional(),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

@@ -97,3 +97,33 @@ export interface StudentCoursesResponse {
     assignments: StudentCourseAssignment[];
   };
 }
+
+export interface StudentHomeworkItem extends CourseContent {
+  courseAssignment: {
+    area: {
+      id: string;
+      name: string;
+    };
+    teacher?: {
+      firstName: string;
+      lastNamePaternal: string;
+    } | null;
+  };
+}
+
+export interface StudentForumItem extends CourseContent {
+  courseAssignment: {
+    area: {
+      id: string;
+      name: string;
+    };
+  };
+  _count: {
+    comments: number;
+  };
+}
+
+export interface StudentTasksResponse {
+  homeworks: StudentHomeworkItem[];
+  forums: StudentForumItem[];
+}

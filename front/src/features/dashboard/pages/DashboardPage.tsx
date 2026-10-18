@@ -28,6 +28,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 
 import { ParentPortalPage } from '@/features/parent/pages/ParentPortalPage';
+import { TeacherDashboardView } from '../components/TeacherDashboardView';
 
 export const DashboardPage: React.FC = () => {
   const { user, impersonatedSchool } = useAuthStore();
@@ -48,7 +49,12 @@ export const DashboardPage: React.FC = () => {
     return <ParentPortalPage />;
   }
 
-  const isTeacher = user?.role === 'TEACHER';
+  // Si el usuario es PROFESOR / DOCENTE, renderizar su panel docente especializado
+  if (user?.role === 'TEACHER') {
+    return <TeacherDashboardView />;
+  }
+
+  const isTeacher = false;
   const isParent = false;
   const isAdministrative = user?.role === 'ADMINISTRATIVE';
   const isAdmin = user?.role === 'SCHOOL_ADMIN' || (user?.role === 'SUPER_ADMIN' && !!impersonatedSchool);

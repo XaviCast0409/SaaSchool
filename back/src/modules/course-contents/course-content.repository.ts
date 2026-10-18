@@ -215,4 +215,56 @@ export class CourseContentRepository {
       })),
     };
   }
+
+  async findStudentTasks(schoolId: string, studentId: string) {
+    const activeEnrollment = await prisma.enrollment.findFirst({
+      where: {
+        schoolId,
+        studentId,
+        enrollmentState: 'REGISTERED',
+      },
+      select: {
+        classroomId: true,
+      },
+    });
+
+    if (!activeEnrollment) return { homeworks: [], forums: [] };
+
+    const [homeworks, forums] = await Promise.all([
+      prisma.courseContent.findMany({
+        where: {
+          schoolId,
+          courseAssignment: { classroomId: activeEnrollment.classroomId },
+          contentType: 'HOMEWORK',
+        },
+        include: {
+          courseAssignment: {
+            include: {
+              area: true,
+              teacher: { select: { firstName: true, lastNamePaternal: true } },
+            },
+          },
+        },
+        orderBy: { dueDate: 'asc' },
+        take: 10,
+      }),
+      prisma.courseContent.findMany({
+        where: {
+          schoolId,
+          courseAssignment: { classroomId: activeEnrollment.classroomId },
+          contentType: 'FORUM',
+        },
+        include: {
+          courseAssignment: {
+            include: { area: true },
+          },
+          _count: { select: { comments: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+      }),
+    ]);
+
+    return { homeworks, forums };
+  }
 }

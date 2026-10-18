@@ -30,6 +30,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { AttendanceStatus, AttendanceRecord } from '../types';
@@ -135,18 +136,20 @@ export const AttendancePage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
-        <div>
+    <div className="space-y-6">      {/* Header */}
+      <div className="p-5 sm:p-7 rounded-2xl bg-card border border-border shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-1.5">
           <div className="flex items-center gap-2">
-            <CalendarCheck className="w-6 h-6 text-primary" />
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Control de Asistencia Escolar
-            </h1>
+            <Badge className="bg-primary/10 text-primary border-primary/20 gap-1 text-[11px] font-bold">
+              <CalendarCheck className="w-3.5 h-3.5" />
+              <span>Control de Asistencia Escolar</span>
+            </Badge>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            Registro diario, consulta de meses anteriores y exportación de Actas MINEDU.
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
+            Asistencia y Puntualidad
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Pase de lista diario, consulta mensual y exportación oficial para Actas SIAGIE.
           </p>
         </div>
 
@@ -154,7 +157,7 @@ export const AttendancePage: React.FC = () => {
           {/* Lector QR / Kiosco en Puerta */}
           <Button
             onClick={() => setIsQrScannerOpen(true)}
-            className="gap-2 shadow-sm bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
+            className="gap-2 shadow-sm bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl h-10 px-4"
           >
             <QrCode className="w-4 h-4" />
             <span>Kiosco Lector QR</span>
@@ -165,43 +168,42 @@ export const AttendancePage: React.FC = () => {
             variant="outline"
             onClick={() => setIsBulkModalOpen(true)}
             disabled={isTeacher && !isTutor}
-            className="gap-2 shadow-sm"
+            className="gap-2 shadow-sm rounded-xl h-10 px-4 font-bold"
           >
-            <UserCheck className="w-4 h-4 text-emerald-600" />
+            <UserCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             <span>Tomar Asistencia del Aula</span>
           </Button>
-
         </div>
       </div>
 
       {/* Banner Informativo de Tutoría para Docentes */}
       {isTeacher && isTutor && (
-        <div className="flex items-center gap-3 p-3.5 rounded-xl border border-primary/20 bg-primary/5 text-xs text-foreground">
-          <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
-            <School className="w-4 h-4" />
+        <div className="flex items-center gap-3.5 p-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 text-xs text-foreground">
+          <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
+            <School className="w-5 h-5" />
           </div>
           <div>
-            <p className="font-bold text-foreground">
+            <p className="font-bold text-foreground text-sm">
               Docente Tutor Asignado: {tutoredClassrooms[0]?.grade}° "{tutoredClassrooms[0]?.section}" ({tutoredClassrooms[0]?.educationLevel === 'PRIMARY' ? 'Primaria' : tutoredClassrooms[0]?.educationLevel === 'SECONDARY' ? 'Secundaria' : 'Inicial'})
             </p>
-            <p className="text-muted-foreground text-[11px] mt-0.5">
-              Tiene autoridad para pasar lista, justificar inasistencias y registrar la asistencia de su aula tutoriada.
+            <p className="text-muted-foreground text-xs mt-0.5">
+              Tienes autorización para pasar lista, registrar justificaciones y gestionar la asistencia de tu aula.
             </p>
           </div>
         </div>
       )}
 
       {isTeacher && !isTutor && (
-        <div className="flex items-center gap-3 p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-xs text-foreground">
-          <div className="p-2 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0">
+        <div className="flex items-center gap-3.5 p-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-xs text-foreground">
+          <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0">
             <UserCheck className="w-5 h-5" />
           </div>
           <div>
-            <p className="font-bold text-amber-700 dark:text-amber-300">
+            <p className="font-bold text-amber-700 dark:text-amber-300 text-sm">
               Perfil Docente — Sin Aula de Tutoría Asignada
             </p>
-            <p className="text-muted-foreground text-[11px] mt-0.5">
-              En este colegio, el control y toma de asistencia general está asignado a los <strong>Docentes Tutores</strong> de cada sección y a la <strong>Administración</strong>. Si le corresponde la tutoría de un aula, comuníquese con Dirección para que le asignen el cargo en el catálogo de Aulas.
+            <p className="text-muted-foreground text-xs mt-0.5">
+              En este colegio, el control y toma de asistencia general está asignado a los <strong>Docentes Tutores</strong> de cada sección y a la <strong>Administración</strong>.
             </p>
           </div>
         </div>

@@ -65,4 +65,12 @@ export class CourseContentController {
     const data = await this.service.getStudentCourses(schoolId, studentId);
     res.status(200).json({ status: 'success', data });
   };
+
+  getStudentTasks = async (req: Request, res: Response): Promise<void> => {
+    const schoolId = req.user!.schoolId;
+    const studentId = req.params.studentId as string;
+
+    const data = await this.service.getStudentTasks(schoolId, studentId);
+    res.status(200).json({ status: 'success', data });
+  };
 }

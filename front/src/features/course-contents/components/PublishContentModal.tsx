@@ -13,6 +13,7 @@ import {
   Paperclip,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import type { ContentType } from '../types';
 import {
   createCourseContentSchema,
   type CreateCourseContentFormData,
@@ -22,11 +23,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
+import { isGoogleDriveUrl } from '../utils/fileUrls';
+import { Cloud, HardDrive, CheckCircle2 } from 'lucide-react';
+
 interface PublishContentModalProps {
   isOpen: boolean;
   onClose: () => void;
   courseAssignmentId: string;
   defaultBimester?: number;
+  defaultContentType?: ContentType;
   courseTitle: string;
 }
 
@@ -35,10 +40,14 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
   onClose,
   courseAssignmentId,
   defaultBimester = 1,
+  defaultContentType = 'LESSON_MATERIAL',
   courseTitle,
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [attachmentMode, setAttachmentMode] = useState<'FILE' | 'DRIVE'>('FILE');
+  const [driveUrl, setDriveUrl] = useState('');
+  const [driveFileName, setDriveFileName] = useState('');
 
   const { mutateAsync: uploadFile } = useUploadMaterial();
   const { mutateAsync: createContent, isPending: isCreating } = useCreateCourseContent();
@@ -55,11 +64,22 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
     defaultValues: {
       courseAssignmentId,
       bimester: defaultBimester,
-      contentType: 'LESSON_MATERIAL',
+      contentType: defaultContentType,
       title: '',
       description: '',
     },
   });
+
+  React.useEffect(() => {
+    if (isOpen) {
+      if (defaultContentType) {
+        setValue('contentType', defaultContentType);
+      }
+      if (defaultBimester) {
+        setValue('bimester', defaultBimester);
+      }
+    }
+  }, [isOpen, defaultContentType, defaultBimester, setValue]);
 
   const currentType = watch('contentType');
   const currentBimester = watch('bimester');
@@ -84,7 +104,7 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
       let fileType = data.fileType;
       let fileSize = data.fileSize;
 
-      if (selectedFile) {
+      if (attachmentMode === 'FILE' && selectedFile) {
         setIsUploading(true);
         const uploaded = await uploadFile(selectedFile);
         fileUrl = uploaded.url;
@@ -92,6 +112,10 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
         fileType = uploaded.fileType;
         fileSize = uploaded.fileSize;
         setIsUploading(false);
+      } else if (attachmentMode === 'DRIVE' && driveUrl.trim()) {
+        fileUrl = driveUrl.trim();
+        fileName = driveFileName.trim() || data.title;
+        fileType = 'application/pdf';
       }
 
       await createContent({
@@ -108,6 +132,8 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
       toast.success('Publicación creada con éxito');
       reset();
       setSelectedFile(null);
+      setDriveUrl('');
+      setDriveFileName('');
       onClose();
     } catch (err: unknown) {
       setIsUploading(false);
@@ -135,42 +161,59 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
           {/* Tipo de Publicación */}
           <div className="space-y-1.5">
             <label className="font-semibold text-foreground">Tipo de Contenido:</label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               <button
                 type="button"
                 onClick={() => setValue('contentType', 'LESSON_MATERIAL')}
-                className={`p-2.5 rounded-xl border flex flex-col items-center gap-1.5 transition-all text-xs font-semibold ${
+                className={`p-3 rounded-2xl border flex flex-col items-center text-center gap-1.5 transition-all text-xs font-semibold ${
                   currentType === 'LESSON_MATERIAL'
-                    ? 'border-primary bg-primary/10 text-primary shadow-sm'
-                    : 'border-border bg-background text-muted-foreground hover:bg-muted'
+                    ? 'border-primary bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20'
+                    : 'border-border bg-background text-muted-foreground hover:bg-muted/80'
                 }`}
               >
-                <BookOpen className="w-4 h-4" />
-                <span>Clase / Material</span>
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${currentType === 'LESSON_MATERIAL' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                  <BookOpen className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="block font-bold">Material de Clase</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">PPT, PDF, Word</span>
+                </div>
               </button>
+
               <button
                 type="button"
                 onClick={() => setValue('contentType', 'HOMEWORK')}
-                className={`p-2.5 rounded-xl border flex flex-col items-center gap-1.5 transition-all text-xs font-semibold ${
+                className={`p-3 rounded-2xl border flex flex-col items-center text-center gap-1.5 transition-all text-xs font-semibold ${
                   currentType === 'HOMEWORK'
-                    ? 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400 shadow-sm'
-                    : 'border-border bg-background text-muted-foreground hover:bg-muted'
+                    ? 'border-amber-500 bg-amber-500/10 text-amber-700 dark:text-amber-300 shadow-sm ring-1 ring-amber-500/20'
+                    : 'border-border bg-background text-muted-foreground hover:bg-muted/80'
                 }`}
               >
-                <ClipboardList className="w-4 h-4" />
-                <span>Tarea Escolar</span>
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${currentType === 'HOMEWORK' ? 'bg-amber-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                  <ClipboardList className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="block font-bold">Tarea Escolar</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">Con fecha límite</span>
+                </div>
               </button>
+
               <button
                 type="button"
                 onClick={() => setValue('contentType', 'FORUM')}
-                className={`p-2.5 rounded-xl border flex flex-col items-center gap-1.5 transition-all text-xs font-semibold ${
+                className={`p-3 rounded-2xl border flex flex-col items-center text-center gap-1.5 transition-all text-xs font-semibold ${
                   currentType === 'FORUM'
-                    ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-sm'
-                    : 'border-border bg-background text-muted-foreground hover:bg-muted'
+                    ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 shadow-sm ring-1 ring-emerald-500/20'
+                    : 'border-border bg-background text-muted-foreground hover:bg-muted/80'
                 }`}
               >
-                <MessageSquare className="w-4 h-4" />
-                <span>Foro de Debate</span>
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${currentType === 'FORUM' ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                  <MessageSquare className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="block font-bold">Foro de Debate</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">Pregunta y debate</span>
+                </div>
               </button>
             </div>
           </div>
@@ -237,49 +280,120 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
             </div>
           )}
 
-          {/* Archivo adjunto (para Clase y Tarea) */}
+          {/* Documento o Enlace adjunto (para Clase y Tarea) */}
           {currentType !== 'FORUM' && (
-            <div className="space-y-1.5">
-              <label className="font-semibold text-foreground flex items-center gap-1">
-                <Paperclip className="w-3.5 h-3.5 text-primary" />
-                <span>Documento Adjunto (PPT, Word, PDF, Excel o imagen):</span>
-              </label>
-
-              {selectedFile ? (
-                <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-muted/30">
-                  <div className="flex items-center gap-2 overflow-hidden">
-                    <FileText className="w-5 h-5 text-primary shrink-0" />
-                    <div className="truncate">
-                      <p className="font-medium text-foreground truncate">{selectedFile.name}</p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedFile(null)}
-                    className="text-destructive hover:bg-destructive/10"
-                  >
-                    Quitar
-                  </Button>
-                </div>
-              ) : (
-                <label className="border-2 border-dashed border-border hover:border-primary/50 bg-background hover:bg-muted/30 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-all">
-                  <Upload className="w-6 h-6 text-muted-foreground mb-1" />
-                  <span className="font-semibold text-foreground">Haz clic para subir un archivo</span>
-                  <span className="text-[10px] text-muted-foreground">
-                    Soporta PowerPoint (.pptx), Word (.docx), PDF, Excel o Imágenes (máx. 30MB)
-                  </span>
-                  <input
-                    type="file"
-                    onChange={handleFileChange}
-                    className="hidden"
-                    accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-                  />
+            <div className="space-y-2 pt-1 border-t border-border/50">
+              <div className="flex items-center justify-between">
+                <label className="font-semibold text-foreground flex items-center gap-1.5 text-xs">
+                  <Paperclip className="w-3.5 h-3.5 text-primary" />
+                  <span>Material / Documento Adjunto:</span>
                 </label>
+
+                {/* Selector de Modo: Archivo local vs Google Drive */}
+                <div className="flex items-center gap-1 bg-muted/60 p-0.5 rounded-lg border border-border">
+                  <button
+                    type="button"
+                    onClick={() => setAttachmentMode('FILE')}
+                    className={`px-2 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-1 transition-all ${
+                      attachmentMode === 'FILE'
+                        ? 'bg-background text-foreground shadow-xs'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <HardDrive className="w-3 h-3" />
+                    <span>Subir de PC</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAttachmentMode('DRIVE')}
+                    className={`px-2 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-1 transition-all ${
+                      attachmentMode === 'DRIVE'
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <Cloud className="w-3 h-3" />
+                    <span>Google Drive</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Modo 1: Subir Archivo desde PC */}
+              {attachmentMode === 'FILE' && (
+                <div>
+                  {selectedFile ? (
+                    <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-muted/30">
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <FileText className="w-5 h-5 text-primary shrink-0" />
+                        <div className="truncate">
+                          <p className="font-medium text-foreground truncate">{selectedFile.name}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedFile(null)}
+                        className="text-destructive hover:bg-destructive/10"
+                      >
+                        Quitar
+                      </Button>
+                    </div>
+                  ) : (
+                    <label className="border-2 border-dashed border-border hover:border-primary/50 bg-background hover:bg-muted/30 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-all">
+                      <Upload className="w-6 h-6 text-muted-foreground mb-1" />
+                      <span className="font-semibold text-foreground text-xs">Haz clic para subir un archivo</span>
+                      <span className="text-[10px] text-muted-foreground text-center">
+                        PowerPoint (.pptx), Word (.docx), PDF, Excel o Imágenes (máx. 30MB)
+                      </span>
+                      <input
+                        type="file"
+                        onChange={handleFileChange}
+                        className="hidden"
+                        accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                      />
+                    </label>
+                  )}
+                </div>
+              )}
+
+              {/* Modo 2: Enlace de Google Drive / Nube */}
+              {attachmentMode === 'DRIVE' && (
+                <div className="space-y-2 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                    <Cloud className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>Enlace compartido de Google Drive</span>
+                  </div>
+                  <Input
+                    type="url"
+                    value={driveUrl}
+                    onChange={(e) => setDriveUrl(e.target.value)}
+                    placeholder="Pega el enlace de Google Drive (ej: https://drive.google.com/file/d/...)"
+                    className="text-xs bg-background"
+                  />
+
+                  {isGoogleDriveUrl(driveUrl) ? (
+                    <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20">
+                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
+                      <span>¡Enlace de Drive reconocido! Se activará la descarga directa en 1 clic para los alumnos.</span>
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-muted-foreground leading-relaxed">
+                      💡 <strong>Tip para Drive:</strong> En Google Drive, haz clic derecho en el archivo &gt; <em>Compartir</em> &gt; Cambiar a <em>"Cualquier persona con el enlace (Lector)"</em> para que el alumno descargue directo sin pedir permiso.
+                    </p>
+                  )}
+
+                  <Input
+                    type="text"
+                    value={driveFileName}
+                    onChange={(e) => setDriveFileName(e.target.value)}
+                    placeholder="Nombre que verá el alumno (ej. Diapositivas_Sesion_1.pptx)"
+                    className="text-xs bg-background"
+                  />
+                </div>
               )}
             </div>
           )}

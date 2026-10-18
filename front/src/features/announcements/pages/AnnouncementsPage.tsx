@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
-import { Plus, Search, Megaphone, Bell, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Megaphone, Bell, AlertTriangle, X } from 'lucide-react';
 import { useGetAnnouncements, useDeleteAnnouncement } from '../api/useAnnouncements';
 import { AnnouncementCard } from '../components/AnnouncementCard';
 import { CreateAnnouncementModal } from '../components/CreateAnnouncementModal';
 import { Pagination } from '@/components/ui/Pagination';
 import { useAuthStore } from '@/store/useAuthStore';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
 import type { AnnouncementPriority } from '../types';
 
 export const AnnouncementsPage: React.FC = () => {
@@ -37,91 +41,105 @@ export const AnnouncementsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-10">
-      {/* Header Sección */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-6 rounded-2xl border border-primary/20">
-        <div>
-          <div className="flex items-center gap-2 text-primary font-bold text-sm uppercase tracking-wider mb-1">
-            <Megaphone className="w-4 h-4" />
-            Muro Oficial del Colegio
+    <div className="space-y-6 pb-12 animate-in fade-in duration-150">
+      {/* 1. Header Sección */}
+      <div className="p-5 sm:p-7 rounded-2xl bg-card border border-border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <Badge className="bg-primary/10 text-primary border-primary/20 gap-1 text-[11px] font-bold">
+              <Megaphone className="w-3.5 h-3.5" />
+              <span>Muro Institucional Oficial</span>
+            </Badge>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
-            Comunicados y Avisos
+          <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
+            Avisos y Comunicados Escolares
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Reemplaza el caos de WhatsApp con anuncios institucionales seguros y verificados.
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Circulares, notas informativas y avisos institucionales oficiales verificados por el colegio.
           </p>
         </div>
 
         {canCreate && (
-          <button
+          <Button
             onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90 transition-all shrink-0"
+            size="sm"
+            className="gap-2 text-xs font-bold rounded-xl h-10 px-4 self-start sm:self-auto shrink-0 shadow-sm"
           >
-            <Plus className="w-5 h-5" />
-            Nuevo Comunicado
-          </button>
+            <Plus className="w-4 h-4" />
+            <span>Nuevo Comunicado</span>
+          </Button>
         )}
       </div>
 
-      {/* Barra de Filtros y Búsqueda */}
-      <div className="flex flex-col sm:flex-row items-center gap-3">
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Buscar comunicados..."
+      {/* 2. Barra de Filtros y Búsqueda */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card p-3 rounded-2xl border border-border">
+        {/* Buscador */}
+        <div className="relative flex-1 max-w-md">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
               setPage(1);
             }}
-            className="w-full rounded-xl border border-border bg-card pl-10 pr-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
+            placeholder="Buscar comunicados por título o contenido..."
+            className="pl-9 pr-8 h-9 text-xs rounded-xl bg-background"
           />
+          {search && (
+            <button
+              onClick={() => {
+                setSearch('');
+                setPage(1);
+              }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
 
-        <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+        {/* Filtros por Prioridad */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
           {[
             { label: 'Todos', value: undefined },
             { label: 'Urgentes', value: 'URGENT' },
             { label: 'Importantes', value: 'IMPORTANT' },
-            { label: 'Normales', value: 'NORMAL' },
+            { label: 'Informativos', value: 'NORMAL' },
           ].map((item) => (
-            <button
+            <Button
               key={item.label}
+              size="sm"
+              variant={priority === item.value ? 'default' : 'ghost'}
               onClick={() => {
                 setPriority(item.value as AnnouncementPriority | undefined);
                 setPage(1);
               }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border ${
-                priority === item.value
-                  ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                  : 'bg-card text-muted-foreground border-border hover:bg-secondary'
-              }`}
+              className="h-8 text-xs font-bold rounded-xl shrink-0"
             >
               {item.label}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
 
-      {/* Contenido del Muro */}
+      {/* 3. Contenido del Muro */}
       {isLoading ? (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-40 rounded-xl bg-card border border-border animate-pulse p-6">
-              <div className="h-4 bg-muted rounded w-1/4 mb-4"></div>
-              <div className="h-6 bg-muted rounded w-2/3 mb-2"></div>
-              <div className="h-4 bg-muted rounded w-full mb-1"></div>
-              <div className="h-4 bg-muted rounded w-4/5"></div>
-            </div>
+            <Card key={i} className="p-6 rounded-2xl border-border animate-pulse space-y-3">
+              <div className="h-4 bg-muted rounded-lg w-1/4" />
+              <div className="h-5 bg-muted rounded-lg w-2/3" />
+              <div className="h-4 bg-muted rounded-lg w-full" />
+              <div className="h-4 bg-muted rounded-lg w-4/5" />
+            </Card>
           ))}
         </div>
       ) : isError ? (
-        <div className="p-8 text-center rounded-2xl border border-destructive/20 bg-destructive/5 text-destructive">
-          <AlertTriangle className="w-8 h-8 mx-auto mb-2 opacity-80" />
-          <p className="font-semibold">Ocurrió un error al cargar los comunicados.</p>
-        </div>
+        <Card className="p-8 text-center rounded-2xl border-destructive/20 bg-destructive/5 text-destructive space-y-2">
+          <AlertTriangle className="w-8 h-8 mx-auto opacity-80" />
+          <p className="font-bold text-sm">Ocurrió un error al cargar los comunicados.</p>
+          <p className="text-xs text-muted-foreground">Intenta recargar la página.</p>
+        </Card>
       ) : data?.data && data.data.length > 0 ? (
         <div className="space-y-4">
           {data.data.map((announcement) => (
@@ -133,29 +151,46 @@ export const AnnouncementsPage: React.FC = () => {
           ))}
 
           {/* Paginación */}
-          <Pagination
-            currentPage={data.meta.page}
-            totalPages={data.meta.totalPages}
-            totalItems={data.meta.total}
-            limit={limit}
-            onPageChange={(p) => setPage(p)}
-            onLimitChange={(l) => {
-              setLimit(l);
-              setPage(1);
-            }}
-          />
+          <div className="pt-2">
+            <Pagination
+              currentPage={data.meta.page}
+              totalPages={data.meta.totalPages}
+              totalItems={data.meta.total}
+              limit={limit}
+              onPageChange={(p) => setPage(p)}
+              onLimitChange={(l) => {
+                setLimit(l);
+                setPage(1);
+              }}
+            />
+          </div>
         </div>
       ) : (
-        <div className="p-12 text-center rounded-2xl border border-dashed border-border bg-card">
-          <Bell className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-40" />
-          <h3 className="text-lg font-bold text-foreground">No hay comunicados disponibles</h3>
-          <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
-            Los avisos e informados oficiales del colegio aparecerán publicados en este muro.
+        <Card className="p-12 text-center rounded-2xl border-dashed border-border bg-card">
+          <Bell className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
+          <h3 className="text-base font-bold text-foreground">No hay comunicados disponibles</h3>
+          <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+            {search || priority
+              ? 'No hay avisos que coincidan con la búsqueda o el filtro seleccionado.'
+              : 'Los avisos e informes oficiales del colegio aparecerán publicados en este muro.'}
           </p>
-        </div>
+          {(search || priority) && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setSearch('');
+                setPriority(undefined);
+              }}
+              className="mt-3 text-xs font-bold rounded-xl"
+            >
+              Restablecer Filtros
+            </Button>
+          )}
+        </Card>
       )}
 
-      {/* Modal para Crear Comunicado */}
+      {/* 4. Modal para Crear Comunicado */}
       <CreateAnnouncementModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

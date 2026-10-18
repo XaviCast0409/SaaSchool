@@ -247,9 +247,60 @@ export const DashboardLayout: React.FC = () => {
     },
   ];
 
+  const isStudent = Boolean(
+    user?.email &&
+      (user.email.toLowerCase().includes('alumno') || user.email.toLowerCase().includes('estudiante')),
+  );
+
+  // Menú exclusivo y seguro para Estudiantes (Cero Deudas / Cero Finanzas)
+  const studentNavSections: NavSection[] = [
+    {
+      title: 'Mochila del Alumno',
+      items: [
+        {
+          label: 'Mi Mochila Digital',
+          path: '/dashboard',
+          icon: LayoutDashboard,
+          roles: ['PARENT'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Aula Virtual / Cursos',
+          path: '/virtual-classroom',
+          icon: GraduationCap,
+          roles: ['PARENT'],
+          minPlan: 'PRO',
+        },
+        {
+          label: 'Mis Calificaciones',
+          path: '/grades',
+          icon: BookOpenCheck,
+          roles: ['PARENT'],
+          minPlan: 'PRO',
+        },
+        {
+          label: 'Mi Asistencia',
+          path: '/attendance',
+          icon: CalendarCheck,
+          roles: ['PARENT'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Avisos y Comunicados',
+          path: '/announcements',
+          icon: Megaphone,
+          roles: ['PARENT'],
+          minPlan: 'BASIC',
+        },
+      ],
+    },
+  ];
+
   const navSections = (
     isSuperAdmin && !isImpersonating
       ? superAdminNavSections
+      : isStudent
+      ? studentNavSections
       : userRole === 'PARENT'
       ? parentNavSections
       : schoolNavSections
@@ -472,7 +523,7 @@ export const DashboardLayout: React.FC = () => {
               {user?.firstName ? `Bienvenido, ${user.firstName}` : 'SaaSchool'}
             </span>
             <span>•</span>
-            <span className="capitalize">{userRole.toLowerCase().replace('_', ' ')}</span>
+            <span className="capitalize">{isStudent ? 'Estudiante' : userRole.toLowerCase().replace('_', ' ')}</span>
           </div>
 
           <div className="flex items-center gap-3">

@@ -35,10 +35,11 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 /** Guardia por Rol: previene navegación por URL si el usuario no tiene permisos */
-const RoleGuard: React.FC<{ allowedRoles: string[]; children: React.ReactNode }> = ({
-  allowedRoles,
-  children,
-}) => {
+const RoleGuard: React.FC<{
+  allowedRoles: string[];
+  disallowStudents?: boolean;
+  children: React.ReactNode;
+}> = ({ allowedRoles, disallowStudents = false, children }) => {
   const user = useAuthStore((state) => state.user);
   const token = useAuthStore((state) => state.token);
 
@@ -49,6 +50,16 @@ const RoleGuard: React.FC<{ allowedRoles: string[]; children: React.ReactNode }>
   if (!user || !allowedRoles.includes(user.role)) {
     return <Navigate to="/dashboard" replace />;
   }
+
+  const isStudent = Boolean(
+    user.email &&
+      (user.email.toLowerCase().includes('alumno') || user.email.toLowerCase().includes('estudiante')),
+  );
+
+  if (disallowStudents && isStudent) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return <>{children}</>;
 };
 
@@ -136,7 +147,10 @@ export const AppRouter: React.FC = () => {
           <Route
             path="/payments"
             element={
-              <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'PARENT']}>
+              <RoleGuard
+                allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'PARENT']}
+                disallowStudents
+              >
                 <PaymentsPage />
               </RoleGuard>
             }

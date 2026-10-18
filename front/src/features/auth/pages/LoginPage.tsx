@@ -34,7 +34,7 @@ export const LoginPage: React.FC = () => {
     if (email.includes('admin') || email.includes('secretario')) {
       setValue('password', 'Admin123!');
     } else if (email.includes('padre') || email.includes('alumno')) {
-      setValue('password', 'Parent123!');
+      setValue('password', 'Admin123!');
     } else {
       setValue('password', 'Teacher123!');
     }

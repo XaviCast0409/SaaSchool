@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
-import { AlertCircle, HeartHandshake } from 'lucide-react';
+import { AlertCircle, HeartHandshake, Backpack } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useParentStore } from '@/store/useParentStore';
 import { useGetMyChildren } from '@/features/students/api/useStudents';
@@ -11,10 +12,17 @@ import { ChildFinancialCard } from '../components/ChildFinancialCard';
 import { ChildAnnouncementsCard } from '../components/ChildAnnouncementsCard';
 import { ChildGradesPreviewCard } from '../components/ChildGradesPreviewCard';
 import { ChildVirtualClassroomCard } from '../components/ChildVirtualClassroomCard';
+import { StudentDashboardView } from '../components/StudentDashboardView';
 
 export const ParentPortalPage: React.FC = () => {
   const { user } = useAuthStore();
-  const { selectedChildId, setSelectedChildId } = useParentStore();
+  const { selectedChildId, setSelectedChildId, viewMode, setViewMode } = useParentStore();
+
+  const isStudentUser = Boolean(
+    user?.email &&
+      (user.email.toLowerCase().includes('alumno') || user.email.toLowerCase().includes('estudiante')),
+  );
+  const effectiveMode = isStudentUser ? 'STUDENT' : viewMode;
 
   const { data: children = [], isLoading, isError } = useGetMyChildren();
 
@@ -54,9 +62,32 @@ export const ParentPortalPage: React.FC = () => {
             No se encontraron alumnos vinculados
           </h2>
           <p className="text-xs text-muted-foreground max-w-md mx-auto">
-            Tu cuenta de usuario apoderado ({user?.email}) aún no tiene estudiantes registrados en el sistema escolar. Si eres padre de familia, comunícate con la administración del colegio para que vinculen tu DNI a la matrícula de tu hijo.
+            {isStudentUser
+              ? `Tu cuenta de estudiante (${user?.email}) aún no tiene una matrícula activa vinculada en este colegio.`
+              : `Tu cuenta de usuario apoderado (${user?.email}) aún no tiene estudiantes registrados en el sistema escolar.`}
           </p>
         </div>
+      </div>
+    );
+  }
+
+  // Si está en Modo Alumno (Estudiante directo o Apoderado explorando vista de alumno)
+  if (effectiveMode === 'STUDENT' && activeChild) {
+    return (
+      <div className="space-y-6">
+        {/* Selector de hijos si el padre tiene varios y está en modo alumno */}
+        {!isStudentUser && children.length > 1 && (
+          <ChildSwitcher
+            childrenList={children}
+            selectedId={activeChild.id}
+            onSelect={setSelectedChildId}
+          />
+        )}
+        <StudentDashboardView
+          child={activeChild}
+          isParentViewing={!isStudentUser}
+          onSwitchToParentView={() => setViewMode('PARENT')}
+        />
       </div>
     );
   }
@@ -77,6 +108,17 @@ export const ParentPortalPage: React.FC = () => {
             Revisa el estado escolar, asistencia diaria y pensiones de tus hijos en tiempo real.
           </p>
         </div>
+
+        {/* Botón para cambiar a Vista Alumno (Mochila Digital) */}
+        <Button
+          onClick={() => setViewMode('STUDENT')}
+          variant="outline"
+          size="sm"
+          className="gap-2 text-xs font-bold border-primary/30 text-primary hover:bg-primary/10 self-start sm:self-auto shrink-0 shadow-sm"
+        >
+          <Backpack className="w-4 h-4" />
+          <span>Ver Mochila del Alumno</span>
+        </Button>
       </div>
 
       {/* Selector Multi-Hijo (si tiene 2 o más alumnos) */}
@@ -109,3 +151,4 @@ export const ParentPortalPage: React.FC = () => {
     </div>
   );
 };
+

@@ -20,6 +20,13 @@ courseContentRouter.get(
   controller.getStudentCourses,
 );
 
+// Tareas pendientes y foros activos del alumno
+courseContentRouter.get(
+  '/student/:studentId/tasks',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT'),
+  controller.getStudentTasks,
+);
+
 // Contenidos (Clases, Tareas, Foros) de un curso con filtro opcional ?bimester=1
 courseContentRouter.get(
   '/assignment/:assignmentId',

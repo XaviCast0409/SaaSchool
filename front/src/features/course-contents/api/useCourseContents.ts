@@ -163,3 +163,21 @@ export const useGetStudentCourses = (studentId?: string | null) => {
     enabled: !!studentId,
   });
 };
+
+/**
+ * Obtener las tareas pendientes y foros activos del estudiante
+ */
+export const useGetStudentTasks = (studentId?: string | null) => {
+  return useQuery({
+    queryKey: ['student-tasks', studentId],
+    queryFn: async () => {
+      if (!studentId) return null;
+      const res = await api.get<{ status: string; data: import('../types').StudentTasksResponse }>(
+        `/course-contents/student/${studentId}/tasks`,
+      );
+      return res.data.data;
+    },
+    enabled: !!studentId,
+  });
+};
+

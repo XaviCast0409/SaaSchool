@@ -94,4 +94,8 @@ export class CourseContentService {
     }
     return studentData;
   }
+
+  async getStudentTasks(schoolId: string, studentId: string) {
+    return this.repository.findStudentTasks(schoolId, studentId);
+  }
 }
