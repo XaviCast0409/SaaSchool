@@ -1,8 +1,7 @@
 /// <reference types="node" />
 import 'dotenv/config';
-import { PrismaClient, RelationshipType, AttendanceStatus } from '@prisma/client';
+import { PrismaClient, RelationshipType, AttendanceStatus, SubscriptionPlan, EducationLevel } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-
 
 const prisma = new PrismaClient();
 
@@ -22,66 +21,34 @@ const randomFloat = (min: number, max: number): number =>
 const randomElement = <T>(array: T[]): T =>
   array[Math.floor(Math.random() * array.length)];
 
-// ============================================================================
-// DATOS DE REFERENCIA
-// ============================================================================
+const generateDni = (): string =>
+  String(randomBetween(10000000, 99999999));
 
-const NOMBRES_MASCULINOS = [
-  'Carlos', 'José', 'Juan', 'Miguel', 'Luis', 'Pedro', 'Andrés', 'Diego',
-  'Sebastián', 'Alejandro', 'Fernando', 'Ricardo', 'Eduardo', 'Gabriél', 'Rodrigo',
-];
-
-const NOMBRES_FEMENINOS = [
-  'María', 'Ana', 'Lucía', 'Valeria', 'Sofía', 'Isabella', 'Camila', 'Daniela',
-  'Paola', 'Andrea', 'Fernanda', 'Claudia', 'Patricia', 'Natalia', 'Gabriela',
-];
-
-const APELLIDOS = [
-  'García', 'Rodríguez', 'Martínez', 'López', 'González', 'Pérez', 'Sánchez',
-  'Ramírez', 'Torres', 'Flores', 'Rivera', 'Morales', 'Ortiz', 'Díaz', 'Reyes',
-  'Vargas', 'Mendoza', 'Castro', 'Herrera', 'Medina', 'Quispe', 'Mamani', 'Huanca',
-];
-
-const DEPARTAMENTOS = ['LIMA', 'AREQUIPA', 'CUSCO', 'PIURA', 'LA LIBERTAD', 'JUNÍN'];
-const DISTRITOS_LIMA = ['MIRAFLORES', 'SAN ISIDRO', 'SURCO', 'SAN BORJA', 'LA MOLINA', 'JESÚS MARÍA'];
-const DISTRITOS_AREQUIPA = ['AREQUIPA', 'CAYMA', 'YANAHUARA', 'CERRO COLORADO', 'PAUCARPATA'];
-
-// ============================================================================
-// GENERADORES DE DATOS ALEATORIOS
-// ============================================================================
-
-const generateDni = (): string => String(randomBetween(10000000, 99999999));
-
-const generateRuc = (): string => `20${String(randomBetween(100000000, 999999999))}`;
+const generateRuc = (start = '20'): string =>
+  `${start}${randomBetween(100000000, 999999999)}`;
 
 const generateStudentCode = (): string =>
-  String(randomBetween(10000000000000, 99999999999999));
-
-const generateBirthDate = (minAge: number, maxAge: number): Date => {
-  const now = new Date();
-  const minYear = now.getFullYear() - maxAge;
-  const maxYear = now.getFullYear() - minAge;
-  const year = randomBetween(minYear, maxYear);
-  const month = randomBetween(0, 11);
-  const day = randomBetween(1, 28);
-  return new Date(year, month, day);
-};
-
-const generateEmail = (firstName: string, lastName: string, domain: string): string => {
-  const normalizedFirst = firstName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const normalizedLast = lastName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  return `${normalizedFirst}.${normalizedLast}${randomBetween(1, 99)}@${domain}`;
-};
+  `26${randomBetween(100000000000, 999999999999)}`;
 
 // ============================================================================
 // FUNCIÓN PRINCIPAL DEL SEED
 // ============================================================================
 
 async function main(): Promise<void> {
-  console.log('🌱 Iniciando seed de la base de datos SaaSchool...\n');
+  console.log('\n======================================================');
+  console.log('🌱 INICIANDO SEED INTEGRAL SAASCHOOL (MULTI-ROL & MULTI-PLAN)');
+  console.log('======================================================\n');
 
-  // Limpiar datos existentes en orden correcto (respetando FK)
+  // 1. Limpieza de base de datos en orden inverso de dependencias
   console.log('🧹 Limpiando datos existentes...');
+  await prisma.forumComment.deleteMany();
+  await prisma.courseContent.deleteMany();
+  await prisma.notification.deleteMany();
+  await prisma.pushSubscription.deleteMany();
+  await prisma.gradingPeriodLock.deleteMany();
+  await prisma.competenceConclusion.deleteMany();
+  await prisma.detailedGrade.deleteMany();
+  await prisma.evaluationCriterion.deleteMany();
   await prisma.announcement.deleteMany();
   await prisma.attendance.deleteMany();
   await prisma.grade.deleteMany();
@@ -92,490 +59,345 @@ async function main(): Promise<void> {
   await prisma.gradingScale.deleteMany();
   await prisma.paymentTransaction.deleteMany();
   await prisma.paymentObligation.deleteMany();
-  await prisma.enrollment.deleteMany();
   await prisma.familyRelationship.deleteMany();
+  await prisma.enrollment.deleteMany();
   await prisma.academicYear.deleteMany();
   await prisma.classroom.deleteMany();
   await prisma.student.deleteMany();
   await prisma.user.deleteMany();
   await prisma.school.deleteMany();
-  console.log('✅ Base de datos limpiada\n');
+  console.log('✅ Base de datos completamente limpia\n');
+
+  // Contraseñas pre-encriptadas
+  const passAdmin = await hashPassword('Admin123!');
+  const passTeacher = await hashPassword('Teacher123!');
+  const passParent = await hashPassword('Parent123!');
 
   // ==========================================================================
-  // 1. CREAR 2 COLEGIOS
+  // 1. CREACIÓN DE COLEGIOS (PLAN BASIC & PLAN PRO)
   // ==========================================================================
-  console.log('🏫 Creando colegios...');
+  console.log('🏫 Creando Colegios con planes BASIC y PRO...');
 
-  const schoolSanIgnacio = await prisma.school.create({
+  // Colegio 1: Plan BASIC
+  const schoolBasic = await prisma.school.create({
     data: {
-      name: 'I.E. San Ignacio de Loyola',
-      documentId: generateRuc(),
+      name: 'I.E. San Ignacio de Loyola (Plan Basic)',
+      documentId: '20601234567',
       modularCode: '0614990',
       localCode: 'LO1234',
-      email: 'admin@sanignacio.edu.pe',
+      email: 'contacto@sanignacio.edu.pe',
       phone: '01-4445566',
-      address: 'Av. La Marina 1200',
+      address: 'Av. La Marina 1200, San Miguel',
       department: 'LIMA',
       province: 'LIMA',
       district: 'SAN MIGUEL',
-      offeredLevels: ['INITIAL', 'PRIMARY', 'SECONDARY'],
+      plan: SubscriptionPlan.BASIC,
+      offeredLevels: [EducationLevel.INITIAL, EducationLevel.PRIMARY, EducationLevel.SECONDARY],
       isActive: true,
     },
   });
 
-  const schoolSantaRosa = await prisma.school.create({
+  // Colegio 2: Plan PRO
+  const schoolPro = await prisma.school.create({
     data: {
-      name: 'I.E. Santa Rosa de Lima',
-      documentId: generateRuc(),
-      modularCode: '0501239',
-      localCode: 'AQ5678',
-      email: 'secretaria@santarosa.edu.pe',
-      phone: '054-223344',
-      address: 'Calle Mercaderes 340',
-      department: 'AREQUIPA',
-      province: 'AREQUIPA',
-      district: 'AREQUIPA',
-      offeredLevels: ['INITIAL', 'PRIMARY', 'SECONDARY'],
+      name: 'Innova Academy (Plan Pro)',
+      documentId: '20609876543',
+      modularCode: '0725881',
+      localCode: 'LO5678',
+      email: 'direccion@innova.edu.pe',
+      phone: '01-2223344',
+      address: 'Av. Javier Prado Este 4500, Surco',
+      department: 'LIMA',
+      province: 'LIMA',
+      district: 'SANTIAGO DE SURCO',
+      plan: SubscriptionPlan.PRO,
+      offeredLevels: [EducationLevel.INITIAL, EducationLevel.PRIMARY, EducationLevel.SECONDARY],
       isActive: true,
     },
   });
 
-  console.log(`  ✅ ${schoolSanIgnacio.name}`);
-  console.log(`  ✅ ${schoolSantaRosa.name}\n`);
+  console.log(`  ✅ Colegio BASIC: ${schoolBasic.name} (${schoolBasic.id})`);
+  console.log(`  ✅ Colegio PRO:   ${schoolPro.name} (${schoolPro.id})\n`);
 
   // ==========================================================================
-  // 2. CREAR USUARIOS POR COLEGIO
+  // 2. CREACIÓN DE USUARIOS CLAVE (SUPER_ADMIN, BASIC Y PRO)
   // ==========================================================================
-  console.log('👤 Creando usuarios...');
+  console.log('👤 Creando usuarios por rol para pruebas...');
 
-  const passwordAdmin = await hashPassword('Admin123!');
-  const passwordTeacher = await hashPassword('Teacher123!');
-  const passwordParent = await hashPassword('Parent123!');
-
-  // ── Usuario SUPER_ADMIN Global SaaS ──
-  await prisma.user.upsert({
-    where: { email: 'superadmin@saaschool.com' },
-    update: {
-      role: 'SUPER_ADMIN',
-      passwordHash: passwordAdmin,
-    },
-    create: {
-      schoolId: schoolSanIgnacio.id,
+  // ── SUPER ADMIN Global ──
+  const superAdmin = await prisma.user.create({
+    data: {
+      schoolId: schoolPro.id,
       email: 'superadmin@saaschool.com',
-      passwordHash: passwordAdmin,
+      passwordHash: passAdmin,
       role: 'SUPER_ADMIN',
-      firstName: 'Super',
-      lastNamePaternal: 'Admin',
+      firstName: 'Carlos',
+      lastNamePaternal: 'SuperAdmin',
       lastNameMaternal: 'SaaS',
       documentType: 'DNI',
-      documentId: '00000000',
+      documentId: '00000001',
       cellphone: '999999999',
     },
   });
-  const _adminSanIgnacio = await prisma.user.create({
+
+  // ── COLEGIO BASIC ──
+  const adminBasic = await prisma.user.create({
     data: {
-      schoolId: schoolSanIgnacio.id,
-      email: 'admin@sanignacio.edu.pe',
-      passwordHash: passwordAdmin,
+      schoolId: schoolBasic.id,
+      email: 'admin.basic@sanignacio.edu.pe',
+      passwordHash: passAdmin,
       role: 'SCHOOL_ADMIN',
       firstName: 'Roberto',
       lastNamePaternal: 'Villanueva',
-      lastNameMaternal: 'Quispe',
+      lastNameMaternal: 'Ríos',
       documentType: 'DNI',
       documentId: generateDni(),
-      cellphone: '987654321',
+      cellphone: '987111222',
     },
   });
 
-  const teacher1SanIgnacio = await prisma.user.create({
+  const secretariaBasic = await prisma.user.create({
     data: {
-      schoolId: schoolSanIgnacio.id,
-      email: 'jmartinez@sanignacio.edu.pe',
-      passwordHash: passwordTeacher,
+      schoolId: schoolBasic.id,
+      email: 'secretaria.basic@sanignacio.edu.pe',
+      passwordHash: passAdmin,
+      role: 'ADMINISTRATIVE',
+      firstName: 'Ana',
+      lastNamePaternal: 'Torres',
+      lastNameMaternal: 'Morales',
+      documentType: 'DNI',
+      documentId: generateDni(),
+      cellphone: '987222333',
+    },
+  });
+
+  const docenteBasic = await prisma.user.create({
+    data: {
+      schoolId: schoolBasic.id,
+      email: 'docente.basic@sanignacio.edu.pe',
+      passwordHash: passTeacher,
       role: 'TEACHER',
       firstName: 'Jorge',
       lastNamePaternal: 'Martínez',
       lastNameMaternal: 'Fuentes',
       documentType: 'DNI',
       documentId: generateDni(),
-      cellphone: '976543210',
+      cellphone: '987333444',
     },
   });
 
-  const teacher2SanIgnacio = await prisma.user.create({
+  const padreBasic = await prisma.user.create({
     data: {
-      schoolId: schoolSanIgnacio.id,
-      email: 'lflores@sanignacio.edu.pe',
-      passwordHash: passwordTeacher,
+      schoolId: schoolBasic.id,
+      email: 'padre.basic@sanignacio.edu.pe',
+      passwordHash: passParent,
+      role: 'PARENT',
+      firstName: 'Eduardo',
+      lastNamePaternal: 'Pérez',
+      lastNameMaternal: 'Gómez',
+      documentType: 'DNI',
+      documentId: generateDni(),
+      cellphone: '987444555',
+    },
+  });
+
+  // ── COLEGIO PRO ──
+  const adminPro = await prisma.user.create({
+    data: {
+      schoolId: schoolPro.id,
+      email: 'admin.pro@innova.edu.pe',
+      passwordHash: passAdmin,
+      role: 'SCHOOL_ADMIN',
+      firstName: 'Mariana',
+      lastNamePaternal: 'Benavides',
+      lastNameMaternal: 'Castro',
+      documentType: 'DNI',
+      documentId: generateDni(),
+      cellphone: '981111000',
+    },
+  });
+
+  const secretariaPro = await prisma.user.create({
+    data: {
+      schoolId: schoolPro.id,
+      email: 'secretaria.pro@innova.edu.pe',
+      passwordHash: passAdmin,
+      role: 'ADMINISTRATIVE',
+      firstName: 'Patricia',
+      lastNamePaternal: 'Salazar',
+      lastNameMaternal: 'Vega',
+      documentType: 'DNI',
+      documentId: generateDni(),
+      cellphone: '981222000',
+    },
+  });
+
+  const docentePro = await prisma.user.create({
+    data: {
+      schoolId: schoolPro.id,
+      email: 'docente.pro@innova.edu.pe',
+      passwordHash: passTeacher,
+      role: 'TEACHER',
+      firstName: 'Miguel',
+      lastNamePaternal: 'Navarro',
+      lastNameMaternal: 'Mendoza',
+      documentType: 'DNI',
+      documentId: generateDni(),
+      cellphone: '981333000',
+    },
+  });
+
+  const docentePro2 = await prisma.user.create({
+    data: {
+      schoolId: schoolPro.id,
+      email: 'lucia.docente@innova.edu.pe',
+      passwordHash: passTeacher,
       role: 'TEACHER',
       firstName: 'Lucía',
       lastNamePaternal: 'Flores',
-      lastNameMaternal: 'Medina',
+      lastNameMaternal: 'Reyes',
       documentType: 'DNI',
       documentId: generateDni(),
-      cellphone: '965432109',
+      cellphone: '981444000',
     },
   });
 
-  // Padres de familia San Ignacio
-  const parentsSanIgnacio = await Promise.all(
-    Array.from({ length: 8 }, async (_, index) => {
-      const isMale = index % 2 === 0;
-      const firstName = isMale ? randomElement(NOMBRES_MASCULINOS) : randomElement(NOMBRES_FEMENINOS);
-      const lastNamePaternal = randomElement(APELLIDOS);
-      const lastNameMaternal = randomElement(APELLIDOS);
-      return prisma.user.create({
-        data: {
-          schoolId: schoolSanIgnacio.id,
-          email: generateEmail(firstName, lastNamePaternal, 'gmail.com'),
-          passwordHash: passwordParent,
-          role: 'PARENT',
-          firstName,
-          lastNamePaternal,
-          lastNameMaternal,
-          documentType: 'DNI',
-          documentId: generateDni(),
-          cellphone: `9${randomBetween(60000000, 99999999)}`,
-        },
-      });
-    }),
-  );
-
-  // ── Usuarios Santa Rosa ──
-  const _adminSantaRosa = await prisma.user.create({
+  // 👨‍👩‍👧 PADRE PRO CON 2 HIJOS
+  const padreProDosHijos = await prisma.user.create({
     data: {
-      schoolId: schoolSantaRosa.id,
-      email: 'admin@santarosa.edu.pe',
-      passwordHash: passwordAdmin,
-      role: 'SCHOOL_ADMIN',
-      firstName: 'Carmen',
-      lastNamePaternal: 'Huanca',
-      lastNameMaternal: 'Apaza',
-      documentType: 'DNI',
-      documentId: generateDni(),
-      cellphone: '958741236',
-    },
-  });
-
-  const teacher1SantaRosa = await prisma.user.create({
-    data: {
-      schoolId: schoolSantaRosa.id,
-      email: 'rquispe@santarosa.edu.pe',
-      passwordHash: passwordTeacher,
-      role: 'TEACHER',
+      schoolId: schoolPro.id,
+      email: 'padre.doshijos@innova.edu.pe',
+      passwordHash: passParent,
+      role: 'PARENT',
       firstName: 'Ricardo',
-      lastNamePaternal: 'Quispe',
-      lastNameMaternal: 'Mamani',
+      lastNamePaternal: 'Silva',
+      lastNameMaternal: 'Gutiérrez',
       documentType: 'DNI',
       documentId: generateDni(),
-      cellphone: '947852369',
+      cellphone: '981555000',
     },
   });
 
-  const parentsSantaRosa = await Promise.all(
-    Array.from({ length: 6 }, async (_, index) => {
-      const isMale = index % 2 === 0;
-      const firstName = isMale ? randomElement(NOMBRES_MASCULINOS) : randomElement(NOMBRES_FEMENINOS);
-      const lastNamePaternal = randomElement(APELLIDOS);
-      const lastNameMaternal = randomElement(APELLIDOS);
-      return prisma.user.create({
-        data: {
-          schoolId: schoolSantaRosa.id,
-          email: generateEmail(firstName, lastNamePaternal, 'hotmail.com'),
-          passwordHash: passwordParent,
-          role: 'PARENT',
-          firstName,
-          lastNamePaternal,
-          lastNameMaternal,
-          documentType: 'DNI',
-          documentId: generateDni(),
-          cellphone: `9${randomBetween(60000000, 99999999)}`,
-        },
-      });
-    }),
-  );
-
-  console.log(`  ✅ Usuarios San Ignacio: 1 admin, 2 profesores, ${parentsSanIgnacio.length} padres`);
-  console.log(`  ✅ Usuarios Santa Rosa: 1 admin, 1 profesor, ${parentsSantaRosa.length} padres\n`);
-
-  // ==========================================================================
-  // 3. AÑOS ACADÉMICOS
-  // ==========================================================================
-  console.log('📅 Creando años académicos...');
-
-  const academicYear2026SI = await prisma.academicYear.create({
+  // 👨‍👦 PADRE PRO CON 1 HIJO
+  const padreProUnHijo = await prisma.user.create({
     data: {
-      schoolId: schoolSanIgnacio.id,
+      schoolId: schoolPro.id,
+      email: 'padre.unhijo@innova.edu.pe',
+      passwordHash: passParent,
+      role: 'PARENT',
+      firstName: 'Alejandro',
+      lastNamePaternal: 'Mendoza',
+      lastNameMaternal: 'Alarcón',
+      documentType: 'DNI',
+      documentId: generateDni(),
+      cellphone: '981666000',
+    },
+  });
+
+  console.log('  ✅ Cuentas de SuperAdmin, Admin, Secretaria, Docente y Padres creadas con éxito.\n');
+
+  // ==========================================================================
+  // 3. AÑO ACADÉMICO 2026 ACTIVO
+  // ==========================================================================
+  console.log('📅 Creando Años Académicos 2026...');
+
+  const academicYearBasic = await prisma.academicYear.create({
+    data: {
+      schoolId: schoolBasic.id,
       year: 2026,
-      name: 'Año Escolar 2026',
+      name: 'Año Lectivo 2026 - San Ignacio',
       startDate: new Date('2026-03-01'),
       endDate: new Date('2026-12-19'),
       isActive: true,
     },
   });
 
-  const _academicYear2025SI = await prisma.academicYear.create({
+  const academicYearPro = await prisma.academicYear.create({
     data: {
-      schoolId: schoolSanIgnacio.id,
-      year: 2025,
-      name: 'Año Escolar 2025',
-      startDate: new Date('2025-03-03'),
-      endDate: new Date('2025-12-19'),
-      isActive: false,
-    },
-  });
-
-  const academicYear2026SR = await prisma.academicYear.create({
-    data: {
-      schoolId: schoolSantaRosa.id,
+      schoolId: schoolPro.id,
       year: 2026,
-      name: 'Año Escolar 2026',
-      startDate: new Date('2026-03-02'),
-      endDate: new Date('2026-12-18'),
+      name: 'Año Lectivo 2026 - Innova Academy',
+      startDate: new Date('2026-03-01'),
+      endDate: new Date('2026-12-19'),
       isActive: true,
     },
   });
 
-  console.log('  ✅ San Ignacio: 2025 y 2026');
-  console.log('  ✅ Santa Rosa: 2026\n');
-
   // ==========================================================================
-  // 4. AULAS
+  // 4. CRITERIOS DE EVALUACIÓN INSTITUCIONALES (MINEDU FORMATIVA)
   // ==========================================================================
-  console.log('🏫 Creando aulas...');
+  console.log('📐 Creando Criterios de Evaluación Institucionales...');
 
-  // San Ignacio — Primary (1° a 4° grado)
-  const classroomsSanIgnacio = await Promise.all([
-    prisma.classroom.create({
-      data: { schoolId: schoolSanIgnacio.id, educationLevel: 'PRIMARY', grade: 1, section: 'A', shift: 'MORNING', capacity: 30 },
-    }),
-    prisma.classroom.create({
-      data: { schoolId: schoolSanIgnacio.id, educationLevel: 'PRIMARY', grade: 1, section: 'B', shift: 'MORNING', capacity: 28 },
-    }),
-    prisma.classroom.create({
-      data: { schoolId: schoolSanIgnacio.id, educationLevel: 'PRIMARY', grade: 2, section: 'A', shift: 'MORNING', capacity: 32 },
-    }),
-    prisma.classroom.create({
-      data: { schoolId: schoolSanIgnacio.id, educationLevel: 'PRIMARY', grade: 3, section: 'A', shift: 'AFTERNOON', capacity: 30 },
-    }),
-    prisma.classroom.create({
-      data: { schoolId: schoolSanIgnacio.id, educationLevel: 'SECONDARY', grade: 1, section: 'A', shift: 'MORNING', capacity: 35 },
-    }),
-    prisma.classroom.create({
-      data: { schoolId: schoolSanIgnacio.id, educationLevel: 'SECONDARY', grade: 2, section: 'A', shift: 'MORNING', capacity: 35 },
-    }),
-  ]);
+  const criteriaConfig = [
+    { name: 'Práctica Calificada', shortName: 'PC', weight: 2.0, order: 1 },
+    { name: 'Participación y Tareas', shortName: 'PT', weight: 1.0, order: 2 },
+    { name: 'Revisión de Cuaderno', shortName: 'RC', weight: 1.0, order: 3 },
+    { name: 'Examen Bimestral', shortName: 'EB', weight: 3.0, order: 4 },
+  ];
 
-  // Santa Rosa — Primary y Secondary
-  const classroomsSantaRosa = await Promise.all([
-    prisma.classroom.create({
-      data: { schoolId: schoolSantaRosa.id, educationLevel: 'PRIMARY', grade: 1, section: 'Única', shift: 'MORNING', capacity: 25 },
-    }),
-    prisma.classroom.create({
-      data: { schoolId: schoolSantaRosa.id, educationLevel: 'PRIMARY', grade: 2, section: 'Única', shift: 'MORNING', capacity: 25 },
-    }),
-    prisma.classroom.create({
-      data: { schoolId: schoolSantaRosa.id, educationLevel: 'SECONDARY', grade: 1, section: 'Única', shift: 'AFTERNOON', capacity: 30 },
-    }),
-  ]);
-
-  console.log(`  ✅ San Ignacio: ${classroomsSanIgnacio.length} aulas`);
-  console.log(`  ✅ Santa Rosa: ${classroomsSantaRosa.length} aulas\n`);
-
-  // ==========================================================================
-  // 5. ESTUDIANTES
-  // ==========================================================================
-  console.log('🎒 Creando estudiantes...');
-
-  const createStudents = async (schoolId: string, count: number): Promise<Awaited<ReturnType<typeof prisma.student.create>>[]> =>
-    Promise.all(
-      Array.from({ length: count }, async () => {
-        const isMale = Math.random() > 0.5;
-        const firstNames = isMale ? `${randomElement(NOMBRES_MASCULINOS)} ${randomElement(NOMBRES_MASCULINOS)}` : `${randomElement(NOMBRES_FEMENINOS)} ${randomElement(NOMBRES_FEMENINOS)}`;
-        const lastNamePaternal = randomElement(APELLIDOS);
-        const lastNameMaternal = randomElement(APELLIDOS);
-        const department = randomElement(DEPARTAMENTOS);
-        const district = department === 'LIMA' ? randomElement(DISTRITOS_LIMA) : randomElement(DISTRITOS_AREQUIPA);
-
-        return prisma.student.create({
-          data: {
-            schoolId,
-            firstNames,
-            lastNamePaternal,
-            lastNameMaternal,
-            documentType: 'DNI',
-            documentId: generateDni(),
-            gender: isMale ? 'MALE' : 'FEMALE',
-            birthDate: generateBirthDate(6, 17),
-            birthCountry: 'PERÚ',
-            birthDepartment: department,
-            birthProvince: department,
-            birthDistrict: district,
-            motherTongue: Math.random() > 0.9 ? 'QUECHUA' : 'CASTELLANO',
-            hasDisability: Math.random() < 0.05,
-            address: `Calle Los Pinos ${randomBetween(100, 999)}, ${district}`,
-            studentCode: generateStudentCode(),
-          },
-        });
+  const criteriaBasic = await Promise.all(
+    criteriaConfig.map((c) =>
+      prisma.evaluationCriterion.create({
+        data: { schoolId: schoolBasic.id, ...c, isActive: true },
       }),
-    );
+    ),
+  );
 
-  const studentsSanIgnacio = await createStudents(schoolSanIgnacio.id, 20);
-  const studentsSantaRosa = await createStudents(schoolSantaRosa.id, 12);
+  const criteriaPro = await Promise.all(
+    criteriaConfig.map((c) =>
+      prisma.evaluationCriterion.create({
+        data: { schoolId: schoolPro.id, ...c, isActive: true },
+      }),
+    ),
+  );
 
-  console.log(`  ✅ San Ignacio: ${studentsSanIgnacio.length} estudiantes`);
-  console.log(`  ✅ Santa Rosa: ${studentsSantaRosa.length} estudiantes\n`);
-
-  // ==========================================================================
-  // 6. RELACIONES FAMILIARES
-  // ==========================================================================
-  console.log('👨‍👩‍👧 Creando relaciones familiares...');
-
-  const relationshipTypes: RelationshipType[] = ['MOTHER', 'FATHER'];
-
-  // San Ignacio: cada par de estudiantes tiene un padre de la lista
-  for (let index = 0; index < studentsSanIgnacio.length; index++) {
-    const parentIndex = Math.floor(index / 2) % parentsSanIgnacio.length;
-    const parent = parentsSanIgnacio[parentIndex];
-    const student = studentsSanIgnacio[index];
-
-    // Verificar si ya existe esta relación
-    const existingRelation = await prisma.familyRelationship.findFirst({
-      where: { studentId: student.id, userId: parent.id },
-    });
-
-    if (!existingRelation) {
-      await prisma.familyRelationship.create({
-        data: {
-          studentId: student.id,
-          userId: parent.id,
-          relationshipType: index % 2 === 0 ? 'MOTHER' : 'FATHER',
-          isLegalGuardian: true,
-          isFinancialResponsible: index % 2 === 0,
-          livesWithStudent: true,
-        },
-      });
-    }
-  }
-
-  // Santa Rosa: misma lógica
-  for (let index = 0; index < studentsSantaRosa.length; index++) {
-    const parentIndex = Math.floor(index / 2) % parentsSantaRosa.length;
-    const parent = parentsSantaRosa[parentIndex];
-    const student = studentsSantaRosa[index];
-
-    const existingRelation = await prisma.familyRelationship.findFirst({
-      where: { studentId: student.id, userId: parent.id },
-    });
-
-    if (!existingRelation) {
-      await prisma.familyRelationship.create({
-        data: {
-          studentId: student.id,
-          userId: parent.id,
-          relationshipType: randomElement(relationshipTypes),
-          isLegalGuardian: true,
-          isFinancialResponsible: true,
-          livesWithStudent: Math.random() > 0.1,
-        },
-      });
-    }
-  }
-
-  console.log('  ✅ Relaciones familiares creadas\n');
-
-  // ==========================================================================
-  // 7. MATRÍCULAS
-  // ==========================================================================
-  console.log('📋 Creando matrículas...');
-
-  const enrollmentsSanIgnacio: Awaited<ReturnType<typeof prisma.enrollment.create>>[] = [];
-
-  // Distribuir estudiantes en aulas de San Ignacio
-  const classroomDistributionSI = [
-    { classroom: classroomsSanIgnacio[0], students: studentsSanIgnacio.slice(0, 4) },   // 1°A
-    { classroom: classroomsSanIgnacio[1], students: studentsSanIgnacio.slice(4, 8) },   // 1°B
-    { classroom: classroomsSanIgnacio[2], students: studentsSanIgnacio.slice(8, 12) },  // 2°A
-    { classroom: classroomsSanIgnacio[3], students: studentsSanIgnacio.slice(12, 15) }, // 3°A
-    { classroom: classroomsSanIgnacio[4], students: studentsSanIgnacio.slice(15, 18) }, // 1° Sec
-    { classroom: classroomsSanIgnacio[5], students: studentsSanIgnacio.slice(18, 20) }, // 2° Sec
-  ];
-
-  for (const distribution of classroomDistributionSI) {
-    for (const student of distribution.students) {
-      const enrollment = await prisma.enrollment.create({
-        data: {
-          schoolId: schoolSanIgnacio.id,
-          studentId: student.id,
-          academicYearId: academicYear2026SI.id,
-          classroomId: distribution.classroom.id,
-          enrollmentState: 'REGISTERED',
-          repeatingGrade: Math.random() < 0.05,
-          isActive: true,
-        },
-      });
-      enrollmentsSanIgnacio.push(enrollment);
-    }
-  }
-
-  // Distribuir estudiantes en aulas de Santa Rosa
-  const enrollmentsSantaRosa: Awaited<ReturnType<typeof prisma.enrollment.create>>[] = [];
-
-  const classroomDistributionSR = [
-    { classroom: classroomsSantaRosa[0], students: studentsSantaRosa.slice(0, 5) },  // 1° Única
-    { classroom: classroomsSantaRosa[1], students: studentsSantaRosa.slice(5, 9) },  // 2° Única
-    { classroom: classroomsSantaRosa[2], students: studentsSantaRosa.slice(9, 12) }, // 1° Sec Única
-  ];
-
-  for (const distribution of classroomDistributionSR) {
-    for (const student of distribution.students) {
-      const enrollment = await prisma.enrollment.create({
-        data: {
-          schoolId: schoolSantaRosa.id,
-          studentId: student.id,
-          academicYearId: academicYear2026SR.id,
-          classroomId: distribution.classroom.id,
-          enrollmentState: 'REGISTERED',
-          repeatingGrade: false,
-          isActive: true,
-        },
-      });
-      enrollmentsSantaRosa.push(enrollment);
-    }
-  }
-
-  console.log(`  ✅ San Ignacio: ${enrollmentsSanIgnacio.length} matrículas`);
-  console.log(`  ✅ Santa Rosa: ${enrollmentsSantaRosa.length} matrículas\n`);
-
-  // ==========================================================================
-  // 8. ESCALAS DE CALIFICACIÓN
-  // ==========================================================================
-  console.log('📊 Creando escalas de calificación...');
-
-  const createGradingScales = async (schoolId: string): Promise<void> => {
-    const levels = ['PRIMARY', 'SECONDARY', 'INITIAL'] as const;
-    for (const level of levels) {
+  // Escalas Oficiales AD, A, B, C
+  for (const sId of [schoolBasic.id, schoolPro.id]) {
+    for (const level of ['INITIAL', 'PRIMARY', 'SECONDARY'] as const) {
       await prisma.gradingScale.createMany({
         data: [
-          { schoolId, level, letterGrade: 'AD', minNumeric: 17.5, maxNumeric: 20.0, description: 'Logro destacado' },
-          { schoolId, level, letterGrade: 'A', minNumeric: 14.0, maxNumeric: 17.4, description: 'Logro esperado' },
-          { schoolId, level, letterGrade: 'B', minNumeric: 11.0, maxNumeric: 13.9, description: 'En proceso' },
-          { schoolId, level, letterGrade: 'C', minNumeric: 0.0, maxNumeric: 10.9, description: 'En inicio' },
+          { schoolId: sId, level, letterGrade: 'AD', minNumeric: 17.5, maxNumeric: 20.0, description: 'Logro destacado' },
+          { schoolId: sId, level, letterGrade: 'A', minNumeric: 14.0, maxNumeric: 17.4, description: 'Logro esperado' },
+          { schoolId: sId, level, letterGrade: 'B', minNumeric: 11.0, maxNumeric: 13.9, description: 'En proceso' },
+          { schoolId: sId, level, letterGrade: 'C', minNumeric: 0.0, maxNumeric: 10.9, description: 'En inicio' },
         ],
       });
     }
-  };
-
-  await createGradingScales(schoolSanIgnacio.id);
-  await createGradingScales(schoolSantaRosa.id);
-  console.log('  ✅ Escalas AD/A/B/C creadas para ambos colegios\n');
+  }
 
   // ==========================================================================
-  // 9. ÁREAS CURRICULARES Y COMPETENCIAS
+  // 5. AULAS (INICIAL, PRIMARIA Y SECUNDARIA)
   // ==========================================================================
-  console.log('📚 Creando áreas curriculares y competencias...');
+  console.log('🏫 Creando Aulas...');
 
-  const areasData = [
+  // Aulas Colegio PRO
+  const aulaInicialPro = await prisma.classroom.create({
+    data: { schoolId: schoolPro.id, educationLevel: 'INITIAL', grade: 5, section: 'A', shift: 'MORNING', capacity: 25 },
+  });
+  const aulaPrimaria1Pro = await prisma.classroom.create({
+    data: { schoolId: schoolPro.id, educationLevel: 'PRIMARY', grade: 1, section: 'A', shift: 'MORNING', capacity: 30 },
+  });
+  const aulaPrimaria3Pro = await prisma.classroom.create({
+    data: { schoolId: schoolPro.id, educationLevel: 'PRIMARY', grade: 3, section: 'A', shift: 'MORNING', capacity: 30, tutorTeacherId: docentePro.id },
+  });
+  const aulaSecundaria2Pro = await prisma.classroom.create({
+    data: { schoolId: schoolPro.id, educationLevel: 'SECONDARY', grade: 2, section: 'A', shift: 'MORNING', capacity: 32, tutorTeacherId: docentePro2.id },
+  });
+
+  // Aulas Colegio BASIC
+  const aulaPrimaria2Basic = await prisma.classroom.create({
+    data: { schoolId: schoolBasic.id, educationLevel: 'PRIMARY', grade: 2, section: 'A', shift: 'MORNING', capacity: 28, tutorTeacherId: docenteBasic.id },
+  });
+  const aulaSecundaria1Basic = await prisma.classroom.create({
+    data: { schoolId: schoolBasic.id, educationLevel: 'SECONDARY', grade: 1, section: 'A', shift: 'MORNING', capacity: 30 },
+  });
+
+  // ==========================================================================
+  // 6. ÁREAS CURRICULARES Y COMPETENCIAS OFICIALES
+  // ==========================================================================
+  console.log('📚 Configurando Áreas Curriculares y Competencias MINEDU...');
+
+  const mineduAreas = [
     {
       name: 'Matemática',
       officialCode: 'MAT',
@@ -599,9 +421,9 @@ async function main(): Promise<void> {
       name: 'Ciencia y Tecnología',
       officialCode: 'CYT',
       competences: [
-        'Indaga mediante métodos científicos',
+        'Indaga mediante métodos científicos para construir conocimientos',
         'Explica el mundo físico basándose en conocimientos científicos',
-        'Diseña y construye soluciones tecnológicas',
+        'Diseña y construye soluciones tecnológicas para resolver problemas',
       ],
     },
     {
@@ -609,373 +431,741 @@ async function main(): Promise<void> {
       officialCode: 'PS',
       competences: [
         'Construye su identidad',
-        'Convive y participa democráticamente',
+        'Convive y participa democráticamente en la búsqueda del bien común',
         'Construye interpretaciones históricas',
       ],
     },
     {
-      name: 'Inglés',
+      name: 'Inglés como Lengua Extranjera',
       officialCode: 'ING',
       competences: [
         'Se comunica oralmente en inglés como lengua extranjera',
-        'Lee diversos tipos de textos en inglés',
-        'Escribe diversos tipos de textos en inglés',
+        'Lee diversos tipos de textos en inglés como lengua extranjera',
+        'Escribe diversos tipos de textos en inglés como lengua extranjera',
       ],
     },
   ];
 
-  const createAreasForSchool = async (schoolId: string) => {
-    const createdAreas = [];
-    for (const areaData of areasData) {
+  const setupAreas = async (schoolId: string) => {
+    const areas = [];
+    for (const item of mineduAreas) {
       const area = await prisma.curricularArea.create({
-        data: { schoolId, name: areaData.name, officialCode: areaData.officialCode, isActive: true },
+        data: { schoolId, name: item.name, officialCode: item.officialCode, isActive: true },
       });
-      const competences = await Promise.all(
-        areaData.competences.map((competenceName) =>
+      const comps = await Promise.all(
+        item.competences.map((cName) =>
           prisma.curricularCompetence.create({
-            data: { areaId: area.id, name: competenceName },
+            data: { areaId: area.id, name: cName },
           }),
         ),
       );
-      createdAreas.push({ area, competences });
+      areas.push({ area, comps });
     }
-    return createdAreas;
+    return areas;
   };
 
-  const areasSanIgnacio = await createAreasForSchool(schoolSanIgnacio.id);
-  const areasSantaRosa = await createAreasForSchool(schoolSantaRosa.id);
-
-  console.log(`  ✅ San Ignacio: ${areasSanIgnacio.length} áreas con competencias`);
-  console.log(`  ✅ Santa Rosa: ${areasSantaRosa.length} áreas con competencias\n`);
+  const areasBasic = await setupAreas(schoolBasic.id);
+  const areasPro = await setupAreas(schoolPro.id);
 
   // ==========================================================================
-  // 10. ASIGNACIONES DE CURSOS
+  // 7. ASIGNACIÓN DE CURSOS A DOCENTES
   // ==========================================================================
-  console.log('📌 Creando asignaciones de cursos (docente-aula-área)...');
+  console.log('📌 Asignando Cursos a Docentes...');
 
-  const assignmentsSanIgnacio: Awaited<ReturnType<typeof prisma.courseAssignment.create>>[] = [];
+  // En Colegio PRO: DocentePro enseña Matemática y Comunicación en 3° Primaria
+  const asigMatematicaPrimariaPro = await prisma.courseAssignment.create({
+    data: {
+      schoolId: schoolPro.id,
+      classroomId: aulaPrimaria3Pro.id,
+      areaId: areasPro[0].area.id, // Matemática
+      teacherId: docentePro.id,
+    },
+  });
 
-  // Profesor 1 (Jorge): Matemática y Comunicación en 1°A y 2°A
-  for (const classroom of [classroomsSanIgnacio[0], classroomsSanIgnacio[2]]) {
-    for (const areaData of areasSanIgnacio.slice(0, 2)) {
-      const assignment = await prisma.courseAssignment.create({
-        data: {
-          schoolId: schoolSanIgnacio.id,
-          classroomId: classroom.id,
-          areaId: areaData.area.id,
-          teacherId: teacher1SanIgnacio.id,
-        },
-      });
-      assignmentsSanIgnacio.push(assignment);
-    }
+  const asigComunicacionPrimariaPro = await prisma.courseAssignment.create({
+    data: {
+      schoolId: schoolPro.id,
+      classroomId: aulaPrimaria3Pro.id,
+      areaId: areasPro[1].area.id, // Comunicación
+      teacherId: docentePro.id,
+    },
+  });
+
+  // DocentePro2 enseña Matemática y Ciencia en 2° Secundaria
+  const asigMatematicaSecundariaPro = await prisma.courseAssignment.create({
+    data: {
+      schoolId: schoolPro.id,
+      classroomId: aulaSecundaria2Pro.id,
+      areaId: areasPro[0].area.id, // Matemática
+      teacherId: docentePro2.id,
+    },
+  });
+
+  const asigCienciaSecundariaPro = await prisma.courseAssignment.create({
+    data: {
+      schoolId: schoolPro.id,
+      classroomId: aulaSecundaria2Pro.id,
+      areaId: areasPro[2].area.id, // Ciencia
+      teacherId: docentePro2.id,
+    },
+  });
+
+  // En Colegio BASIC: DocenteBasic enseña Matemática en 2° Primaria
+  const asigMatematicaBasic = await prisma.courseAssignment.create({
+    data: {
+      schoolId: schoolBasic.id,
+      classroomId: aulaPrimaria2Basic.id,
+      areaId: areasBasic[0].area.id,
+      teacherId: docenteBasic.id,
+    },
+  });
+
+  // ==========================================================================
+  // 8. ESTUDIANTES Y RELACIONES FAMILIARES (CASOS DE PRUEBA CLAVE)
+  // ==========================================================================
+  console.log('🎒 Creando Estudiantes y vinculando familias...');
+
+  // 👦 HIJO 1 DEL PADRE PRO (Lucas Silva - 3° Primaria)
+  const alumnoLucasSilva = await prisma.student.create({
+    data: {
+      schoolId: schoolPro.id,
+      firstNames: 'Lucas Matías',
+      lastNamePaternal: 'Silva',
+      lastNameMaternal: 'Gutiérrez',
+      documentType: 'DNI',
+      documentId: '74125896',
+      gender: 'MALE',
+      birthDate: new Date('2017-05-14'),
+      studentCode: generateStudentCode(),
+      address: 'Calle Los Olivos 240, Surco',
+    },
+  });
+
+  // 👧 HIJO 2 DEL PADRE PRO (Valeria Silva - 2° Secundaria)
+  const alumnaValeriaSilva = await prisma.student.create({
+    data: {
+      schoolId: schoolPro.id,
+      firstNames: 'Valeria Sofía',
+      lastNamePaternal: 'Silva',
+      lastNameMaternal: 'Gutiérrez',
+      documentType: 'DNI',
+      documentId: '75236984',
+      gender: 'FEMALE',
+      birthDate: new Date('2013-08-22'),
+      studentCode: generateStudentCode(),
+      address: 'Calle Los Olivos 240, Surco',
+    },
+  });
+
+  // 👦 HIJO ÚNICO DEL PADRE PRO UN HIJO (Gabriel Mendoza - 1° Primaria)
+  const alumnoGabrielMendoza = await prisma.student.create({
+    data: {
+      schoolId: schoolPro.id,
+      firstNames: 'Gabriel Alejandro',
+      lastNamePaternal: 'Mendoza',
+      lastNameMaternal: 'Torres',
+      documentType: 'DNI',
+      documentId: '78965412',
+      gender: 'MALE',
+      birthDate: new Date('2019-02-10'),
+      studentCode: generateStudentCode(),
+      address: 'Av. Primavera 850, Surco',
+    },
+  });
+
+  // 👦 HIJO DEL PADRE BASIC (Mateo Pérez - 2° Primaria Basic)
+  const alumnoMateoPerez = await prisma.student.create({
+    data: {
+      schoolId: schoolBasic.id,
+      firstNames: 'Mateo Sebastián',
+      lastNamePaternal: 'Pérez',
+      lastNameMaternal: 'Gómez',
+      documentType: 'DNI',
+      documentId: '71234567',
+      gender: 'MALE',
+      birthDate: new Date('2018-04-18'),
+      studentCode: generateStudentCode(),
+      address: 'Jr. Libertad 410, San Miguel',
+    },
+  });
+
+  // Crear 4 alumnos extra para poblar las aulas
+  const extraStudent1 = await prisma.student.create({
+    data: { schoolId: schoolPro.id, firstNames: 'Camila Andrea', lastNamePaternal: 'Rojas', lastNameMaternal: 'Paz', documentType: 'DNI', documentId: generateDni(), gender: 'FEMALE', birthDate: new Date('2017-09-11'), studentCode: generateStudentCode() },
+  });
+  const extraStudent2 = await prisma.student.create({
+    data: { schoolId: schoolPro.id, firstNames: 'Diego Fernando', lastNamePaternal: 'Vargas', lastNameMaternal: 'Cruz', documentType: 'DNI', documentId: generateDni(), gender: 'MALE', birthDate: new Date('2013-11-05'), studentCode: generateStudentCode() },
+  });
+  const extraStudent3 = await prisma.student.create({
+    data: { schoolId: schoolBasic.id, firstNames: 'Luciana Belén', lastNamePaternal: 'Quispe', lastNameMaternal: 'López', documentType: 'DNI', documentId: generateDni(), gender: 'FEMALE', birthDate: new Date('2018-07-20'), studentCode: generateStudentCode() },
+  });
+
+  // VINCULACIONES FAMILIARES
+  // Padre Pro -> Vinculado a Lucas (Hijo 1)
+  await prisma.familyRelationship.create({
+    data: {
+      studentId: alumnoLucasSilva.id,
+      userId: padreProDosHijos.id,
+      relationshipType: RelationshipType.FATHER,
+      isLegalGuardian: true,
+      isFinancialResponsible: true,
+      livesWithStudent: true,
+    },
+  });
+
+  // Padre Pro -> Vinculado a Valeria (Hijo 2)
+  await prisma.familyRelationship.create({
+    data: {
+      studentId: alumnaValeriaSilva.id,
+      userId: padreProDosHijos.id,
+      relationshipType: RelationshipType.FATHER,
+      isLegalGuardian: true,
+      isFinancialResponsible: true,
+      livesWithStudent: true,
+    },
+  });
+
+  // Padre Pro Un Hijo -> Vinculado a Gabriel
+  await prisma.familyRelationship.create({
+    data: {
+      studentId: alumnoGabrielMendoza.id,
+      userId: padreProUnHijo.id,
+      relationshipType: RelationshipType.FATHER,
+      isLegalGuardian: true,
+      isFinancialResponsible: true,
+      livesWithStudent: true,
+    },
+  });
+
+  // Padre Basic -> Vinculado a Mateo
+  await prisma.familyRelationship.create({
+    data: {
+      studentId: alumnoMateoPerez.id,
+      userId: padreBasic.id,
+      relationshipType: RelationshipType.FATHER,
+      isLegalGuardian: true,
+      isFinancialResponsible: true,
+      livesWithStudent: true,
+    },
+  });
+
+  // 🎒 CUENTAS DE USUARIO PARA LOS HIJOS / ESTUDIANTES (FLUJO DEL ALUMNO)
+  const passStudent = await hashPassword('Student123!');
+
+  // Alumno Lucas (Hijo 1 en Innova Pro)
+  const userAlumnoLucas = await prisma.user.create({
+    data: {
+      schoolId: schoolPro.id,
+      email: 'alumno.lucas@innova.edu.pe',
+      passwordHash: passStudent,
+      role: 'PARENT',
+      firstName: 'Lucas Matías',
+      lastNamePaternal: 'Silva',
+      lastNameMaternal: 'Gutiérrez',
+      documentType: 'DNI',
+      documentId: '74125896',
+      cellphone: '981555001',
+    },
+  });
+
+  // Alumna Valeria (Hija 2 en Innova Pro)
+  const userAlumnaValeria = await prisma.user.create({
+    data: {
+      schoolId: schoolPro.id,
+      email: 'alumno.valeria@innova.edu.pe',
+      passwordHash: passStudent,
+      role: 'PARENT',
+      firstName: 'Valeria Sofía',
+      lastNamePaternal: 'Silva',
+      lastNameMaternal: 'Gutiérrez',
+      documentType: 'DNI',
+      documentId: '75236984',
+      cellphone: '981555002',
+    },
+  });
+
+  // Alumno Gabriel (Hijo Único en Innova Pro)
+  const userAlumnoGabriel = await prisma.user.create({
+    data: {
+      schoolId: schoolPro.id,
+      email: 'alumno.gabriel@innova.edu.pe',
+      passwordHash: passStudent,
+      role: 'PARENT',
+      firstName: 'Gabriel Alejandro',
+      lastNamePaternal: 'Mendoza',
+      lastNameMaternal: 'Torres',
+      documentType: 'DNI',
+      documentId: '78965412',
+      cellphone: '981666001',
+    },
+  });
+
+  // Alumno Mateo (Hijo en San Ignacio Basic)
+  const userAlumnoMateo = await prisma.user.create({
+    data: {
+      schoolId: schoolBasic.id,
+      email: 'alumno.mateo@sanignacio.edu.pe',
+      passwordHash: passStudent,
+      role: 'PARENT',
+      firstName: 'Mateo Sebastián',
+      lastNamePaternal: 'Pérez',
+      lastNameMaternal: 'Gómez',
+      documentType: 'DNI',
+      documentId: '71234567',
+      cellphone: '987444556',
+    },
+  });
+
+  // Vinculación de los usuarios-alumnos con su propio registro de estudiante
+  await prisma.familyRelationship.create({
+    data: {
+      studentId: alumnoLucasSilva.id,
+      userId: userAlumnoLucas.id,
+      relationshipType: RelationshipType.OTHER,
+      isLegalGuardian: false,
+      isFinancialResponsible: false,
+      livesWithStudent: true,
+    },
+  });
+
+  await prisma.familyRelationship.create({
+    data: {
+      studentId: alumnaValeriaSilva.id,
+      userId: userAlumnaValeria.id,
+      relationshipType: RelationshipType.OTHER,
+      isLegalGuardian: false,
+      isFinancialResponsible: false,
+      livesWithStudent: true,
+    },
+  });
+
+  await prisma.familyRelationship.create({
+    data: {
+      studentId: alumnoGabrielMendoza.id,
+      userId: userAlumnoGabriel.id,
+      relationshipType: RelationshipType.OTHER,
+      isLegalGuardian: false,
+      isFinancialResponsible: false,
+      livesWithStudent: true,
+    },
+  });
+
+  await prisma.familyRelationship.create({
+    data: {
+      studentId: alumnoMateoPerez.id,
+      userId: userAlumnoMateo.id,
+      relationshipType: RelationshipType.OTHER,
+      isLegalGuardian: false,
+      isFinancialResponsible: false,
+      livesWithStudent: true,
+    },
+  });
+
+  // ==========================================================================
+  // 9. MATRÍCULAS 2026
+  // ==========================================================================
+  console.log('📋 Registrando Matrículas...');
+
+  // Lucas Silva en 3° Primaria Pro
+  const matLucas = await prisma.enrollment.create({
+    data: {
+      schoolId: schoolPro.id,
+      studentId: alumnoLucasSilva.id,
+      academicYearId: academicYearPro.id,
+      classroomId: aulaPrimaria3Pro.id,
+      enrollmentState: 'REGISTERED',
+      isActive: true,
+    },
+  });
+
+  // Camila Rojas en 3° Primaria Pro
+  const matCamila = await prisma.enrollment.create({
+    data: {
+      schoolId: schoolPro.id,
+      studentId: extraStudent1.id,
+      academicYearId: academicYearPro.id,
+      classroomId: aulaPrimaria3Pro.id,
+      enrollmentState: 'REGISTERED',
+      isActive: true,
+    },
+  });
+
+  // Valeria Silva en 2° Secundaria Pro
+  const matValeria = await prisma.enrollment.create({
+    data: {
+      schoolId: schoolPro.id,
+      studentId: alumnaValeriaSilva.id,
+      academicYearId: academicYearPro.id,
+      classroomId: aulaSecundaria2Pro.id,
+      enrollmentState: 'REGISTERED',
+      isActive: true,
+    },
+  });
+
+  // Diego Vargas en 2° Secundaria Pro
+  const matDiego = await prisma.enrollment.create({
+    data: {
+      schoolId: schoolPro.id,
+      studentId: extraStudent2.id,
+      academicYearId: academicYearPro.id,
+      classroomId: aulaSecundaria2Pro.id,
+      enrollmentState: 'REGISTERED',
+      isActive: true,
+    },
+  });
+
+  // Gabriel Mendoza en 1° Primaria Pro
+  await prisma.enrollment.create({
+    data: {
+      schoolId: schoolPro.id,
+      studentId: alumnoGabrielMendoza.id,
+      academicYearId: academicYearPro.id,
+      classroomId: aulaPrimaria1Pro.id,
+      enrollmentState: 'REGISTERED',
+      isActive: true,
+    },
+  });
+
+  // Mateo Pérez en 2° Primaria Basic
+  const matMateo = await prisma.enrollment.create({
+    data: {
+      schoolId: schoolBasic.id,
+      studentId: alumnoMateoPerez.id,
+      academicYearId: academicYearBasic.id,
+      classroomId: aulaPrimaria2Basic.id,
+      enrollmentState: 'REGISTERED',
+      isActive: true,
+    },
+  });
+
+  // Luciana Quispe en 2° Primaria Basic
+  await prisma.enrollment.create({
+    data: {
+      schoolId: schoolBasic.id,
+      studentId: extraStudent3.id,
+      academicYearId: academicYearBasic.id,
+      classroomId: aulaPrimaria2Basic.id,
+      enrollmentState: 'REGISTERED',
+      isActive: true,
+    },
+  });
+
+  // ==========================================================================
+  // 10. CALIFICACIONES Y CONCLUSIONES POR COMPETENCIA (NOTAS REALES)
+  // ==========================================================================
+  console.log('📝 Cargando Notas Detalladas y Conclusiones...');
+
+  // Poblar notas para Lucas en Matemática (3° Primaria)
+  const compMatematica1Pro = areasPro[0].comps[0]; // Resuelve problemas de cantidad
+  const compMatematica2Pro = areasPro[0].comps[1]; // Regularidad y cambio
+
+  // Notas Bimestre 1 para Lucas y Camila
+  for (const crit of criteriaPro) {
+    // Lucas (Destacado AD: 18.0)
+    await prisma.detailedGrade.create({
+      data: {
+        schoolId: schoolPro.id,
+        enrollmentId: matLucas.id,
+        courseAssignmentId: asigMatematicaPrimariaPro.id,
+        competenceId: compMatematica1Pro.id,
+        criterionId: crit.id,
+        periodNumber: 1,
+        numericScore: crit.shortName === 'EB' ? 19.0 : 17.5,
+      },
+    });
+
+    // Camila (Esperado A: 15.5)
+    await prisma.detailedGrade.create({
+      data: {
+        schoolId: schoolPro.id,
+        enrollmentId: matCamila.id,
+        courseAssignmentId: asigMatematicaPrimariaPro.id,
+        competenceId: compMatematica1Pro.id,
+        criterionId: crit.id,
+        periodNumber: 1,
+        numericScore: crit.shortName === 'EB' ? 16.0 : 15.0,
+      },
+    });
   }
 
-  // Profesor 2 (Lucía): Inglés y Ciencia en 1°B y Secundaria 1°A
-  for (const classroom of [classroomsSanIgnacio[1], classroomsSanIgnacio[4]]) {
-    for (const areaData of [areasSanIgnacio[2], areasSanIgnacio[4]]) {
-      const assignment = await prisma.courseAssignment.create({
-        data: {
-          schoolId: schoolSanIgnacio.id,
-          classroomId: classroom.id,
-          areaId: areaData.area.id,
-          teacherId: teacher2SanIgnacio.id,
-        },
-      });
-      assignmentsSanIgnacio.push(assignment);
-    }
+  // Conclusión descriptiva oficial para Lucas (Bimestre 1)
+  await prisma.competenceConclusion.create({
+    data: {
+      schoolId: schoolPro.id,
+      enrollmentId: matLucas.id,
+      courseAssignmentId: asigMatematicaPrimariaPro.id,
+      competenceId: compMatematica1Pro.id,
+      periodNumber: 1,
+      conclusion: 'El estudiante demuestra excelente autonomía al resolver operaciones con números naturales y fracciones, justificando con claridad sus procedimientos lógicos.',
+    },
+  });
+
+  // Notas para Valeria Silva en 2° Secundaria (Matemática y Ciencia)
+  for (const crit of criteriaPro) {
+    await prisma.detailedGrade.create({
+      data: {
+        schoolId: schoolPro.id,
+        enrollmentId: matValeria.id,
+        courseAssignmentId: asigMatematicaSecundariaPro.id,
+        competenceId: compMatematica1Pro.id,
+        criterionId: crit.id,
+        periodNumber: 1,
+        numericScore: 18.0,
+      },
+    });
   }
 
-  // Santa Rosa — Matemática y Comunicación con el único profesor
-  const assignmentsSantaRosa: Awaited<ReturnType<typeof prisma.courseAssignment.create>>[] = [];
-  for (const classroom of classroomsSantaRosa) {
-    for (const areaData of areasSantaRosa.slice(0, 2)) {
-      const assignment = await prisma.courseAssignment.create({
-        data: {
-          schoolId: schoolSantaRosa.id,
-          classroomId: classroom.id,
-          areaId: areaData.area.id,
-          teacherId: teacher1SantaRosa.id,
-        },
-      });
-      assignmentsSantaRosa.push(assignment);
-    }
-  }
-
-  console.log(`  ✅ San Ignacio: ${assignmentsSanIgnacio.length} asignaciones`);
-  console.log(`  ✅ Santa Rosa: ${assignmentsSantaRosa.length} asignaciones\n`);
+  await prisma.competenceConclusion.create({
+    data: {
+      schoolId: schoolPro.id,
+      enrollmentId: matValeria.id,
+      courseAssignmentId: asigMatematicaSecundariaPro.id,
+      competenceId: compMatematica1Pro.id,
+      periodNumber: 1,
+      conclusion: 'Valeria analiza con solidez modelos algebraicos y funciones, comunicando sus resultados de manera clara y ordenada.',
+    },
+  });
 
   // ==========================================================================
-  // 11. ENTRADAS DE CALIFICACIÓN (GradeEntry) Y NOTAS
+  // 11. AULA VIRTUAL (MATERIALES, TAREAS Y FOROS)
   // ==========================================================================
-  console.log('📝 Creando entradas de calificación y notas...');
+  console.log('💻 Publicando Contenidos en Aula Virtual para Supervisión...');
 
-  let totalGrades = 0;
+  // Material de clase publicado por DocentePro
+  const contentMaterial = await prisma.courseContent.create({
+    data: {
+      schoolId: schoolPro.id,
+      courseAssignmentId: asigMatematicaPrimariaPro.id,
+      teacherId: docentePro.id,
+      bimester: 1,
+      contentType: 'LESSON_MATERIAL',
+      title: 'Guía de Polígonos y Geometría Plana',
+      description: 'Estimados alumnos, aquí encontrarán la diapositiva y las fórmulas de perímetros y áreas vistas en clase.',
+      fileUrl: 'https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OIvE2e10/view',
+      fileName: 'Guia_Geometria_Bimestre1.pdf',
+      fileType: 'application/pdf',
+      fileSize: 2450000,
+    },
+  });
 
-  for (const assignment of assignmentsSanIgnacio) {
-    // Encontrar el área y sus competencias
-    const matchingArea = areasSanIgnacio.find((a) => a.area.id === assignment.areaId);
-    if (!matchingArea) continue;
+  // Tarea con fecha límite
+  const contentHomework = await prisma.courseContent.create({
+    data: {
+      schoolId: schoolPro.id,
+      courseAssignmentId: asigMatematicaPrimariaPro.id,
+      teacherId: docentePro.id,
+      bimester: 1,
+      contentType: 'HOMEWORK',
+      title: 'Ficha Práctica N° 3: Resolución de Ecuaciones',
+      description: 'Desarrollar los 5 ejercicios de la ficha y subir la solución escaneada en formato PDF.',
+      fileUrl: 'https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OIvE2e10/view',
+      fileName: 'Ficha_Practica_Ecuaciones.pdf',
+      fileType: 'application/pdf',
+      fileSize: 1200000,
+      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // En 7 días
+    },
+  });
 
-    // Encontrar matrículas del aula correspondiente
-    const enrollmentsInClassroom = enrollmentsSanIgnacio.filter(
-      (e) => e.classroomId === assignment.classroomId,
-    );
+  // Foro de debate con comentarios
+  const contentForum = await prisma.courseContent.create({
+    data: {
+      schoolId: schoolPro.id,
+      courseAssignmentId: asigMatematicaPrimariaPro.id,
+      teacherId: docentePro.id,
+      bimester: 1,
+      contentType: 'FORUM',
+      title: 'Foro: ¿Cómo aplicamos los porcentajes en las compras cotidianas?',
+      description: 'Comparte un ejemplo de tu vida diaria donde hayas calculado descuentos o IGV en compras reales.',
+    },
+  });
 
-    // Por cada competencia creamos GradeEntries de Bimestre 1 y 2
-    for (const competence of matchingArea.competences.slice(0, 2)) {
-      for (const periodNumber of [1, 2]) {
-        // Un GradeEntry por (competencia + bimestre)
-        const gradeEntry = await prisma.gradeEntry.create({
-          data: {
-            courseAssignmentId: assignment.id,
-            periodNumber,
-            assessmentType: periodNumber === 1 ? 'FORMATIVE' : 'SUMMATIVE',
-            title: `${competence.name} — Bimestre ${periodNumber}`,
-            weight: 1.0,
-            maxScore: 20.0,
-          },
-        });
-
-        // Una nota por enrollment en ese GradeEntry (unique gradeEntryId + enrollmentId ✅)
-        for (const enrollment of enrollmentsInClassroom) {
-          await prisma.grade.create({
-            data: {
-              gradeEntryId: gradeEntry.id,
-              enrollmentId: enrollment.id,
-              competenceId: competence.id,
-              numericScore: randomFloat(8, 20),
-              teacherComment:
-                Math.random() < 0.15 ? 'Necesita reforzamiento en los temas tratados.' : undefined,
-            },
-          });
-          totalGrades++;
-        }
-      }
-    }
-  }
-
-  console.log(`  ✅ ${totalGrades} notas registradas\n`);
-
-  // ==========================================================================
-  // 12. OBLIGACIONES DE PAGO Y TRANSACCIONES
-  // ==========================================================================
-  console.log('💰 Creando obligaciones de pago y transacciones...');
-
-  const meses = [
-    { title: 'Matrícula 2026', concept: 'MATRICULA', amount: 300, dueDate: new Date('2026-02-15') },
-    { title: 'Pensión Marzo 2026', concept: 'PENSION', amount: 350, dueDate: new Date('2026-03-10') },
-    { title: 'Pensión Abril 2026', concept: 'PENSION', amount: 350, dueDate: new Date('2026-04-10') },
-    { title: 'Pensión Mayo 2026', concept: 'PENSION', amount: 350, dueDate: new Date('2026-05-10') },
-    { title: 'Pensión Junio 2026', concept: 'PENSION', amount: 350, dueDate: new Date('2026-06-10') },
-  ];
-
-  let totalObligations = 0;
-  let totalTransactions = 0;
-
-  // San Ignacio — pagos para las primeras 10 matrículas
-  for (const enrollment of enrollmentsSanIgnacio.slice(0, 10)) {
-    for (const mes of meses) {
-      const obligation = await prisma.paymentObligation.create({
-        data: {
-          schoolId: schoolSanIgnacio.id,
-          enrollmentId: enrollment.id,
-          title: mes.title,
-          concept: mes.concept,
-          amountDue: mes.amount,
-          dueDate: mes.dueDate,
-          status: 'PENDING',
-        },
-      });
-      totalObligations++;
-
-      // Simular diferentes estados de pago
-      const paymentChance = Math.random();
-
-      if (paymentChance > 0.3) {
-        // PAGADO
-        await prisma.paymentTransaction.create({
-          data: {
-            schoolId: schoolSanIgnacio.id,
-            obligationId: obligation.id,
-            amountPaid: mes.amount,
-            paymentMethod: randomElement(['CASH', 'BANK_TRANSFER', 'CREDIT_CARD'] as const),
-            operationNumber: `OP-${randomBetween(100000, 999999)}`,
-            receiptType: 'BOLETA',
-            receiptNumber: `B001-${randomBetween(1000, 9999)}`,
-          },
-        });
-        await prisma.paymentObligation.update({
-          where: { id: obligation.id },
-          data: { status: 'PAID' },
-        });
-        totalTransactions++;
-      } else if (paymentChance > 0.15) {
-        // PAGO PARCIAL
-        const partialAmount = mes.amount * 0.5;
-        await prisma.paymentTransaction.create({
-          data: {
-            schoolId: schoolSanIgnacio.id,
-            obligationId: obligation.id,
-            amountPaid: partialAmount,
-            paymentMethod: 'CASH',
-            notes: 'Pago parcial acordado con apoderado.',
-          },
-        });
-        await prisma.paymentObligation.update({
-          where: { id: obligation.id },
-          data: { status: 'PARTIAL' },
-        });
-        totalTransactions++;
-      }
-      // El resto queda PENDING
-    }
-  }
-
-  // Santa Rosa — pagos más pequeños
-  const mesesSR = [
-    { title: 'Matrícula 2026', concept: 'MATRICULA', amount: 150, dueDate: new Date('2026-02-20') },
-    { title: 'Pensión Marzo 2026', concept: 'PENSION', amount: 200, dueDate: new Date('2026-03-10') },
-    { title: 'Pensión Abril 2026', concept: 'PENSION', amount: 200, dueDate: new Date('2026-04-10') },
-  ];
-
-  for (const enrollment of enrollmentsSantaRosa) {
-    for (const mes of mesesSR) {
-      const obligation = await prisma.paymentObligation.create({
-        data: {
-          schoolId: schoolSantaRosa.id,
-          enrollmentId: enrollment.id,
-          title: mes.title,
-          concept: mes.concept,
-          amountDue: mes.amount,
-          dueDate: mes.dueDate,
-          status: 'PENDING',
-        },
-      });
-      totalObligations++;
-
-      if (Math.random() > 0.4) {
-        await prisma.paymentTransaction.create({
-          data: {
-            schoolId: schoolSantaRosa.id,
-            obligationId: obligation.id,
-            amountPaid: mes.amount,
-            paymentMethod: randomElement(['CASH', 'BANK_TRANSFER'] as const),
-            receiptType: 'BOLETA',
-            receiptNumber: `B001-${randomBetween(1000, 9999)}`,
-          },
-        });
-        await prisma.paymentObligation.update({
-          where: { id: obligation.id },
-          data: { status: 'PAID' },
-        });
-        totalTransactions++;
-      }
-    }
-  }
-
-  console.log(`  ✅ ${totalObligations} obligaciones de pago`);
-  console.log(`  ✅ ${totalTransactions} transacciones registradas\n`);
+  // Comentario del profesor y de un alumno en el foro
+  await prisma.forumComment.create({
+    data: {
+      schoolId: schoolPro.id,
+      courseContentId: contentForum.id,
+      userId: docentePro.id,
+      content: 'Bienvenidos al foro. Recuerden citar el porcentaje de descuento y el precio final de su producto.',
+    },
+  });
 
   // ==========================================================================
-  // 13. ASISTENCIA
+  // 12. ASISTENCIAS (ÚLTIMOS 10 DÍAS LECTIVOS)
   // ==========================================================================
-  console.log('✋ Creando registros de asistencia...');
+  console.log('✋ Registrando Asistencias...');
 
-  const attendanceStatuses: AttendanceStatus[] = ['PRESENT', 'ABSENT_JUSTIFIED', 'ABSENT_UNJUSTIFIED', 'LATE_JUSTIFIED'];
-
-  // Registrar asistencia para las últimas 5 semanas (lunes a viernes) en San Ignacio
   const today = new Date();
-  let totalAttendances = 0;
+  for (let i = 9; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    d.setHours(0, 0, 0, 0);
 
-  for (let weekOffset = 4; weekOffset >= 0; weekOffset--) {
-    for (let dayOffset = 0; dayOffset < 5; dayOffset++) {
-      const attendanceDate = new Date(today);
-      attendanceDate.setDate(today.getDate() - weekOffset * 7 - (4 - dayOffset));
-      attendanceDate.setHours(0, 0, 0, 0);
+    // Solo de lunes a viernes
+    if (d.getDay() === 0 || d.getDay() === 6) continue;
 
-      // Solo días hábiles (lunes a viernes = 1 a 5)
-      const dayOfWeek = attendanceDate.getDay();
-      if (dayOfWeek === 0 || dayOfWeek === 6) continue;
+    // Asistencia de Lucas Silva (3° Primaria Pro)
+    await prisma.attendance.create({
+      data: {
+        schoolId: schoolPro.id,
+        enrollmentId: matLucas.id,
+        date: d,
+        status: i === 2 ? 'LATE_JUSTIFIED' : 'PRESENT',
+        checkInTime: new Date(d.getTime() + (i === 2 ? 8 * 60 + 15 : 7 * 60 + 50) * 60 * 1000),
+      },
+    });
 
-      // San Ignacio — primeras 15 matrículas
-      for (const enrollment of enrollmentsSanIgnacio.slice(0, 15)) {
-        const randomStatus = Math.random();
-        const status =
-          randomStatus > 0.1
-            ? 'PRESENT'
-            : randomStatus > 0.05
-            ? 'ABSENT_JUSTIFIED'
-            : randomStatus > 0.02
-            ? 'LATE_JUSTIFIED'
-            : 'ABSENT_UNJUSTIFIED';
+    // Asistencia de Valeria Silva (2° Secundaria Pro)
+    await prisma.attendance.create({
+      data: {
+        schoolId: schoolPro.id,
+        enrollmentId: matValeria.id,
+        date: d,
+        status: 'PRESENT',
+        checkInTime: new Date(d.getTime() + (7 * 60 + 45) * 60 * 1000),
+      },
+    });
 
-        await prisma.attendance.upsert({
-          where: { enrollmentId_date: { enrollmentId: enrollment.id, date: attendanceDate } },
-          update: {},
-          create: {
-            schoolId: schoolSanIgnacio.id,
-            enrollmentId: enrollment.id,
-            date: attendanceDate,
-            status,
-            notes: status !== 'PRESENT' ? 'Registrado por profesor' : undefined,
-          },
-        });
-        totalAttendances++;
-      }
+    // Asistencia de Mateo Pérez (2° Primaria Basic)
+    await prisma.attendance.create({
+      data: {
+        schoolId: schoolBasic.id,
+        enrollmentId: matMateo.id,
+        date: d,
+        status: 'PRESENT',
+        checkInTime: new Date(d.getTime() + (7 * 60 + 55) * 60 * 1000),
+      },
+    });
+  }
 
-      // Santa Rosa — todas sus matrículas
-      for (const enrollment of enrollmentsSantaRosa) {
-        const status: AttendanceStatus = Math.random() > 0.08 ? 'PRESENT' : randomElement(attendanceStatuses);
+  // ==========================================================================
+  // 13. FINANZAS / PENSIONES (PAGADAS Y PENDIENTES)
+  // ==========================================================================
+  console.log('💰 Generando Cronograma de Pensiones y Recibos...');
 
-        await prisma.attendance.upsert({
-          where: { enrollmentId_date: { enrollmentId: enrollment.id, date: attendanceDate } },
-          update: {},
-          create: {
-            schoolId: schoolSantaRosa.id,
-            enrollmentId: enrollment.id,
-            date: attendanceDate,
-            status,
-          },
-        });
-        totalAttendances++;
-      }
+  const cronogramaMeses = [
+    { title: 'Matrícula Escolar 2026', concept: 'MATRICULA', amount: 350.0, dueDate: new Date('2026-02-15'), isPaid: true },
+    { title: 'Pensión Marzo 2026', concept: 'PENSION', amount: 420.0, dueDate: new Date('2026-03-10'), isPaid: true },
+    { title: 'Pensión Abril 2026', concept: 'PENSION', amount: 420.0, dueDate: new Date('2026-04-10'), isPaid: true },
+    { title: 'Pensión Mayo 2026', concept: 'PENSION', amount: 420.0, dueDate: new Date('2026-05-10'), isPaid: false },
+    { title: 'Pensión Junio 2026', concept: 'PENSION', amount: 420.0, dueDate: new Date('2026-06-10'), isPaid: false },
+  ];
+
+  // Crear cronograma para Lucas Silva (Padre con 2 hijos)
+  for (const c of cronogramaMeses) {
+    const ob = await prisma.paymentObligation.create({
+      data: {
+        schoolId: schoolPro.id,
+        enrollmentId: matLucas.id,
+        title: c.title,
+        concept: c.concept,
+        amountDue: c.amount,
+        dueDate: c.dueDate,
+        status: c.isPaid ? 'PAID' : 'PENDING',
+      },
+    });
+
+    if (c.isPaid) {
+      await prisma.paymentTransaction.create({
+        data: {
+          schoolId: schoolPro.id,
+          obligationId: ob.id,
+          amountPaid: c.amount,
+          paymentDate: new Date(c.dueDate.getTime() - 2 * 24 * 60 * 60 * 1000),
+          paymentMethod: 'BANK_TRANSFER',
+          operationNumber: `OP-${randomBetween(100000, 999999)}`,
+          receiptType: 'BOLETA',
+          receiptNumber: `B001-${randomBetween(1000, 9999)}`,
+        },
+      });
     }
   }
 
-  console.log(`  ✅ ${totalAttendances} registros de asistencia (5 semanas)\n`);
+  // Crear cronograma para Valeria Silva (Hija 2)
+  for (const c of cronogramaMeses.slice(0, 4)) {
+    const ob = await prisma.paymentObligation.create({
+      data: {
+        schoolId: schoolPro.id,
+        enrollmentId: matValeria.id,
+        title: c.title,
+        concept: c.concept,
+        amountDue: c.amount,
+        dueDate: c.dueDate,
+        status: c.isPaid ? 'PAID' : 'PENDING',
+      },
+    });
+
+    if (c.isPaid) {
+      await prisma.paymentTransaction.create({
+        data: {
+          schoolId: schoolPro.id,
+          obligationId: ob.id,
+          amountPaid: c.amount,
+          paymentDate: new Date(c.dueDate.getTime() - 1 * 24 * 60 * 60 * 1000),
+          paymentMethod: 'CREDIT_CARD',
+          operationNumber: `OP-${randomBetween(100000, 999999)}`,
+          receiptType: 'BOLETA',
+          receiptNumber: `B001-${randomBetween(1000, 9999)}`,
+        },
+      });
+    }
+  }
 
   // ==========================================================================
-  // RESUMEN FINAL
+  // 14. COMUNICADOS OFICIALES
   // ==========================================================================
-  console.log('═══════════════════════════════════════════════════════════');
-  console.log('✅  SEED COMPLETADO — RESUMEN DE DATOS GENERADOS');
-  console.log('═══════════════════════════════════════════════════════════');
-  console.log(`🏫  Colegios:          2`);
-  console.log(`👤  Usuarios:          ${2 + 3 + parentsSanIgnacio.length + parentsSantaRosa.length} (admins, docentes, padres)`);
-  console.log(`🎒  Estudiantes:       ${studentsSanIgnacio.length + studentsSantaRosa.length}`);
-  console.log(`📋  Matrículas:        ${enrollmentsSanIgnacio.length + enrollmentsSantaRosa.length}`);
-  console.log(`📚  Áreas curriculares: ${areasData.length * 2} (${areasData.length} por colegio)`);
-  console.log(`📊  Escalas de notas:  AD / A / B / C (ambos colegios)`);
-  console.log(`💰  Obligaciones pago: ${totalObligations}`);
-  console.log(`💳  Transacciones:     ${totalTransactions}`);
-  console.log(`📝  Notas:             ${totalGrades}`);
-  console.log(`✋  Asistencias:       ${totalAttendances}`);
-  console.log('═══════════════════════════════════════════════════════════');
-  console.log('\n📌 CREDENCIALES DE ACCESO:');
-  console.log('─────────────────────────────────────────────────────────');
-  console.log('🏫 SAN IGNACIO DE LOYOLA');
-  console.log(`   Admin:    admin@sanignacio.edu.pe  / Admin123!`);
-  console.log(`   Docente:  jmartinez@sanignacio.edu.pe / Teacher123!`);
-  console.log(`   Docente:  lflores@sanignacio.edu.pe   / Teacher123!`);
-  console.log('\n🏫 SANTA ROSA DE LIMA');
-  console.log(`   Admin:    admin@santarosa.edu.pe   / Admin123!`);
-  console.log(`   Docente:  rquispe@santarosa.edu.pe / Teacher123!`);
-  console.log('─────────────────────────────────────────────────────────\n');
+  await prisma.announcement.create({
+    data: {
+      schoolId: schoolPro.id,
+      authorId: adminPro.id,
+      title: '¡Bienvenidos al Año Escolar 2026 en Innova Academy!',
+      content: 'Estimada comunidad educativa, les damos la más cordial bienvenida a este nuevo año académico. Los accesos a las aulas virtuales y plataformas ya se encuentran habilitados.',
+      priority: 'IMPORTANT',
+      targetRoles: ['TEACHER', 'PARENT', 'ADMINISTRATIVE'],
+    },
+  });
+
+  // ==========================================================================
+  // RESUMEN CON TABLA DE CREDENCIALES
+  // ==========================================================================
+  console.log('\n======================================================');
+  console.log('🎉 SEED COMPLETADO EXITOSAMENTE');
+  console.log('======================================================\n');
+  console.log('🔑 CREDENCIALES LISTAS PARA PROBAR CADA EXPERIENCIA:\n');
+
+  console.log('👑 1. SUPER ADMIN GLOBAL (Acceso a todos los colegios):');
+  console.log('   Email:     superadmin@saaschool.com');
+  console.log('   Password:  Admin123!\n');
+
+  console.log('🏢 2. COLEGIO PRO (Innova Academy - Plan PRO):');
+  console.log('   Director:  admin.pro@innova.edu.pe       / Admin123!');
+  console.log('   Secretaría: secretaria.pro@innova.edu.pe   / Admin123!');
+  console.log('   Docente:   docente.pro@innova.edu.pe      / Teacher123!');
+  console.log('   👨‍👧‍👦 Padre CON 2 HIJOS:');
+  console.log('              padre.doshijos@innova.edu.pe   / Parent123!');
+  console.log('              • Hijo 1: Lucas Silva (3° Primaria "A")');
+  console.log('              • Hijo 2: Valeria Silva (2° Secundaria "A")');
+  console.log('   👨‍👦 Padre CON 1 HIJO:');
+  console.log('              padre.unhijo@innova.edu.pe     / Parent123!');
+  console.log('              • Hijo: Gabriel Mendoza (1° Primaria "A")');
+  console.log('   🎒 CUENTAS DE LOS HIJOS (Flujo Alumno):');
+  console.log('              • Lucas (Hijo 1 Pro):   alumno.lucas@innova.edu.pe   / Student123!');
+  console.log('              • Valeria (Hija 2 Pro): alumno.valeria@innova.edu.pe / Student123!');
+  console.log('              • Gabriel (Hijo Pro):   alumno.gabriel@innova.edu.pe / Student123!\n');
+
+  console.log('🏫 3. COLEGIO BASIC (I.E. San Ignacio - Plan BASIC):');
+  console.log('   Director:  admin.basic@sanignacio.edu.pe      / Admin123!');
+  console.log('   Secretaría: secretaria.basic@sanignacio.edu.pe  / Admin123!');
+  console.log('   Docente:   docente.basic@sanignacio.edu.pe     / Teacher123!');
+  console.log('   Padre:     padre.basic@sanignacio.edu.pe       / Parent123!');
+  console.log('              • Hijo: Mateo Pérez (2° Primaria "A")');
+  console.log('   🎒 Alumno Basic:');
+  console.log('              • Mateo (Hijo Basic):   alumno.mateo@sanignacio.edu.pe / Student123!\n');
+  console.log('======================================================\n');
 }
 
 main()
-  .catch((error: unknown) => {
-    console.error('❌ Error en el seed:', error);
+  .catch((e) => {
+    console.error('❌ Error fatal en el seed:', e);
     process.exit(1);
   })
   .finally(async () => {

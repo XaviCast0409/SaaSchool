@@ -36,9 +36,9 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const PLAN_PRICES: Record<string, number> = {
-  BASIC: 40,
-  PRO: 90,
-  ENTERPRISE: 150,
+  BASIC: 400,
+  PRO: 650,
+  ENTERPRISE: 1200,
 };
 
 const PLAN_STUDENT_QUOTAS: Record<string, number> = {
@@ -89,7 +89,7 @@ export const SuperAdminPage: React.FC = () => {
   const totalStudentsInPlatform = schools.reduce((acc, s) => acc + (s._count?.students || 0), 0);
   const estimatedMRR = schools
     .filter((s) => s.isActive)
-    .reduce((acc, s) => acc + (PLAN_PRICES[s.plan] || 40), 0);
+    .reduce((acc, s) => acc + (PLAN_PRICES[s.plan] || 400), 0);
 
   const handleToggleStatus = (school: SchoolWithStats) => {
     if (school.isActive) {
@@ -155,15 +155,15 @@ export const SuperAdminPage: React.FC = () => {
 
         <Card className="border-border bg-card shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-bold uppercase text-muted-foreground">MRR Estimado ($/mes)</CardTitle>
+            <CardTitle className="text-xs font-bold uppercase text-muted-foreground">MRR Estimado (S/ mes)</CardTitle>
             <DollarSign className="w-4 h-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <Skeleton className="h-8 w-24" />
+               <Skeleton className="h-8 w-24" />
             ) : (
               <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
-                ${estimatedMRR.toFixed(2)}
+                S/ {estimatedMRR.toFixed(2)}
               </div>
             )}
             <p className="text-[11px] text-muted-foreground mt-1">Ingresos recurrentes mensuales</p>
@@ -227,9 +227,9 @@ export const SuperAdminPage: React.FC = () => {
               className="rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
             >
               <option value="ALL">Todos los Planes</option>
-              <option value="BASIC">Plan BASIC ($40/mes)</option>
-              <option value="PRO">Plan PRO ($90/mes)</option>
-              <option value="ENTERPRISE">Plan ENTERPRISE ($150/mes)</option>
+              <option value="BASIC">Plan BASIC (S/ 400/mes)</option>
+              <option value="PRO">Plan PRO (S/ 650/mes)</option>
+              <option value="ENTERPRISE">Plan ENTERPRISE (S/ 1,200/mes)</option>
             </select>
           </div>
         </div>
@@ -281,7 +281,7 @@ export const SuperAdminPage: React.FC = () => {
                             variant={item.plan === 'PRO' ? 'default' : item.plan === 'ENTERPRISE' ? 'success' : 'secondary'}
                             className="font-bold text-[10px]"
                           >
-                            {item.plan} (${PLAN_PRICES[item.plan] || 40}/mes)
+                            {item.plan} (S/ {PLAN_PRICES[item.plan] || 400}/mes)
                           </Badge>
                         </TableCell>
                         <TableCell>

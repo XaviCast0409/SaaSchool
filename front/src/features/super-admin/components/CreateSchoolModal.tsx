@@ -117,9 +117,9 @@ export const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({ isOpen, on
                   {...register('plan')}
                   className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-xs font-bold text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 >
-                  <option value="BASIC">Plan BASIC ($40/mes - Fase 1)</option>
-                  <option value="PRO">Plan PRO ($90/mes - Fase 2)</option>
-                  <option value="ENTERPRISE">Plan ENTERPRISE ($150/mes - Todo Incluido)</option>
+                  <option value="BASIC">Plan BASIC (S/ 400/mes - Fase 1)</option>
+                  <option value="PRO">Plan PRO (S/ 650/mes - Fase 2)</option>
+                  <option value="ENTERPRISE">Plan ENTERPRISE (S/ 1,200/mes - Todo Incluido)</option>
                 </select>
               </div>
             </div>

@@ -88,9 +88,9 @@ export const EditSchoolPlanModal: React.FC<EditSchoolPlanModalProps> = ({
               {...register('plan')}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-xs font-bold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer shadow-sm"
             >
-              <option value="BASIC">Plan BASIC ($40/mes - Fase 1)</option>
-              <option value="PRO">Plan PRO ($90/mes - Fase 2)</option>
-              <option value="ENTERPRISE">Plan ENTERPRISE ($150/mes - Todo Incluido)</option>
+              <option value="BASIC">Plan BASIC (S/ 400/mes - Fase 1)</option>
+              <option value="PRO">Plan PRO (S/ 650/mes - Fase 2)</option>
+              <option value="ENTERPRISE">Plan ENTERPRISE (S/ 1,200/mes - Todo Incluido)</option>
             </select>
           </div>
 
