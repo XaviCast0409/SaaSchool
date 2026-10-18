@@ -83,8 +83,8 @@ export const TeacherAdminGradesView: React.FC = () => {
         const tName = a.teacher
           ? `Prof. ${a.teacher.firstName} ${a.teacher.lastNamePaternal}`
           : isTeacher && user
-          ? `Prof. ${user.firstName} ${user.lastNamePaternal}`
-          : '—';
+            ? `Prof. ${user.firstName} ${user.lastNamePaternal}`
+            : '—';
         return {
           id: a.id,
           name: a.area ? a.area.name : 'Curso General',
@@ -165,7 +165,7 @@ export const TeacherAdminGradesView: React.FC = () => {
           <div className="flex items-center gap-2">
             <BookOpenCheck className="w-6 h-6 text-primary" />
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Registro de Notas (Evaluación Formativa / SIAGIE)
+              Registro de Notas
             </h1>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
@@ -243,11 +243,10 @@ export const TeacherAdminGradesView: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveGradeTab('matrix')}
-              className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold border-b-2 transition-all ${
-                activeGradeTab === 'matrix'
+              className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold border-b-2 transition-all ${activeGradeTab === 'matrix'
                   ? 'border-primary text-primary bg-primary/5 rounded-t-lg'
                   : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}
+                }`}
             >
               <Layers className="w-3.5 h-3.5" />
               <span>Criterios de Evaluación</span>
@@ -256,11 +255,10 @@ export const TeacherAdminGradesView: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveGradeTab('conclusions')}
-              className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold border-b-2 transition-all ${
-                activeGradeTab === 'conclusions'
+              className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold border-b-2 transition-all ${activeGradeTab === 'conclusions'
                   ? 'border-primary text-primary bg-primary/5 rounded-t-lg'
                   : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}
+                }`}
             >
               <Sparkles className="w-3.5 h-3.5 text-primary" />
               <span>Conclusiones por Competencias</span>

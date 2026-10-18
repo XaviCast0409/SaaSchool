@@ -7,4 +7,7 @@ prisma/migrations/
 google-credentials*.json
 credentials*.json
 *.pem
+backups/
+*.dump
+*.sql
 

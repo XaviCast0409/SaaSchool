@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: saaschool-backend
+    runtime: node
+    plan: free
+    rootDir: back
+    buildCommand: pnpm install && pnpm run render-build
+    startCommand: pnpm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: BCRYPT_ROUNDS
+        value: 12
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REFRESH_TOKEN
+        sync: false
+      - key: GOOGLE_DRIVE_FOLDER_ID
+        sync: false
+      - key: USER_EMAIL
+        sync: false
+      - key: PASS_EMAIL
+        sync: false
+      - key: VAPID_PUBLIC_KEY
+        value: BDycXn1jX1LXpQl2Adj-7gSn6FmG5pk5doNB_YYR3lKCDHBMv-0OpacqwUoXByoXxdfsG1GpcIgYxgVeenz9sFc
+      - key: VAPID_PRIVATE_KEY
+        value: lGd3yRSQ4Dt0txdXBLZ_jD83Fldw0rIN40nvds8jad4
+      - key: VAPID_SUBJECT
+        value: mailto:soporte@saaschool.com

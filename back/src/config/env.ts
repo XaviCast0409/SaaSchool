@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { z } from 'zod';
 
 // Validar que todas las variables de entorno requeridas estén presentes

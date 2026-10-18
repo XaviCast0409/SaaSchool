@@ -9,11 +9,24 @@ const startServer = async (): Promise<void> => {
     await prisma.$connect();
     console.log('✅ Conexión con PostgreSQL establecida');
 
-    app.listen(env.PORT, () => {
-      console.log(`🚀 SaaSchool API corriendo en http://localhost:${env.PORT}`);
+    const server = app.listen(env.PORT, '0.0.0.0', () => {
+      console.log(`🚀 SaaSchool API corriendo en puerto ${env.PORT}`);
       console.log(`📋 Ambiente: ${env.NODE_ENV}`);
       console.log(`❤️  Health check: http://localhost:${env.PORT}/health`);
     });
+
+    // Graceful shutdown para Render y contenedores Docker
+    const shutdown = async (signal: string) => {
+      console.log(`🛑 Señal ${signal} recibida. Cerrando conexiones limpiamente...`);
+      server.close(async () => {
+        await prisma.$disconnect();
+        console.log('🔒 Conexiones cerradas. Servidor finalizado.');
+        process.exit(0);
+      });
+    };
+
+    process.on('SIGTERM', () => void shutdown('SIGTERM'));
+    process.on('SIGINT', () => void shutdown('SIGINT'));
   } catch (startupError) {
     console.error('❌ Error al iniciar el servidor:', startupError);
     await prisma.$disconnect();

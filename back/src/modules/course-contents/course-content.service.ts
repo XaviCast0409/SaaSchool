@@ -1,5 +1,5 @@
 import { CourseContentRepository } from './course-content.repository';
-import type { CreateCourseContentDto } from './course-content.schema';
+import type { CreateCourseContentDto, SupervisionFilterDto } from './course-content.schema';
 import { AppError } from '../../core/errors/app-error';
 
 export class CourseContentService {
@@ -52,7 +52,7 @@ export class CourseContentService {
       throw new AppError('Publicación no encontrada.', 404);
     }
 
-    const isAdmin = user.role === 'SCHOOL_ADMIN' || user.role === 'SUPER_ADMIN';
+    const isAdmin = user.role === 'SCHOOL_ADMIN' || user.role === 'SUPER_ADMIN' || user.role === 'ADMINISTRATIVE';
     if (!isAdmin && content.teacherId !== user.id) {
       throw new AppError('No tienes permisos para eliminar esta publicación.', 403);
     }
@@ -98,4 +98,17 @@ export class CourseContentService {
   async getStudentTasks(schoolId: string, studentId: string) {
     return this.repository.findStudentTasks(schoolId, studentId);
   }
+
+  async getSupervisionStats(schoolId: string, bimester?: number) {
+    return this.repository.getSupervisionStats(schoolId, bimester);
+  }
+
+  async getTeacherCompliance(schoolId: string, bimester?: number) {
+    return this.repository.getTeacherCompliance(schoolId, bimester);
+  }
+
+  async getSupervisedFeed(schoolId: string, filters: SupervisionFilterDto) {
+    return this.repository.findSupervisedFeed(schoolId, filters);
+  }
 }
+

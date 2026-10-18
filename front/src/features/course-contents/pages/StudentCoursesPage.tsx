@@ -22,8 +22,20 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuthStore } from '@/store/useAuthStore';
+import { VirtualClassroomSupervisionView } from '../components/supervision/VirtualClassroomSupervisionView';
 
 export const StudentCoursesPage: React.FC = () => {
+  const { user } = useAuthStore();
+  const isAdminOrStaff =
+    user?.role === 'SCHOOL_ADMIN' ||
+    user?.role === 'SUPER_ADMIN' ||
+    user?.role === 'ADMINISTRATIVE';
+
+  if (isAdminOrStaff) {
+    return <VirtualClassroomSupervisionView />;
+  }
+
   const [searchParams, setSearchParams] = useSearchParams();
   const { selectedChildId, setSelectedChildId } = useParentStore();
   const { data: children = [], isLoading: loadingChildren } = useGetMyChildren();

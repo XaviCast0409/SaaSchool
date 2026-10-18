@@ -127,3 +127,116 @@ export interface StudentTasksResponse {
   homeworks: StudentHomeworkItem[];
   forums: StudentForumItem[];
 }
+
+export interface SupervisionStats {
+  totalContents: number;
+  lessonMaterialsCount: number;
+  homeworksCount: number;
+  forumsCount: number;
+  totalSizeBytes: number;
+  totalAssignments: number;
+  coursesWithContentCount: number;
+  coveragePercentage: number;
+  activeTeachersCount: number;
+  totalTeachers: number;
+  totalComments: number;
+  recentContents: Array<{
+    id: string;
+    title: string;
+    contentType: ContentType;
+    createdAt: string;
+    fileName?: string | null;
+    fileUrl?: string | null;
+    teacher: {
+      id: string;
+      firstName: string;
+      lastNamePaternal: string;
+    };
+    courseAssignment: {
+      classroom: {
+        grade: number;
+        section: string;
+        educationLevel: string;
+      };
+      area: {
+        name: string;
+      };
+    };
+  }>;
+}
+
+export interface TeacherComplianceCourse {
+  assignmentId: string;
+  areaName: string;
+  classroomLabel: string;
+  contentsCount: number;
+}
+
+export interface TeacherComplianceItem {
+  id: string;
+  fullName: string;
+  email: string;
+  assignedCoursesCount: number;
+  coursesWithContentCount: number;
+  totalContents: number;
+  lastPublishedAt: string | null;
+  status: 'COMPLIANT' | 'PARTIAL' | 'INACTIVE';
+  courses: TeacherComplianceCourse[];
+}
+
+export interface SupervisedContentItem {
+  id: string;
+  title: string;
+  description?: string | null;
+  contentType: ContentType;
+  bimester: number;
+  fileName?: string | null;
+  fileUrl?: string | null;
+  fileType?: string | null;
+  fileSize?: number | null;
+  dueDate?: string | null;
+  createdAt: string;
+  teacher: {
+    id: string;
+    firstName: string;
+    lastNamePaternal: string;
+    lastNameMaternal?: string | null;
+    email: string;
+  };
+  courseAssignment: {
+    classroom: {
+      id: string;
+      grade: number;
+      section: string;
+      educationLevel: 'INITIAL' | 'PRIMARY' | 'SECONDARY';
+    };
+    area: {
+      id: string;
+      name: string;
+      officialCode?: string | null;
+    };
+  };
+  _count: {
+    comments: number;
+  };
+}
+
+export interface SupervisedFeedResponse {
+  items: SupervisedContentItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface SupervisionFeedFilters {
+  bimester?: number;
+  classroomId?: string;
+  teacherId?: string;
+  educationLevel?: 'INITIAL' | 'PRIMARY' | 'SECONDARY';
+  contentType?: ContentType;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+

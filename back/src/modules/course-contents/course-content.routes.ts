@@ -34,6 +34,27 @@ courseContentRouter.get(
   controller.getByAssignment,
 );
 
+// ==========================================
+// SUPERVISIÓN Y ANALÍTICA (DIRECCIÓN Y SECRETARÍA)
+// ==========================================
+courseContentRouter.get(
+  '/supervision/stats',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
+  controller.getSupervisionStats,
+);
+
+courseContentRouter.get(
+  '/supervision/teacher-compliance',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
+  controller.getTeacherCompliance,
+);
+
+courseContentRouter.get(
+  '/supervision/feed',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
+  controller.getSupervisedFeed,
+);
+
 // Detalle de una publicación específica
 courseContentRouter.get(
   '/:id',
@@ -48,10 +69,10 @@ courseContentRouter.post(
   controller.create,
 );
 
-// Eliminar publicación (Docente autor o Dirección)
+// Eliminar publicación (Docente autor, Dirección o Secretaría)
 courseContentRouter.delete(
   '/:id',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),
   controller.delete,
 );
 

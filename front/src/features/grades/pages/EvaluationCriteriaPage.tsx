@@ -231,7 +231,7 @@ export const EvaluationCriteriaPage: React.FC = () => {
               1. <strong>Cada Competencia Curricular</strong> (definida por el MINEDU) se subdivide en estos criterios institucionales durante el bimestre.
             </p>
             <p>
-              2. El docente ingresa la calificación vigesimal ($0$ a $20$) en cada criterio.
+              2. El docente ingresa la calificación vigesimal (0 a 20) en cada criterio.
             </p>
             <p>
               3. El sistema calcula automáticamente el <strong>Promedio de la Competencia</strong> utilizando la ponderación definida aquí y realiza la conversión inmediata a la escala oficial (<strong>AD</strong>, <strong>A</strong>, <strong>B</strong>, <strong>C</strong>).
@@ -424,9 +424,8 @@ export const EvaluationCriteriaPage: React.FC = () => {
                   {criteria.map((c) => (
                     <tr
                       key={c.id}
-                      className={`hover:bg-muted/30 transition-colors ${
-                        !c.isActive ? 'opacity-50 bg-muted/20' : ''
-                      }`}
+                      className={`hover:bg-muted/30 transition-colors ${!c.isActive ? 'opacity-50 bg-muted/20' : ''
+                        }`}
                     >
                       {/* Orden */}
                       <td className="p-3 text-center font-mono font-bold text-muted-foreground">
@@ -455,8 +454,8 @@ export const EvaluationCriteriaPage: React.FC = () => {
                             {c.educationLevel === 'INITIAL'
                               ? 'Inicial'
                               : c.educationLevel === 'PRIMARY'
-                              ? 'Primaria'
-                              : 'Secundaria'}
+                                ? 'Primaria'
+                                : 'Secundaria'}
                           </Badge>
                         ) : (
                           <Badge variant="outline" className="text-[10px] text-muted-foreground border-border">

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   BookOpen,
   ClipboardList,
@@ -9,12 +9,14 @@ import {
   Cloud,
   Clock,
   Sparkles,
+  Eye,
 } from 'lucide-react';
 import type { CourseContent } from '../types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getDirectDownloadUrl, isGoogleDriveUrl } from '../utils/fileUrls';
 import { getFileMetadata, getDueDateStatus, formatFileSize } from '../utils/fileHelpers';
+import { DocumentPreviewModal } from './DocumentPreviewModal';
 
 interface CourseContentCardProps {
   content: CourseContent;
@@ -29,6 +31,7 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
   onDelete,
   canManage = false,
 }) => {
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const isHomework = content.contentType === 'HOMEWORK';
   const isForum = content.contentType === 'FORUM';
   const isMaterial = content.contentType === 'LESSON_MATERIAL';
@@ -137,7 +140,7 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
                 {isDrive && (
                   <span className="inline-flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400">
                     <Cloud className="w-3 h-3" />
-                    <span>Google Drive</span>
+                    <span>Enlace Cloud</span>
                   </span>
                 )}
                 {content.fileSize && (
@@ -147,16 +150,31 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
             </div>
           </div>
 
-          <a
-            href={downloadUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            download
-            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-all shadow-sm shrink-0 text-xs w-full sm:w-auto"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Descargar</span>
-          </a>
+          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+            {/* Opción 1: Ver Archivo directamente en visor interactivo */}
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setIsPreviewOpen(true)}
+              className="flex-1 sm:flex-none gap-1.5 h-9 px-3.5 text-xs font-bold rounded-xl shadow-xs"
+            >
+              <Eye className="w-3.5 h-3.5" />
+              <span>Ver Archivo</span>
+            </Button>
+
+            {/* Opción Descarga: Descargar archivo directamente */}
+            <a
+              href={downloadUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              download
+              className="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-xl border border-input bg-card hover:bg-muted text-foreground font-bold transition-all text-xs shrink-0"
+              title="Descargar archivo a tu dispositivo"
+            >
+              <Download className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="hidden sm:inline">Descargar</span>
+            </a>
+          </div>
         </div>
       )}
 
@@ -180,6 +198,15 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
           </Button>
         </div>
       )}
+
+      {/* Modal de Vista Previa Interactiva */}
+      <DocumentPreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        fileUrl={content.fileUrl}
+        fileName={content.fileName}
+        title={content.title}
+      />
     </div>
   );
 };

@@ -48,7 +48,7 @@ export const StudentsPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <Users className="w-6 h-6 text-primary" />
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Directorio de Estudiantes (SIAGIE)
+              Directorio de Estudiantes
             </h1>
           </div>
           <p className="text-sm text-muted-foreground mt-1">

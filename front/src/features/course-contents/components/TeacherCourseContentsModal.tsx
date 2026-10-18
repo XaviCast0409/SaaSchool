@@ -117,7 +117,7 @@ export const TeacherCourseContentsModal: React.FC<TeacherCourseContentsModalProp
                   </Badge>
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
                     <Cloud className="w-3 h-3" />
-                    <span>Google Drive 5 TB</span>
+                    <span>Almacenamiento Cloud</span>
                   </span>
                 </div>
 
@@ -291,7 +291,7 @@ export const TeacherCourseContentsModal: React.FC<TeacherCourseContentsModalProp
                     Aún no hay publicaciones en el {selectedBimester}° Bimestre
                   </h3>
                   <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-                    Comienza a nutrir tu aula virtual. Los estudiantes podrán acceder a tus materiales en Google Drive (5 TB), entregar tareas y participar en foros.
+                    Comienza a nutrir tu aula virtual. Los estudiantes podrán acceder a tus materiales digitales, entregar tareas y participar en foros.
                   </p>
                 </div>
 

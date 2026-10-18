@@ -144,7 +144,7 @@ export const TeacherMyCoursesView: React.FC = () => {
             Mis Cursos Asignados
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            Prof. {user?.firstName} {user?.lastNamePaternal} • Publica materiales en Google Drive (5 TB) y registra calificaciones.
+            Prof. {user?.firstName} {user?.lastNamePaternal} • Publica materiales en el aula virtual y registra calificaciones.
           </p>
         </div>
 
@@ -194,8 +194,8 @@ export const TeacherMyCoursesView: React.FC = () => {
             </div>
             <div>
               <p className="text-[10px] font-bold text-muted-foreground uppercase">Aula Virtual</p>
-              <p className="text-base sm:text-lg font-black text-foreground">Google Drive 5TB</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Archivos directos listos</p>
+              <p className="text-base sm:text-lg font-black text-foreground">Almacenamiento Cloud</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Recursos digitales listos</p>
             </div>
           </CardContent>
         </Card>

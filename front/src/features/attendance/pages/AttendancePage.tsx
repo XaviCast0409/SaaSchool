@@ -160,7 +160,7 @@ export const AttendancePage: React.FC = () => {
             className="gap-2 shadow-sm bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl h-10 px-4"
           >
             <QrCode className="w-4 h-4" />
-            <span>Kiosco Lector QR</span>
+            <span>Lector QR</span>
           </Button>
 
           {/* Tomar Asistencia Masiva Button */}
@@ -213,11 +213,10 @@ export const AttendancePage: React.FC = () => {
       <div className="flex items-center gap-1 border-b border-border overflow-x-auto">
         <button
           onClick={() => setActiveTab('DAILY')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap -mb-px ${
-            activeTab === 'DAILY'
-              ? 'border-primary text-primary font-bold'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap -mb-px ${activeTab === 'DAILY'
+            ? 'border-primary text-primary font-bold'
+            : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
         >
           <CalendarCheck className="w-4 h-4" />
           <span>Control Diario</span>
@@ -225,23 +224,21 @@ export const AttendancePage: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('MATRIX')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap -mb-px ${
-            activeTab === 'MATRIX'
-              ? 'border-primary text-primary font-bold'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap -mb-px ${activeTab === 'MATRIX'
+            ? 'border-primary text-primary font-bold'
+            : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
         >
           <Grid3X3 className="w-4 h-4 text-emerald-600" />
-          <span>Sábana Mensual (Matriz 1..31)</span>
+          <span>Asistencia por Días</span>
         </button>
 
         <button
           onClick={() => setActiveTab('MONTHLY')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap -mb-px ${
-            activeTab === 'MONTHLY'
-              ? 'border-primary text-primary font-bold'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap -mb-px ${activeTab === 'MONTHLY'
+            ? 'border-primary text-primary font-bold'
+            : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
         >
           <BarChart3 className="w-4 h-4 text-sky-600" />
           <span>Reporte & KPIs</span>
@@ -404,11 +401,10 @@ export const AttendancePage: React.FC = () => {
               <Button
                 size="sm"
                 variant={statusFilter === 'ABSENT' ? 'default' : 'outline'}
-                className={`h-8 text-xs font-semibold ${
-                  statusFilter === 'ABSENT'
-                    ? 'bg-destructive text-destructive-foreground'
-                    : 'text-destructive hover:bg-destructive/10'
-                }`}
+                className={`h-8 text-xs font-semibold ${statusFilter === 'ABSENT'
+                  ? 'bg-destructive text-destructive-foreground'
+                  : 'text-destructive hover:bg-destructive/10'
+                  }`}
                 onClick={() => {
                   setStatusFilter('ABSENT');
                   setCurrentPage(1);
@@ -419,11 +415,10 @@ export const AttendancePage: React.FC = () => {
               <Button
                 size="sm"
                 variant={statusFilter === 'LATE' ? 'default' : 'outline'}
-                className={`h-8 text-xs font-semibold ${
-                  statusFilter === 'LATE'
-                    ? 'bg-amber-600 text-white'
-                    : 'text-amber-600 hover:bg-amber-500/10'
-                }`}
+                className={`h-8 text-xs font-semibold ${statusFilter === 'LATE'
+                  ? 'bg-amber-600 text-white'
+                  : 'text-amber-600 hover:bg-amber-500/10'
+                  }`}
                 onClick={() => {
                   setStatusFilter('LATE');
                   setCurrentPage(1);
@@ -434,11 +429,10 @@ export const AttendancePage: React.FC = () => {
               <Button
                 size="sm"
                 variant={statusFilter === 'PRESENT' ? 'default' : 'outline'}
-                className={`h-8 text-xs font-semibold ${
-                  statusFilter === 'PRESENT'
-                    ? 'bg-emerald-600 text-white'
-                    : 'text-emerald-600 hover:bg-emerald-500/10'
-                }`}
+                className={`h-8 text-xs font-semibold ${statusFilter === 'PRESENT'
+                  ? 'bg-emerald-600 text-white'
+                  : 'text-emerald-600 hover:bg-emerald-500/10'
+                  }`}
                 onClick={() => {
                   setStatusFilter('PRESENT');
                   setCurrentPage(1);
@@ -517,11 +511,10 @@ export const AttendancePage: React.FC = () => {
                             <TableCell>
                               <button
                                 onClick={() => setNotesModalRecord(item)}
-                                className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded border transition-colors ${
-                                  item.notes
-                                    ? 'border-primary/40 bg-primary/5 text-primary hover:bg-primary/10'
-                                    : 'border-border text-muted-foreground hover:border-primary/30 hover:text-foreground'
-                                }`}
+                                className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded border transition-colors ${item.notes
+                                  ? 'border-primary/40 bg-primary/5 text-primary hover:bg-primary/10'
+                                  : 'border-border text-muted-foreground hover:border-primary/30 hover:text-foreground'
+                                  }`}
                                 title={item.notes || 'Sin observaciones'}
                               >
                                 <MessageSquare className="w-3 h-3" />
@@ -540,11 +533,10 @@ export const AttendancePage: React.FC = () => {
                                       key={opt.value}
                                       disabled={isItemUpdating}
                                       onClick={() => handleStatusChange(item.id, opt.value)}
-                                      className={`px-2 py-1 rounded text-xs font-medium border transition-colors ${
-                                        isSelected
-                                          ? 'bg-primary text-primary-foreground border-primary font-semibold'
-                                          : `border-border bg-background text-muted-foreground ${opt.color}`
-                                      }`}
+                                      className={`px-2 py-1 rounded text-xs font-medium border transition-colors ${isSelected
+                                        ? 'bg-primary text-primary-foreground border-primary font-semibold'
+                                        : `border-border bg-background text-muted-foreground ${opt.color}`
+                                        }`}
                                     >
                                       {isItemUpdating && isSelected ? (
                                         <Loader2 className="w-3 h-3 animate-spin inline mr-1" />

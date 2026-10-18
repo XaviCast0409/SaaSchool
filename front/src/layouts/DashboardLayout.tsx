@@ -21,6 +21,7 @@ import {
   ShieldAlert,
   UserCheck,
   SlidersHorizontal,
+  Laptop,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/button';
@@ -134,6 +135,13 @@ export const DashboardLayout: React.FC = () => {
           icon: UserCheck,
           roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'],
           minPlan: 'BASIC',
+        },
+        {
+          label: 'Supervisión Aula Virtual',
+          path: '/virtual-classroom-supervision',
+          icon: Laptop,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'],
+          minPlan: 'PRO',
         },
       ],
     },

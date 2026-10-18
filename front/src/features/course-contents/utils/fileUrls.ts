@@ -51,10 +51,48 @@ export const getDirectDownloadUrl = (url?: string | null): string => {
 
   // 3. Archivos locales subidos al SaaS (/uploads/materials/...)
   if (url.startsWith('/uploads')) {
-    const envApi = (import.meta as unknown as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL;
+    const envApi = import.meta.env.VITE_API_URL;
     const backendBase = envApi ? envApi.replace('/api', '') : 'http://localhost:3000';
     return `${backendBase}${url}`;
   }
 
   return url;
 };
+
+/**
+ * Convierte cualquier enlace en una URL embebible para visualización en modal o iframe
+ */
+export const getPreviewUrl = (url?: string | null): string => {
+  if (!url) return '';
+
+  if (isGoogleDriveUrl(url)) {
+    const driveId = extractGoogleDriveId(url);
+    if (driveId) {
+      return `https://drive.google.com/file/d/${driveId}/preview`;
+    }
+  }
+
+  if (url.startsWith('/uploads')) {
+    const envApi = import.meta.env.VITE_API_URL;
+    const backendBase = envApi ? envApi.replace('/api', '') : 'http://localhost:3000';
+    return `${backendBase}${url}`;
+  }
+
+  return url;
+};
+
+/**
+ * Determina si el archivo es una imagen directa
+ */
+export const isImageUrl = (url?: string | null, fileName?: string | null): boolean => {
+  const target = (fileName || url || '').toLowerCase();
+  return (
+    target.endsWith('.png') ||
+    target.endsWith('.jpg') ||
+    target.endsWith('.jpeg') ||
+    target.endsWith('.webp') ||
+    target.endsWith('.gif') ||
+    target.endsWith('.svg')
+  );
+};
+

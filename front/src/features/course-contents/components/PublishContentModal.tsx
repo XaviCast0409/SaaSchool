@@ -313,7 +313,7 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
                     }`}
                   >
                     <Cloud className="w-3 h-3" />
-                    <span>Google Drive</span>
+                    <span>Enlace Cloud</span>
                   </button>
                 </div>
               </div>
@@ -360,29 +360,29 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
                 </div>
               )}
 
-              {/* Modo 2: Enlace de Google Drive / Nube */}
+              {/* Modo 2: Enlace Cloud */}
               {attachmentMode === 'DRIVE' && (
                 <div className="space-y-2 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300">
                     <Cloud className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <span>Enlace compartido de Google Drive</span>
+                    <span>Enlace compartido en la nube</span>
                   </div>
                   <Input
                     type="url"
                     value={driveUrl}
                     onChange={(e) => setDriveUrl(e.target.value)}
-                    placeholder="Pega el enlace de Google Drive (ej: https://drive.google.com/file/d/...)"
+                    placeholder="Pega el enlace compartido del archivo (ej: https://...)"
                     className="text-xs bg-background"
                   />
 
                   {isGoogleDriveUrl(driveUrl) ? (
                     <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20">
                       <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
-                      <span>¡Enlace de Drive reconocido! Se activará la descarga directa en 1 clic para los alumnos.</span>
+                      <span>¡Enlace en la nube reconocido! Se activará la descarga directa en 1 clic para los alumnos.</span>
                     </div>
                   ) : (
                     <p className="text-[10px] text-muted-foreground leading-relaxed">
-                      💡 <strong>Tip para Drive:</strong> En Google Drive, haz clic derecho en el archivo &gt; <em>Compartir</em> &gt; Cambiar a <em>"Cualquier persona con el enlace (Lector)"</em> para que el alumno descargue directo sin pedir permiso.
+                      💡 <strong>Tip:</strong> Asegúrate de que el archivo tenga permisos de lectura para que cualquier persona con el enlace pueda abrirlo o descargarlo sin restricciones.
                     </p>
                   )}
 

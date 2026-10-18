@@ -1,6 +1,10 @@
 import { Request, Response } from 'express';
 import { CourseContentService } from './course-content.service';
-import { createCourseContentSchema, createForumCommentSchema } from './course-content.schema';
+import {
+  createCourseContentSchema,
+  createForumCommentSchema,
+  supervisionFilterSchema,
+} from './course-content.schema';
 
 export class CourseContentController {
   constructor(private readonly service: CourseContentService) {}
@@ -73,4 +77,29 @@ export class CourseContentController {
     const data = await this.service.getStudentTasks(schoolId, studentId);
     res.status(200).json({ status: 'success', data });
   };
+
+  getSupervisionStats = async (req: Request, res: Response): Promise<void> => {
+    const schoolId = req.user!.schoolId;
+    const bimester = req.query.bimester ? Number(req.query.bimester) : undefined;
+
+    const data = await this.service.getSupervisionStats(schoolId, bimester);
+    res.status(200).json({ status: 'success', data });
+  };
+
+  getTeacherCompliance = async (req: Request, res: Response): Promise<void> => {
+    const schoolId = req.user!.schoolId;
+    const bimester = req.query.bimester ? Number(req.query.bimester) : undefined;
+
+    const data = await this.service.getTeacherCompliance(schoolId, bimester);
+    res.status(200).json({ status: 'success', data });
+  };
+
+  getSupervisedFeed = async (req: Request, res: Response): Promise<void> => {
+    const schoolId = req.user!.schoolId;
+    const filters = supervisionFilterSchema.parse(req.query);
+
+    const data = await this.service.getSupervisedFeed(schoolId, filters);
+    res.status(200).json({ status: 'success', data });
+  };
 }
+

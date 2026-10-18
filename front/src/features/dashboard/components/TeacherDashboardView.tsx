@@ -89,7 +89,7 @@ export const TeacherDashboardView: React.FC = () => {
   const quickActions = [
     {
       title: 'Mis Cursos & Aula Virtual',
-      desc: 'Sube diapositivas PPT, guías Word y tareas con Google Drive (5 TB)',
+      desc: 'Sube diapositivas PPT, guías Word y tareas en la nube',
       icon: BookOpen,
       path: '/teacher-assignments',
       color: 'bg-primary/10 text-primary border-primary/20',

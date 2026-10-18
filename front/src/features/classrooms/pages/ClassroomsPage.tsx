@@ -177,7 +177,7 @@ export const ClassroomsPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <SchoolIcon className="w-6 h-6 text-primary" />
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Grados Académicos y Aulas (SIAGIE MINEDU)
+              Grados Académicos y Aulas
             </h1>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
@@ -248,11 +248,10 @@ export const ClassroomsPage: React.FC = () => {
           <button
             key={level}
             onClick={() => setActiveTab(level)}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap -mb-px ${
-              activeTab === level
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap -mb-px ${activeTab === level
                 ? 'border-primary text-primary'
                 : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
-            }`}
+              }`}
           >
             <Layers className="w-4 h-4" />
             <span>{LEVEL_CONFIG[level].label.split(' (')[0]}</span>
@@ -270,8 +269,8 @@ export const ClassroomsPage: React.FC = () => {
           {activeTab === 'INITIAL'
             ? 'UNIDOCENCIA'
             : activeTab === 'PRIMARY'
-            ? 'UNIDOCENCIA (1°-2°) / POLIDOCENCIA (3°-6°)'
-            : 'POLIDOCENCIA (ASIGNATURAS)'}
+              ? 'UNIDOCENCIA (1°-2°) / POLIDOCENCIA (3°-6°)'
+              : 'POLIDOCENCIA (ASIGNATURAS)'}
         </Badge>
       </div>
 
@@ -308,13 +307,12 @@ export const ClassroomsPage: React.FC = () => {
             return (
               <Card key={c.id} className="hover:shadow-md transition-shadow relative overflow-hidden">
                 <div
-                  className={`absolute top-0 left-0 right-0 h-1.5 ${
-                    c.educationLevel === 'INITIAL'
+                  className={`absolute top-0 left-0 right-0 h-1.5 ${c.educationLevel === 'INITIAL'
                       ? 'bg-amber-500'
                       : c.educationLevel === 'PRIMARY'
-                      ? 'bg-sky-500'
-                      : 'bg-purple-500'
-                  }`}
+                        ? 'bg-sky-500'
+                        : 'bg-purple-500'
+                    }`}
                 />
                 <CardHeader className="pb-2 pt-4">
                   <div className="flex items-center justify-between">
@@ -336,11 +334,10 @@ export const ClassroomsPage: React.FC = () => {
                       <Users className="w-3.5 h-3.5 text-primary" />
                       Capacidad: <strong className="text-foreground">{c.capacity} alumnos</strong>
                     </span>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                      isUnidocencia
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${isUnidocencia
                         ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
                         : 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300'
-                    }`}>
+                      }`}>
                       {isUnidocencia ? 'Unidocencia' : 'Polidocencia'}
                     </span>
                   </div>

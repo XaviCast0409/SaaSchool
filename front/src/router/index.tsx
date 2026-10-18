@@ -17,6 +17,7 @@ import { AcademicYearsPage } from '@/features/academic-years/pages/AcademicYears
 import { EvaluationCriteriaPage } from '@/features/grades/pages/EvaluationCriteriaPage';
 import { SuperAdminPage } from '@/features/super-admin/pages/SuperAdminPage';
 import { StudentCoursesPage } from '@/features/course-contents/pages/StudentCoursesPage';
+import { VirtualClassroomSupervisionPage } from '@/features/course-contents/pages/VirtualClassroomSupervisionPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const token = useAuthStore((state) => state.token);
@@ -168,6 +169,14 @@ export const AppRouter: React.FC = () => {
             element={
               <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT']}>
                 <StudentCoursesPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="/virtual-classroom-supervision"
+            element={
+              <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE']}>
+                <VirtualClassroomSupervisionPage />
               </RoleGuard>
             }
           />

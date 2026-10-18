@@ -217,7 +217,7 @@ export const CurricularAreasPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <BookOpen className="w-6 h-6 text-primary" />
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Cursos y Áreas Curriculares (MINEDU SIAGIE)
+              Cursos y Áreas Curriculares
             </h1>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
@@ -304,11 +304,10 @@ export const CurricularAreasPage: React.FC = () => {
           <button
             key={tab.key}
             onClick={() => handleCategoryChange(tab.key as LevelCategory)}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap -mb-px ${
-              activeCategory === tab.key
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap -mb-px ${activeCategory === tab.key
                 ? 'border-primary text-primary'
                 : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
-            }`}
+              }`}
           >
             <Layers className="w-4 h-4" />
             <span>{tab.label}</span>
@@ -361,19 +360,18 @@ export const CurricularAreasPage: React.FC = () => {
                           )}
                           <Badge
                             variant="secondary"
-                            className={`text-[10px] font-bold ${
-                              level === 'INITIAL'
+                            className={`text-[10px] font-bold ${level === 'INITIAL'
                                 ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
                                 : level === 'SECONDARY'
-                                ? 'bg-purple-500/10 text-purple-700 dark:text-purple-300'
-                                : 'bg-sky-500/10 text-sky-700 dark:text-sky-300'
-                            }`}
+                                  ? 'bg-purple-500/10 text-purple-700 dark:text-purple-300'
+                                  : 'bg-sky-500/10 text-sky-700 dark:text-sky-300'
+                              }`}
                           >
                             {level === 'INITIAL'
                               ? 'Inicial (Unidocencia)'
                               : level === 'SECONDARY'
-                              ? 'Secundaria (Polidocencia)'
-                              : 'Primaria (Polidocencia/Unidocencia)'}
+                                ? 'Secundaria (Polidocencia)'
+                                : 'Primaria (Polidocencia/Unidocencia)'}
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground flex items-center gap-1">
@@ -504,11 +502,10 @@ export const CurricularAreasPage: React.FC = () => {
                       <button
                         key={pageNum}
                         onClick={() => setCurrentPage(pageNum)}
-                        className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
-                          isCurrent
+                        className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${isCurrent
                             ? 'bg-primary text-primary-foreground shadow-sm'
                             : 'bg-card text-muted-foreground hover:bg-muted hover:text-foreground border border-border'
-                        }`}
+                          }`}
                       >
                         {pageNum}
                       </button>

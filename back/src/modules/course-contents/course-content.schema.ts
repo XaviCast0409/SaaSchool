@@ -19,5 +19,17 @@ export const createForumCommentSchema = z.object({
   content: z.string().trim().min(1, 'El comentario no puede estar vacío').max(2000, 'El comentario no puede exceder 2000 caracteres'),
 });
 
+export const supervisionFilterSchema = z.object({
+  bimester: z.coerce.number().int().min(1).max(4).optional(),
+  classroomId: z.string().uuid().optional(),
+  teacherId: z.string().uuid().optional(),
+  educationLevel: z.enum(['INITIAL', 'PRIMARY', 'SECONDARY']).optional(),
+  contentType: z.enum(['LESSON_MATERIAL', 'HOMEWORK', 'FORUM']).optional(),
+  search: z.string().trim().optional(),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20),
+});
+
 export type CreateCourseContentDto = z.infer<typeof createCourseContentSchema>;
 export type CreateForumCommentDto = z.infer<typeof createForumCommentSchema>;
+export type SupervisionFilterDto = z.infer<typeof supervisionFilterSchema>;
