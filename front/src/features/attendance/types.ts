@@ -12,7 +12,7 @@ export interface AttendanceRecord {
   date: string;
   status: AttendanceStatus;
   checkInTime?: string | null;
-  origin?: 'MANUAL' | 'QR_SCAN' | 'BARCODE';
+  origin?: 'MANUAL' | 'QR_SCAN' | 'BARCODE' | 'AUTO_CLOSE';
   notes?: string;
   enrollment?: {
     id: string;
@@ -184,7 +184,7 @@ export interface AttendanceSheetStudentItem {
   attendanceId: string | null;
   status: AttendanceStatus | null;
   checkInTime: string | null;
-  origin: 'MANUAL' | 'QR_SCAN' | 'BARCODE' | null;
+  origin: 'MANUAL' | 'QR_SCAN' | 'BARCODE' | 'AUTO_CLOSE' | null;
   notes: string | null;
 }
 
@@ -214,4 +214,37 @@ export interface SaveAttendanceSheetPayload {
     status: AttendanceStatus;
     notes?: string;
   }>;
+}
+
+export type AttendanceScheduleScope = 'GENERAL' | 'INITIAL' | 'PRIMARY' | 'SECONDARY';
+
+export interface AttendanceScheduleConfig {
+  id: string;
+  schoolId: string;
+  scope: AttendanceScheduleScope;
+  entryTime: string;
+  lateToleranceTime: string;
+  autoCloseTime: string;
+  autoCloseEnabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpsertAttendanceScheduleConfigPayload {
+  scope: AttendanceScheduleScope;
+  entryTime: string;
+  lateToleranceTime: string;
+  autoCloseTime: string;
+  autoCloseEnabled: boolean;
+}
+
+export interface CloseClassroomAttendancePayload {
+  classroomId?: string;
+  date?: string;
+}
+
+export interface CloseAttendanceResult {
+  closedCount: number;
+  totalUnrecorded: number;
+  message: string;
 }

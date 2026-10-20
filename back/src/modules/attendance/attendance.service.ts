@@ -22,8 +22,10 @@ import type {
   ScanAttendanceDto,
   AttendanceSheetQueryDto,
   SaveAttendanceSheetDto,
+  UpsertAttendanceScheduleConfigDto,
+  CloseClassroomAttendanceDto,
 } from './attendance.schema';
-import type { Attendance, AttendanceStatus } from '@prisma/client';
+import type { Attendance, AttendanceStatus, AttendanceScheduleConfig } from '@prisma/client';
 
 export interface AttendanceUserContext {
   userId: string;
@@ -356,16 +358,34 @@ export class AttendanceService {
       };
     }
 
+    const schedule = await this.attendanceRepository.getScheduleConfigForLevel(
+      schoolId,
+      enrollment.classroom?.educationLevel,
+    );
+
+    const effectiveTolerance = dto.toleranceTime || schedule.entryTime;
+    const [tolHour, tolMin] = effectiveTolerance.split(':').map(Number);
+    const [lateLimitHour, lateLimitMin] = schedule.lateToleranceTime.split(':').map(Number);
+
+    const currentHour = schoolNow.hour;
+    const currentMin = schoolNow.minute;
+    const currentTotalMin = currentHour * 60 + currentMin;
+    const tolTotalMin = tolHour * 60 + tolMin;
+    const lateLimitTotalMin = lateLimitHour * 60 + lateLimitMin;
+
     let finalStatus: AttendanceStatus = dto.statusOverride || 'PRESENT';
 
-    if (!dto.statusOverride && dto.toleranceTime) {
-      const [tolHour, tolMin] = dto.toleranceTime.split(':').map(Number);
-      const currentHour = schoolNow.hour;
-      const currentMin = schoolNow.minute;
-
-      if (currentHour > tolHour || (currentHour === tolHour && currentMin > tolMin)) {
+    if (!dto.statusOverride) {
+      if (currentTotalMin > tolTotalMin) {
         finalStatus = 'LATE_UNJUSTIFIED';
+      } else {
+        finalStatus = 'PRESENT';
       }
+    }
+
+    let noteText = `Ingreso escaneado vía QR/Kiosco a las ${now.toLocaleTimeString('es-PE', { timeZone: 'America/Lima' })}`;
+    if (currentTotalMin > lateLimitTotalMin) {
+      noteText += ` (Llegada posterior al límite de tolerancia de las ${schedule.lateToleranceTime})`;
     }
 
     const attendance = await this.attendanceRepository.recordScanAttendance({
@@ -375,7 +395,7 @@ export class AttendanceService {
       status: finalStatus,
       checkInTime: now,
       origin: 'QR_SCAN',
-      notes: `Ingreso escaneado vía QR/Kiosco a las ${now.toLocaleTimeString('es-PE', { timeZone: 'America/Lima' })}`,
+      notes: noteText,
     });
 
     return {
@@ -394,6 +414,64 @@ export class AttendanceService {
       },
       status: finalStatus,
       checkInTime: now,
+    };
+  }
+
+  /**
+   * Obtiene la configuración de horarios de asistencia del colegio.
+   */
+  async getScheduleConfigs(schoolId: string): Promise<AttendanceScheduleConfig[]> {
+    return this.attendanceRepository.getScheduleConfigs(schoolId);
+  }
+
+  /**
+   * Guarda o actualiza los horarios de asistencia (Puntualidad, Tardanza, Corte).
+   */
+  async upsertScheduleConfig(
+    schoolId: string,
+    data: UpsertAttendanceScheduleConfigDto
+  ): Promise<AttendanceScheduleConfig> {
+    return this.attendanceRepository.upsertScheduleConfig(schoolId, data);
+  }
+
+  /**
+   * Cierre diario de asistencia (Manual o Automático):
+   * Asigna Falta Injustificada a los alumnos activos que no registraron ingreso.
+   */
+  async closeAttendance(
+    schoolId: string,
+    dto: CloseClassroomAttendanceDto,
+    userContext?: AttendanceUserContext
+  ): Promise<{ closedCount: number; totalUnrecorded: number; message: string }> {
+    if (dto.classroomId) {
+      await this.verifyTutorOrAdminClassroomWriteAccess(schoolId, dto.classroomId, userContext);
+    } else {
+      if (
+        userContext &&
+        userContext.role !== 'SUPER_ADMIN' &&
+        userContext.role !== 'SCHOOL_ADMIN' &&
+        userContext.role !== 'ADMINISTRATIVE'
+      ) {
+        throw new AppError(
+          'Acceso denegado: Solo directivos o administradores pueden ejecutar el cierre general del colegio.',
+          403
+        );
+      }
+    }
+
+    const dateStr = dto.date || getSchoolNow().dateStr;
+    const result = await this.attendanceRepository.closeAttendance({
+      schoolId,
+      classroomId: dto.classroomId,
+      dateStr,
+    });
+
+    return {
+      ...result,
+      message:
+        result.closedCount > 0
+          ? `Cierre completado: Se asignó Falta Injustificada a ${result.closedCount} alumno(s) sin marcación.`
+          : 'Todos los alumnos contaban con asistencia registrada para la fecha.',
     };
   }
 }

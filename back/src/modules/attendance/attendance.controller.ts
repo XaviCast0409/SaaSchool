@@ -11,6 +11,8 @@ import {
   scanAttendanceSchema,
   attendanceSheetQuerySchema,
   saveAttendanceSheetSchema,
+  upsertAttendanceScheduleConfigSchema,
+  closeClassroomAttendanceSchema,
 } from './attendance.schema';
 import type { AttendanceService } from './attendance.service';
 
@@ -172,6 +174,34 @@ export class AttendanceController {
     };
     const dto = saveAttendanceSheetSchema.parse(request.body);
     const result = await this.attendanceService.saveAttendanceSheet(schoolId, dto, userContext);
+    response.status(200).json({ status: 'success', data: result });
+  };
+
+  /** GET /api/attendance/config — Consultar horarios de asistencia configurados */
+  getScheduleConfigs = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const configs = await this.attendanceService.getScheduleConfigs(schoolId);
+    response.status(200).json({ status: 'success', data: configs });
+  };
+
+  /** PUT /api/attendance/config — Configurar horarios de entrada, tardanza y auto-cierre */
+  upsertScheduleConfig = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const dto = upsertAttendanceScheduleConfigSchema.parse(request.body);
+    const config = await this.attendanceService.upsertScheduleConfig(schoolId, dto);
+    response.status(200).json({ status: 'success', data: config });
+  };
+
+  /** POST /api/attendance/close — Cierre de asistencia: asigna Falta Injustificada a los no registrados */
+  closeAttendance = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const userContext = {
+      userId: request.user!.userId,
+      role: request.user!.role,
+      schoolId,
+    };
+    const dto = closeClassroomAttendanceSchema.parse(request.body || {});
+    const result = await this.attendanceService.closeAttendance(schoolId, dto, userContext);
     response.status(200).json({ status: 'success', data: result });
   };
 }

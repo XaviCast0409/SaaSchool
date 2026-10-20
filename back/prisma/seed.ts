@@ -21,8 +21,43 @@ const randomFloat = (min: number, max: number): number =>
 const randomElement = <T>(array: T[]): T =>
   array[Math.floor(Math.random() * array.length)];
 
-const generateDni = (): string =>
-  String(randomBetween(10000000, 99999999));
+const usedDnis = new Set<string>();
+
+const generateDni = (): string => {
+  let dni: string;
+  let attempts = 0;
+  do {
+    dni = String(randomBetween(10000000, 99999999));
+    attempts++;
+  } while (usedDnis.has(dni) && attempts < 1000);
+  usedDnis.add(dni);
+  return dni;
+};
+
+const PERU_FIRST_NAMES_MALE = [
+  'Matías', 'Santiago', 'Sebastián', 'Mateo', 'Gabriel', 'Leonardo', 'Nicolás', 'Thiago',
+  'Benjamín', 'Joaquín', 'Diego', 'Rodrigo', 'Álvaro', 'Adrián', 'Gonzalo', 'Fernando',
+  'Emiliano', 'Fabrizio', 'Lucas', 'Alejandro', 'Carlos', 'Daniel', 'Samuel', 'Piero',
+  'Mauricio', 'Andrés', 'Renato', 'Valentino', 'Josué', 'Ángel', 'Facundo', 'Esteban',
+  'Manuel', 'Franco', 'Ignacio', 'Ricardo', 'Eduardo', 'Hugo', 'Javier', 'César'
+];
+
+const PERU_FIRST_NAMES_FEMALE = [
+  'Luciana', 'Valentina', 'Camila', 'Sofía', 'Isabella', 'Martina', 'Emma', 'Valeria',
+  'Mía', 'Zoe', 'Mariana', 'Daniela', 'Victoria', 'Nicole', 'Antonella', 'Paula',
+  'Andrea', 'Jimena', 'Adriana', 'Bianca', 'Lucía', 'Gabriela', 'Samantha', 'Renata',
+  'Romina', 'Macarena', 'Celeste', 'Flavia', 'Abril', 'Ariadna', 'Claudia', 'Fiorella',
+  'Natalia', 'Carolina', 'Fabiola', 'Patricia', 'Lorena', 'Rocío', 'Carmen', 'Paola'
+];
+
+const PERU_LAST_NAMES = [
+  'Quispe', 'Flores', 'Rodríguez', 'Sánchez', 'García', 'Rojas', 'Díaz', 'Torres',
+  'López', 'González', 'Pérez', 'Chávez', 'Vásquez', 'Ramos', 'Huamán', 'Mendoza',
+  'Castro', 'Espinoza', 'Romero', 'Silva', 'Morales', 'Gutiérrez', 'Herrera', 'Medina',
+  'Alarcón', 'Navarro', 'Palacios', 'Cárdenas', 'Benavides', 'Vargas', 'Salcedo', 'Carrillo',
+  'Miranda', 'Paredes', 'Villanueva', 'Córdova', 'Salazar', 'Rivera', 'Rivas', 'Campos',
+  'Aguilar', 'Peralta', 'Cornejo', 'Valdivia', 'Soto', 'Acosta', 'Cabrera', 'Delgado'
+];
 
 const generateRuc = (start = '20'): string =>
   `${start}${randomBetween(100000000, 999999999)}`;
@@ -41,6 +76,7 @@ async function main(): Promise<void> {
 
   // 1. Limpieza de base de datos en orden inverso de dependencias
   console.log('🧹 Limpiando datos existentes...');
+  await prisma.attendanceScheduleConfig.deleteMany();
   await prisma.forumComment.deleteMany();
   await prisma.courseContent.deleteMany();
   await prisma.notification.deleteMany();
@@ -851,6 +887,113 @@ async function main(): Promise<void> {
   });
 
   // ==========================================================================
+  // 9.1 CARGA MASIVA DE ALUMNOS (+100 ESTUDIANTES REALES Y MATRÍCULAS)
+  // ==========================================================================
+  console.log('👥 Generando +100 Estudiantes con Matrículas y Familias...');
+
+  interface ClassroomBatchSpec {
+    classroom: typeof aulaPrimaria3Pro;
+    schoolId: string;
+    academicYearId: string;
+    level: 'INITIAL' | 'PRIMARY' | 'SECONDARY';
+    targetCount: number;
+    birthYear: number;
+  }
+
+  const batchSpecs: ClassroomBatchSpec[] = [
+    { classroom: aulaPrimaria3Pro, schoolId: schoolPro.id, academicYearId: academicYearPro.id, level: 'PRIMARY', targetCount: 26, birthYear: 2017 },
+    { classroom: aulaSecundaria2Pro, schoolId: schoolPro.id, academicYearId: academicYearPro.id, level: 'SECONDARY', targetCount: 26, birthYear: 2012 },
+    { classroom: aulaPrimaria1Pro, schoolId: schoolPro.id, academicYearId: academicYearPro.id, level: 'PRIMARY', targetCount: 25, birthYear: 2019 },
+    { classroom: aulaPrimaria2Basic, schoolId: schoolBasic.id, academicYearId: academicYearBasic.id, level: 'PRIMARY', targetCount: 24, birthYear: 2018 },
+    { classroom: aulaInicialPro, schoolId: schoolPro.id, academicYearId: academicYearPro.id, level: 'INITIAL', targetCount: 15, birthYear: 2021 },
+  ];
+
+  interface CreatedBatchStudent {
+    studentId: string;
+    enrollmentId: string;
+    schoolId: string;
+    classroomId: string;
+    studentName: string;
+    documentId: string;
+    level: string;
+  }
+
+  const batchStudents: CreatedBatchStudent[] = [];
+
+  // Incluimos las matrículas clave para la asignación de asistencias masivas
+  const allEnrollmentsForAttendance: Array<{ enrollmentId: string; schoolId: string; classroomId: string; isProTutorRoom: boolean }> = [
+    { enrollmentId: matLucas.id, schoolId: schoolPro.id, classroomId: aulaPrimaria3Pro.id, isProTutorRoom: true },
+    { enrollmentId: matCamila.id, schoolId: schoolPro.id, classroomId: aulaPrimaria3Pro.id, isProTutorRoom: true },
+    { enrollmentId: matValeria.id, schoolId: schoolPro.id, classroomId: aulaSecundaria2Pro.id, isProTutorRoom: false },
+    { enrollmentId: matDiego.id, schoolId: schoolPro.id, classroomId: aulaSecundaria2Pro.id, isProTutorRoom: false },
+    { enrollmentId: matMateo.id, schoolId: schoolBasic.id, classroomId: aulaPrimaria2Basic.id, isProTutorRoom: false },
+  ];
+
+  for (const spec of batchSpecs) {
+    for (let i = 0; i < spec.targetCount; i++) {
+      const isMale = Math.random() > 0.5;
+      const firstName = isMale ? randomElement(PERU_FIRST_NAMES_MALE) : randomElement(PERU_FIRST_NAMES_FEMALE);
+      const secondName = isMale ? randomElement(PERU_FIRST_NAMES_MALE) : randomElement(PERU_FIRST_NAMES_FEMALE);
+      const lastNamePaternal = randomElement(PERU_LAST_NAMES);
+      let lastNameMaternal = randomElement(PERU_LAST_NAMES);
+      while (lastNameMaternal === lastNamePaternal) {
+        lastNameMaternal = randomElement(PERU_LAST_NAMES);
+      }
+
+      const birthMonth = randomBetween(1, 12);
+      const birthDay = randomBetween(1, 28);
+      const birthDate = new Date(`${spec.birthYear}-${String(birthMonth).padStart(2, '0')}-${String(birthDay).padStart(2, '0')}`);
+      const dni = generateDni();
+      const studentCode = generateStudentCode();
+
+      const st = await prisma.student.create({
+        data: {
+          schoolId: spec.schoolId,
+          firstNames: `${firstName} ${secondName}`,
+          lastNamePaternal,
+          lastNameMaternal,
+          documentType: 'DNI',
+          documentId: dni,
+          gender: isMale ? 'MALE' : 'FEMALE',
+          birthDate,
+          studentCode,
+          address: `Av. Los Álamos ${randomBetween(100, 999)}, Lima`,
+        },
+      });
+
+      const enr = await prisma.enrollment.create({
+        data: {
+          schoolId: spec.schoolId,
+          studentId: st.id,
+          academicYearId: spec.academicYearId,
+          classroomId: spec.classroom.id,
+          enrollmentState: 'REGISTERED',
+          isActive: true,
+        },
+      });
+
+      batchStudents.push({
+        studentId: st.id,
+        enrollmentId: enr.id,
+        schoolId: spec.schoolId,
+        classroomId: spec.classroom.id,
+        studentName: `${lastNamePaternal} ${lastNameMaternal}, ${firstName} ${secondName}`,
+        documentId: dni,
+        level: spec.level,
+      });
+
+      allEnrollmentsForAttendance.push({
+        enrollmentId: enr.id,
+        schoolId: spec.schoolId,
+        classroomId: spec.classroom.id,
+        isProTutorRoom: spec.classroom.id === aulaPrimaria3Pro.id,
+      });
+    }
+  }
+
+  console.log(`  ✅ ${batchStudents.length} estudiantes adicionales creados (Total general: ${batchStudents.length + 7})\n`);
+
+  // ==========================================================================
   // 10. CALIFICACIONES Y CONCLUSIONES POR COMPETENCIA (NOTAS REALES)
   // ==========================================================================
   console.log('📝 Cargando Notas Detalladas y Conclusiones...');
@@ -926,6 +1069,62 @@ async function main(): Promise<void> {
     },
   });
 
+  // Calificaciones para estudiantes adicionales en 3° Primaria y 2° Secundaria
+  const batchGradesData: Array<{
+    schoolId: string;
+    enrollmentId: string;
+    courseAssignmentId: string;
+    competenceId: string;
+    criterionId: string;
+    periodNumber: number;
+    numericScore: number;
+  }> = [];
+
+  const studentsPrimaria3 = batchStudents.filter(s => s.classroomId === aulaPrimaria3Pro.id);
+  const studentsSecundaria2 = batchStudents.filter(s => s.classroomId === aulaSecundaria2Pro.id);
+
+  for (const st of studentsPrimaria3.slice(0, 15)) {
+    for (const crit of criteriaPro) {
+      batchGradesData.push({
+        schoolId: schoolPro.id,
+        enrollmentId: st.enrollmentId,
+        courseAssignmentId: asigMatematicaPrimariaPro.id,
+        competenceId: compMatematica1Pro.id,
+        criterionId: crit.id,
+        periodNumber: 1,
+        numericScore: randomFloat(12.0, 18.5),
+      });
+      batchGradesData.push({
+        schoolId: schoolPro.id,
+        enrollmentId: st.enrollmentId,
+        courseAssignmentId: asigComunicacionPrimariaPro.id,
+        competenceId: areasPro[1].comps[0].id,
+        criterionId: crit.id,
+        periodNumber: 1,
+        numericScore: randomFloat(13.0, 19.0),
+      });
+    }
+  }
+
+  for (const st of studentsSecundaria2.slice(0, 15)) {
+    for (const crit of criteriaPro) {
+      batchGradesData.push({
+        schoolId: schoolPro.id,
+        enrollmentId: st.enrollmentId,
+        courseAssignmentId: asigMatematicaSecundariaPro.id,
+        competenceId: compMatematica1Pro.id,
+        criterionId: crit.id,
+        periodNumber: 1,
+        numericScore: randomFloat(11.5, 17.5),
+      });
+    }
+  }
+
+  if (batchGradesData.length > 0) {
+    await prisma.detailedGrade.createMany({ data: batchGradesData });
+    console.log(`  ✅ ${batchGradesData.length} notas de evaluación bimestral cargadas`);
+  }
+
   // ==========================================================================
   // 11. AULA VIRTUAL (MATERIALES, TAREAS Y FOROS)
   // ==========================================================================
@@ -990,52 +1189,156 @@ async function main(): Promise<void> {
   });
 
   // ==========================================================================
-  // 12. ASISTENCIAS (ÚLTIMOS 10 DÍAS LECTIVOS)
+  // 12. ASISTENCIAS MASIVAS (ÚLTIMAS 2 SEMANAS + DÍA DE HOY CON QR)
   // ==========================================================================
-  console.log('✋ Registrando Asistencias...');
+  console.log('✋ Registrando Asistencias Masivas (+1,000 Registros con QR y Auto-Cierre)...');
 
-  const today = new Date();
-  for (let i = 9; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
+  const now = new Date();
+  const businessDays: Date[] = [];
+  for (let offset = 14; offset >= 0; offset--) {
+    const d = new Date(now);
+    d.setDate(now.getDate() - offset);
     d.setHours(0, 0, 0, 0);
-
-    // Solo de lunes a viernes
-    if (d.getDay() === 0 || d.getDay() === 6) continue;
-
-    // Asistencia de Lucas Silva (3° Primaria Pro)
-    await prisma.attendance.create({
-      data: {
-        schoolId: schoolPro.id,
-        enrollmentId: matLucas.id,
-        date: d,
-        status: i === 2 ? 'LATE_JUSTIFIED' : 'PRESENT',
-        checkInTime: new Date(d.getTime() + (i === 2 ? 8 * 60 + 15 : 7 * 60 + 50) * 60 * 1000),
-      },
-    });
-
-    // Asistencia de Valeria Silva (2° Secundaria Pro)
-    await prisma.attendance.create({
-      data: {
-        schoolId: schoolPro.id,
-        enrollmentId: matValeria.id,
-        date: d,
-        status: 'PRESENT',
-        checkInTime: new Date(d.getTime() + (7 * 60 + 45) * 60 * 1000),
-      },
-    });
-
-    // Asistencia de Mateo Pérez (2° Primaria Basic)
-    await prisma.attendance.create({
-      data: {
-        schoolId: schoolBasic.id,
-        enrollmentId: matMateo.id,
-        date: d,
-        status: 'PRESENT',
-        checkInTime: new Date(d.getTime() + (7 * 60 + 55) * 60 * 1000),
-      },
-    });
+    if (d.getDay() !== 0 && d.getDay() !== 6) { // Lunes a Viernes
+      businessDays.push(d);
+    }
   }
+
+  const allAttendanceData: Array<{
+    schoolId: string;
+    enrollmentId: string;
+    date: Date;
+    status: AttendanceStatus;
+    checkInTime: Date | null;
+    origin: 'MANUAL' | 'QR_SCAN' | 'BARCODE' | 'AUTO_CLOSE';
+    notes: string | null;
+  }> = [];
+
+  for (let dIdx = 0; dIdx < businessDays.length; dIdx++) {
+    const day = businessDays[dIdx];
+    const isToday = dIdx === businessDays.length - 1;
+
+    for (let eIdx = 0; eIdx < allEnrollmentsForAttendance.length; eIdx++) {
+      const enr = allEnrollmentsForAttendance[eIdx];
+
+      if (isToday) {
+        // En el aula tutelada del DocentePro (3° Primaria A):
+        if (enr.isProTutorRoom) {
+          // Dejar ~5 estudiantes sin registrar para probar filtro "Sin marcar QR" y botón de auto-cierre / manual
+          if (eIdx % 5 === 0) {
+            continue; // Sin marcar QR hoy
+          } else if (eIdx % 6 === 0) {
+            allAttendanceData.push({
+              schoolId: enr.schoolId,
+              enrollmentId: enr.enrollmentId,
+              date: day,
+              status: 'LATE_UNJUSTIFIED',
+              checkInTime: new Date(day.getTime() + (7 * 60 + randomBetween(48, 58)) * 60 * 1000),
+              origin: 'QR_SCAN',
+              notes: 'Ingreso tardío registrado en portería',
+            });
+          } else if (eIdx % 9 === 0) {
+            allAttendanceData.push({
+              schoolId: enr.schoolId,
+              enrollmentId: enr.enrollmentId,
+              date: day,
+              status: 'ABSENT_UNJUSTIFIED',
+              checkInTime: null,
+              origin: 'AUTO_CLOSE',
+              notes: 'Cierre automático por horario límite',
+            });
+          } else {
+            allAttendanceData.push({
+              schoolId: enr.schoolId,
+              enrollmentId: enr.enrollmentId,
+              date: day,
+              status: 'PRESENT',
+              checkInTime: new Date(day.getTime() + (7 * 60 + randomBetween(22, 43)) * 60 * 1000),
+              origin: 'QR_SCAN',
+              notes: null,
+            });
+          }
+        } else {
+          // En otras aulas hoy:
+          if (eIdx % 6 === 0) {
+            continue; // Sin registrar hoy
+          } else if (eIdx % 8 === 0) {
+            allAttendanceData.push({
+              schoolId: enr.schoolId,
+              enrollmentId: enr.enrollmentId,
+              date: day,
+              status: 'LATE_UNJUSTIFIED',
+              checkInTime: new Date(day.getTime() + (7 * 60 + randomBetween(46, 55)) * 60 * 1000),
+              origin: 'QR_SCAN',
+              notes: null,
+            });
+          } else {
+            allAttendanceData.push({
+              schoolId: enr.schoolId,
+              enrollmentId: enr.enrollmentId,
+              date: day,
+              status: 'PRESENT',
+              checkInTime: new Date(day.getTime() + (7 * 60 + randomBetween(20, 44)) * 60 * 1000),
+              origin: 'QR_SCAN',
+              notes: null,
+            });
+          }
+        }
+      } else {
+        // Días anteriores (histórico consolidado para gráficas y sábana mensual):
+        const rand = Math.random();
+        if (rand < 0.82) {
+          allAttendanceData.push({
+            schoolId: enr.schoolId,
+            enrollmentId: enr.enrollmentId,
+            date: day,
+            status: 'PRESENT',
+            checkInTime: new Date(day.getTime() + (7 * 60 + randomBetween(20, 44)) * 60 * 1000),
+            origin: 'QR_SCAN',
+            notes: null,
+          });
+        } else if (rand < 0.92) {
+          allAttendanceData.push({
+            schoolId: enr.schoolId,
+            enrollmentId: enr.enrollmentId,
+            date: day,
+            status: 'LATE_UNJUSTIFIED',
+            checkInTime: new Date(day.getTime() + (7 * 60 + randomBetween(46, 58)) * 60 * 1000),
+            origin: 'QR_SCAN',
+            notes: 'Ingreso posterior a la tolerancia',
+          });
+        } else if (rand < 0.96) {
+          allAttendanceData.push({
+            schoolId: enr.schoolId,
+            enrollmentId: enr.enrollmentId,
+            date: day,
+            status: 'ABSENT_UNJUSTIFIED',
+            checkInTime: null,
+            origin: 'AUTO_CLOSE',
+            notes: 'Inasistencia no registrada en horario de corte',
+          });
+        } else {
+          allAttendanceData.push({
+            schoolId: enr.schoolId,
+            enrollmentId: enr.enrollmentId,
+            date: day,
+            status: 'ABSENT_JUSTIFIED',
+            checkInTime: null,
+            origin: 'MANUAL',
+            notes: 'Permiso de salud presentado por apoderado',
+          });
+        }
+      }
+    }
+  }
+
+  // Insertar en bloques para máxima eficiencia
+  const chunkSize = 500;
+  for (let i = 0; i < allAttendanceData.length; i += chunkSize) {
+    const chunk = allAttendanceData.slice(i, i + chunkSize);
+    await prisma.attendance.createMany({ data: chunk });
+  }
+  console.log(`  ✅ ${allAttendanceData.length} registros de asistencia creados exitosamente`);
 
   // ==========================================================================
   // 13. FINANZAS / PENSIONES (PAGADAS Y PENDIENTES)
@@ -1110,6 +1413,38 @@ async function main(): Promise<void> {
     }
   }
 
+  // Pensiones adicionales para 30 estudiantes
+  console.log('💳 Generando obligaciones financieras masivas...');
+  const batchObligations: Array<{
+    schoolId: string;
+    enrollmentId: string;
+    title: string;
+    concept: 'MATRICULA' | 'PENSION';
+    amountDue: number;
+    dueDate: Date;
+    status: 'PAID' | 'PENDING';
+  }> = [];
+
+  for (let i = 0; i < Math.min(30, batchStudents.length); i++) {
+    const st = batchStudents[i];
+    for (const c of cronogramaMeses) {
+      batchObligations.push({
+        schoolId: st.schoolId,
+        enrollmentId: st.enrollmentId,
+        title: c.title,
+        concept: c.concept as 'MATRICULA' | 'PENSION',
+        amountDue: c.amount,
+        dueDate: c.dueDate,
+        status: c.isPaid ? 'PAID' : 'PENDING',
+      });
+    }
+  }
+
+  if (batchObligations.length > 0) {
+    await prisma.paymentObligation.createMany({ data: batchObligations });
+    console.log(`  ✅ ${batchObligations.length} obligaciones de pago masivas cargadas`);
+  }
+
   // ==========================================================================
   // 14. COMUNICADOS OFICIALES
   // ==========================================================================
@@ -1123,6 +1458,48 @@ async function main(): Promise<void> {
       targetRoles: ['TEACHER', 'PARENT', 'ADMINISTRATIVE'],
     },
   });
+
+  // ==========================================================================
+  // 15. CONFIGURACIÓN DE HORARIOS DE ASISTENCIA Y AUTO-CIERRE
+  // ==========================================================================
+  console.log('⏰ Configurando Horarios de Asistencia Institucionales...');
+  await prisma.attendanceScheduleConfig.createMany({
+    data: [
+      {
+        schoolId: schoolPro.id,
+        scope: 'GENERAL',
+        entryTime: '07:45',
+        lateToleranceTime: '08:15',
+        autoCloseTime: '08:45',
+        autoCloseEnabled: false,
+      },
+      {
+        schoolId: schoolPro.id,
+        scope: 'PRIMARY',
+        entryTime: '07:45',
+        lateToleranceTime: '08:15',
+        autoCloseTime: '08:45',
+        autoCloseEnabled: true,
+      },
+      {
+        schoolId: schoolPro.id,
+        scope: 'SECONDARY',
+        entryTime: '07:30',
+        lateToleranceTime: '07:55',
+        autoCloseTime: '08:30',
+        autoCloseEnabled: true,
+      },
+      {
+        schoolId: schoolBasic.id,
+        scope: 'GENERAL',
+        entryTime: '08:00',
+        lateToleranceTime: '08:30',
+        autoCloseTime: '09:00',
+        autoCloseEnabled: false,
+      },
+    ],
+  });
+  console.log('  ✅ Horarios y tolerancias configurados para Colegios PRO y BASIC');
 
   // ==========================================================================
   // RESUMEN CON TABLA DE CREDENCIALES

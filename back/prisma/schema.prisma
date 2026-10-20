@@ -3,7 +3,6 @@
 // ============================================================================
 generator client {
   provider = "prisma-client-js"
-  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
@@ -96,6 +95,7 @@ enum AttendanceOrigin {
   MANUAL
   QR_SCAN
   BARCODE
+  AUTO_CLOSE
 }
 
 enum AssessmentType {
@@ -167,6 +167,7 @@ model School {
   pushSubscriptions   PushSubscription[]
   courseContents      CourseContent[]
   forumComments       ForumComment[]
+  attendanceScheduleConfigs AttendanceScheduleConfig[]
 }
 
 model User {
@@ -538,6 +539,30 @@ model Attendance {
 
   @@unique([enrollmentId, date])
   @@index([schoolId, date])
+}
+
+enum AttendanceScheduleScope {
+  GENERAL
+  INITIAL
+  PRIMARY
+  SECONDARY
+}
+
+model AttendanceScheduleConfig {
+  id                String                  @id @default(uuid())
+  schoolId          String
+  scope             AttendanceScheduleScope @default(GENERAL)
+  entryTime         String                  @default("07:45")
+  lateToleranceTime String                  @default("08:15")
+  autoCloseTime     String                  @default("08:30")
+  autoCloseEnabled  Boolean                 @default(false)
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  school            School                  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, scope])
+  @@index([schoolId])
 }
 
 // ============================================================================

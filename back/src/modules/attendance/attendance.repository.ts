@@ -1,7 +1,7 @@
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
 import { parseSchoolDate } from '../../utils/timezone.util';
-import type { Attendance, AttendanceStatus, AttendanceOrigin, Prisma } from '@prisma/client';
+import type { Attendance, AttendanceStatus, AttendanceOrigin, Prisma, AttendanceScheduleConfig, AttendanceScheduleScope, EducationLevel } from '@prisma/client';
 import type {
   AttendanceFilterDto,
   AttendanceSummaryQueryDto,
@@ -12,6 +12,7 @@ import type {
   CreateAttendanceDto,
   UpdateAttendanceDto,
   SaveAttendanceSheetDto,
+  UpsertAttendanceScheduleConfigDto,
 } from './attendance.schema';
 import type { PaginatedResult } from '../../core/interfaces/global.interfaces';
 
@@ -998,5 +999,165 @@ export class AttendanceRepository {
       riskLevel,
       records: formattedRecords,
     };
+  }
+
+  /**
+   * Obtiene la lista de configuraciones de horario de asistencia del colegio.
+   * Si no tiene configuraciones personalizadas, retorna la configuración por defecto (GENERAL).
+   */
+  async getScheduleConfigs(schoolId: string): Promise<AttendanceScheduleConfig[]> {
+    const configs = await prisma.attendanceScheduleConfig.findMany({
+      where: { schoolId },
+      orderBy: { scope: 'asc' },
+    });
+
+    if (configs.length === 0) {
+      // Retornar configuración virtual por defecto
+      return [
+        {
+          id: 'default-general',
+          schoolId,
+          scope: 'GENERAL',
+          entryTime: '07:45',
+          lateToleranceTime: '08:15',
+          autoCloseTime: '08:30',
+          autoCloseEnabled: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ];
+    }
+
+    return configs;
+  }
+
+  /**
+   * Obtiene la configuración específica para un nivel educativo o el fallback general.
+   */
+  async getScheduleConfigForLevel(
+    schoolId: string,
+    educationLevel?: EducationLevel | null
+  ): Promise<AttendanceScheduleConfig> {
+    if (educationLevel) {
+      const levelConfig = await prisma.attendanceScheduleConfig.findUnique({
+        where: {
+          schoolId_scope: {
+            schoolId,
+            scope: educationLevel as unknown as AttendanceScheduleScope,
+          },
+        },
+      });
+      if (levelConfig) return levelConfig;
+    }
+
+    const generalConfig = await prisma.attendanceScheduleConfig.findUnique({
+      where: {
+        schoolId_scope: {
+          schoolId,
+          scope: 'GENERAL',
+        },
+      },
+    });
+
+    if (generalConfig) return generalConfig;
+
+    return {
+      id: 'default-general',
+      schoolId,
+      scope: 'GENERAL',
+      entryTime: '07:45',
+      lateToleranceTime: '08:15',
+      autoCloseTime: '08:30',
+      autoCloseEnabled: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+  }
+
+  /**
+   * Guarda o actualiza la configuración de horario para un ámbito específico (GENERAL, INICIAL, etc.).
+   */
+  async upsertScheduleConfig(
+    schoolId: string,
+    data: UpsertAttendanceScheduleConfigDto
+  ): Promise<AttendanceScheduleConfig> {
+    return prisma.attendanceScheduleConfig.upsert({
+      where: {
+        schoolId_scope: {
+          schoolId,
+          scope: data.scope as AttendanceScheduleScope,
+        },
+      },
+      create: {
+        schoolId,
+        scope: data.scope as AttendanceScheduleScope,
+        entryTime: data.entryTime,
+        lateToleranceTime: data.lateToleranceTime,
+        autoCloseTime: data.autoCloseTime,
+        autoCloseEnabled: data.autoCloseEnabled,
+      },
+      update: {
+        entryTime: data.entryTime,
+        lateToleranceTime: data.lateToleranceTime,
+        autoCloseTime: data.autoCloseTime,
+        autoCloseEnabled: data.autoCloseEnabled,
+      },
+    });
+  }
+
+  /**
+   * Cierre de Asistencia: Asigna Falta Injustificada a todos los alumnos que no tengan marcación.
+   * Respeta intactos a quienes ya tengan asistencia (Puntual, Tardanza, o Justificada).
+   */
+  async closeAttendance(params: {
+    schoolId: string;
+    classroomId?: string;
+    dateStr: string;
+  }): Promise<{ closedCount: number; totalUnrecorded: number }> {
+    const dateObj = parseSchoolDate(params.dateStr);
+
+    // 1. Obtener los IDs de matrículas que ya cuentan con registro para esta fecha
+    const existingAttendances = await prisma.attendance.findMany({
+      where: {
+        schoolId: params.schoolId,
+        date: dateObj,
+        ...(params.classroomId ? { enrollment: { classroomId: params.classroomId } } : {}),
+      },
+      select: { enrollmentId: true },
+    });
+
+    const recordedSet = new Set(existingAttendances.map((a) => a.enrollmentId));
+
+    // 2. Obtener todas las matrículas activas del ámbito solicitado
+    const activeEnrollments = await prisma.enrollment.findMany({
+      where: {
+        schoolId: params.schoolId,
+        isActive: true,
+        ...(params.classroomId ? { classroomId: params.classroomId } : {}),
+      },
+      select: { id: true },
+    });
+
+    const unrecorded = activeEnrollments.filter((e) => !recordedSet.has(e.id));
+
+    if (unrecorded.length === 0) {
+      return { closedCount: 0, totalUnrecorded: 0 };
+    }
+
+    const recordsToCreate = unrecorded.map((e) => ({
+      schoolId: params.schoolId,
+      enrollmentId: e.id,
+      date: dateObj,
+      status: 'ABSENT_UNJUSTIFIED' as AttendanceStatus,
+      origin: 'AUTO_CLOSE' as AttendanceOrigin,
+      notes: 'Inasistencia registrada por cierre de horario',
+    }));
+
+    await prisma.attendance.createMany({
+      data: recordsToCreate,
+      skipDuplicates: true,
+    });
+
+    return { closedCount: recordsToCreate.length, totalUnrecorded: unrecorded.length };
   }
 }

@@ -10,12 +10,15 @@ import {
   Search,
   X,
   AlertCircle,
+  AlertTriangle,
+  UserX,
   Check,
   UserCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAttendanceSheet, useSaveAttendanceSheet } from '../api/useAttendance';
+import { useAttendanceSheet, useSaveAttendanceSheet, useCloseAttendance } from '../api/useAttendance';
 import { AttendanceStatus, AttendanceSheetStudentItem } from '../types';
+import { formatPeruTime } from '@/lib/dateUtils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -76,23 +79,25 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
   });
 
   const { mutate: saveSheet, isPending: isSaving } = useSaveAttendanceSheet();
+  const { mutate: closeAttendance, isPending: isClosing } = useCloseAttendance();
 
   // Estado local para edición rápida (enrollmentId -> { status, notes })
   const [draftState, setDraftState] = useState<
-    Record<string, { status: AttendanceStatus; notes: string }>
+    Record<string, { status: AttendanceStatus | null; notes: string }>
   >({});
   const [hasChanges, setHasChanges] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
+  const [activeTabFilter, setActiveTabFilter] = useState<'ALL' | 'UNRECORDED' | 'PRESENT' | 'LATE' | 'ABSENT'>('ALL');
   const [editingNoteStudent, setEditingNoteStudent] = useState<AttendanceSheetStudentItem | null>(null);
   const [noteText, setNoteText] = useState('');
 
   // Sincronizar datos iniciales del backend
   useEffect(() => {
     if (sheetData?.students) {
-      const initial: Record<string, { status: AttendanceStatus; notes: string }> = {};
+      const initial: Record<string, { status: AttendanceStatus | null; notes: string }> = {};
       sheetData.students.forEach((s) => {
         initial[s.enrollmentId] = {
-          status: s.status || 'PRESENT',
+          status: s.status,
           notes: s.notes || '',
         };
       });
@@ -115,7 +120,7 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
 
   const handleSetAll = (status: AttendanceStatus) => {
     if (!canWrite || !sheetData?.students) return;
-    const next: Record<string, { status: AttendanceStatus; notes: string }> = {};
+    const next: Record<string, { status: AttendanceStatus | null; notes: string }> = {};
     sheetData.students.forEach((s) => {
       next[s.enrollmentId] = {
         status,
@@ -128,15 +133,32 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
 
   const handleReset = () => {
     if (!sheetData?.students) return;
-    const initial: Record<string, { status: AttendanceStatus; notes: string }> = {};
+    const initial: Record<string, { status: AttendanceStatus | null; notes: string }> = {};
     sheetData.students.forEach((s) => {
       initial[s.enrollmentId] = {
-        status: s.status || 'PRESENT',
+        status: s.status,
         notes: s.notes || '',
       };
     });
     setDraftState(initial);
     setHasChanges(false);
+  };
+
+  const handleCloseUnrecorded = () => {
+    if (!canWrite) return;
+    closeAttendance(
+      { classroomId, date },
+      {
+        onSuccess: (data) => {
+          toast.success(data.message);
+          refetch();
+        },
+        onError: (err: any) => {
+          const msg = err?.response?.data?.message || 'Error al ejecutar cierre de asistencia.';
+          toast.error(msg);
+        },
+      }
+    );
   };
 
   const handleOpenNoteModal = (student: AttendanceSheetStudentItem) => {
@@ -185,36 +207,49 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
     );
   };
 
-  // Filtrado de alumnos en memoria por nombre o DNI
+  // Filtrado de alumnos en memoria por nombre o DNI y por pestaña de auditoría
   const filteredStudents = useMemo(() => {
     if (!sheetData?.students) return [];
     const q = searchFilter.trim().toLowerCase();
-    if (!q) return sheetData.students;
-    return sheetData.students.filter(
-      (s) =>
+
+    return sheetData.students.filter((s) => {
+      const matchesSearch =
+        !q ||
         s.studentName.toLowerCase().includes(q) ||
         s.documentId.includes(q) ||
-        (s.studentCode && s.studentCode.toLowerCase().includes(q))
-    );
-  }, [sheetData?.students, searchFilter]);
+        (s.studentCode && s.studentCode.toLowerCase().includes(q));
+
+      if (!matchesSearch) return false;
+
+      const current = draftState[s.enrollmentId]?.status ?? s.status;
+      if (activeTabFilter === 'ALL') return true;
+      if (activeTabFilter === 'UNRECORDED') return current === null;
+      if (activeTabFilter === 'PRESENT') return current === 'PRESENT';
+      if (activeTabFilter === 'LATE') return current?.startsWith('LATE');
+      if (activeTabFilter === 'ABSENT') return current?.startsWith('ABSENT');
+      return true;
+    });
+  }, [sheetData?.students, searchFilter, activeTabFilter, draftState]);
 
   // Métricas dinámicas calculadas sobre el borrador actual
   const metrics = useMemo(() => {
     let present = 0;
     let absent = 0;
     let late = 0;
+    let unrecorded = 0;
     const total = sheetData?.students.length || 0;
 
     if (sheetData?.students) {
       sheetData.students.forEach((s) => {
-        const current = draftState[s.enrollmentId]?.status || s.status;
+        const current = draftState[s.enrollmentId]?.status ?? s.status;
         if (current === 'PRESENT') present++;
         else if (current?.startsWith('ABSENT')) absent++;
         else if (current?.startsWith('LATE')) late++;
+        else unrecorded++;
       });
     }
 
-    return { total, present, absent, late };
+    return { total, present, absent, late, unrecorded };
   }, [sheetData?.students, draftState]);
 
   if (isLoading) {
@@ -271,6 +306,20 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
           {/* Botones Maestros de Acción Rápida */}
           {canWrite && (
             <div className="flex items-center gap-2 flex-wrap">
+              {metrics.unrecorded > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCloseUnrecorded}
+                  disabled={isClosing}
+                  className="h-8 text-xs font-bold text-amber-700 dark:text-amber-300 border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 gap-1.5 shadow-xs"
+                  title="Asigna Falta Injustificada a quienes aún no hayan registrado ingreso en portería"
+                >
+                  <UserX className="w-3.5 h-3.5 text-amber-600" />
+                  <span>{isClosing ? 'Cerrando...' : `Pasar Falta a sin QR (${metrics.unrecorded})`}</span>
+                </Button>
+              )}
               <Button
                 type="button"
                 variant="outline"
@@ -321,22 +370,67 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
           )}
         </div>
 
-        {/* Chips de Resumen Dinámico en Tiempo Real */}
+        {/* Pestañas de Filtrado y Auditoría Rápida */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border">
-          <div className="flex items-center gap-2 flex-wrap text-xs">
-            <span className="font-bold text-foreground">Total: {metrics.total}</span>
-            <span className="text-muted-foreground">•</span>
-            <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-              {metrics.present} Presentes ({metrics.total > 0 ? Math.round((metrics.present / metrics.total) * 100) : 0}%)
-            </span>
-            <span className="text-muted-foreground">•</span>
-            <span className="text-destructive font-bold">
-              {metrics.absent} Faltas
-            </span>
-            <span className="text-muted-foreground">•</span>
-            <span className="text-amber-600 dark:text-amber-400 font-bold">
-              {metrics.late} Tardanzas
-            </span>
+          <div className="flex items-center gap-1.5 flex-wrap text-xs">
+            <button
+              type="button"
+              onClick={() => setActiveTabFilter('ALL')}
+              className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-colors ${
+                activeTabFilter === 'ALL'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              Todos ({metrics.total})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTabFilter('PRESENT')}
+              className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-colors ${
+                activeTabFilter === 'PRESENT'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20'
+              }`}
+            >
+              Presentes ({metrics.present})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTabFilter('LATE')}
+              className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-colors ${
+                activeTabFilter === 'LATE'
+                  ? 'bg-amber-600 text-white'
+                  : 'bg-amber-500/10 text-amber-600 hover:bg-amber-500/20'
+              }`}
+            >
+              Tardanzas ({metrics.late})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTabFilter('ABSENT')}
+              className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-colors ${
+                activeTabFilter === 'ABSENT'
+                  ? 'bg-destructive text-destructive-foreground'
+                  : 'bg-destructive/10 text-destructive hover:bg-destructive/20'
+              }`}
+            >
+              Faltas ({metrics.absent})
+            </button>
+            {metrics.unrecorded > 0 && (
+              <button
+                type="button"
+                onClick={() => setActiveTabFilter('UNRECORDED')}
+                className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-colors flex items-center gap-1 ${
+                  activeTabFilter === 'UNRECORDED'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'border border-amber-500/40 bg-amber-500/15 text-amber-700 dark:text-amber-300 hover:bg-amber-500/25'
+                }`}
+              >
+                <AlertTriangle className="w-3 h-3" />
+                <span>Sin marcar QR ({metrics.unrecorded})</span>
+              </button>
+            )}
           </div>
 
           {/* Buscador Rápido de Alumno dentro de la Sección */}
@@ -421,25 +515,22 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
                             <QrCode className="w-3 h-3 text-emerald-600" />
                             <span>
                               QR{' '}
-                              {student.checkInTime
-                                ? new Date(student.checkInTime).toLocaleTimeString('es-PE', {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                    timeZone: 'America/Lima',
-                                  })
-                                : ''}
+                              {student.checkInTime ? formatPeruTime(student.checkInTime) : ''}
                             </span>
+                          </Badge>
+                        ) : student.origin === 'AUTO_CLOSE' ? (
+                          <Badge variant="outline" className="border-destructive/30 bg-destructive/10 text-destructive text-[10px] font-bold">
+                            Auto-Cierre
                           </Badge>
                         ) : student.checkInTime ? (
                           <Badge variant="outline" className="text-[10px] font-semibold gap-1">
                             <Clock className="w-3 h-3 text-muted-foreground" />
-                            <span>
-                              {new Date(student.checkInTime).toLocaleTimeString('es-PE', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                timeZone: 'America/Lima',
-                              })}
-                            </span>
+                            <span>{formatPeruTime(student.checkInTime)}</span>
+                          </Badge>
+                        ) : !student.status ? (
+                          <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[10px] font-semibold gap-1">
+                            <AlertTriangle className="w-3 h-3 text-amber-500" />
+                            <span>No pasó QR</span>
                           </Badge>
                         ) : (
                           <span className="text-muted-foreground/40 font-mono text-xs">—</span>

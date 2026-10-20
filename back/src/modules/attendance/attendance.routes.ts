@@ -96,3 +96,25 @@ attendanceRouter.post(
   authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'ADMINISTRATIVE'),
   attendanceController.scan,
 );
+
+// Consultar configuración de horarios de asistencia
+attendanceRouter.get(
+  '/config',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),
+  attendanceController.getScheduleConfigs,
+);
+
+// Guardar o actualizar horarios de asistencia (Director / Admin)
+attendanceRouter.put(
+  '/config',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
+  attendanceController.upsertScheduleConfig,
+);
+
+// Cierre de asistencia (Asigna Falta Injustificada a los no registrados de un aula o general)
+attendanceRouter.post(
+  '/close',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'ADMINISTRATIVE'),
+  attendanceController.closeAttendance,
+);
+

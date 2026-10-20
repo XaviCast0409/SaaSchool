@@ -150,6 +150,26 @@ export const saveAttendanceSheetSchema = z.object({
   ),
 });
 
+export const attendanceScheduleScopeEnum = z.enum([
+  'GENERAL',
+  'INITIAL',
+  'PRIMARY',
+  'SECONDARY',
+]);
+
+export const upsertAttendanceScheduleConfigSchema = z.object({
+  scope: attendanceScheduleScopeEnum.default('GENERAL'),
+  entryTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Hora de entrada inválida (HH:mm)'),
+  lateToleranceTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Hora límite de tardanza inválida (HH:mm)'),
+  autoCloseTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Hora de corte inválida (HH:mm)'),
+  autoCloseEnabled: z.boolean().default(false),
+});
+
+export const closeClassroomAttendanceSchema = z.object({
+  classroomId: z.string().uuid('ID de aula inválido').optional(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida (YYYY-MM-DD)').optional(),
+});
+
 export type CreateAttendanceDto = z.infer<typeof createAttendanceSchema>;
 export type UpdateAttendanceDto = z.infer<typeof updateAttendanceSchema>;
 export type BulkAttendanceDto = z.infer<typeof bulkAttendanceSchema>;
@@ -161,3 +181,5 @@ export type StudentAttendanceQueryDto = z.infer<typeof studentAttendanceQuerySch
 export type ScanAttendanceDto = z.infer<typeof scanAttendanceSchema>;
 export type AttendanceSheetQueryDto = z.infer<typeof attendanceSheetQuerySchema>;
 export type SaveAttendanceSheetDto = z.infer<typeof saveAttendanceSheetSchema>;
+export type UpsertAttendanceScheduleConfigDto = z.infer<typeof upsertAttendanceScheduleConfigSchema>;
+export type CloseClassroomAttendanceDto = z.infer<typeof closeClassroomAttendanceSchema>;

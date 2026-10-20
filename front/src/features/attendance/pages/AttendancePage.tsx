@@ -17,6 +17,7 @@ import {
   QrCode,
   Search,
   X,
+  Sliders,
 } from 'lucide-react';
 import { useAttendance, useUpdateAttendance } from '../api/useAttendance';
 import { AttendanceStatusBadge } from '../components/AttendanceStatusBadge';
@@ -26,6 +27,7 @@ import { BulkAttendanceModal } from '../components/BulkAttendanceModal';
 import { EditNotesModal } from '../components/EditNotesModal';
 import { QrScannerModal } from '../components/QrScannerModal';
 import { AttendanceSheetView } from '../components/AttendanceSheetView';
+import { AttendanceScheduleModal } from '../components/AttendanceScheduleModal';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
 import { useAuthStore } from '@/store/useAuthStore';
 import { getPeruToday, getPeruCurrentMonth, formatPeruTime, formatPeruDate } from '@/lib/dateUtils';
@@ -63,6 +65,7 @@ export const AttendancePage: React.FC = () => {
   const [editingAttendanceId, setEditingAttendanceId] = useState<string | null>(null);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ABSENT' | 'LATE' | 'PRESENT'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [notesModalRecord, setNotesModalRecord] = useState<AttendanceRecord | null>(null);
@@ -70,6 +73,7 @@ export const AttendancePage: React.FC = () => {
   const [pageSize, setPageSize] = useState(15);
 
   const isTeacher = user?.role === 'TEACHER';
+  const canConfigureSchedule = user?.role === 'SUPER_ADMIN' || user?.role === 'SCHOOL_ADMIN' || user?.role === 'ADMINISTRATIVE';
 
   // Queries
   const { data: classrooms = [] } = useClassrooms();
@@ -164,6 +168,19 @@ export const AttendancePage: React.FC = () => {
             <QrCode className="w-4 h-4" />
             <span>Lector QR</span>
           </Button>
+
+          {/* Configuración de Horarios & Auto-Cierre */}
+          {canConfigureSchedule && (
+            <Button
+              variant="outline"
+              onClick={() => setIsScheduleModalOpen(true)}
+              className="gap-2 shadow-sm rounded-xl h-10 px-4 font-bold border-border hover:bg-accent"
+              title="Configurar horarios de entrada, tardanza y auto-cierre"
+            >
+              <Sliders className="w-4 h-4 text-primary" />
+              <span>Horarios y Cierre</span>
+            </Button>
+          )}
 
           {/* Tomar Asistencia Masiva Button */}
           <Button
@@ -755,6 +772,11 @@ export const AttendancePage: React.FC = () => {
       {/* Modal Kiosco Lector QR en Puerta / Ingreso */}
       {isQrScannerOpen && (
         <QrScannerModal onClose={() => setIsQrScannerOpen(false)} />
+      )}
+
+      {/* Modal de Configuración de Horarios & Auto-Cierre */}
+      {isScheduleModalOpen && (
+        <AttendanceScheduleModal onClose={() => setIsScheduleModalOpen(false)} />
       )}
     </div>
   );

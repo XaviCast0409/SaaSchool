@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   X,
   FileSpreadsheet,
@@ -8,9 +8,11 @@ import {
   School,
   CheckCircle2,
   Users,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 import { AttendanceMatrixStudentRow } from '../types';
 import { exportWellMarkedMatrixExcel } from '../utils/matrixExcelExport';
 
@@ -31,28 +33,48 @@ export const MatrixExportModal: React.FC<MatrixExportModalProps> = ({
   schoolName = 'Institución Educativa',
   onClose,
 }) => {
-  const handleExportWithAttendance = () => {
-    exportWellMarkedMatrixExcel({
-      students,
-      monthStr,
-      daysInMonth,
-      classroomLabel,
-      schoolName,
-      mode: 'WITH_ATTENDANCE',
-    });
-    onClose();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportWithAttendance = async () => {
+    try {
+      setIsExporting(true);
+      await exportWellMarkedMatrixExcel({
+        students,
+        monthStr,
+        daysInMonth,
+        classroomLabel,
+        schoolName,
+        mode: 'WITH_ATTENDANCE',
+      });
+      toast.success('Archivo Excel (.xlsx) generado exitosamente');
+      onClose();
+    } catch (error) {
+      console.error('Error exportando matriz a Excel:', error);
+      toast.error('Error al generar el archivo Excel');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
-  const handleExportEmpty = () => {
-    exportWellMarkedMatrixExcel({
-      students,
-      monthStr,
-      daysInMonth,
-      classroomLabel,
-      schoolName,
-      mode: 'EMPTY',
-    });
-    onClose();
+  const handleExportEmpty = async () => {
+    try {
+      setIsExporting(true);
+      await exportWellMarkedMatrixExcel({
+        students,
+        monthStr,
+        daysInMonth,
+        classroomLabel,
+        schoolName,
+        mode: 'EMPTY',
+      });
+      toast.success('Plantilla vacía (.xlsx) generada exitosamente');
+      onClose();
+    } catch (error) {
+      console.error('Error exportando plantilla a Excel:', error);
+      toast.error('Error al generar la plantilla');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -148,10 +170,11 @@ export const MatrixExportModal: React.FC<MatrixExportModalProps> = ({
 
             <Button
               onClick={handleExportWithAttendance}
+              disabled={isExporting}
               className="w-full gap-2 font-bold text-xs shadow-sm h-10 mt-2"
             >
-              <Download className="w-4 h-4" />
-              <span>Descargar con Alumnos y Asistencias</span>
+              {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              <span>{isExporting ? 'Generando Excel...' : 'Descargar con Alumnos y Asistencias (.xlsx)'}</span>
             </Button>
           </div>
 
@@ -195,10 +218,11 @@ export const MatrixExportModal: React.FC<MatrixExportModalProps> = ({
             <Button
               variant="outline"
               onClick={handleExportEmpty}
+              disabled={isExporting}
               className="w-full gap-2 font-bold text-xs shadow-sm h-10 mt-2 hover:bg-muted"
             >
-              <Download className="w-4 h-4" />
-              <span>Descargar Plantilla Vacía</span>
+              {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              <span>{isExporting ? 'Generando Plantilla...' : 'Descargar Plantilla Vacía (.xlsx)'}</span>
             </Button>
           </div>
         </div>

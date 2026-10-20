@@ -13,6 +13,10 @@ import {
   ScanAttendanceResult,
   AttendanceSheetData,
   SaveAttendanceSheetPayload,
+  AttendanceScheduleConfig,
+  UpsertAttendanceScheduleConfigPayload,
+  CloseClassroomAttendancePayload,
+  CloseAttendanceResult,
 } from '../types';
 
 interface SummaryResponse {
@@ -280,3 +284,58 @@ export const useAttendanceByEnrollment = (enrollmentId?: string, enabled = true)
     staleTime: 1000 * 60 * 2,
   });
 };
+
+/** Hook para consultar las configuraciones de horarios de asistencia del colegio */
+export const useAttendanceScheduleConfigs = () => {
+  return useQuery({
+    queryKey: ['attendance-schedule-configs'],
+    queryFn: async (): Promise<AttendanceScheduleConfig[]> => {
+      const response = await api.get<{ status: string; data: AttendanceScheduleConfig[] }>(
+        '/attendance/config'
+      );
+      return response.data.data;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+};
+
+/** Mutation hook para guardar o actualizar horarios de asistencia (Director / Admin) */
+export const useUpsertAttendanceScheduleConfig = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: UpsertAttendanceScheduleConfigPayload) => {
+      const response = await api.put<{ status: string; data: AttendanceScheduleConfig }>(
+        '/attendance/config',
+        payload
+      );
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['attendance-schedule-configs'] });
+    },
+  });
+};
+
+/** Mutation hook para ejecutar el cierre de asistencia (Asigna Falta Injustificada a los no registrados) */
+export const useCloseAttendance = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: CloseClassroomAttendancePayload = {}) => {
+      const response = await api.post<{ status: string; data: CloseAttendanceResult }>(
+        '/attendance/close',
+        payload
+      );
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['attendance'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance-sheet'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance-matrix'] });
+      queryClient.invalidateQueries({ queryKey: ['student-attendance-detail'] });
+    },
+  });
+};
+
