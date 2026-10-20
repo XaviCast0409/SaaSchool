@@ -1,4 +1,6 @@
 import { prisma } from '../../config/prisma';
+import { AppError } from '../../core/errors/app-error';
+import { parseSchoolDate } from '../../utils/timezone.util';
 import type { Attendance, AttendanceStatus, AttendanceOrigin, Prisma } from '@prisma/client';
 import type {
   AttendanceFilterDto,
@@ -9,8 +11,40 @@ import type {
   BulkAttendanceDto,
   CreateAttendanceDto,
   UpdateAttendanceDto,
+  SaveAttendanceSheetDto,
 } from './attendance.schema';
 import type { PaginatedResult } from '../../core/interfaces/global.interfaces';
+
+export interface AttendanceSheetStudentItem {
+  enrollmentId: string;
+  studentId: string;
+  studentName: string;
+  documentId: string;
+  studentCode?: string;
+  attendanceId: string | null;
+  status: AttendanceStatus | null;
+  checkInTime: Date | null;
+  origin: AttendanceOrigin | null;
+  notes: string | null;
+}
+
+export interface AttendanceSheetData {
+  classroomId: string;
+  classroomName: string;
+  date: string;
+  totalStudents: number;
+  recordedCount: number;
+  isComplete: boolean;
+  counts: {
+    PRESENT: number;
+    ABSENT_JUSTIFIED: number;
+    ABSENT_UNJUSTIFIED: number;
+    LATE_JUSTIFIED: number;
+    LATE_UNJUSTIFIED: number;
+    UNRECORDED: number;
+  };
+  students: AttendanceSheetStudentItem[];
+}
 
 export interface AttendanceMonthlySummary {
   period: string;
@@ -179,7 +213,7 @@ export class AttendanceRepository {
 
     const where: Prisma.AttendanceWhereInput = {
       schoolId,
-      ...(filters.date ? { date: new Date(filters.date) } : {}),
+      ...(filters.date ? { date: parseSchoolDate(filters.date) } : {}),
       ...(Object.keys(enrollmentWhere).length > 0 ? { enrollment: enrollmentWhere } : {}),
       ...(filters.status && filters.status !== 'ALL'
         ? filters.status === 'ABSENT'
@@ -194,7 +228,7 @@ export class AttendanceRepository {
 
     const statsWhere: Prisma.AttendanceWhereInput = {
       schoolId,
-      ...(filters.date ? { date: new Date(filters.date) } : {}),
+      ...(filters.date ? { date: parseSchoolDate(filters.date) } : {}),
       ...(filters.classroomId ? { enrollment: { classroomId: filters.classroomId } } : {}),
     };
 
@@ -368,21 +402,187 @@ export class AttendanceRepository {
     });
   }
 
-  /** Crea registros de asistencia en masa para toda la sección. */
+  /**
+   * Obtiene la Hoja Unificada de Asistencia de un aula para una fecha dada.
+   * Cruza la nómina activa del aula con los registros de asistencia ya tomados o marcados por QR en puerta.
+   */
+  async getClassroomAttendanceSheet(
+    schoolId: string,
+    classroomId: string,
+    dateStr: string,
+  ): Promise<AttendanceSheetData> {
+    const dateObj = parseSchoolDate(dateStr);
+
+    const classroom = await prisma.classroom.findFirst({
+      where: { id: classroomId, schoolId },
+      select: { id: true, grade: true, section: true, educationLevel: true },
+    });
+
+    if (!classroom) {
+      throw new AppError('Aula no encontrada', 404);
+    }
+
+    const classroomName = `${classroom.grade}° "${classroom.section}" - ${classroom.educationLevel}`;
+
+    const [enrollments, attendances] = await Promise.all([
+      prisma.enrollment.findMany({
+        where: {
+          schoolId,
+          classroomId,
+          isActive: true,
+        },
+        include: {
+          student: {
+            select: {
+              id: true,
+              firstNames: true,
+              lastNamePaternal: true,
+              lastNameMaternal: true,
+              documentId: true,
+              studentCode: true,
+            },
+          },
+        },
+        orderBy: [
+          { student: { lastNamePaternal: 'asc' } },
+          { student: { lastNameMaternal: 'asc' } },
+          { student: { firstNames: 'asc' } },
+        ],
+      }),
+      prisma.attendance.findMany({
+        where: {
+          schoolId,
+          date: dateObj,
+          enrollment: {
+            classroomId,
+          },
+        },
+      }),
+    ]);
+
+    const attendanceMap = new Map(attendances.map((a) => [a.enrollmentId, a]));
+
+    const counts = {
+      PRESENT: 0,
+      ABSENT_JUSTIFIED: 0,
+      ABSENT_UNJUSTIFIED: 0,
+      LATE_JUSTIFIED: 0,
+      LATE_UNJUSTIFIED: 0,
+      UNRECORDED: 0,
+    };
+
+    const students: AttendanceSheetStudentItem[] = enrollments.map((e) => {
+      const att = attendanceMap.get(e.id);
+      const student = e.student;
+      const fullName = `${student.lastNamePaternal} ${student.lastNameMaternal || ''}, ${student.firstNames}`
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      if (att) {
+        counts[att.status]++;
+      } else {
+        counts.UNRECORDED++;
+      }
+
+      return {
+        enrollmentId: e.id,
+        studentId: student.id,
+        studentName: fullName,
+        documentId: student.documentId,
+        studentCode: student.studentCode || undefined,
+        attendanceId: att?.id || null,
+        status: att?.status || null,
+        checkInTime: att?.checkInTime || null,
+        origin: att?.origin || null,
+        notes: att?.notes || null,
+      };
+    });
+
+    const recordedCount = attendances.length;
+
+    return {
+      classroomId,
+      classroomName,
+      date: dateStr,
+      totalStudents: enrollments.length,
+      recordedCount,
+      isComplete: enrollments.length > 0 && recordedCount === enrollments.length,
+      counts,
+      students,
+    };
+  }
+
+  /**
+   * Guarda o actualiza la hoja de asistencia completa de una sección.
+   * Utiliza una transacción atómica con upsert para evitar la pérdida silenciosa de datos.
+   */
+  async saveClassroomAttendanceSheet(
+    schoolId: string,
+    data: SaveAttendanceSheetDto,
+  ): Promise<{ count: number }> {
+    const dateObj = parseSchoolDate(data.date);
+
+    const operations = data.records.map((record) =>
+      prisma.attendance.upsert({
+        where: {
+          enrollmentId_date: {
+            enrollmentId: record.enrollmentId,
+            date: dateObj,
+          },
+        },
+        update: {
+          status: record.status,
+          notes: record.notes,
+        },
+        create: {
+          schoolId,
+          enrollmentId: record.enrollmentId,
+          date: dateObj,
+          status: record.status,
+          origin: 'MANUAL',
+          notes: record.notes,
+        },
+      }),
+    );
+
+    const results = await prisma.$transaction(operations);
+    return { count: results.length };
+  }
+
+  /**
+   * Crea o actualiza registros de asistencia en masa para toda la sección.
+   * Utiliza upsert atómico para que las correcciones no sean ignoradas.
+   */
   async bulkCreate(
     schoolId: string,
     bulkData: BulkAttendanceDto,
   ): Promise<{ count: number }> {
-    return prisma.attendance.createMany({
-      data: bulkData.records.map((record) => ({
-        schoolId,
-        enrollmentId: record.enrollmentId,
-        date: new Date(bulkData.date),
-        status: record.status,
-        notes: record.notes,
-      })),
-      skipDuplicates: true,
-    });
+    const dateObj = parseSchoolDate(bulkData.date);
+    const operations = bulkData.records.map((record) =>
+      prisma.attendance.upsert({
+        where: {
+          enrollmentId_date: {
+            enrollmentId: record.enrollmentId,
+            date: dateObj,
+          },
+        },
+        update: {
+          status: record.status,
+          notes: record.notes,
+        },
+        create: {
+          schoolId,
+          enrollmentId: record.enrollmentId,
+          date: dateObj,
+          status: record.status,
+          origin: 'MANUAL',
+          notes: record.notes,
+        },
+      }),
+    );
+
+    const results = await prisma.$transaction(operations);
+    return { count: results.length };
   }
 
   /** Actualiza la asistencia (corregir estado u observaciones). */

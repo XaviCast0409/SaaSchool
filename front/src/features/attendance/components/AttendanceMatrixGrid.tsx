@@ -21,6 +21,7 @@ import { AttendanceStatus } from '../types';
 import { MatrixExportModal } from './MatrixExportModal';
 import { useGetActiveSchool } from '@/features/schools/api/useSchool';
 import { useAuthStore } from '@/store/useAuthStore';
+import { getPeruCurrentMonth } from '@/lib/dateUtils';
 
 interface AttendanceMatrixGridProps {
   initialMonth?: string;
@@ -68,7 +69,7 @@ function navigateMonth(currentMonthStr: string, delta: number): string {
 }
 
 export const AttendanceMatrixGrid: React.FC<AttendanceMatrixGridProps> = ({
-  initialMonth = new Date().toISOString().slice(0, 7),
+  initialMonth = getPeruCurrentMonth(),
   initialClassroomId = '',
 }) => {
   const [month, setMonth] = useState(initialMonth);

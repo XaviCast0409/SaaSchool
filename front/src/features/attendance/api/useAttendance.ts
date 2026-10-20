@@ -11,6 +11,8 @@ import {
   AttendanceMatrixData,
   StudentAttendanceDetail,
   ScanAttendanceResult,
+  AttendanceSheetData,
+  SaveAttendanceSheetPayload,
 } from '../types';
 
 interface SummaryResponse {
@@ -36,6 +38,11 @@ interface MatrixResponse {
 interface StudentDetailResponse {
   status: string;
   data: StudentAttendanceDetail;
+}
+
+interface SheetResponse {
+  status: string;
+  data: AttendanceSheetData;
 }
 
 /** Hook para obtener asistencias paginadas */
@@ -212,8 +219,48 @@ export const useScanAttendance = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attendance'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance-sheet'] });
       queryClient.invalidateQueries({ queryKey: ['attendance-summary'] });
       queryClient.invalidateQueries({ queryKey: ['attendance-matrix'] });
+    },
+  });
+};
+
+/** Hook para obtener la hoja unificada de asistencia de un aula y fecha */
+export const useAttendanceSheet = (params: { classroomId?: string; date: string }) => {
+  return useQuery({
+    queryKey: ['attendance-sheet', params.classroomId, params.date],
+    queryFn: async () => {
+      if (!params.classroomId) return null;
+      const response = await api.get<SheetResponse>(
+        `/attendance/sheet?classroomId=${params.classroomId}&date=${params.date}`
+      );
+      return response.data.data;
+    },
+    enabled: Boolean(params.classroomId && params.date),
+  });
+};
+
+/** Mutation hook para guardar la hoja de asistencia de un aula con upsert atómico */
+export const useSaveAttendanceSheet = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: SaveAttendanceSheetPayload) => {
+      const response = await api.put<{ status: string; data: { count: number } }>(
+        '/attendance/sheet',
+        payload
+      );
+      return response.data.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['attendance-sheet', variables.classroomId, variables.date],
+      });
+      queryClient.invalidateQueries({ queryKey: ['attendance'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance-matrix'] });
+      queryClient.invalidateQueries({ queryKey: ['student-attendance-detail'] });
     },
   });
 };

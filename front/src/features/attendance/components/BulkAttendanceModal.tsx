@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { X, CheckCircle2, UserCheck, Save, Users, Calendar as CalendarIcon, School } from 'lucide-react';
-import { useBulkAttendance } from '../api/useAttendance';
-import { useEnrollments } from '@/features/enrollments/api/useEnrollments';
+import { X, CheckCircle2, UserCheck, Save, Users, Calendar as CalendarIcon, School, QrCode } from 'lucide-react';
+import { toast } from 'sonner';
+import { useAttendanceSheet, useSaveAttendanceSheet } from '../api/useAttendance';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
 import { useAuthStore } from '@/store/useAuthStore';
+import { getPeruToday } from '@/lib/dateUtils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import { AttendanceStatus } from '../types';
 
 interface BulkAttendanceModalProps {
@@ -15,7 +17,6 @@ interface BulkAttendanceModalProps {
   onClose: () => void;
 }
 
-// Fix #3: LATE_JUSTIFIED añadido como estado válido según MINEDU
 const STATUS_CONFIG: Array<{ value: AttendanceStatus; label: string; activeClass: string }> = [
   { value: 'PRESENT', label: 'Presente', activeClass: 'bg-emerald-600 text-white font-semibold shadow-sm' },
   { value: 'ABSENT_UNJUSTIFIED', label: 'Falta Inj.', activeClass: 'bg-destructive text-destructive-foreground font-semibold shadow-sm' },
@@ -26,7 +27,7 @@ const STATUS_CONFIG: Array<{ value: AttendanceStatus; label: string; activeClass
 
 export const BulkAttendanceModal: React.FC<BulkAttendanceModalProps> = ({
   initialClassroomId = '',
-  initialDate = new Date().toISOString().split('T')[0],
+  initialDate = getPeruToday(),
   onClose,
 }) => {
   const user = useAuthStore((state) => state.user);
@@ -46,8 +47,13 @@ export const BulkAttendanceModal: React.FC<BulkAttendanceModalProps> = ({
   // Status mapping: enrollmentId -> AttendanceStatus
   const [attendanceState, setAttendanceState] = useState<Record<string, AttendanceStatus>>({});
 
-  const { data: enrollments = [], isLoading: isLoadingEnrollments } = useEnrollments();
-  const { mutate: submitBulk, isPending, error } = useBulkAttendance();
+  // Cargar únicamente la nómina del aula seleccionada cruzada con la asistencia del día
+  const { data: sheetData, isLoading: isLoadingSheet } = useAttendanceSheet({
+    classroomId: selectedClassroomId,
+    date: selectedDate,
+  });
+
+  const { mutate: saveSheet, isPending, error } = useSaveAttendanceSheet();
 
   // Si hay aulas disponibles y no hay seleccionada, preseleccionar la primera
   useEffect(() => {
@@ -56,19 +62,18 @@ export const BulkAttendanceModal: React.FC<BulkAttendanceModalProps> = ({
     }
   }, [availableClassrooms, selectedClassroomId]);
 
-  // Filter enrollments belonging to the selected classroom
-  const filteredEnrollments = selectedClassroomId
-    ? enrollments.filter((e) => e.classroomId === selectedClassroomId)
-    : [];
+  const students = sheetData?.students || [];
 
-  // Initialize all students to "PRESENT" by default for 1-click speed
+  // Inicializar estados con lo registrado previamente (incluyendo marcación QR) o 'PRESENT'
   useEffect(() => {
-    const initialState: Record<string, AttendanceStatus> = {};
-    filteredEnrollments.forEach((e) => {
-      initialState[e.id] = 'PRESENT';
-    });
-    setAttendanceState(initialState);
-  }, [selectedClassroomId, enrollments.length]);
+    if (sheetData?.students) {
+      const nextState: Record<string, AttendanceStatus> = {};
+      sheetData.students.forEach((s) => {
+        nextState[s.enrollmentId] = s.status || 'PRESENT';
+      });
+      setAttendanceState(nextState);
+    }
+  }, [sheetData]);
 
   const handleStudentStatusChange = (enrollmentId: string, status: AttendanceStatus) => {
     setAttendanceState((prev) => ({
@@ -79,29 +84,36 @@ export const BulkAttendanceModal: React.FC<BulkAttendanceModalProps> = ({
 
   const handleSetAll = (status: AttendanceStatus) => {
     const nextState: Record<string, AttendanceStatus> = {};
-    filteredEnrollments.forEach((e) => {
-      nextState[e.id] = status;
+    students.forEach((s) => {
+      nextState[s.enrollmentId] = status;
     });
     setAttendanceState(nextState);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!filteredEnrollments.length) return;
+    if (!selectedClassroomId || !students.length) return;
 
-    const records = filteredEnrollments.map((e) => ({
-      enrollmentId: e.id,
-      status: attendanceState[e.id] || 'PRESENT',
+    const records = students.map((s) => ({
+      enrollmentId: s.enrollmentId,
+      status: attendanceState[s.enrollmentId] || 'PRESENT',
+      notes: s.notes || undefined,
     }));
 
-    submitBulk(
+    saveSheet(
       {
+        classroomId: selectedClassroomId,
         date: selectedDate,
         records,
       },
       {
-        onSuccess: () => {
+        onSuccess: (res) => {
+          toast.success(`✅ Asistencia de la sección guardada con éxito (${res.count} alumnos).`);
           onClose();
+        },
+        onError: (err: any) => {
+          const msg = err?.response?.data?.message || 'Error al guardar la asistencia masiva.';
+          toast.error(msg);
         },
       }
     );
@@ -169,7 +181,7 @@ export const BulkAttendanceModal: React.FC<BulkAttendanceModalProps> = ({
           </div>
 
           {/* Quick Bulk Action Buttons */}
-          {filteredEnrollments.length > 0 && (
+          {students.length > 0 && (
             <div className="flex items-center gap-1.5 self-end sm:self-auto">
               <Button
                 type="button"
@@ -208,25 +220,24 @@ export const BulkAttendanceModal: React.FC<BulkAttendanceModalProps> = ({
               <Users className="w-8 h-8 text-muted-foreground/40 mx-auto" />
               <p className="font-medium">Por favor, selecciona un Aula/Sección arriba para ver a los estudiantes.</p>
             </div>
-          ) : isLoadingEnrollments ? (
+          ) : isLoadingSheet ? (
             <div className="space-y-2">
               <Skeleton className="h-12 w-full" />
               <Skeleton className="h-12 w-full" />
               <Skeleton className="h-12 w-full" />
             </div>
-          ) : filteredEnrollments.length === 0 ? (
+          ) : students.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground border border-dashed border-border rounded-xl">
               No hay estudiantes matriculados en la sección seleccionada.
             </div>
           ) : (
             <div className="space-y-2">
-              {filteredEnrollments.map((enrollment, index) => {
-                const student = enrollment.student;
-                const currentStatus = attendanceState[enrollment.id] || 'PRESENT';
+              {students.map((student, index) => {
+                const currentStatus = attendanceState[student.enrollmentId] || 'PRESENT';
 
                 return (
                   <div
-                    key={enrollment.id}
+                    key={student.enrollmentId}
                     className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border border-border bg-card hover:bg-muted/20 transition-colors gap-3"
                   >
                     <div className="flex items-center gap-3">
@@ -234,13 +245,19 @@ export const BulkAttendanceModal: React.FC<BulkAttendanceModalProps> = ({
                         {index + 1}
                       </span>
                       <div>
-                        <div className="font-semibold text-sm text-foreground">
-                          {student
-                            ? `${student.lastNamePaternal} ${student.lastNameMaternal}, ${student.firstNames}`
-                            : 'Estudiante'}
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm text-foreground">
+                            {student.studentName}
+                          </span>
+                          {student.origin === 'QR_SCAN' && (
+                            <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[10px] font-mono gap-1 py-0">
+                              <QrCode className="w-2.5 h-2.5" />
+                              QR
+                            </Badge>
+                          )}
                         </div>
                         <div className="text-[11px] font-mono text-muted-foreground">
-                          Doc: {student?.documentId || 'S/D'}
+                          Doc: {student.documentId || 'S/D'}
                         </div>
                       </div>
                     </div>
@@ -253,7 +270,7 @@ export const BulkAttendanceModal: React.FC<BulkAttendanceModalProps> = ({
                           <button
                             key={opt.value}
                             type="button"
-                            onClick={() => handleStudentStatusChange(enrollment.id, opt.value)}
+                            onClick={() => handleStudentStatusChange(student.enrollmentId, opt.value)}
                             className={`px-2.5 py-1.5 rounded-md text-xs font-medium border transition-all ${
                               isSelected
                                 ? opt.activeClass
@@ -275,8 +292,8 @@ export const BulkAttendanceModal: React.FC<BulkAttendanceModalProps> = ({
         {/* Footer */}
         <div className="p-4 border-t border-border bg-card flex items-center justify-between shrink-0">
           <span className="text-xs text-muted-foreground font-medium">
-            {filteredEnrollments.length > 0
-              ? `${filteredEnrollments.length} alumnos listos para registrar`
+            {students.length > 0
+              ? `${students.length} alumnos listos para registrar`
               : 'Selecciona una sección'}
           </span>
 
@@ -288,7 +305,7 @@ export const BulkAttendanceModal: React.FC<BulkAttendanceModalProps> = ({
               type="button"
               size="sm"
               isLoading={isPending}
-              disabled={!filteredEnrollments.length}
+              disabled={!students.length}
               onClick={handleSubmit}
               className="gap-2"
             >

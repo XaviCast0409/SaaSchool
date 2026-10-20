@@ -20,6 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import type { AttendanceExportRow } from '../types';
 import * as XLSX from 'xlsx';
+import { getPeruCurrentMonth } from '@/lib/dateUtils';
 
 interface AttendanceMonthlyReportProps {
   initialMonth?: string;
@@ -137,7 +138,7 @@ function downloadExcel(rows: AttendanceExportRow[], monthStr: string): void {
 }
 
 export const AttendanceMonthlyReport: React.FC<AttendanceMonthlyReportProps> = ({
-  initialMonth = new Date().toISOString().slice(0, 7),
+  initialMonth = getPeruCurrentMonth(),
   initialClassroomId = '',
   month: propMonth,
   classroomId: propClassroomId,

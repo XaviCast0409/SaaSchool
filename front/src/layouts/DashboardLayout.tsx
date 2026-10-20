@@ -22,6 +22,7 @@ import {
   UserCheck,
   SlidersHorizontal,
   Laptop,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/button';
@@ -113,6 +114,13 @@ export const DashboardLayout: React.FC = () => {
           path: '/grades',
           icon: BookOpenCheck,
           roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT'],
+          minPlan: 'PRO',
+        },
+        {
+          label: 'Reportes y Actas',
+          path: '/academic-reports',
+          icon: FileSpreadsheet,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
           minPlan: 'PRO',
         },
         {

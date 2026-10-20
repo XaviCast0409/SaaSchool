@@ -125,6 +125,31 @@ export const scanAttendanceSchema = z.object({
     .optional(),
 });
 
+// Schema para consultar la hoja completa de asistencia de un aula en una fecha
+export const attendanceSheetQuerySchema = z.object({
+  classroomId: z.string().uuid('ID de aula inválido'),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida (YYYY-MM-DD)'),
+});
+
+// Schema para guardar o actualizar la hoja de asistencia de un aula (Upsert Atómico)
+export const saveAttendanceSheetSchema = z.object({
+  classroomId: z.string().uuid('ID de aula inválido'),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida (YYYY-MM-DD)'),
+  records: z.array(
+    z.object({
+      enrollmentId: z.string().uuid('ID de matrícula inválido'),
+      status: z.enum([
+        'PRESENT',
+        'ABSENT_JUSTIFIED',
+        'ABSENT_UNJUSTIFIED',
+        'LATE_JUSTIFIED',
+        'LATE_UNJUSTIFIED',
+      ]),
+      notes: z.string().optional(),
+    }),
+  ),
+});
+
 export type CreateAttendanceDto = z.infer<typeof createAttendanceSchema>;
 export type UpdateAttendanceDto = z.infer<typeof updateAttendanceSchema>;
 export type BulkAttendanceDto = z.infer<typeof bulkAttendanceSchema>;
@@ -134,3 +159,5 @@ export type AttendanceExportQueryDto = z.infer<typeof attendanceExportQuerySchem
 export type AttendanceMatrixQueryDto = z.infer<typeof attendanceMatrixQuerySchema>;
 export type StudentAttendanceQueryDto = z.infer<typeof studentAttendanceQuerySchema>;
 export type ScanAttendanceDto = z.infer<typeof scanAttendanceSchema>;
+export type AttendanceSheetQueryDto = z.infer<typeof attendanceSheetQuerySchema>;
+export type SaveAttendanceSheetDto = z.infer<typeof saveAttendanceSheetSchema>;

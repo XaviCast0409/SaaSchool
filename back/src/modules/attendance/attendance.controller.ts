@@ -9,6 +9,8 @@ import {
   attendanceMatrixQuerySchema,
   studentAttendanceQuerySchema,
   scanAttendanceSchema,
+  attendanceSheetQuerySchema,
+  saveAttendanceSheetSchema,
 } from './attendance.schema';
 import type { AttendanceService } from './attendance.service';
 
@@ -144,6 +146,32 @@ export class AttendanceController {
     };
     const scanDto = scanAttendanceSchema.parse(request.body);
     const result = await this.attendanceService.scanAttendance(schoolId, scanDto, userContext);
+    response.status(200).json({ status: 'success', data: result });
+  };
+
+  /** GET /api/attendance/sheet?classroomId=UUID&date=YYYY-MM-DD — Hoja unificada de asistencia para pase de lista */
+  getSheet = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const userContext = {
+      userId: request.user!.userId,
+      role: request.user!.role,
+      schoolId,
+    };
+    const query = attendanceSheetQuerySchema.parse(request.query);
+    const sheet = await this.attendanceService.getAttendanceSheet(schoolId, query, userContext);
+    response.status(200).json({ status: 'success', data: sheet });
+  };
+
+  /** PUT /api/attendance/sheet — Guardar o actualizar la hoja de asistencia de un aula (Upsert Atómico) */
+  saveSheet = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const userContext = {
+      userId: request.user!.userId,
+      role: request.user!.role,
+      schoolId,
+    };
+    const dto = saveAttendanceSheetSchema.parse(request.body);
+    const result = await this.attendanceService.saveAttendanceSheet(schoolId, dto, userContext);
     response.status(200).json({ status: 'success', data: result });
   };
 }

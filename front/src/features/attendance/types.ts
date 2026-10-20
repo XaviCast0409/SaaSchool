@@ -174,3 +174,44 @@ export interface AttendanceMatrixQueryParams {
   month: string;
   classroomId?: string;
 }
+
+export interface AttendanceSheetStudentItem {
+  enrollmentId: string;
+  studentId: string;
+  studentName: string;
+  documentId: string;
+  studentCode?: string;
+  attendanceId: string | null;
+  status: AttendanceStatus | null;
+  checkInTime: string | null;
+  origin: 'MANUAL' | 'QR_SCAN' | 'BARCODE' | null;
+  notes: string | null;
+}
+
+export interface AttendanceSheetData {
+  classroomId: string;
+  classroomName: string;
+  date: string;
+  totalStudents: number;
+  recordedCount: number;
+  isComplete: boolean;
+  counts: {
+    PRESENT: number;
+    ABSENT_JUSTIFIED: number;
+    ABSENT_UNJUSTIFIED: number;
+    LATE_JUSTIFIED: number;
+    LATE_UNJUSTIFIED: number;
+    UNRECORDED: number;
+  };
+  students: AttendanceSheetStudentItem[];
+}
+
+export interface SaveAttendanceSheetPayload {
+  classroomId: string;
+  date: string;
+  records: Array<{
+    enrollmentId: string;
+    status: AttendanceStatus;
+    notes?: string;
+  }>;
+}

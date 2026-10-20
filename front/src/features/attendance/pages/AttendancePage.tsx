@@ -25,8 +25,10 @@ import { AttendanceMatrixGrid } from '../components/AttendanceMatrixGrid';
 import { BulkAttendanceModal } from '../components/BulkAttendanceModal';
 import { EditNotesModal } from '../components/EditNotesModal';
 import { QrScannerModal } from '../components/QrScannerModal';
+import { AttendanceSheetView } from '../components/AttendanceSheetView';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
 import { useAuthStore } from '@/store/useAuthStore';
+import { getPeruToday, getPeruCurrentMonth, formatPeruTime, formatPeruDate } from '@/lib/dateUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -54,10 +56,9 @@ export const AttendancePage: React.FC = () => {
   }
 
   const [activeTab, setActiveTab] = useState<'DAILY' | 'MATRIX' | 'MONTHLY'>('DAILY');
-  const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
-  );
-  const selectedMonth = new Date().toISOString().slice(0, 7);
+  const [dailyViewMode, setDailyViewMode] = useState<'SHEET' | 'LOG'>('SHEET');
+  const [selectedDate, setSelectedDate] = useState<string>(getPeruToday());
+  const selectedMonth = getPeruCurrentMonth();
   const [selectedClassroomId, setSelectedClassroomId] = useState<string>('');
   const [editingAttendanceId, setEditingAttendanceId] = useState<string | null>(null);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
@@ -76,6 +77,7 @@ export const AttendancePage: React.FC = () => {
     ? classrooms.filter((c) => c.tutorTeacherId === user?.id || c.tutorTeacher?.id === user?.id)
     : [];
   const isTutor = tutoredClassrooms.length > 0;
+  const canWriteAttendance = !isTeacher || (isTutor && tutoredClassrooms.some((c) => c.id === selectedClassroomId));
 
   // Auto-seleccionar aula del tutor
   React.useEffect(() => {
@@ -248,87 +250,11 @@ export const AttendancePage: React.FC = () => {
       {/* Tab 1: Control Diario */}
       {activeTab === 'DAILY' && (
         <div className="space-y-6">
-          {/* KPI Cards con barra de progreso */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Card className="bg-card">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Presentes</CardTitle>
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                  {presentCount}
-                  {total > 0 && (
-                    <span className="ml-1.5 text-sm font-normal text-muted-foreground">
-                      ({presentPct}%)
-                    </span>
-                  )}
-                </div>
-                <div className="mt-2 w-full bg-muted rounded-full h-1.5 overflow-hidden">
-                  <div
-                    className="bg-emerald-500 h-full rounded-full transition-all duration-500"
-                    style={{ width: `${presentPct}%` }}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">de {total} alumnos registrados</p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-card">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Faltas</CardTitle>
-                <XCircle className="w-4 h-4 text-destructive" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-destructive">
-                  {absentCount}
-                  {total > 0 && (
-                    <span className="ml-1.5 text-sm font-normal text-muted-foreground">
-                      ({absentPct}%)
-                    </span>
-                  )}
-                </div>
-                <div className="mt-2 w-full bg-muted rounded-full h-1.5 overflow-hidden">
-                  <div
-                    className="bg-destructive h-full rounded-full transition-all duration-500"
-                    style={{ width: `${absentPct}%` }}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">Justificadas e Injustificadas</p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-card">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Tardanzas</CardTitle>
-                <Clock className="w-4 h-4 text-amber-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-                  {lateCount}
-                  {total > 0 && (
-                    <span className="ml-1.5 text-sm font-normal text-muted-foreground">
-                      ({latePct}%)
-                    </span>
-                  )}
-                </div>
-                <div className="mt-2 w-full bg-muted rounded-full h-1.5 overflow-hidden">
-                  <div
-                    className="bg-amber-500 h-full rounded-full transition-all duration-500"
-                    style={{ width: `${latePct}%` }}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">Justificadas e Injustificadas</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Barra de Búsqueda, Selector de Aula y Filtros de Estado */}
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 p-3 rounded-xl bg-card border border-border">
-            {/* Fecha, Buscador de Alumno y Selector de Aula */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1">
+          {/* Barra de Control Principal: Fecha, Aula y Alternador de Modo */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-card border border-border shadow-xs">
+            <div className="flex flex-wrap items-center gap-3">
               {/* Selector de Fecha */}
-              <div className="flex items-center gap-1.5 bg-background px-2.5 h-9 rounded-md border border-input shrink-0">
+              <div className="flex items-center gap-2 bg-background px-3 h-10 rounded-xl border border-input shadow-xs">
                 <CalendarIcon className="w-4 h-4 text-primary shrink-0" />
                 <input
                   type="date"
@@ -336,37 +262,13 @@ export const AttendancePage: React.FC = () => {
                   onChange={(e) => handleDateChange(e.target.value)}
                   className="bg-transparent border-none text-xs font-semibold focus:outline-none text-foreground cursor-pointer"
                 />
+                <span className="text-[11px] font-semibold text-muted-foreground hidden md:inline border-l border-border pl-2 capitalize">
+                  {formatPeruDate(selectedDate, { weekday: 'short', day: 'numeric', month: 'short' })}
+                </span>
               </div>
 
-              {/* Buscador de Alumno / DNI */}
-              <div className="relative flex-1 min-w-[180px]">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder="Buscar alumno por nombre o DNI..."
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="pl-9 pr-8 h-9 text-xs bg-background"
-                />
-                {searchTerm && (
-                  <button
-                    onClick={() => {
-                      setSearchTerm('');
-                      setCurrentPage(1);
-                    }}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    title="Limpiar búsqueda"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-
-              {/* Selector de Aula al lado del buscador */}
-              <div className="flex items-center gap-2 bg-background px-3 h-9 rounded-md border border-input min-w-[210px]">
+              {/* Selector de Aula */}
+              <div className="flex items-center gap-2 bg-background px-3 h-10 rounded-xl border border-input shadow-xs min-w-[240px]">
                 <School className="w-4 h-4 text-primary shrink-0" />
                 <select
                   value={selectedClassroomId}
@@ -385,63 +287,218 @@ export const AttendancePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Botones de Filtro Rápido por Estado */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <Button
-                size="sm"
-                variant={statusFilter === 'ALL' ? 'default' : 'outline'}
-                className="h-8 text-xs font-semibold"
-                onClick={() => {
-                  setStatusFilter('ALL');
-                  setCurrentPage(1);
-                }}
-              >
-                Todos ({total})
-              </Button>
-              <Button
-                size="sm"
-                variant={statusFilter === 'ABSENT' ? 'default' : 'outline'}
-                className={`h-8 text-xs font-semibold ${statusFilter === 'ABSENT'
-                  ? 'bg-destructive text-destructive-foreground'
-                  : 'text-destructive hover:bg-destructive/10'
+            {/* Alternador de Modo de Vista cuando hay aula seleccionada */}
+            {selectedClassroomId && (
+              <div className="flex items-center bg-muted/60 p-1 rounded-xl border border-border self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setDailyViewMode('SHEET')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    dailyViewMode === 'SHEET'
+                      ? 'bg-background text-foreground shadow-xs'
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
-                onClick={() => {
-                  setStatusFilter('ABSENT');
-                  setCurrentPage(1);
-                }}
-              >
-                Solo Faltas ({absentCount})
-              </Button>
-              <Button
-                size="sm"
-                variant={statusFilter === 'LATE' ? 'default' : 'outline'}
-                className={`h-8 text-xs font-semibold ${statusFilter === 'LATE'
-                  ? 'bg-amber-600 text-white'
-                  : 'text-amber-600 hover:bg-amber-500/10'
+                >
+                  <UserCheck className="w-3.5 h-3.5 text-primary" />
+                  <span>Hoja de Pase de Lista</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDailyViewMode('LOG')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    dailyViewMode === 'LOG'
+                      ? 'bg-background text-foreground shadow-xs'
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
-                onClick={() => {
-                  setStatusFilter('LATE');
-                  setCurrentPage(1);
-                }}
-              >
-                Solo Tardanzas ({lateCount})
-              </Button>
-              <Button
-                size="sm"
-                variant={statusFilter === 'PRESENT' ? 'default' : 'outline'}
-                className={`h-8 text-xs font-semibold ${statusFilter === 'PRESENT'
-                  ? 'bg-emerald-600 text-white'
-                  : 'text-emerald-600 hover:bg-emerald-500/10'
-                  }`}
-                onClick={() => {
-                  setStatusFilter('PRESENT');
-                  setCurrentPage(1);
-                }}
-              >
-                Solo Presentes ({presentCount})
-              </Button>
-            </div>
+                >
+                  <CalendarCheck className="w-3.5 h-3.5" />
+                  <span>Registro y Auditoría</span>
+                </button>
+              </div>
+            )}
           </div>
+
+          {/* VISTA A: Hoja Interactiva Directa de Pase de Lista */}
+          {selectedClassroomId && dailyViewMode === 'SHEET' ? (
+            <AttendanceSheetView
+              classroomId={selectedClassroomId}
+              date={selectedDate}
+              canWrite={canWriteAttendance}
+            />
+          ) : (
+            <div className="space-y-6">
+              {!selectedClassroomId && (
+                <div className="p-3.5 rounded-xl border border-primary/20 bg-primary/5 text-xs text-muted-foreground flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <UserCheck className="w-4 h-4 text-primary shrink-0" />
+                    <span>
+                      Estás viendo el <strong>registro global de todo el colegio</strong>. Selecciona un aula arriba para activar el pase de lista directo en pantalla.
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* KPI Cards con barra de progreso */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Card className="bg-card">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Presentes</CardTitle>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                      {presentCount}
+                      {total > 0 && (
+                        <span className="ml-1.5 text-sm font-normal text-muted-foreground">
+                          ({presentPct}%)
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-2 w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                        style={{ width: `${presentPct}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">de {total} alumnos registrados</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-card">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Faltas</CardTitle>
+                    <XCircle className="w-4 h-4 text-destructive" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-destructive">
+                      {absentCount}
+                      {total > 0 && (
+                        <span className="ml-1.5 text-sm font-normal text-muted-foreground">
+                          ({absentPct}%)
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-2 w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="bg-destructive h-full rounded-full transition-all duration-500"
+                        style={{ width: `${absentPct}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">Justificadas e Injustificadas</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-card">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Tardanzas</CardTitle>
+                    <Clock className="w-4 h-4 text-amber-500" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                      {lateCount}
+                      {total > 0 && (
+                        <span className="ml-1.5 text-sm font-normal text-muted-foreground">
+                          ({latePct}%)
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-2 w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="bg-amber-500 h-full rounded-full transition-all duration-500"
+                        style={{ width: `${latePct}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">Justificadas e Injustificadas</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Barra de Búsqueda y Filtros de Estado */}
+              <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 p-3 rounded-xl bg-card border border-border">
+                {/* Buscador de Alumno / DNI */}
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="Buscar alumno por nombre o DNI en el registro..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="pl-9 pr-8 h-9 text-xs bg-background"
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => {
+                        setSearchTerm('');
+                        setCurrentPage(1);
+                      }}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      title="Limpiar búsqueda"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Botones de Filtro Rápido por Estado */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <Button
+                    size="sm"
+                    variant={statusFilter === 'ALL' ? 'default' : 'outline'}
+                    className="h-8 text-xs font-semibold"
+                    onClick={() => {
+                      setStatusFilter('ALL');
+                      setCurrentPage(1);
+                    }}
+                  >
+                    Todos ({total})
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={statusFilter === 'ABSENT' ? 'default' : 'outline'}
+                    className={`h-8 text-xs font-semibold ${statusFilter === 'ABSENT'
+                      ? 'bg-destructive text-destructive-foreground'
+                      : 'text-destructive hover:bg-destructive/10'
+                      }`}
+                    onClick={() => {
+                      setStatusFilter('ABSENT');
+                      setCurrentPage(1);
+                    }}
+                  >
+                    Solo Faltas ({absentCount})
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={statusFilter === 'LATE' ? 'default' : 'outline'}
+                    className={`h-8 text-xs font-semibold ${statusFilter === 'LATE'
+                      ? 'bg-amber-600 text-white'
+                      : 'text-amber-600 hover:bg-amber-500/10'
+                      }`}
+                    onClick={() => {
+                      setStatusFilter('LATE');
+                      setCurrentPage(1);
+                    }}
+                  >
+                    Solo Tardanzas ({lateCount})
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={statusFilter === 'PRESENT' ? 'default' : 'outline'}
+                    className={`h-8 text-xs font-semibold ${statusFilter === 'PRESENT'
+                      ? 'bg-emerald-600 text-white'
+                      : 'text-emerald-600 hover:bg-emerald-500/10'
+                      }`}
+                    onClick={() => {
+                      setStatusFilter('PRESENT');
+                      setCurrentPage(1);
+                    }}
+                  >
+                    Solo Presentes ({presentCount})
+                  </Button>
+                </div>
+              </div>
 
           {/* Attendance Table */}
           {isLoading ? (
@@ -492,12 +549,7 @@ export const AttendancePage: React.FC = () => {
                               {item.checkInTime ? (
                                 <div className="flex items-center gap-1 font-semibold text-foreground">
                                   <Clock className="w-3.5 h-3.5 text-primary" />
-                                  <span>
-                                    {new Date(item.checkInTime).toLocaleTimeString('es-PE', {
-                                      hour: '2-digit',
-                                      minute: '2-digit',
-                                    })}
-                                  </span>
+                                  <span>{formatPeruTime(item.checkInTime)}</span>
                                 </div>
                               ) : (
                                 <span className="text-muted-foreground/60">—</span>
@@ -664,6 +716,8 @@ export const AttendancePage: React.FC = () => {
           )}
         </div>
       )}
+    </div>
+  )}
 
       {/* Tab 2: Sábana Mensual (Matriz 1..31) */}
       {activeTab === 'MATRIX' && (

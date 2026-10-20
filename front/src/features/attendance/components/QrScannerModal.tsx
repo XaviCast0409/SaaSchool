@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   X,
   QrCode,
@@ -7,16 +7,16 @@ import {
   Clock,
   Volume2,
   VolumeX,
-  Keyboard,
-  Camera,
   School,
-  Sparkles,
+  ScanLine,
 } from 'lucide-react';
 import { useScanAttendance } from '../api/useAttendance';
+import { CameraQrScanner } from './CameraQrScanner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScanAttendanceResult } from '../types';
+import { formatPeruTime } from '@/lib/dateUtils';
 
 interface QrScannerModalProps {
   onClose: () => void;
@@ -59,23 +59,13 @@ function playBeep(type: 'success' | 'warning' | 'error') {
 }
 
 export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
-  const [scanCode, setScanCode] = useState('');
   const [toleranceTime, setToleranceTime] = useState('07:45');
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [inputMode, setInputMode] = useState<'USB_BARCODE' | 'CAMERA'>('USB_BARCODE');
   const [recentScans, setRecentScans] = useState<ScanAttendanceResult[]>([]);
   const [lastResult, setLastResult] = useState<ScanAttendanceResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const inputRef = useRef<HTMLInputElement>(null);
   const { mutate: scanAttendance, isPending } = useScanAttendance();
-
-  // Auto-focus permanente en el input para que las pistolas lectoras USB escaneen sin hacer clic
-  useEffect(() => {
-    if (inputMode === 'USB_BARCODE') {
-      inputRef.current?.focus();
-    }
-  }, [inputMode, lastResult, errorMessage]);
 
   const handleProcessScan = (codeToProcess: string) => {
     const trimmed = codeToProcess.trim();
@@ -92,12 +82,9 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
         onSuccess: (data) => {
           setLastResult(data);
           setRecentScans((prev) => [data, ...prev.slice(0, 19)]);
-          setScanCode('');
 
           if (soundEnabled) {
-            if (data.alreadyRegistered) {
-              playBeep('warning');
-            } else if (data.status === 'LATE_UNJUSTIFIED') {
+            if (data.alreadyRegistered || data.status === 'LATE_UNJUSTIFIED') {
               playBeep('warning');
             } else {
               playBeep('success');
@@ -105,18 +92,12 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
           }
         },
         onError: (err: any) => {
-          const msg = err.response?.data?.message || err.message || 'Código no reconocido';
+          const msg = err.response?.data?.message || err.message || 'Código QR no reconocido o sin matrícula activa';
           setErrorMessage(msg);
           if (soundEnabled) playBeep('error');
-          setScanCode('');
         },
       }
     );
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    handleProcessScan(scanCode);
   };
 
   return (
@@ -131,14 +112,14 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="font-extrabold text-lg text-foreground">
-                  Kiosco de Asistencia Escolar (Lector QR / Código)
+                  Lector QR de Asistencia Escolar
                 </h2>
                 <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30">
                   En Vivo
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Compatible con pistolas lectoras USB, fotochecks impresos y códigos DNI/SIAGIE.
+                Escaneo óptico directo mediante cámara web para carnets y fotochecks escolares.
               </p>
             </div>
           </div>
@@ -149,7 +130,7 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
               size="sm"
               onClick={() => setSoundEnabled((v) => !v)}
               className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-              title={soundEnabled ? 'Silenciar bip de escaneo' : 'Activar bip de escaneo'}
+              title={soundEnabled ? 'Silenciar confirmación' : 'Activar confirmación sonora'}
             >
               {soundEnabled ? <Volume2 className="w-4 h-4 text-emerald-600" /> : <VolumeX className="w-4 h-4 text-muted-foreground" />}
             </Button>
@@ -180,60 +161,25 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
-            <Button
-              size="sm"
-              variant={inputMode === 'USB_BARCODE' ? 'default' : 'outline'}
-              className="h-7 text-xs gap-1.5"
-              onClick={() => setInputMode('USB_BARCODE')}
-            >
-              <Keyboard className="w-3.5 h-3.5" />
-              <span>Pistola USB / DNI</span>
-            </Button>
-            <Button
-              size="sm"
-              variant={inputMode === 'CAMERA' ? 'default' : 'outline'}
-              className="h-7 text-xs gap-1.5"
-              onClick={() => setInputMode('CAMERA')}
-            >
-              <Camera className="w-3.5 h-3.5" />
-              <span>Cámara Web</span>
-            </Button>
+          <div className="flex items-center gap-2 text-xs">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold text-[11px] border border-emerald-500/20">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              Sensor Óptico QR Activo
+            </span>
           </div>
         </div>
 
         {/* Cuerpo Principal */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-y-auto flex-1">
-          {/* Zona de Escaneo Activa (7 cols) */}
+          {/* Zona de Escaneo QR con Cámara (7 cols) */}
           <div className="lg:col-span-7 p-6 border-b lg:border-b-0 lg:border-r border-border flex flex-col justify-between space-y-6">
             <div className="space-y-4">
-              <form onSubmit={handleSubmit} className="space-y-3">
-                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Escaneo Activo (Apunta el carnet o escribe el DNI)
-                </label>
-                <div className="relative">
-                  <Input
-                    ref={inputRef}
-                    value={scanCode}
-                    onChange={(e) => setScanCode(e.target.value)}
-                    placeholder="Esperando lectura de carnet escolar o DNI..."
-                    className="h-14 text-base font-bold pl-4 pr-24 rounded-xl border-2 border-primary/40 focus:border-primary shadow-sm bg-background"
-                    autoFocus
-                    disabled={isPending}
-                  />
-                  <Button
-                    type="submit"
-                    disabled={!scanCode.trim() || isPending}
-                    className="absolute right-2 top-2 h-10 px-4 font-bold text-xs rounded-lg"
-                  >
-                    {isPending ? 'Verificando...' : 'Marcar'}
-                  </Button>
-                </div>
-                <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-primary" />
-                  Presiona Enter o dispara la pistola lectora. El registro es automático y atómico.
-                </p>
-              </form>
+              {/* Visor de Cámara QR */}
+              <CameraQrScanner
+                isActive={true}
+                onScan={handleProcessScan}
+                isProcessing={isPending}
+              />
 
               {/* Mensaje de Error */}
               {errorMessage && (
@@ -298,7 +244,7 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
                       {lastResult.message}
                     </span>
                     <span className="text-muted-foreground">
-                      Hora: {new Date(lastResult.checkInTime).toLocaleTimeString('es-PE')}
+                      Hora: {formatPeruTime(lastResult.checkInTime, { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                     </span>
                   </div>
                 </div>
@@ -306,9 +252,12 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
             </div>
 
             <div className="p-3.5 rounded-xl bg-muted/40 border border-border text-xs text-muted-foreground space-y-1">
-              <span className="font-bold text-foreground block">💡 Consejos de Uso en Puerta:</span>
-              <p>• Mantén esta ventana abierta en la PC de recepción o portería.</p>
-              <p>• Los lectores láser USB envían un salto de línea (Enter) automáticamente al leer el carnet.</p>
+              <span className="font-bold text-foreground block flex items-center gap-1.5">
+                <ScanLine className="w-3.5 h-3.5 text-primary" />
+                Consejo de Escaneo en Puerta:
+              </span>
+              <p>• Apunta el carnet escolar con código QR frente al visor de la cámara.</p>
+              <p>• El registro se procesa al instante sin necesidad de clics adicionales.</p>
             </div>
           </div>
 
@@ -334,9 +283,9 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
               {recentScans.length === 0 ? (
                 <div className="py-16 text-center text-muted-foreground border border-dashed border-border rounded-xl space-y-2 p-4">
                   <Clock className="w-8 h-8 text-muted-foreground/40 mx-auto" />
-                  <p className="text-xs font-medium">Aún no se han registrado ingresos en esta sesión.</p>
+                  <p className="text-xs font-medium">Aún no se han escaneado carnets en esta sesión.</p>
                   <p className="text-[11px] text-muted-foreground/70">
-                    Apunta con el escáner al carnet de un alumno para comenzar.
+                    Apunta con el código QR frente a la cámara para comenzar.
                   </p>
                 </div>
               ) : (
@@ -366,10 +315,7 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
                           {scan.status === 'PRESENT' ? 'Puntual' : 'Tardanza'}
                         </Badge>
                         <span className="block text-[10px] text-muted-foreground mt-0.5 font-medium">
-                          {new Date(scan.checkInTime).toLocaleTimeString('es-PE', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
+                          {formatPeruTime(scan.checkInTime)}
                         </span>
                       </div>
                     </div>
@@ -379,7 +325,7 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
             </div>
 
             <Button variant="outline" size="sm" onClick={onClose} className="w-full text-xs">
-              Cerrar Kiosco
+              Cerrar Lector
             </Button>
           </div>
         </div>

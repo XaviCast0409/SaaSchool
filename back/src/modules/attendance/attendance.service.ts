@@ -1,5 +1,6 @@
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
+import { getSchoolNow } from '../../utils/timezone.util';
 import type {
   AttendanceRepository,
   AttendanceMonthlySummary,
@@ -7,6 +8,7 @@ import type {
   AttendanceMatrixData,
   StudentAttendanceDetail,
   AttendancePaginatedWithStats,
+  AttendanceSheetData,
 } from './attendance.repository';
 import type {
   AttendanceFilterDto,
@@ -18,6 +20,8 @@ import type {
   CreateAttendanceDto,
   UpdateAttendanceDto,
   ScanAttendanceDto,
+  AttendanceSheetQueryDto,
+  SaveAttendanceSheetDto,
 } from './attendance.schema';
 import type { Attendance, AttendanceStatus } from '@prisma/client';
 
@@ -29,6 +33,44 @@ export interface AttendanceUserContext {
 
 export class AttendanceService {
   constructor(private readonly attendanceRepository: AttendanceRepository) {}
+
+  /**
+   * Valida si el usuario tiene permiso para REGISTRAR o MODIFICAR la asistencia de un aula específica:
+   * - SUPER_ADMIN / SCHOOL_ADMIN / ADMINISTRATIVE: Acceso total de gestión.
+   * - TEACHER: Solo permitido si es el tutor asignado al aula.
+   */
+  private async verifyTutorOrAdminClassroomWriteAccess(
+    schoolId: string,
+    classroomId: string,
+    userContext?: AttendanceUserContext,
+  ): Promise<void> {
+    if (
+      !userContext ||
+      userContext.role === 'SUPER_ADMIN' ||
+      userContext.role === 'SCHOOL_ADMIN' ||
+      userContext.role === 'ADMINISTRATIVE'
+    ) {
+      return;
+    }
+
+    if (userContext.role === 'TEACHER') {
+      const classroom = await prisma.classroom.findFirst({
+        where: { id: classroomId, schoolId },
+        select: { id: true, tutorTeacherId: true },
+      });
+
+      if (!classroom) {
+        throw new AppError('Aula no encontrada', 404);
+      }
+
+      if (classroom.tutorTeacherId !== userContext.userId) {
+        throw new AppError(
+          'Acceso denegado: Solo el tutor asignado o personal administrativo puede registrar o modificar la asistencia de este aula.',
+          403,
+        );
+      }
+    }
+  }
 
   /**
    * Valida si el usuario tiene permiso para REGISTRAR o MODIFICAR la asistencia del estudiante:
@@ -117,14 +159,73 @@ export class AttendanceService {
     bulkAttendanceDto: BulkAttendanceDto,
     userContext?: AttendanceUserContext,
   ): Promise<{ count: number }> {
-    if (bulkAttendanceDto.records.length > 0) {
-      await this.verifyTutorOrAdminEnrollmentWriteAccess(
-        schoolId,
-        bulkAttendanceDto.records[0].enrollmentId,
-        userContext,
-      );
+    if (userContext?.role === 'TEACHER' && bulkAttendanceDto.records.length > 0) {
+      const enrollmentIds = bulkAttendanceDto.records.map((r) => r.enrollmentId);
+      const invalidCount = await prisma.enrollment.count({
+        where: {
+          id: { in: enrollmentIds },
+          schoolId,
+          classroom: {
+            tutorTeacherId: { not: userContext.userId },
+          },
+        },
+      });
+
+      if (invalidCount > 0) {
+        throw new AppError(
+          'Acceso denegado: Uno o más estudiantes no pertenecen a su aula tutoriada.',
+          403,
+        );
+      }
     }
     return this.attendanceRepository.bulkCreate(schoolId, bulkAttendanceDto);
+  }
+
+  /**
+   * Obtiene la nómina completa del aula cruzada con el estado de asistencia de la fecha.
+   */
+  async getAttendanceSheet(
+    schoolId: string,
+    query: AttendanceSheetQueryDto,
+    _userContext?: AttendanceUserContext,
+  ): Promise<AttendanceSheetData> {
+    return this.attendanceRepository.getClassroomAttendanceSheet(
+      schoolId,
+      query.classroomId,
+      query.date,
+    );
+  }
+
+  /**
+   * Guarda o actualiza la hoja de asistencia de una sección de forma atómica y segura.
+   */
+  async saveAttendanceSheet(
+    schoolId: string,
+    dto: SaveAttendanceSheetDto,
+    userContext?: AttendanceUserContext,
+  ): Promise<{ count: number }> {
+    await this.verifyTutorOrAdminClassroomWriteAccess(schoolId, dto.classroomId, userContext);
+
+    // Validar que todas las matrículas pertenezcan al aula y al colegio
+    const enrollmentIds = dto.records.map((r) => r.enrollmentId);
+    if (enrollmentIds.length > 0) {
+      const validEnrollments = await prisma.enrollment.count({
+        where: {
+          id: { in: enrollmentIds },
+          classroomId: dto.classroomId,
+          schoolId,
+        },
+      });
+
+      if (validEnrollments !== enrollmentIds.length) {
+        throw new AppError(
+          'Una o más matrículas no pertenecen a esta sección o colegio.',
+          400,
+        );
+      }
+    }
+
+    return this.attendanceRepository.saveClassroomAttendanceSheet(schoolId, dto);
   }
 
   async updateAttendance(
@@ -216,9 +317,9 @@ export class AttendanceService {
       }
     }
 
-    const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-    const todayDate = new Date(todayStr);
+    const schoolNow = getSchoolNow();
+    const todayDate = schoolNow.dateObj;
+    const now = schoolNow.fullDate;
 
     const existing = await this.attendanceRepository.findAttendanceByDate(
       schoolId,
@@ -235,6 +336,7 @@ export class AttendanceService {
             hour: '2-digit',
             minute: '2-digit',
             second: '2-digit',
+            timeZone: 'America/Lima',
           })
         : 'Hora no registrada';
 
@@ -258,8 +360,8 @@ export class AttendanceService {
 
     if (!dto.statusOverride && dto.toleranceTime) {
       const [tolHour, tolMin] = dto.toleranceTime.split(':').map(Number);
-      const currentHour = now.getHours();
-      const currentMin = now.getMinutes();
+      const currentHour = schoolNow.hour;
+      const currentMin = schoolNow.minute;
 
       if (currentHour > tolHour || (currentHour === tolHour && currentMin > tolMin)) {
         finalStatus = 'LATE_UNJUSTIFIED';
@@ -273,7 +375,7 @@ export class AttendanceService {
       status: finalStatus,
       checkInTime: now,
       origin: 'QR_SCAN',
-      notes: `Ingreso escaneado vía QR/Kiosco a las ${now.toLocaleTimeString('es-PE')}`,
+      notes: `Ingreso escaneado vía QR/Kiosco a las ${now.toLocaleTimeString('es-PE', { timeZone: 'America/Lima' })}`,
     });
 
     return {

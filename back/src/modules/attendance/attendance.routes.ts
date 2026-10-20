@@ -34,6 +34,20 @@ attendanceRouter.get(
   attendanceController.getMatrix,
 );
 
+// Hoja unificada de pase de lista diario por aula y fecha
+attendanceRouter.get(
+  '/sheet',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'ADMINISTRATIVE'),
+  attendanceController.getSheet,
+);
+
+// Guardado o actualización atómica de la hoja de asistencia
+attendanceRouter.put(
+  '/sheet',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'ADMINISTRATIVE'),
+  attendanceController.saveSheet,
+);
+
 // Expediente individual del estudiante por matrícula
 attendanceRouter.get(
   '/student/:enrollmentId/summary',
