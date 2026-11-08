@@ -34,16 +34,40 @@ router.patch(
   controller.update,
 );
 
+router.patch(
+  '/competences/:id/toggle',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'),
+  controller.toggleCompetence,
+);
+
+router.patch(
+  '/competences/:id',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'),
+  controller.updateCompetence,
+);
+
 router.delete(
-  '/:id',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
-  controller.delete,
+  '/competences/:id',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'),
+  controller.deleteCompetence,
 );
 
 router.post(
   '/competences',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'),
   controller.createCompetence,
+);
+
+router.post(
+  '/:id/load-default-competences',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'),
+  controller.loadDefaultCompetences,
+);
+
+router.delete(
+  '/:id',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
+  controller.delete,
 );
 
 export { router as curricularAreaRouter };

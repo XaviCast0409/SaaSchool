@@ -9,6 +9,7 @@ import type {
   CreateGradeEntryDto,
 } from './grade.schema';
 import { AppError } from '../../core/errors/app-error';
+import { SiagieConsolidatorService } from './siagie-consolidator.service';
 
 export type ReportCardEnrollment = Prisma.EnrollmentGetPayload<{
   include: {
@@ -73,12 +74,20 @@ export class GradeRepository {
       return existing;
     }
 
-    // Auto-seed de criterios por defecto si el colegio no tiene ninguno aún
+    // Si el colegio ya tuvo criterios creados previamente, respetar su configuración y no volver a sembrar
+    const anyEverCreated = await prisma.evaluationCriterion.findFirst({
+      where: { schoolId },
+    });
+    if (anyEverCreated) {
+      return [];
+    }
+
+    // Auto-seed de criterios iniciales estándar de colegios particulares
     const defaultCriteria = [
-      { name: 'Práctica Calificada', shortName: 'PC', order: 1, weight: 1.0 },
-      { name: 'Conducta y Actitud', shortName: 'COND', order: 2, weight: 1.0 },
-      { name: 'Revisión de Cuaderno', shortName: 'RC', order: 3, weight: 1.0 },
-      { name: 'Examen Bimestral', shortName: 'EB', order: 4, weight: 1.0 },
+      { name: 'Práctica Mensual', shortName: 'PM', order: 1, weight: 1.0 },
+      { name: 'Examen Mensual', shortName: 'EM', order: 2, weight: 1.0 },
+      { name: 'Revisión de Cuaderno / Tareas', shortName: 'RC', order: 3, weight: 1.0 },
+      { name: 'Examen Bimestral', shortName: 'EB', order: 4, weight: 2.0 },
     ];
 
     await prisma.evaluationCriterion.createMany({
@@ -288,9 +297,26 @@ export class GradeRepository {
       return 0;
     }
 
+    // Regla SIAGIE: Solo registrar calificaciones de estudiantes con matrícula activa y en estado REGISTERED
+    const activeEnrollments = await prisma.enrollment.findMany({
+      where: {
+        id: { in: grades.map((g) => g.enrollmentId) },
+        schoolId,
+        enrollmentState: 'REGISTERED',
+        isActive: true,
+      },
+      select: { id: true },
+    });
+    const activeEnrollmentIds = new Set(activeEnrollments.map((e) => e.id));
+    const cleanGrades = grades.filter((g) => activeEnrollmentIds.has(g.enrollmentId));
+
+    if (cleanGrades.length === 0) {
+      return 0;
+    }
+
     // Ejecución transaccional para garantizar consistencia atómica
     await prisma.$transaction(
-      grades.map((grade) =>
+      cleanGrades.map((grade) =>
         prisma.detailedGrade.upsert({
           where: {
             enrollmentId_courseAssignmentId_competenceId_criterionId_periodNumber: {
@@ -319,7 +345,7 @@ export class GradeRepository {
       ),
     );
 
-    return grades.length;
+    return cleanGrades.length;
   }
 
   // ============================================================================
@@ -476,6 +502,7 @@ export class GradeRepository {
 
       return {
         enrollmentId: enr.id,
+        enrollmentState: enr.enrollmentState,
         orderIndex: idx + 1,
         studentId: student.id,
         fullName,
@@ -532,7 +559,14 @@ export class GradeRepository {
         schoolId,
         ...(teacherId ? { teacherId } : {}),
       },
-      select: { classroomId: true },
+      include: {
+        classroom: {
+          select: {
+            id: true,
+            educationLevel: true,
+          },
+        },
+      },
     });
 
     if (!assignment) {
@@ -543,7 +577,7 @@ export class GradeRepository {
     }
 
     if (teacherId) {
-      const isLocked = await this.isPeriodLocked(schoolId, dto.periodNumber, assignment.classroomId);
+      const isLocked = await this.isPeriodLocked(schoolId, dto.periodNumber, assignment.classroom.id);
       if (isLocked) {
         throw new AppError(
           `El ${dto.periodNumber}° Bimestre se encuentra cerrado y auditado por la Dirección. No se permiten modificaciones.`,
@@ -552,8 +586,115 @@ export class GradeRepository {
       }
     }
 
+    // Regla SIAGIE: Solo guardar conclusiones de alumnos con matrícula activa y en estado REGISTERED
+    const activeEnrollments = await prisma.enrollment.findMany({
+      where: {
+        id: { in: dto.conclusions.map((c) => c.enrollmentId) },
+        schoolId,
+        enrollmentState: 'REGISTERED',
+        isActive: true,
+      },
+      include: {
+        student: {
+          select: {
+            firstNames: true,
+            lastNamePaternal: true,
+          },
+        },
+      },
+    });
+
+    const activeEnrollmentMap = new Map(activeEnrollments.map((e) => [e.id, e]));
+
+    // Criterios para computar el promedio del alumno en la competencia
+    const criteria = await this.findCriteria(schoolId, assignment.classroom.educationLevel);
+    const criteriaWeightMap = new Map(criteria.map((c) => [c.id, c.weight || 1]));
+
+    const detailedGrades = await prisma.detailedGrade.findMany({
+      where: {
+        schoolId,
+        courseAssignmentId: dto.courseAssignmentId,
+        competenceId: dto.competenceId,
+        periodNumber: dto.periodNumber,
+        enrollmentId: { in: Array.from(activeEnrollmentMap.keys()) },
+      },
+      select: {
+        enrollmentId: true,
+        criterionId: true,
+        numericScore: true,
+      },
+    });
+
+    const gradesByEnrollment = new Map<string, Array<{ criterionId: string; numericScore: number }>>();
+    detailedGrades.forEach((g) => {
+      if (!gradesByEnrollment.has(g.enrollmentId)) {
+        gradesByEnrollment.set(g.enrollmentId, []);
+      }
+      gradesByEnrollment.get(g.enrollmentId)!.push({
+        criterionId: g.criterionId,
+        numericScore: g.numericScore,
+      });
+    });
+
+    // Validación normativa RVM N° 094-2020-MINEDU:
+    // 1) Si la nota es 'C' (< 10.5), la conclusión es estrictamente obligatoria (mínimo 15 caracteres)
+    // 2) En Inicial, la conclusión es obligatoria en todas las competencias evaluadas
+    const isInitial = assignment.classroom.educationLevel === 'INITIAL';
+
+    const validItems: Array<{ enrollmentId: string; conclusion: string }> = [];
+
+    for (const item of dto.conclusions) {
+      const enr = activeEnrollmentMap.get(item.enrollmentId);
+      if (!enr) continue;
+
+      const studentGrades = gradesByEnrollment.get(item.enrollmentId) || [];
+      const hasGrades = studentGrades.length > 0;
+      let isGradeC = false;
+
+      if (hasGrades) {
+        const totalWeight = studentGrades.reduce(
+          (acc, it) => acc + (criteriaWeightMap.get(it.criterionId) || 1),
+          0,
+        );
+        const weightedSum = studentGrades.reduce(
+          (acc, it) => acc + it.numericScore * (criteriaWeightMap.get(it.criterionId) || 1),
+          0,
+        );
+        const score = totalWeight > 0 ? weightedSum / totalWeight : null;
+        isGradeC = score !== null && score < 10.5;
+      }
+
+      const cleanText = (item.conclusion || '')
+        .replace(/[\r\n\t]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      if (hasGrades && isGradeC && cleanText.length < 15) {
+        throw new AppError(
+          `El estudiante ${enr.student.lastNamePaternal} ${enr.student.firstNames} obtuvo calificativo 'C'. La conclusión descriptiva es obligatoria (mínimo 15 caracteres) según la RVM N° 094-2020-MINEDU.`,
+          400,
+        );
+      }
+
+      if (hasGrades && isInitial && cleanText.length < 15) {
+        throw new AppError(
+          `En Educación Inicial, la conclusión descriptiva es obligatoria (mínimo 15 caracteres) para el estudiante ${enr.student.lastNamePaternal} ${enr.student.firstNames} según la RVM N° 094-2020-MINEDU.`,
+          400,
+        );
+      }
+
+      validItems.push({
+        enrollmentId: item.enrollmentId,
+        conclusion: cleanText,
+      });
+    }
+
+    if (validItems.length === 0) {
+      return 0;
+    }
+
     await prisma.$transaction(
-      dto.conclusions.map((item) =>
+      validItems.map((item) =>
         prisma.competenceConclusion.upsert({
           where: {
             enrollmentId_courseAssignmentId_competenceId_periodNumber: {
@@ -578,7 +719,7 @@ export class GradeRepository {
       ),
     );
 
-    return dto.conclusions.length;
+    return validItems.length;
   }
 
   // ============================================================================
@@ -706,7 +847,12 @@ export class GradeRepository {
       throw new AppError('Aula no encontrada.', 404);
     }
 
+    const registeredEnrollments = classroom.enrollments.filter(
+      (e) => e.enrollmentState === 'REGISTERED',
+    );
     const totalStudents = classroom.enrollments.length;
+    const totalRegisteredStudents = registeredEnrollments.length;
+
     const criteria = await this.findCriteria(schoolId, classroom.educationLevel);
     const criteriaCount = criteria.length;
     const criteriaWeightMap = new Map(criteria.map((c) => [c.id, c.weight || 1]));
@@ -729,6 +875,29 @@ export class GradeRepository {
       },
     });
 
+    // Obtener todas las conclusiones descriptivas del aula en el periodo
+    const existingConclusions = await prisma.competenceConclusion.findMany({
+      where: {
+        schoolId,
+        courseAssignmentId: { in: assignmentIds },
+        periodNumber,
+      },
+      select: {
+        enrollmentId: true,
+        courseAssignmentId: true,
+        competenceId: true,
+        conclusion: true,
+      },
+    });
+
+    const conclusionsMap = new Map<string, string>();
+    existingConclusions.forEach((c) => {
+      conclusionsMap.set(
+        `${c.enrollmentId}_${c.courseAssignmentId}_${c.competenceId}`,
+        c.conclusion,
+      );
+    });
+
     // Mapeo en memoria de notas por clave: `${enrollmentId}_${courseAssignmentId}_${competenceId}`
     const gradesMap = new Map<string, Array<{ criterionId: string; numericScore: number }>>();
     detailedGrades.forEach((g) => {
@@ -739,14 +908,42 @@ export class GradeRepository {
       gradesMap.get(key)!.push({ criterionId: g.criterionId, numericScore: g.numericScore });
     });
 
-    // Resumen por curso para auditoría de avance de docentes
+    // Resumen por curso para auditoría de avance de docentes con soporte para competencias no trabajadas
     const courseSummaries = classroom.assignments.map((assignment) => {
       const competenceCount = assignment.area.competences.length;
-      const totalExpectedGrades = totalStudents * competenceCount * criteriaCount;
 
-      const filledGradesCount = detailedGrades.filter(
-        (g) => g.courseAssignmentId === assignment.id,
-      ).length;
+      let workedCompetenceCount = 0;
+      let unworkedCompetenceCount = 0;
+      let hasInconsistencies = false;
+      let filledGradesCount = 0;
+
+      assignment.area.competences.forEach((comp) => {
+        let compStudentCount = 0;
+        registeredEnrollments.forEach((enr) => {
+          const key = `${enr.id}_${assignment.id}_${comp.id}`;
+          const items = gradesMap.get(key) || [];
+          if (items.length > 0) {
+            compStudentCount++;
+            filledGradesCount += items.length;
+          }
+        });
+
+        if (compStudentCount === 0) {
+          unworkedCompetenceCount++;
+        } else {
+          workedCompetenceCount++;
+          if (compStudentCount < totalRegisteredStudents) {
+            hasInconsistencies = true;
+          }
+        }
+      });
+
+      // Si no hay notas aún, se espera el total. Si se trabajaron solo algunas (RVM 094-2020),
+      // la expectativa se calcula sobre las competencias trabajadas sin penalizar las no programadas
+      const effectiveCompetences =
+        workedCompetenceCount > 0 ? workedCompetenceCount : competenceCount;
+      const totalExpectedGrades =
+        totalRegisteredStudents * effectiveCompetences * criteriaCount;
 
       const percentage =
         totalExpectedGrades > 0
@@ -759,10 +956,13 @@ export class GradeRepository {
         officialCode: assignment.area.officialCode,
         teacherName: `Prof. ${assignment.teacher.firstName} ${assignment.teacher.lastNamePaternal}`,
         competenceCount,
+        workedCompetenceCount,
+        unworkedCompetenceCount,
         totalExpectedGrades,
         filledGradesCount,
         percentage,
-        isComplete: percentage === 100,
+        isComplete: percentage === 100 && !hasInconsistencies,
+        hasInconsistencies,
       };
     });
 
@@ -777,6 +977,8 @@ export class GradeRepository {
     const students = classroom.enrollments.map((enr, idx) => {
       const student = enr.student;
       const fullName = `${student.lastNamePaternal} ${student.lastNameMaternal || ''}, ${student.firstNames}`.trim();
+      const isInactive =
+        enr.enrollmentState === 'WITHDRAWN' || enr.enrollmentState === 'TRANSFERRED';
 
       const courseGrades: Record<
         string,
@@ -785,7 +987,7 @@ export class GradeRepository {
           letter: 'AD' | 'A' | 'B' | 'C' | null;
           competences: Record<
             string,
-            { score: number | null; letter: 'AD' | 'A' | 'B' | 'C' | null }
+            { score: number | null; letter: 'AD' | 'A' | 'B' | 'C' | null; conclusion: string }
           >;
         }
       > = {};
@@ -795,12 +997,20 @@ export class GradeRepository {
       classroom.assignments.forEach((assignment) => {
         const compGrades: Record<
           string,
-          { score: number | null; letter: 'AD' | 'A' | 'B' | 'C' | null }
+          { score: number | null; letter: 'AD' | 'A' | 'B' | 'C' | null; conclusion: string }
         > = {};
         const validCompScores: number[] = [];
 
         assignment.area.competences.forEach((comp) => {
           const key = `${enr.id}_${assignment.id}_${comp.id}`;
+          const rawConclusion = conclusionsMap.get(key) || '';
+
+          if (isInactive) {
+            // REGLA CRÍTICA SIAGIE: Retirados/trasladados deben mantenerse con notas y conclusiones vacías
+            compGrades[comp.id] = { score: null, letter: null, conclusion: '' };
+            return;
+          }
+
           const items = gradesMap.get(key) || [];
 
           if (items.length > 0) {
@@ -823,15 +1033,15 @@ export class GradeRepository {
                   ? 'B'
                   : 'C'
                 : null;
-            compGrades[comp.id] = { score, letter };
+            compGrades[comp.id] = { score, letter, conclusion: rawConclusion };
             if (score !== null) validCompScores.push(score);
           } else {
-            compGrades[comp.id] = { score: null, letter: null };
+            compGrades[comp.id] = { score: null, letter: null, conclusion: rawConclusion };
           }
         });
 
         const periodScore =
-          validCompScores.length > 0
+          !isInactive && validCompScores.length > 0
             ? Math.round(
                 (validCompScores.reduce((a, b) => a + b, 0) / validCompScores.length) * 10,
               ) / 10
@@ -859,7 +1069,7 @@ export class GradeRepository {
       });
 
       const generalScore =
-        validCourseScores.length > 0
+        !isInactive && validCourseScores.length > 0
           ? Math.round(
               (validCourseScores.reduce((a, b) => a + b, 0) / validCourseScores.length) * 10,
             ) / 10
@@ -877,6 +1087,7 @@ export class GradeRepository {
 
       return {
         enrollmentId: enr.id,
+        enrollmentState: enr.enrollmentState,
         orderIndex: idx + 1,
         documentId: student.documentId,
         studentCode: student.studentCode,
@@ -898,6 +1109,18 @@ export class GradeRepository {
       })),
     }));
 
+    const coursesInfo = classroom.assignments.map((a) => ({
+      assignmentId: a.id,
+      name: a.area.name,
+      officialCode: a.area.officialCode,
+      parentAreaId: a.area.parentAreaId,
+      teacherName: `Prof. ${a.teacher.firstName} ${a.teacher.lastNamePaternal}`,
+      competences: a.area.competences.map((c) => ({ id: c.id, name: c.name })),
+    }));
+
+    const { consolidatedAreas, consolidatedStudents } =
+      SiagieConsolidatorService.consolidateClassroom(coursesInfo, students);
+
     return {
       school: {
         name: classroom.school.name,
@@ -914,7 +1137,8 @@ export class GradeRepository {
       courses: courseSummaries,
       matrix: {
         courses: coursesMatrix,
-        students,
+        students: consolidatedStudents,
+        consolidatedAreas,
       },
     };
   }

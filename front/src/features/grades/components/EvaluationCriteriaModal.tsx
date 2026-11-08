@@ -9,7 +9,9 @@ import {
   CheckCircle2,
   AlertCircle,
   HelpCircle,
+  Sparkles,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -46,6 +48,7 @@ export const EvaluationCriteriaModal: React.FC<EvaluationCriteriaModalProps> = (
   // Modo edición o creación
   const [editingCriterion, setEditingCriterion] = useState<EvaluationCriterion | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isApplyingPreset, setIsApplyingPreset] = useState(false);
 
   const {
     register,
@@ -129,7 +132,43 @@ export const EvaluationCriteriaModal: React.FC<EvaluationCriteriaModalProps> = (
     }
   };
 
-  const isSaving = createMutation.isPending || updateMutation.isPending;
+  const handleApplyPreset = async () => {
+    if (
+      !confirm(
+        '¿Deseas cargar la plantilla estándar para Colegios Particulares? Se configurarán: Práctica Mensual (PM), Examen Mensual (EM), Revisión de Cuaderno / Tareas (RC) y Examen Bimestral (EB).',
+      )
+    ) {
+      return;
+    }
+
+    setIsApplyingPreset(true);
+    try {
+      // 1. Desactivar criterios activos actuales
+      for (const c of criteria) {
+        await deleteMutation.mutateAsync(c.id);
+      }
+
+      // 2. Crear los nuevos criterios estándar de colegio particular
+      const preset = [
+        { name: 'Práctica Mensual', shortName: 'PM', weight: 1.0, order: 1, educationLevel: null },
+        { name: 'Examen Mensual', shortName: 'EM', weight: 1.0, order: 2, educationLevel: null },
+        { name: 'Revisión de Cuaderno / Tareas', shortName: 'RC', weight: 1.0, order: 3, educationLevel: null },
+        { name: 'Examen Bimestral', shortName: 'EB', weight: 2.0, order: 4, educationLevel: null },
+      ];
+
+      for (const item of preset) {
+        await createMutation.mutateAsync(item);
+      }
+
+      toast.success('Plantilla de colegio particular aplicada con éxito.');
+    } catch {
+      toast.error('Error al aplicar la plantilla.');
+    } finally {
+      setIsApplyingPreset(false);
+    }
+  };
+
+  const isSaving = createMutation.isPending || updateMutation.isPending || isApplyingPreset;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
@@ -143,7 +182,7 @@ export const EvaluationCriteriaModal: React.FC<EvaluationCriteriaModalProps> = (
                 Configuración de Criterios / Rubros Evaluativos
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Personaliza los campos de evaluación que tus docentes calificarán en cada competencia.
+                Personaliza los rubros que tus docentes calificarán en el día a día para promediar cada competencia.
               </p>
             </div>
           </div>
@@ -158,8 +197,13 @@ export const EvaluationCriteriaModal: React.FC<EvaluationCriteriaModalProps> = (
         {/* Guía Informativa */}
         <div className="p-3.5 rounded-xl bg-primary/5 border border-primary/20 flex items-start gap-3 text-xs text-muted-foreground leading-relaxed">
           <HelpCircle className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-          <div>
-            <strong className="text-foreground">¿Cómo funciona el cálculo de notas?</strong> Cada competencia oficial del CNEB agrupa estos criterios. El promedio de cada competencia se calcula con la ponderación de sus criterios, y el promedio general del curso es el promedio de todas las competencias.
+          <div className="space-y-1">
+            <p>
+              <strong className="text-foreground">¿Qué son estos criterios y cómo funcionan?</strong> Son los rubros de evaluación interna (escala 00–20) que el colegio utiliza durante el bimestre (ej. <em>Práctica Mensual</em>, <em>Examen Mensual</em>, <em>Tareas</em>, <em>Examen Bimestral</em>).
+            </p>
+            <p>
+              En la matriz de notas, <strong>cada competencia curricular agrupa estos criterios</strong>. El sistema promedia estas calificaciones con sus pesos respectivos y realiza la conversión inmediata a la escala oficial <strong>AD / A / B / C</strong> para las actas del SIAGIE.
+            </p>
           </div>
         </div>
 
@@ -292,18 +336,31 @@ export const EvaluationCriteriaModal: React.FC<EvaluationCriteriaModalProps> = (
             </div>
           </form>
         ) : (
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <span className="text-xs font-bold text-foreground uppercase tracking-wide">
               Criterios Activos ({criteria.length})
             </span>
-            <Button
-              size="sm"
-              onClick={handleOpenCreate}
-              className="gap-1.5 text-xs font-bold h-8 shadow-sm"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Nuevo Criterio</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleApplyPreset}
+                disabled={isSaving}
+                className="gap-1.5 text-xs font-semibold h-8 border-border bg-background hover:bg-secondary text-foreground"
+                title="Cargar Práctica Mensual, Examen Mensual, Cuaderno y Examen Bimestral"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                <span>{isApplyingPreset ? 'Cargando...' : 'Cargar Plantilla Particular'}</span>
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleOpenCreate}
+                className="gap-1.5 text-xs font-bold h-8 shadow-sm"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Nuevo Criterio</span>
+              </Button>
+            </div>
           </div>
         )}
 
@@ -314,11 +371,21 @@ export const EvaluationCriteriaModal: React.FC<EvaluationCriteriaModalProps> = (
               Cargando criterios de evaluación...
             </div>
           ) : criteria.length === 0 ? (
-            <div className="p-8 text-center space-y-2">
+            <div className="p-8 text-center space-y-3">
               <AlertCircle className="w-8 h-8 text-muted-foreground/40 mx-auto" />
               <p className="text-xs text-muted-foreground">
                 No hay criterios configurados en este momento.
               </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleApplyPreset}
+                disabled={isSaving}
+                className="text-xs gap-1.5 font-bold"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                <span>Cargar Plantilla Recomendada para Colegios Particulares</span>
+              </Button>
             </div>
           ) : (
             <div className="divide-y divide-border">

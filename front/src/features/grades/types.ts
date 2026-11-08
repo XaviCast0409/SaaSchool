@@ -156,6 +156,7 @@ export interface ReportCardPeriod {
 // ==========================================
 export interface CompetenceConclusionStudent {
   enrollmentId: string;
+  enrollmentState?: 'REGISTERED' | 'TRANSFERRED' | 'WITHDRAWN';
   orderIndex: number;
   studentId: string;
   fullName: string;
@@ -266,10 +267,13 @@ export interface SiagieCourseSummary {
   officialCode?: string | null;
   teacherName: string;
   competenceCount: number;
+  workedCompetenceCount?: number;
+  unworkedCompetenceCount?: number;
   totalExpectedGrades: number;
   filledGradesCount: number;
   percentage: number;
   isComplete: boolean;
+  hasInconsistencies?: boolean;
 }
 
 export interface SiagieMatrixCourse {
@@ -283,8 +287,25 @@ export interface SiagieMatrixCourse {
   }>;
 }
 
+export interface SiagieConsolidatedAreaCompetence {
+  id: string;
+  number: number;
+  name: string;
+  shortName: string;
+}
+
+export interface SiagieConsolidatedArea {
+  id: string;
+  code: string;
+  name: string;
+  isSubdivided: boolean;
+  tributaryCourses: string[];
+  competences: SiagieConsolidatedAreaCompetence[];
+}
+
 export interface SiagieMatrixStudent {
   enrollmentId: string;
+  enrollmentState?: 'REGISTERED' | 'TRANSFERRED' | 'WITHDRAWN';
   orderIndex: number;
   documentId: string;
   studentCode: string | null;
@@ -299,12 +320,34 @@ export interface SiagieMatrixStudent {
         {
           score: number | null;
           letter: 'AD' | 'A' | 'B' | 'C' | null;
+          conclusion?: string;
+        }
+      >;
+    }
+  >;
+  consolidatedGrades?: Record<
+    string,
+    {
+      periodScore: number | null;
+      letter: 'AD' | 'A' | 'B' | 'C' | null;
+      competences: Record<
+        string,
+        {
+          score: number | null;
+          letter: 'AD' | 'A' | 'B' | 'C' | null;
+          conclusion: string;
         }
       >;
     }
   >;
   generalScore: number | null;
   generalLetter: 'AD' | 'A' | 'B' | 'C' | null;
+}
+
+export interface SiagieMatrixData {
+  courses: SiagieMatrixCourse[];
+  students: SiagieMatrixStudent[];
+  consolidatedAreas?: SiagieConsolidatedArea[];
 }
 
 export interface SiagieSummaryData {
@@ -321,10 +364,7 @@ export interface SiagieSummaryData {
   periodNumber: number;
   overallPercentage: number;
   courses: SiagieCourseSummary[];
-  matrix?: {
-    courses: SiagieMatrixCourse[];
-    students: SiagieMatrixStudent[];
-  };
+  matrix?: SiagieMatrixData;
 }
 
 // ==========================================

@@ -3,6 +3,7 @@ import {
   createCurricularAreaSchema,
   updateCurricularAreaSchema,
   createCompetenceSchema,
+  updateCompetenceSchema,
 } from './curricular-area.schema';
 import type { CurricularAreaService } from './curricular-area.service';
 
@@ -78,6 +79,47 @@ export class CurricularAreaController {
       createCompetenceDto,
     );
     response.status(201).json({ status: 'success', data: competence });
+  };
+
+  deleteCompetence = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const id = request.params.id as string;
+    const deleted = await this.curricularAreaService.deleteCompetence(id, schoolId);
+    response.status(200).json({
+      status: 'success',
+      message: 'Competencia eliminada correctamente.',
+      data: deleted,
+    });
+  };
+
+  updateCompetence = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const id = request.params.id as string;
+    const dto = updateCompetenceSchema.parse(request.body);
+    const updated = await this.curricularAreaService.updateCompetence(id, schoolId, dto);
+    response.status(200).json({ status: 'success', data: updated });
+  };
+
+  toggleCompetence = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const id = request.params.id as string;
+    const updated = await this.curricularAreaService.toggleCompetence(id, schoolId);
+    response.status(200).json({
+      status: 'success',
+      message: `Competencia ${(updated as any).isActive ? 'activada' : 'desactivada'} correctamente.`,
+      data: updated,
+    });
+  };
+
+  loadDefaultCompetences = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const id = request.params.id as string;
+    const result = await this.curricularAreaService.loadDefaultCompetencesForArea(id, schoolId);
+    response.status(200).json({
+      status: 'success',
+      message: `Se sincronizaron ${result.copied} competencias en el curso.`,
+      data: result,
+    });
   };
 
   seedMinedu = async (request: Request, response: Response): Promise<void> => {

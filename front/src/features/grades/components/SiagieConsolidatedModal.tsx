@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   X,
   Download,
@@ -8,14 +8,19 @@ import {
   Search,
   Lock,
   Unlock,
+  Upload,
+  Loader2,
+  CheckCircle2,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useSiagieSummary, usePeriodLock, useTogglePeriodLock } from '../api/useGrades';
 import { getSiagieConversion } from '../types';
+import { injectGradesIntoSiagieTemplate } from '../utils/siagieTemplateInjector';
 
 interface SiagieConsolidatedModalProps {
   isOpen: boolean;
@@ -41,8 +46,11 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
   const [activeTab, setActiveTab] = useState<'audit' | 'matrix'>('audit');
   const [searchStudent, setSearchStudent] = useState('');
   const [showCompetencesDetail, setShowCompetencesDetail] = useState(false);
-
+  const [isInjecting, setIsInjecting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [matrixView, setMatrixView] = useState<'consolidated' | 'internal'>('consolidated');
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+
   const { data, isLoading, isError } = useSiagieSummary(classroomId, periodNumber, {
     enabled: isOpen && Boolean(classroomId),
   });
@@ -70,6 +78,10 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
 
   const courses = useMemo(() => data?.courses || [], [data?.courses]);
   const matrix = data?.matrix;
+
+  const hasSubdividedAreas = useMemo(() => {
+    return Boolean(matrix?.consolidatedAreas?.some((a) => a.isSubdivided));
+  }, [matrix?.consolidatedAreas]);
 
   // Filtrado de estudiantes en la matriz
   const filteredStudents = useMemo(() => {
@@ -103,96 +115,148 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
 
   if (!isOpen) return null;
 
-  // Exportar Plantilla Oficial SIAGIE a Excel (.xlsx)
+  // 1. Exportar Consolidado Interno (Reuniones / Padres / Dirección) a Excel (.xlsx)
   const handleExportExcel = () => {
     if (!data || !matrix) return;
 
-    // 1. Hoja Consolidada SIAGIE
-    const sheetData: any[][] = [];
+    const workbook = XLSX.utils.book_new();
 
-    // Membrete Institucional
-    sheetData.push([`SISTEMA DE GESTIÓN EDUCATIVA - CONSOLIDADO OFICIAL SIAGIE (MINEDU)`]);
-    sheetData.push([
-      `INSTITUCIÓN EDUCATIVA: ${data.school?.name || 'SaaSchool'}`,
-      `CÓD. MODULAR: ${data.school?.modularCode || '—'}`,
-      `RUC: ${data.school?.documentId || '—'}`,
-    ]);
-    sheetData.push([
-      `NIVEL: ${LEVEL_LABELS[data.educationLevel] || data.educationLevel}`,
-      `GRADO Y SECCIÓN: ${data.grade}° "${data.section}"`,
-      `PERIODO EVALUADO: ${data.periodNumber}° BIMESTRE`,
-      `FECHA DE EMISIÓN: ${new Date().toLocaleDateString('es-PE')}`,
-    ]);
-    sheetData.push([]); // Espacio
+    // Helper para generar hoja de calificaciones
+    const generateGradesSheet = (
+      columns: any[],
+      isConsolidated: boolean,
+      title: string,
+    ) => {
+      const sheetData: any[][] = [];
+      sheetData.push([title]);
+      sheetData.push([
+        `INSTITUCIÓN EDUCATIVA: ${data.school?.name || 'SaaSchool'}`,
+        `CÓD. MODULAR: ${data.school?.modularCode || ''}`,
+        `RUC: ${data.school?.documentId || ''}`,
+      ]);
+      sheetData.push([
+        `NIVEL: ${LEVEL_LABELS[data.educationLevel] || data.educationLevel}`,
+        `GRADO Y SECCIÓN: ${data.grade}° "${data.section}"`,
+        `PERIODO EVALUADO: ${data.periodNumber}° BIMESTRE`,
+        `FECHA DE EMISIÓN: ${new Date().toLocaleDateString('es-PE')}`,
+      ]);
+      sheetData.push([]);
 
-    // Fila 1 de Encabezados (Áreas Curriculares)
-    const headerRow1: string[] = ['N°', 'DNI', 'CÓDIGO SIAGIE', 'APELLIDOS Y NOMBRES'];
-    // Fila 2 de Encabezados (Competencias y Promedios)
-    const headerRow2: string[] = ['', '', '', ''];
+      const h1: string[] = ['N°', 'DNI', 'CÓDIGO SIAGIE', 'APELLIDOS Y NOMBRES', 'ESTADO'];
+      const h2: string[] = ['', '', '', '', ''];
 
-    matrix.courses.forEach((c) => {
-      if (showCompetencesDetail && c.competences.length > 0) {
-        c.competences.forEach((comp, idx) => {
-          headerRow1.push(idx === 0 ? c.name.toUpperCase() : '');
-          headerRow2.push(`C${idx + 1}: ${comp.name}`);
-        });
-      }
-      headerRow1.push(showCompetencesDetail ? '' : c.name.toUpperCase());
-      headerRow2.push(showCompetencesDetail ? `PROM. ${c.name}` : `NOTA`);
-    });
-
-    headerRow1.push('PROMEDIO');
-    headerRow2.push('PROMEDIO GENERAL');
-
-    headerRow1.push('LOGRO');
-    headerRow2.push('ESCALA SIAGIE');
-
-    sheetData.push(headerRow1);
-    sheetData.push(headerRow2);
-
-    // Filas de Datos de Estudiantes
-    matrix.students.forEach((st) => {
-      const row: any[] = [st.orderIndex, st.documentId, st.studentCode || '—', st.fullName];
-
-      matrix.courses.forEach((c) => {
-        const gradeInfo = st.courseGrades[c.id];
-
+      columns.forEach((c) => {
         if (showCompetencesDetail && c.competences.length > 0) {
-          c.competences.forEach((comp) => {
-            const compGrade = gradeInfo?.competences?.[comp.id];
-            row.push(compGrade?.letter || '—');
+          c.competences.forEach((comp: any, idx: number) => {
+            h1.push(idx === 0 ? c.name.toUpperCase() : '');
+            h2.push(`C${idx + 1}: ${comp.name} (NL)`);
+            h1.push('');
+            h2.push(`C${idx + 1}: Conclusión Descriptiva`);
           });
         }
-
-        row.push(gradeInfo?.letter || (gradeInfo?.periodScore !== null ? gradeInfo?.periodScore : '—'));
+        h1.push(showCompetencesDetail ? '' : c.name.toUpperCase());
+        h2.push(showCompetencesDetail ? `CALIF. ${c.name}` : `CALIFICATIVO`);
       });
 
-      row.push(st.generalScore !== null ? st.generalScore.toFixed(1) : '—');
-      row.push(st.generalLetter || '—');
+      h1.push('LOGRO');
+      h2.push('ESCALA SIAGIE');
+      sheetData.push(h1);
+      sheetData.push(h2);
 
-      sheetData.push(row);
-    });
+      matrix.students.forEach((st) => {
+        const isInactive =
+          st.enrollmentState === 'WITHDRAWN' || st.enrollmentState === 'TRANSFERRED';
+        const stateLabel =
+          st.enrollmentState === 'WITHDRAWN'
+            ? 'RETIRADO'
+            : st.enrollmentState === 'TRANSFERRED'
+            ? 'TRASLADADO'
+            : 'REGISTRADO';
 
-    const worksheetSiagie = XLSX.utils.aoa_to_sheet(sheetData);
+        const row: any[] = [
+          st.orderIndex,
+          st.documentId,
+          st.studentCode || '',
+          st.fullName,
+          stateLabel,
+        ];
 
-    // Ancho de columnas
-    worksheetSiagie['!cols'] = [
-      { wch: 5 },  // N°
-      { wch: 12 }, // DNI
-      { wch: 14 }, // Código
-      { wch: 34 }, // Nombre
-    ];
+        columns.forEach((col: any) => {
+          const gradeInfo =
+            isConsolidated && st.consolidatedGrades
+              ? st.consolidatedGrades[col.code] || st.consolidatedGrades[col.id]
+              : st.courseGrades[col.id];
 
-    // 2. Hoja de Auditoría Docente
+          if (showCompetencesDetail && col.competences.length > 0) {
+            col.competences.forEach((comp: any) => {
+              if (isInactive) {
+                row.push('');
+                row.push('');
+              } else {
+                const compGrade = gradeInfo?.competences?.[comp.id];
+                const letter = compGrade?.letter ? compGrade.letter.trim().toUpperCase() : '';
+                const rawConc = compGrade?.conclusion || '';
+                const cleanConc = rawConc.replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim();
+                row.push(letter);
+                row.push(cleanConc);
+              }
+            });
+          }
+
+          if (isInactive) {
+            row.push('');
+          } else {
+            row.push(gradeInfo?.letter ? gradeInfo.letter.trim().toUpperCase() : '');
+          }
+        });
+
+        row.push(isInactive ? '' : st.generalLetter ? st.generalLetter.trim().toUpperCase() : '');
+        sheetData.push(row);
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(sheetData);
+      ws['!cols'] = [
+        { wch: 5 },
+        { wch: 12 },
+        { wch: 14 },
+        { wch: 34 },
+        { wch: 14 },
+      ];
+      return ws;
+    };
+
+    // Hoja 1: Consolidado Oficial SIAGIE (CNEB)
+    const hasConsolidated = Boolean(matrix.consolidatedAreas && matrix.consolidatedAreas.length > 0);
+    const mainColumns = hasConsolidated ? matrix.consolidatedAreas! : matrix.courses;
+    const worksheetMain = generateGradesSheet(
+      mainColumns,
+      hasConsolidated,
+      `SISTEMA DE GESTIÓN EDUCATIVA - CONSOLIDADO OFICIAL SIAGIE (MINEDU)`,
+    );
+    XLSX.utils.book_append_sheet(workbook, worksheetMain, 'CONSOLIDADO_SIAGIE');
+
+    // Hoja 2: Cursos Internos (si el aula tiene sub-áreas)
+    if (hasConsolidated && hasSubdividedAreas) {
+      const worksheetInternal = generateGradesSheet(
+        matrix.courses,
+        false,
+        `SISTEMA DE GESTIÓN EDUCATIVA - REGISTRO DE CURSOS INTERNOS DEL COLEGIO`,
+      );
+      XLSX.utils.book_append_sheet(workbook, worksheetInternal, 'CURSOS_INTERNOS');
+    }
+
+    // Hoja 3: Auditoría Docente
     const auditSheetData: any[][] = [];
-    auditSheetData.push([`AUDITORÍA DE AVANCE DE CALIFICACIONES - SIAGIE`]);
+    auditSheetData.push([`AUDITORÍA DE AVANCE DE CALIFICACIONES - SIAGIE (RVM N° 094-2020)`]);
     auditSheetData.push([`AULA: ${data.grade}° "${data.section}" • ${data.periodNumber}° BIMESTRE`]);
     auditSheetData.push([]);
     auditSheetData.push([
       'ÁREA CURRICULAR',
       'CÓDIGO OFICIAL',
       'DOCENTE RESPONSABLE',
-      'COMPETENCIAS',
+      'COMP. TOTALES',
+      'COMP. TRABAJADAS',
+      'COMP. NO TRABAJADAS',
       'NOTAS REGISTRADAS',
       'NOTAS ESPERADAS',
       'AVANCE (%)',
@@ -200,15 +264,25 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
     ]);
 
     courses.forEach((c) => {
+      const state = c.hasInconsistencies
+        ? 'INCONSISTENTE (Revisar notas)'
+        : c.isComplete
+        ? 'COMPLETO'
+        : c.percentage > 0
+        ? 'EN AVANCE'
+        : 'PENDIENTE';
+
       auditSheetData.push([
         c.areaName,
-        c.officialCode || '—',
+        c.officialCode || '',
         c.teacherName,
         c.competenceCount,
+        c.workedCompetenceCount ?? c.competenceCount,
+        c.unworkedCompetenceCount ?? 0,
         c.filledGradesCount,
         c.totalExpectedGrades,
         `${c.percentage}%`,
-        c.isComplete ? 'COMPLETO' : c.percentage > 0 ? 'EN AVANCE' : 'PENDIENTE',
+        state,
       ]);
     });
 
@@ -220,16 +294,69 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
       { wch: 14 },
       { wch: 18 },
       { wch: 18 },
+      { wch: 18 },
+      { wch: 18 },
       { wch: 14 },
-      { wch: 16 },
+      { wch: 20 },
     ];
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheetSiagie, 'CONSOLIDADO_SIAGIE');
     XLSX.utils.book_append_sheet(workbook, worksheetAudit, 'AUDITORIA_DOCENTES');
 
-    const fileName = `SIAGIE_Consolidado_${data.grade}${data.section}_Bimestre${periodNumber}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    const fileName = `Consolidado_Interno_${data.grade}${data.section}_Bimestre${periodNumber}_${new Date().toISOString().slice(0, 10)}.xlsx`;
     XLSX.writeFile(workbook, fileName);
+    toast.success('📊 Consolidado Interno descargado con éxito.');
+  };
+
+  // 2. Inyección de notas en Plantilla Oficial descargada de SIAGIE (MINEDU)
+  const handleInjectSiagieTemplate = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!matrix || !data) {
+      toast.error('No se han cargado los datos del aula para inyectar en la plantilla.');
+      return;
+    }
+
+    // Resetear valor para permitir seleccionar el mismo archivo si es necesario
+    e.target.value = '';
+
+    try {
+      setIsInjecting(true);
+      toast.info(`Leyendo plantilla oficial "${file.name}"...`);
+
+      const result = await injectGradesIntoSiagieTemplate(file, matrix, courses);
+
+      if (result.matchedStudents === 0) {
+        toast.error(
+          `No se encontraron estudiantes coincidentes en "${file.name}". Verifica que el archivo corresponda a ${classroomLabel || 'esta aula'}.`,
+        );
+        return;
+      }
+
+      // Descargar archivo oficial con las notas inyectadas preservando el nombre exacto de MINEDU
+      const url = URL.createObjectURL(result.blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = result.fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success(
+        `✅ Plantilla oficial inyectada: ${result.injectedGradesCount} notas y ${result.injectedConclusionsCount} conclusiones en ${result.sheetsProcessed.length} áreas. ¡Lista para subir a SIAGIE!`,
+      );
+
+      if (result.warnings.length > 0 && result.warnings.length <= 3) {
+        result.warnings.forEach((w) => toast.warning(w));
+      }
+    } catch (err: any) {
+      console.error('Error al inyectar notas en plantilla SIAGIE:', err);
+      toast.error(
+        err?.message || 'Error al procesar la plantilla de SIAGIE. Asegúrate de subir el archivo .xlsx oficial descargado de MINEDU.',
+      );
+    } finally {
+      setIsInjecting(false);
+    }
   };
 
   return (
@@ -244,27 +371,56 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-bold text-foreground">
-                  Consolidado Oficial SIAGIE (MINEDU)
+                  Evaluación y Actas Oficiales SIAGIE (MINEDU)
                 </h2>
                 <Badge variant="outline" className="text-[11px] font-bold border-primary/30 text-primary bg-primary/5">
                   {classroomLabel || `Aula`} • {periodNumber}° Bimestre
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground">
-                Auditoría de avance por docente, notas literales AD/A/B/C y exportación oficial para el sistema SIAGIE.
+                Auditoría docente, doble flujo de exportación (Consolidado Interno y Plantilla Oficial SIAGIE).
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
+            {/* Input de archivo oculto para inyección oficial */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept=".xlsx"
+              className="hidden"
+              onChange={handleInjectSiagieTemplate}
+            />
+
+            {/* 1. Consolidado Interno para Dirección / Padres */}
             <Button
+              variant="outline"
               size="sm"
               onClick={handleExportExcel}
               disabled={isLoading || !data}
-              className="gap-2 text-xs font-bold h-8 shadow-sm"
+              className="gap-1.5 text-xs font-bold h-8 shadow-sm border-border hover:bg-secondary"
+              title="Descarga el consolidado con promedios y desglose de competencias para reuniones de directores y padres de familia"
             >
-              <Download className="w-3.5 h-3.5" />
-              <span>Exportar Excel SIAGIE</span>
+              <Download className="w-3.5 h-3.5 text-muted-foreground" />
+              <span>Consolidado Interno (.xlsx)</span>
+            </Button>
+
+            {/* 2. Inyector de Plantilla Oficial de SIAGIE */}
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isLoading || !data || isInjecting}
+              className="gap-1.5 text-xs font-bold h-8 shadow-sm bg-primary hover:bg-primary/90 text-primary-foreground"
+              title="Sube la plantilla vacía descargada del portal SIAGIE para inyectar automáticamente las notas oficiales respetando el formato de MINEDU"
+            >
+              {isInjecting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Upload className="w-3.5 h-3.5" />
+              )}
+              <span>Inyectar en Plantilla Oficial SIAGIE</span>
             </Button>
 
             <button
@@ -273,6 +429,24 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
             >
               <X className="w-5 h-5" />
             </button>
+          </div>
+        </div>
+
+        {/* Banner explicativo del Doble Flujo */}
+        <div className="px-5 py-2.5 bg-muted/40 border-b border-border flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-foreground flex items-center gap-1.5 shrink-0">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              Doble Flujo:
+            </span>
+            <span className="leading-tight">
+              <strong>1. Oficial SIAGIE:</strong> Sube la plantilla vacía de MINEDU y el sistema llenará las notas y conclusiones oficiales sin modificar el nombre del archivo.
+            </span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="leading-tight">
+              <strong>2. Uso Interno:</strong> Usa "Consolidado Interno" para informes a padres y dirección.
+            </span>
           </div>
         </div>
 
@@ -480,6 +654,20 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
                 </div>
               </div>
 
+              {/* Alerta de Inconsistencia SIAGIE si alguna competencia fue llenada parcialmente */}
+              {courses.some((c) => c.hasInconsistencies) && (
+                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5 text-xs text-amber-800 dark:text-amber-300 shadow-sm">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <strong className="block font-bold">Advertencia de Consistencia SIAGIE:</strong>
+                    <p className="text-[11px] leading-relaxed">
+                      Se han detectado competencias con calificaciones parciales (solo algunos alumnos calificados).
+                      En la normativa del SIAGIE (RVM N° 094-2020), si una competencia se trabaja en el periodo debe calificarse a toda el aula o dejarse 100% vacía para toda la sección.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Tabla de Cursos del Aula y Estado de Docentes */}
               <div className="rounded-xl border border-border overflow-hidden bg-card">
                 <table className="w-full text-left border-collapse text-xs">
@@ -508,7 +696,15 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
                           {c.teacherName}
                         </td>
                         <td className="p-3 text-center font-mono font-bold">
-                          {c.competenceCount}
+                          {c.workedCompetenceCount !== undefined &&
+                          c.unworkedCompetenceCount !== undefined &&
+                          c.unworkedCompetenceCount > 0 ? (
+                            <span title={`${c.workedCompetenceCount} trabajadas, ${c.unworkedCompetenceCount} no trabajadas`}>
+                              {c.workedCompetenceCount}/{c.competenceCount}
+                            </span>
+                          ) : (
+                            c.competenceCount
+                          )}
                         </td>
                         <td className="p-3 text-center font-mono">
                           <span className="font-bold text-foreground">{c.filledGradesCount}</span>
@@ -534,7 +730,11 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
                           </div>
                         </td>
                         <td className="p-3 text-center">
-                          {c.isComplete ? (
+                          {c.hasInconsistencies ? (
+                            <Badge className="bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30 text-[10px] font-bold">
+                              Incompleto
+                            </Badge>
+                          ) : c.isComplete ? (
                             <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[10px] font-bold">
                               Completo
                             </Badge>
@@ -557,7 +757,7 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
           ) : (
             /* TAB 2: MATRIZ CONSOLIDADA DE CALIFICACIONES */
             <div className="space-y-4">
-              {/* Barra de Filtro de Alumno */}
+              {/* Barra de Filtro de Alumno y Selector de Modo de Vista */}
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div className="relative flex-1 min-w-[240px] max-w-sm">
                   <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-muted-foreground" />
@@ -570,11 +770,56 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
                   />
                 </div>
 
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Award className="w-3.5 h-3.5 text-primary" />
-                  <span>Calificaciones en escala oficial MINEDU (AD / A / B / C)</span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Selector de Dos Capas (Consolidado SIAGIE vs Cursos Internos) */}
+                  {matrix?.consolidatedAreas && matrix.consolidatedAreas.length > 0 && (
+                    <div className="flex items-center gap-1 p-0.5 rounded-lg border border-border bg-muted/40">
+                      <button
+                        type="button"
+                        onClick={() => setMatrixView('consolidated')}
+                        className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all ${
+                          matrixView === 'consolidated'
+                            ? 'bg-primary text-primary-foreground shadow-xs'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        Áreas Oficiales SIAGIE
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMatrixView('internal')}
+                        className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all ${
+                          matrixView === 'internal'
+                            ? 'bg-primary text-primary-foreground shadow-xs'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        Cursos Internos ({matrix.courses.length})
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Award className="w-3.5 h-3.5 text-primary" />
+                    <span>Escala MINEDU (AD / A / B / C)</span>
+                  </div>
                 </div>
               </div>
+
+              {/* Banner de Arquitectura de Dos Capas CNEB si hay cursos subdivididos */}
+              {matrixView === 'consolidated' && hasSubdividedAreas && (
+                <div className="p-2.5 rounded-xl bg-primary/5 border border-primary/20 text-xs text-foreground flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">🔗</span>
+                    <span className="text-[11px] font-medium">
+                      <strong>Arquitectura de Dos Capas CNEB:</strong> Las sub-áreas del colegio (ej: Aritmética, Álgebra, Geometría, Física, Química) se consolidan automáticamente en las Áreas y Competencias Oficiales del SIAGIE.
+                    </span>
+                  </div>
+                  <Badge variant="outline" className="text-[10px] font-bold text-primary border-primary/30">
+                    Consolidación Automática
+                  </Badge>
+                </div>
+              )}
 
               {/* Matriz Scrollable de Calificaciones */}
               <div className="rounded-xl border border-border overflow-x-auto bg-card">
@@ -584,17 +829,23 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
                       <th className="p-2 border-r border-border text-center w-10">N°</th>
                       <th className="p-2 border-r border-border w-28">DNI</th>
                       <th className="p-2 border-r border-border min-w-[180px]">Apellidos y Nombres</th>
-                      {matrix?.courses.map((course) => {
-                        if (showCompetencesDetail && course.competences.length > 0) {
+                      {(matrixView === 'consolidated' &&
+                      matrix?.consolidatedAreas &&
+                      matrix.consolidatedAreas.length > 0
+                        ? matrix.consolidatedAreas
+                        : matrix?.courses || []
+                      ).map((col: any) => {
+                        const isSubdivided = col.isSubdivided;
+                        if (showCompetencesDetail && col.competences.length > 0) {
                           return (
-                            <React.Fragment key={course.id}>
-                              {course.competences.map((comp, cIdx) => (
+                            <React.Fragment key={col.id}>
+                              {col.competences.map((comp: any, cIdx: number) => (
                                 <th
                                   key={comp.id}
                                   className="p-1.5 border-r border-border text-center min-w-[65px] font-mono text-[10px]"
-                                  title={`${course.name} - ${comp.name}`}
+                                  title={`${col.name} - ${comp.name}`}
                                 >
-                                  {course.name.substring(0, 3)}. C{cIdx + 1}
+                                  {col.name.substring(0, 3)}. C{cIdx + 1}
                                 </th>
                               ))}
                               <th className="p-1.5 border-r border-border text-center min-w-[60px] bg-secondary/50 font-bold">
@@ -606,11 +857,20 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
 
                         return (
                           <th
-                            key={course.id}
+                            key={col.id}
                             className="p-2 border-r border-border text-center min-w-[80px]"
-                            title={course.name}
+                            title={
+                              isSubdivided
+                                ? `${col.name} (Subdividido en: ${col.tributaryCourses?.join(', ')})`
+                                : col.name
+                            }
                           >
-                            <span className="truncate block max-w-[90px] mx-auto">{course.name}</span>
+                            <span className="truncate block max-w-[90px] mx-auto">{col.name}</span>
+                            {isSubdivided && (
+                              <span className="text-[9px] font-mono text-primary font-bold block leading-none mt-0.5">
+                                Subdividido
+                              </span>
+                            )}
                           </th>
                         );
                       })}
@@ -626,6 +886,12 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
                     {filteredStudents.map((st, idx) => {
                       const genSiagie =
                         st.generalScore !== null ? getSiagieConversion(st.generalScore) : null;
+                      const activeCols =
+                        matrixView === 'consolidated' &&
+                        matrix?.consolidatedAreas &&
+                        matrix.consolidatedAreas.length > 0
+                          ? matrix.consolidatedAreas
+                          : matrix?.courses || [];
 
                       return (
                         <tr
@@ -639,16 +905,31 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
                             {st.documentId}
                           </td>
                           <td className="p-2 border-r border-border font-semibold text-foreground truncate">
-                            {st.fullName}
+                            <div className="flex items-center gap-1.5 truncate">
+                              <span className="truncate">{st.fullName}</span>
+                              {(st.enrollmentState === 'WITHDRAWN' ||
+                                st.enrollmentState === 'TRANSFERRED') && (
+                                <Badge
+                                  variant="destructive"
+                                  className="text-[9px] uppercase font-bold tracking-wider h-3.5 px-1 shrink-0"
+                                >
+                                  {st.enrollmentState === 'WITHDRAWN' ? 'Retirado' : 'Trasladado'}
+                                </Badge>
+                              )}
+                            </div>
                           </td>
 
-                          {matrix?.courses.map((course) => {
-                            const gradeData = st.courseGrades[course.id];
+                          {activeCols.map((col: any) => {
+                            const isConsolidatedArea = matrixView === 'consolidated';
+                            const gradeData =
+                              isConsolidatedArea && st.consolidatedGrades
+                                ? st.consolidatedGrades[col.code] || st.consolidatedGrades[col.id]
+                                : st.courseGrades[col.id];
 
-                            if (showCompetencesDetail && course.competences.length > 0) {
+                            if (showCompetencesDetail && col.competences.length > 0) {
                               return (
-                                <React.Fragment key={course.id}>
-                                  {course.competences.map((comp) => {
+                                <React.Fragment key={col.id}>
+                                  {col.competences.map((comp: any) => {
                                     const cGrade = gradeData?.competences?.[comp.id];
                                     return (
                                       <td
@@ -694,7 +975,7 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
 
                             return (
                               <td
-                                key={course.id}
+                                key={col.id}
                                 className="p-2 border-r border-border text-center font-mono font-bold text-xs"
                               >
                                 {gradeData?.letter ? (

@@ -114,6 +114,9 @@ export const useCreateCriterion = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['evaluation-criteria'] });
+      queryClient.invalidateQueries({ queryKey: ['grades-matrix'] });
+      queryClient.invalidateQueries({ queryKey: ['consolidated-grades'] });
+      queryClient.invalidateQueries({ queryKey: ['siagie-status'] });
       toast.success('Criterio creado', {
         description: 'El nuevo rubro evaluativo ha sido registrado correctamente.',
       });
@@ -139,6 +142,9 @@ export const useUpdateCriterion = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['evaluation-criteria'] });
+      queryClient.invalidateQueries({ queryKey: ['grades-matrix'] });
+      queryClient.invalidateQueries({ queryKey: ['consolidated-grades'] });
+      queryClient.invalidateQueries({ queryKey: ['siagie-status'] });
       toast.success('Criterio actualizado', {
         description: 'Las modificaciones han sido guardadas.',
       });
@@ -164,6 +170,9 @@ export const useDeleteCriterion = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['evaluation-criteria'] });
+      queryClient.invalidateQueries({ queryKey: ['grades-matrix'] });
+      queryClient.invalidateQueries({ queryKey: ['consolidated-grades'] });
+      queryClient.invalidateQueries({ queryKey: ['siagie-status'] });
       toast.success('Criterio desactivado', {
         description: 'El criterio ya no aparecerá en nuevas evaluaciones.',
       });

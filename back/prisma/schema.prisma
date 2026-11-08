@@ -374,11 +374,16 @@ model CurricularArea {
   schoolId       String
   name           String   // Ej: "Matemática"
   officialCode   String?  // Código MINEDU
+  parentAreaId   String?  // ID del Área Madre Oficial SIAGIE (si es una sub-área interna)
   isActive       Boolean  @default(true)
 
   school         School                 @relation(fields: [schoolId], references: [id])
+  parentArea     CurricularArea?        @relation("SubAreas", fields: [parentAreaId], references: [id], onDelete: SetNull)
+  subAreas       CurricularArea[]       @relation("SubAreas")
   competences    CurricularCompetence[]
   assignments    CourseAssignment[]
+
+  @@index([schoolId, parentAreaId])
 }
 
 model CurricularCompetence {
@@ -386,6 +391,7 @@ model CurricularCompetence {
   areaId         String
   name           String         // Ej: "Resuelve problemas de cantidad"
   description    String?
+  isActive       Boolean        @default(true)
 
   area           CurricularArea @relation(fields: [areaId], references: [id])
   grades         Grade[]

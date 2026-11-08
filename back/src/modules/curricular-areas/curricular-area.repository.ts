@@ -171,6 +171,62 @@ export class CurricularAreaRepository {
     return prisma.curricularCompetence.create({ data });
   }
 
+  async findCompetenceById(competenceId: string) {
+    return prisma.curricularCompetence.findUnique({
+      where: { id: competenceId },
+      include: { area: true },
+    });
+  }
+
+  async countCompetenceGrades(competenceId: string): Promise<number> {
+    const detailed = await prisma.detailedGrade.count({ where: { competenceId } });
+    const legacy = await prisma.grade.count({ where: { competenceId } });
+    return detailed + legacy;
+  }
+
+  async deleteCompetence(competenceId: string): Promise<CurricularCompetence> {
+    return prisma.curricularCompetence.delete({
+      where: { id: competenceId },
+    });
+  }
+
+  async updateCompetence(
+    competenceId: string,
+    data: { name?: string; description?: string | null; isActive?: boolean },
+  ): Promise<CurricularCompetence> {
+    return prisma.curricularCompetence.update({
+      where: { id: competenceId },
+      data,
+    });
+  }
+
+  async copyParentCompetences(areaId: string, parentAreaId: string): Promise<number> {
+    const parentCompetences = await prisma.curricularCompetence.findMany({
+      where: { areaId: parentAreaId },
+    });
+
+    if (parentCompetences.length === 0) return 0;
+
+    let copied = 0;
+    for (const pc of parentCompetences) {
+      const exists = await prisma.curricularCompetence.findFirst({
+        where: { areaId, name: pc.name },
+      });
+      if (!exists) {
+        await prisma.curricularCompetence.create({
+          data: {
+            areaId,
+            name: pc.name,
+            description: pc.description,
+            isActive: true,
+          },
+        });
+        copied++;
+      }
+    }
+    return copied;
+  }
+
   /** Pre-carga masiva de áreas y competencias oficiales MINEDU SIAGIE */
   async seedMineduAreas(schoolId: string, areas: MineduSeedArea[]): Promise<{ count: number }> {
     let createdCount = 0;

@@ -8,14 +8,17 @@ import {
   TrendingUp,
   Users,
   Award,
+  Power,
   FileText,
   Lock,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useGradeMatrix, useSaveGradeMatrix, usePeriodLock } from '../api/useGrades';
+import { useToggleCompetence } from '@/features/curricular-areas/api/useCurricularAreas';
 import { getSiagieConversion } from '../types';
 
 interface GradesMatrixGridProps {
@@ -24,6 +27,7 @@ interface GradesMatrixGridProps {
   showWithdrawn: boolean;
   showTransferred: boolean;
   onOpenReportCard?: (enrollmentId: string) => void;
+  onOpenCompetencesModal?: () => void;
 }
 
 export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
@@ -32,6 +36,7 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
   showWithdrawn,
   showTransferred,
   onOpenReportCard,
+  onOpenCompetencesModal,
 }) => {
   const { data, isLoading, isError, refetch } = useGradeMatrix(courseAssignmentId, periodNumber);
   const saveMatrixMutation = useSaveGradeMatrix();
@@ -64,6 +69,22 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
     [assignment?.area?.competences],
   );
 
+  const toggleMutation = useToggleCompetence();
+
+  const handleToggleCompetenceDirect = async (comp: any) => {
+    try {
+      const res = await toggleMutation.mutateAsync(comp.id);
+      const isNowActive = res.data.isActive ?? true;
+      toast.success(
+        isNowActive
+          ? `Competencia encendida: Ahora se evaluará en este curso.`
+          : `Competencia apagada: Se mantiene en la tabla pero no exige notas en este curso.`,
+      );
+    } catch {
+      toast.error('Error al cambiar el estado de la competencia.');
+    }
+  };
+
   // Filtrado de alumnos según estado
   const enrollments = useMemo(() => {
     const list = assignment?.classroom?.enrollments || [];
@@ -81,6 +102,15 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
     criterionId: string,
     rawValue: string,
   ) => {
+    // Bloquear edición si el alumno está retirado o trasladado (regla SIAGIE)
+    const targetEnrollment = enrollments.find((e) => e.id === enrollmentId);
+    if (
+      targetEnrollment?.enrollmentState === 'WITHDRAWN' ||
+      targetEnrollment?.enrollmentState === 'TRANSFERRED'
+    ) {
+      return;
+    }
+
     const key = `${enrollmentId}_${competenceId}_${criterionId}`;
     if (rawValue.trim() === '') {
       setScores((prev) => ({ ...prev, [key]: null }));
@@ -107,6 +137,12 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
       const competenceAverages: Record<string, number | null> = {};
 
       competences.forEach((comp) => {
+        const isCompActive = (comp as any).isActive !== false;
+        if (!isCompActive) {
+          competenceAverages[comp.id] = null;
+          return;
+        }
+
         let weightedSum = 0;
         let totalWeight = 0;
 
@@ -138,6 +174,7 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
       return {
         orderIndex: index + 1,
         enrollmentId: enrollment.id,
+        enrollmentState: enrollment.enrollmentState,
         studentId: student.id,
         fullName,
         studentCode: student.studentCode,
@@ -344,10 +381,20 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
     return (
       <div className="p-8 text-center bg-card border border-border rounded-xl space-y-3">
         <AlertCircle className="w-10 h-10 text-amber-500 mx-auto" />
-        <h3 className="text-base font-bold text-foreground">Área Curricular sin Competencias</h3>
+        <h3 className="text-base font-bold text-foreground">Este curso no tiene competencias registradas</h3>
         <p className="text-xs text-muted-foreground max-w-md mx-auto">
-          El curso "{assignment?.area?.name}" aún no tiene competencias oficiales asociadas. Comunícate con la dirección académica.
+          El curso "{assignment?.area?.name}" aún no tiene las competencias oficiales del CNEB asociadas. Puedes cargarlas automáticamente para comenzar a evaluar.
         </p>
+        {onOpenCompetencesModal && (
+          <Button
+            type="button"
+            onClick={onOpenCompetencesModal}
+            className="text-xs font-bold gap-2 mx-auto shadow-sm"
+          >
+            <Power className="w-3.5 h-3.5" />
+            <span>Prender / Apagar Competencias</span>
+          </Button>
+        )}
       </div>
     );
   }
@@ -398,6 +445,23 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Descartar</span>
+            </Button>
+          )}
+
+          {onOpenCompetencesModal && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onOpenCompetencesModal}
+              className="text-xs font-semibold gap-1.5 h-8 border-border bg-card hover:bg-secondary text-foreground"
+              title="Prende o apaga qué competencias evalúa este curso"
+            >
+              <Award className="w-3.5 h-3.5 text-primary" />
+              <span>
+                Competencias ({competences.filter((c: any) => c.isActive !== false).length}/
+                {competences.length} Encendidas)
+              </span>
             </Button>
           )}
 
@@ -485,20 +549,66 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
                 </th>
 
                 {competences.map((comp, compIdx) => {
+                  const isActive = (comp as any).isActive !== false;
                   const colSpanCount = criteria.length + 1; // criterios + promedio de competencia
                   return (
                     <th
                       key={comp.id}
                       colSpan={colSpanCount}
-                      className={`text-center font-bold text-xs py-2 px-3 border-r border-border ${
-                        compIdx % 2 === 0
+                      className={`text-center font-bold text-xs py-2 px-3 border-r border-border transition-all ${
+                        !isActive
+                          ? 'bg-muted/70 text-muted-foreground border-dashed border-border/80'
+                          : compIdx % 2 === 0
                           ? 'bg-amber-500/15 text-amber-950 dark:text-amber-300 border-amber-500/30'
                           : 'bg-primary/10 text-primary border-primary/20'
                       }`}
                     >
-                      <div className="flex items-center justify-center gap-1.5 truncate max-w-[420px] mx-auto">
-                        <Award className="w-3.5 h-3.5 shrink-0" />
-                        <span className="truncate">{comp.name}</span>
+                      <div className="flex items-center justify-between gap-2 max-w-[420px] mx-auto">
+                        <div className="flex items-center gap-1.5 truncate">
+                          <Award
+                            className={`w-3.5 h-3.5 shrink-0 ${
+                              isActive ? 'text-primary' : 'text-muted-foreground'
+                            }`}
+                          />
+                          <span
+                            className={`truncate ${
+                              !isActive ? 'line-through text-muted-foreground' : ''
+                            }`}
+                            title={comp.name}
+                          >
+                            {comp.name}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          <span
+                            className={`text-[9px] uppercase font-extrabold px-1.5 py-0.5 rounded ${
+                              isActive
+                                ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                                : 'bg-muted text-muted-foreground border border-border'
+                            }`}
+                          >
+                            {isActive ? 'Encendida' : 'Apagada'}
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() => handleToggleCompetenceDirect(comp)}
+                            disabled={toggleMutation.isPending}
+                            title={
+                              isActive
+                                ? 'Clic para apagar esta competencia en este curso'
+                                : 'Clic para encender esta competencia en este curso'
+                            }
+                            className={`p-1 rounded-md transition-all cursor-pointer ${
+                              isActive
+                                ? 'hover:bg-destructive/15 text-emerald-600 hover:text-destructive'
+                                : 'hover:bg-emerald-500/15 text-muted-foreground hover:text-emerald-600'
+                            }`}
+                          >
+                            <Power className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                     </th>
                   );
@@ -507,25 +617,44 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
 
               {/* Fila 2: Sub-columnas de Criterios y Promedio */}
               <tr className="border-t border-border/60">
-                {competences.map((comp) => (
-                  <React.Fragment key={comp.id}>
-                    {criteria.map((crit) => (
+                {competences.map((comp) => {
+                  const isActive = (comp as any).isActive !== false;
+                  return (
+                    <React.Fragment key={comp.id}>
+                      {criteria.map((crit) => (
+                        <th
+                          key={crit.id}
+                          className={`py-1.5 px-2 text-center font-bold text-[11px] border-r border-border/40 min-w-[58px] ${
+                            isActive
+                              ? 'text-muted-foreground bg-muted/40'
+                              : 'text-muted-foreground/40 bg-muted/20'
+                          }`}
+                          title={
+                            isActive
+                              ? `${crit.name} (Peso: ${crit.weight})`
+                              : 'Competencia apagada en este curso'
+                          }
+                        >
+                          <div className="truncate">{crit.shortName}</div>
+                        </th>
+                      ))}
                       <th
-                        key={crit.id}
-                        className="py-1.5 px-2 text-center font-bold text-[11px] text-muted-foreground border-r border-border/40 min-w-[58px] bg-muted/40"
-                        title={`${crit.name} (Peso: ${crit.weight})`}
+                        className={`py-1.5 px-2 text-center font-extrabold text-[11px] border-r border-border min-w-[55px] ${
+                          isActive
+                            ? 'text-foreground bg-muted/80'
+                            : 'text-muted-foreground/40 bg-muted/30'
+                        }`}
+                        title={
+                          isActive
+                            ? `Promedio de la competencia: ${comp.name}`
+                            : 'Competencia apagada'
+                        }
                       >
-                        <div className="truncate">{crit.shortName}</div>
+                        Prom.
                       </th>
-                    ))}
-                    <th
-                      className="py-1.5 px-2 text-center font-extrabold text-[11px] text-foreground border-r border-border min-w-[55px] bg-muted/80"
-                      title={`Promedio de la competencia: ${comp.name}`}
-                    >
-                      Prom.
-                    </th>
-                  </React.Fragment>
-                ))}
+                    </React.Fragment>
+                  );
+                })}
               </tr>
             </thead>
 
@@ -558,9 +687,19 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
                       className="sticky left-[44px] z-20 w-[240px] min-w-[240px] max-w-[240px] border-r border-border px-3 py-1.5"
                     >
                       <div className="flex items-center justify-between gap-1">
-                        <span className="font-semibold text-foreground truncate text-xs" title={row.fullName}>
-                          {row.fullName}
-                        </span>
+                        <div className="flex items-center gap-1.5 truncate">
+                          <span className="font-semibold text-foreground truncate text-xs" title={row.fullName}>
+                            {row.fullName}
+                          </span>
+                          {(row.enrollmentState === 'WITHDRAWN' || row.enrollmentState === 'TRANSFERRED') && (
+                            <Badge
+                              variant="destructive"
+                              className="text-[9px] uppercase font-bold tracking-wider h-3.5 px-1 shrink-0"
+                            >
+                              {row.enrollmentState === 'WITHDRAWN' ? 'Retirado' : 'Trasladado'}
+                            </Badge>
+                          )}
+                        </div>
                         {onOpenReportCard && (
                           <button
                             type="button"
@@ -612,7 +751,30 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
 
                     {/* Celdas de Calificación por Competencia */}
                     {competences.map((comp) => {
+                      const isActive = (comp as any).isActive !== false;
                       const compAverage = row.competenceAverages[comp.id];
+
+                      if (!isActive) {
+                        return (
+                          <React.Fragment key={comp.id}>
+                            {criteria.map((crit) => (
+                              <td
+                                key={crit.id}
+                                className="p-1 border-r border-border/40 text-center bg-muted/20 text-muted-foreground/40 font-mono text-xs select-none"
+                                title="Competencia apagada en este curso (no se evalúa)"
+                              >
+                                —
+                              </td>
+                            ))}
+                            <td
+                              className="p-1.5 border-r border-border text-center bg-muted/30 text-muted-foreground/40 font-mono text-xs select-none"
+                              title="Competencia apagada"
+                            >
+                              —
+                            </td>
+                          </React.Fragment>
+                        );
+                      }
 
                       return (
                         <React.Fragment key={comp.id}>
@@ -621,6 +783,9 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
                             const key = `${row.enrollmentId}_${comp.id}_${crit.id}`;
                             const scoreValue = scores[key];
                             const isDirty = dirtyKeys.has(key);
+                            const isInactive =
+                              row.enrollmentState === 'WITHDRAWN' ||
+                              row.enrollmentState === 'TRANSFERRED';
 
                             const inputRefKey = `${rowIndex}_${colIdx}`;
 
@@ -628,7 +793,11 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
                               <td
                                 key={crit.id}
                                 className={`p-1 border-r border-border/40 text-center ${
-                                  isDirty ? 'bg-amber-500/10' : ''
+                                  isInactive
+                                    ? 'bg-muted/30'
+                                    : isDirty
+                                    ? 'bg-amber-500/10'
+                                    : ''
                                 }`}
                               >
                                 <input
@@ -638,9 +807,14 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
                                   }}
                                   type="text"
                                   inputMode="decimal"
-                                  disabled={isLocked || saveMatrixMutation.isPending}
+                                  disabled={isLocked || isInactive || saveMatrixMutation.isPending}
                                   value={scoreValue !== undefined && scoreValue !== null ? scoreValue : ''}
-                                  placeholder="—"
+                                  placeholder={isInactive ? '' : '—'}
+                                  title={
+                                    isInactive
+                                      ? 'Estudiante retirado/trasladado: el SIAGIE exige mantener sus celdas vacías'
+                                      : ''
+                                  }
                                   onChange={(e) =>
                                     handleScoreChange(
                                       row.enrollmentId,
@@ -650,12 +824,14 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
                                     )
                                   }
                                   onKeyDown={(e) => handleKeyDown(e, rowIndex, colIdx)}
-                                  className={`w-12 h-7 text-center font-mono font-bold text-xs rounded border bg-background transition-all focus:outline-none focus:ring-2 focus:ring-primary ${
-                                    scoreValue !== null && scoreValue !== undefined && scoreValue < 11
+                                  className={`w-12 h-7 text-center font-mono font-bold text-xs rounded border transition-all focus:outline-none focus:ring-2 focus:ring-primary ${
+                                    isInactive
+                                      ? 'bg-muted/40 border-border/40 text-muted-foreground/30 cursor-not-allowed'
+                                      : scoreValue !== null && scoreValue !== undefined && scoreValue < 11
                                       ? 'text-rose-600 dark:text-rose-400 border-rose-400/50 bg-rose-500/5'
                                       : scoreValue !== null && scoreValue !== undefined
-                                      ? 'text-foreground border-input'
-                                      : 'text-muted-foreground border-input/60'
+                                      ? 'text-foreground border-input bg-background'
+                                      : 'text-muted-foreground border-input/60 bg-background'
                                   }`}
                                 />
                               </td>

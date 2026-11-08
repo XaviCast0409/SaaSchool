@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   Check,
   X,
+  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -143,9 +144,45 @@ export const EvaluationCriteriaPage: React.FC = () => {
     });
   };
 
+  const [isApplyingPreset, setIsApplyingPreset] = useState(false);
+
+  const handleApplyPreset = async () => {
+    if (
+      !confirm(
+        '¿Deseas cargar la plantilla estándar para Colegios Particulares? Se configurarán: Práctica Mensual (PM), Examen Mensual (EM), Revisión de Cuaderno / Tareas (RC) y Examen Bimestral (EB).',
+      )
+    ) {
+      return;
+    }
+
+    setIsApplyingPreset(true);
+    try {
+      for (const c of activeCriteria) {
+        await deleteMutation.mutateAsync(c.id);
+      }
+
+      const preset = [
+        { name: 'Práctica Mensual', shortName: 'PM', weight: 1.0, order: 1, educationLevel: null },
+        { name: 'Examen Mensual', shortName: 'EM', weight: 1.0, order: 2, educationLevel: null },
+        { name: 'Revisión de Cuaderno / Tareas', shortName: 'RC', weight: 1.0, order: 3, educationLevel: null },
+        { name: 'Examen Bimestral', shortName: 'EB', weight: 2.0, order: 4, educationLevel: null },
+      ];
+
+      for (const item of preset) {
+        await createMutation.mutateAsync(item);
+      }
+
+      toast.success('Plantilla de colegio particular aplicada con éxito.');
+    } catch {
+      toast.error('Error al aplicar la plantilla.');
+    } finally {
+      setIsApplyingPreset(false);
+    }
+  };
+
   const activeCriteria = criteria.filter((c) => c.isActive);
   const totalWeight = activeCriteria.reduce((acc, c) => acc + (c.weight || 1), 0);
-  const isSaving = createMutation.isPending || updateMutation.isPending;
+  const isSaving = createMutation.isPending || updateMutation.isPending || isApplyingPreset;
 
   return (
     <PlanGuard minPlan="PRO">
@@ -166,17 +203,30 @@ export const EvaluationCriteriaPage: React.FC = () => {
               Criterios de Calificación por Competencia
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground max-w-3xl leading-relaxed">
-              Configura los rubros y categorías que cada docente califica en el día a día para cada competencia (ej. Prácticas Calificadas, Conducta, Revisión de Cuaderno, Examen Bimestral, Exposiciones, etc.).
+              Configura los rubros y categorías que cada docente califica en el día a día para cada competencia (ej. Práctica Mensual, Examen Mensual, Revisión de Cuaderno, Examen Bimestral, etc.).
             </p>
           </div>
 
-          <Button
-            onClick={handleOpenCreate}
-            className="gap-2 text-xs font-bold shadow-md self-start md:self-auto shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Nuevo Criterio Evaluativo</span>
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap self-start md:self-auto shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleApplyPreset}
+              disabled={isSaving}
+              className="gap-2 text-xs font-semibold shadow-sm border-border bg-card hover:bg-secondary text-foreground"
+            >
+              <Sparkles className="w-4 h-4 text-amber-500" />
+              <span>{isApplyingPreset ? 'Cargando...' : 'Cargar Plantilla Particular'}</span>
+            </Button>
+
+            <Button
+              onClick={handleOpenCreate}
+              className="gap-2 text-xs font-bold shadow-md"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nuevo Criterio Evaluativo</span>
+            </Button>
+          </div>
         </div>
 
         {/* Tarjetas Informativas / Resumen de Ponderaciones */}

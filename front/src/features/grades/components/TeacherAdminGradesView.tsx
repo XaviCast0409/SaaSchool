@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { BookOpenCheck, Layers, SlidersHorizontal, Printer, FileSpreadsheet, Sparkles } from 'lucide-react';
+import { BookOpenCheck, Layers, SlidersHorizontal, Printer, FileSpreadsheet, Sparkles, Award } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import {
   useCourseAssignments,
@@ -11,6 +11,7 @@ import { GradesFilterBar } from './GradesFilterBar';
 import { GradesMatrixGrid } from './GradesMatrixGrid';
 import { CompetenceCommentsView } from './CompetenceCommentsView';
 import { EvaluationCriteriaModal } from './EvaluationCriteriaModal';
+import { CourseCompetencesModal } from './CourseCompetencesModal';
 import { ReportCardModal } from './ReportCardModal';
 import { SiagieConsolidatedModal } from './SiagieConsolidatedModal';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ export const TeacherAdminGradesView: React.FC = () => {
   const isAdmin = user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'ADMINISTRATIVE';
 
   const [isCriteriaModalOpen, setIsCriteriaModalOpen] = useState(false);
+  const [isCompetencesModalOpen, setIsCompetencesModalOpen] = useState(false);
   const [isReportCardModalOpen, setIsReportCardModalOpen] = useState(false);
   const [selectedReportCardEnrollmentId, setSelectedReportCardEnrollmentId] = useState<string | null>(null);
   const [isSiagieModalOpen, setIsSiagieModalOpen] = useState(false);
@@ -129,6 +131,12 @@ export const TeacherAdminGradesView: React.FC = () => {
 
   const { data: matrixData } = useGradeMatrix(selectedCourseAssignmentId, selectedPeriod);
 
+  const courseAreaId = matrixData?.assignment?.area?.id || activeAssignment?.area?.id || '';
+  const courseAreaName = matrixData?.assignment?.area?.name || activeAssignment?.area?.name || 'Curso';
+  const courseCompetences = useMemo(() => {
+    return (matrixData?.assignment?.area?.competences || activeAssignment?.area?.competences || []) as any[];
+  }, [matrixData?.assignment?.area?.competences, activeAssignment?.area?.competences]);
+
   const classroomStudents = useMemo(() => {
     if (!matrixData?.assignment?.classroom?.enrollments) return [];
     return matrixData.assignment.classroom.enrollments
@@ -205,6 +213,19 @@ export const TeacherAdminGradesView: React.FC = () => {
             </Button>
           )}
 
+          {selectedCourseAssignmentId && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsCompetencesModalOpen(true)}
+              className="gap-2 text-xs font-semibold shadow-sm border-border bg-card hover:bg-secondary text-foreground"
+              title="Prende o apaga qué competencias evalúa este curso"
+            >
+              <Award className="w-4 h-4 text-primary" />
+              <span>Prender / Apagar Competencias</span>
+            </Button>
+          )}
+
           {isAdmin && (
             <Button
               variant="outline"
@@ -271,6 +292,7 @@ export const TeacherAdminGradesView: React.FC = () => {
               periodNumber={selectedPeriod}
               showWithdrawn={showWithdrawn}
               showTransferred={showTransferred}
+              onOpenCompetencesModal={() => setIsCompetencesModalOpen(true)}
               onOpenReportCard={(enrollmentId) => {
                 setSelectedReportCardEnrollmentId(enrollmentId);
                 setIsReportCardModalOpen(true);
@@ -304,6 +326,14 @@ export const TeacherAdminGradesView: React.FC = () => {
       )}
 
       {/* Modales */}
+      <CourseCompetencesModal
+        isOpen={isCompetencesModalOpen}
+        onClose={() => setIsCompetencesModalOpen(false)}
+        areaId={courseAreaId}
+        courseName={courseAreaName}
+        competences={courseCompetences}
+      />
+
       <EvaluationCriteriaModal
         isOpen={isCriteriaModalOpen}
         onClose={() => setIsCriteriaModalOpen(false)}

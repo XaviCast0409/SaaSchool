@@ -4,6 +4,7 @@ import type {
   CreateCurricularAreaDto,
   UpdateCurricularAreaDto,
   CreateCompetenceDto,
+  UpdateCompetenceDto,
 } from './curricular-area.schema';
 import type { CurricularArea, CurricularCompetence } from '@prisma/client';
 
@@ -119,75 +120,131 @@ export const MINEDU_OFFICIAL_CURRICULUM: MineduSeedArea[] = [
   {
     name: 'Matemática - Álgebra',
     officialCode: 'MAT-ALG',
-    competences: [{ name: 'Resuelve problemas de regularidad, equivalencia y cambio (Álgebra)' }],
+    competences: [
+      { name: 'Resuelve problemas de regularidad, equivalencia y cambio' },
+      { name: 'Resuelve problemas de cantidad' },
+      { name: 'Resuelve problemas de forma, movimiento y localización' },
+      { name: 'Resuelve problemas de gestión de datos e incertidumbre' },
+    ],
   },
   {
     name: 'Matemática - Geometría',
     officialCode: 'MAT-GEO',
-    competences: [{ name: 'Resuelve problemas de forma, movimiento y localización (Geometría)' }],
+    competences: [
+      { name: 'Resuelve problemas de forma, movimiento y localización' },
+      { name: 'Resuelve problemas de cantidad' },
+      { name: 'Resuelve problemas de regularidad, equivalencia y cambio' },
+      { name: 'Resuelve problemas de gestión de datos e incertidumbre' },
+    ],
   },
   {
     name: 'Matemática - Aritmética',
     officialCode: 'MAT-ARI',
-    competences: [{ name: 'Resuelve problemas de cantidad y sistema numérico' }],
+    competences: [
+      { name: 'Resuelve problemas de cantidad' },
+      { name: 'Resuelve problemas de regularidad, equivalencia y cambio' },
+      { name: 'Resuelve problemas de forma, movimiento y localización' },
+      { name: 'Resuelve problemas de gestión de datos e incertidumbre' },
+    ],
   },
   {
     name: 'Matemática - Trigonometría',
     officialCode: 'MAT-TRI',
-    competences: [{ name: 'Resuelve problemas trigonométricos y ángulos en espacio' }],
+    competences: [
+      { name: 'Resuelve problemas de forma, movimiento y localización' },
+      { name: 'Resuelve problemas de cantidad' },
+      { name: 'Resuelve problemas de regularidad, equivalencia y cambio' },
+      { name: 'Resuelve problemas de gestión de datos e incertidumbre' },
+    ],
   },
   {
     name: 'Comunicación - Literatura',
     officialCode: 'COM-LIT',
-    competences: [{ name: 'Lee y analiza obras de literatura peruana e hispanoamericana' }],
+    competences: [
+      { name: 'Lee diversos tipos de textos escritos' },
+      { name: 'Se comunica oralmente en su lengua materna' },
+      { name: 'Escribe diversos tipos de textos' },
+    ],
   },
   {
     name: 'Comunicación - Lenguaje',
     officialCode: 'COM-LEN',
-    competences: [{ name: 'Escribe diversos tipos de textos con corrección gramatical y sintáctica' }],
+    competences: [
+      { name: 'Escribe diversos tipos de textos' },
+      { name: 'Se comunica oralmente en su lengua materna' },
+      { name: 'Lee diversos tipos de textos escritos' },
+    ],
   },
   {
     name: 'Comunicación - Razonamiento Verbal',
     officialCode: 'COM-RV',
-    competences: [{ name: 'Comprende críticamente textos complejos e inferencia léxica' }],
+    competences: [
+      { name: 'Lee diversos tipos de textos escritos' },
+      { name: 'Se comunica oralmente en su lengua materna' },
+      { name: 'Escribe diversos tipos de textos' },
+    ],
   },
   {
     name: 'Desarrollo Personal, Ciudadanía y Cívica (DPCC)',
     officialCode: 'DPCC-SEC',
     competences: [
-      { name: 'Construye su identidad (Psicología y Ética)' },
-      { name: 'Convive y participa democráticamente en la búsqueda del bien común (Cívica)' },
+      { name: 'Construye su identidad' },
+      { name: 'Convive y participa democráticamente' },
     ],
   },
   {
     name: 'Ciencias Sociales - Historia del Perú',
     officialCode: 'CCSS-HP',
-    competences: [{ name: 'Construye interpretaciones históricas del Perú' }],
+    competences: [
+      { name: 'Construye interpretaciones históricas' },
+      { name: 'Gestiona responsablemente el espacio y el ambiente' },
+      { name: 'Gestiona responsablemente los recursos económicos' },
+    ],
   },
   {
     name: 'Ciencias Sociales - Historia Universal',
     officialCode: 'CCSS-HU',
-    competences: [{ name: 'Construye interpretaciones históricas del contexto mundial' }],
+    competences: [
+      { name: 'Construye interpretaciones históricas' },
+      { name: 'Gestiona responsablemente el espacio y el ambiente' },
+      { name: 'Gestiona responsablemente los recursos económicos' },
+    ],
   },
   {
     name: 'Ciencias Sociales - Geografía',
     officialCode: 'CCSS-GEO',
-    competences: [{ name: 'Gestiona responsablemente el espacio y el ambiente' }],
+    competences: [
+      { name: 'Gestiona responsablemente el espacio y el ambiente' },
+      { name: 'Construye interpretaciones históricas' },
+      { name: 'Gestiona responsablemente los recursos económicos' },
+    ],
   },
   {
     name: 'Ciencia y Tecnología - Biología',
     officialCode: 'CT-BIO',
-    competences: [{ name: 'Explica el mundo vivo y la biodiversidad' }],
+    competences: [
+      { name: 'Explica el mundo físico basándose en conocimientos científicos' },
+      { name: 'Indaga mediante métodos científicos' },
+      { name: 'Diseña y construye soluciones tecnológicas' },
+    ],
   },
   {
     name: 'Ciencia y Tecnología - Química',
     officialCode: 'CT-QUI',
-    competences: [{ name: 'Comprende y usa conocimientos sobre materia y transformaciones químicas' }],
+    competences: [
+      { name: 'Explica el mundo físico basándose en conocimientos científicos' },
+      { name: 'Indaga mediante métodos científicos' },
+      { name: 'Diseña y construye soluciones tecnológicas' },
+    ],
   },
   {
     name: 'Ciencia y Tecnología - Física',
     officialCode: 'CT-FIS',
-    competences: [{ name: 'Comprende el comportamiento físico de la energía y las fuerzas' }],
+    competences: [
+      { name: 'Explica el mundo físico basándose en conocimientos científicos' },
+      { name: 'Indaga mediante métodos científicos' },
+      { name: 'Diseña y construye soluciones tecnológicas' },
+    ],
   },
   {
     name: 'Inglés como Lengua Extranjera (Secundaria)',
@@ -326,43 +383,79 @@ export function getDefaultCompetencesForCode(officialCode?: string): { name: str
       { name: 'Escribe diversos tipos de textos en inglés' },
     ];
   }
-  if (code === 'MAT-ALG') return [{ name: 'Resuelve problemas de regularidad, equivalencia y cambio (Álgebra)' }];
-  if (code === 'MAT-GEO') return [{ name: 'Resuelve problemas de forma, movimiento y localización (Geometría)' }];
-  if (code === 'MAT-ARI') return [{ name: 'Resuelve problemas de cantidad y sistema numérico (Aritmética)' }];
-  if (code === 'MAT-TRI') return [{ name: 'Resuelve problemas trigonométricos y ángulos en espacio (Trigonometría)' }];
-  if (code === 'COM-LIT') return [{ name: 'Lee y analiza obras de literatura peruana e hispanoamericana (Literatura)' }];
-  if (code === 'COM-LEN') return [{ name: 'Escribe diversos tipos de textos con corrección gramatical (Lenguaje)' }];
-  if (code === 'RAZ-MAT') {
+  if (
+    code.includes('MAT') ||
+    code === 'MAT-ALG' ||
+    code === 'MAT-GEO' ||
+    code === 'MAT-ARI' ||
+    code === 'MAT-TRI' ||
+    code === 'RAZ-MAT'
+  ) {
     return [
-      { name: 'Resuelve problemas de razonamiento lógico y matemático' },
-      { name: 'Aplica estrategias heurísticas en resolución de problemas' },
+      { name: 'Resuelve problemas de cantidad' },
+      { name: 'Resuelve problemas de regularidad, equivalencia y cambio' },
+      { name: 'Resuelve problemas de forma, movimiento y localización' },
+      { name: 'Resuelve problemas de gestión de datos e incertidumbre' },
     ];
   }
-  if (code === 'RAZ-VER') {
+
+  if (
+    code.includes('COM') ||
+    code === 'COM-LIT' ||
+    code === 'COM-LEN' ||
+    code === 'RAZ-VER'
+  ) {
     return [
-      { name: 'Aplica comprensión lectora y análisis semántico' },
-      { name: 'Infiere y sintetiza información de textos complejos' },
+      { name: 'Se comunica oralmente en su lengua materna' },
+      { name: 'Lee diversos tipos de textos escritos' },
+      { name: 'Escribe diversos tipos de textos' },
     ];
   }
+
+  if (
+    code.includes('CT') ||
+    code.includes('CYT') ||
+    code.includes('BIO') ||
+    code.includes('QUI') ||
+    code.includes('FIS')
+  ) {
+    return [
+      { name: 'Indaga mediante métodos científicos' },
+      { name: 'Explica el mundo físico basándose en conocimientos científicos' },
+      { name: 'Diseña y construye soluciones tecnológicas' },
+    ];
+  }
+
+  if (
+    code.includes('CCSS') ||
+    code.includes('HP') ||
+    code.includes('HU') ||
+    code.includes('GEO')
+  ) {
+    return [
+      { name: 'Construye interpretaciones históricas' },
+      { name: 'Gestiona responsablemente el espacio y el ambiente' },
+      { name: 'Gestiona responsablemente los recursos económicos' },
+    ];
+  }
+
   if (code.includes('EPT')) {
     return [
       { name: 'Gestiona proyectos de emprendimiento económico o social' },
       { name: 'Aplica habilidades técnicas en computación y tecnología' },
     ];
   }
-  if (code.includes('BIO')) return [{ name: 'Explica el mundo vivo y la biodiversidad (Biología)' }];
-  if (code.includes('QUI')) return [{ name: 'Comprende materia y transformaciones químicas (Química)' }];
-  if (code.includes('FIS')) return [{ name: 'Comprende el comportamiento de la energía y las fuerzas (Física)' }];
+
   if (code.includes('DPCC')) {
     return [
-      { name: 'Construye su identidad (Psicología y Ética)' },
-      { name: 'Convive y participa democráticamente en la búsqueda del bien común (Cívica)' },
+      { name: 'Construye su identidad' },
+      { name: 'Convive y participa democráticamente en la búsqueda del bien común' },
     ];
   }
-  if (code.includes('HP')) return [{ name: 'Construye interpretaciones históricas del Perú' }];
-  if (code.includes('HU')) return [{ name: 'Construye interpretaciones históricas del contexto mundial' }];
-  if (code.includes('GEO')) return [{ name: 'Gestiona responsablemente el espacio y el ambiente' }];
-  if (code.includes('TOE')) return [{ name: 'Desarrolla habilidades socioemocionales y orientación vocacional' }];
+
+  if (code.includes('TOE')) {
+    return [{ name: 'Desarrolla habilidades socioemocionales y orientación vocacional' }];
+  }
 
   return [];
 }
@@ -454,6 +547,125 @@ export class CurricularAreaService {
   ): Promise<CurricularCompetence> {
     await this.getAreaById(createCompetenceDto.areaId, schoolId);
     return this.curricularAreaRepository.createCompetence(createCompetenceDto);
+  }
+
+  async deleteCompetence(
+    competenceId: string,
+    schoolId: string,
+  ): Promise<CurricularCompetence> {
+    const competence = await this.curricularAreaRepository.findCompetenceById(competenceId);
+    if (!competence || competence.area.schoolId !== schoolId) {
+      throw new AppError('Competencia no encontrada.', 404);
+    }
+
+    const gradesCount = await this.curricularAreaRepository.countCompetenceGrades(competenceId);
+    if (gradesCount > 0) {
+      throw new AppError(
+        'No se puede eliminar la competencia porque ya contiene calificaciones registradas.',
+        400,
+      );
+    }
+
+    return this.curricularAreaRepository.deleteCompetence(competenceId);
+  }
+
+  async updateCompetence(
+    competenceId: string,
+    schoolId: string,
+    updateCompetenceDto: UpdateCompetenceDto,
+  ): Promise<CurricularCompetence> {
+    const competence = await this.curricularAreaRepository.findCompetenceById(competenceId);
+    if (!competence || competence.area.schoolId !== schoolId) {
+      throw new AppError('Competencia no encontrada.', 404);
+    }
+
+    return this.curricularAreaRepository.updateCompetence(competenceId, updateCompetenceDto);
+  }
+
+  async toggleCompetence(
+    competenceId: string,
+    schoolId: string,
+  ): Promise<CurricularCompetence> {
+    const competence = await this.curricularAreaRepository.findCompetenceById(competenceId);
+    if (!competence || competence.area.schoolId !== schoolId) {
+      throw new AppError('Competencia no encontrada.', 404);
+    }
+
+    const currentStatus = (competence as any).isActive ?? true;
+    return this.curricularAreaRepository.updateCompetence(competenceId, {
+      isActive: !currentStatus,
+    });
+  }
+
+  async loadDefaultCompetencesForArea(
+    areaId: string,
+    schoolId: string,
+  ): Promise<{ copied: number }> {
+    const area = await this.getAreaById(areaId, schoolId);
+
+    // 1. Si tiene parentAreaId, copiar competencias del área madre
+    if ((area as any).parentAreaId) {
+      const copied = await this.curricularAreaRepository.copyParentCompetences(
+        areaId,
+        (area as any).parentAreaId,
+      );
+      return { copied };
+    }
+
+    // 2. Si no tiene parentAreaId pero tiene officialCode o nombre reconocible
+    const defaultCompetences = getDefaultCompetencesForCode(area.officialCode || area.name);
+    if (defaultCompetences.length === 0) {
+      const lower = area.name.toLowerCase();
+      if (
+        lower.includes('álgebra') ||
+        lower.includes('algebra') ||
+        lower.includes('geometría') ||
+        lower.includes('geometria') ||
+        lower.includes('trigonometría') ||
+        lower.includes('trigonometria') ||
+        lower.includes('aritmética') ||
+        lower.includes('aritmetica') ||
+        lower.includes('razonamiento mat') ||
+        lower.includes('raz. mat')
+      ) {
+        defaultCompetences.push(...getDefaultCompetencesForCode('MAT-PRI'));
+      } else if (
+        lower.includes('literatura') ||
+        lower.includes('lenguaje') ||
+        lower.includes('plan lector') ||
+        lower.includes('razonamiento verb') ||
+        lower.includes('raz. verb')
+      ) {
+        defaultCompetences.push(...getDefaultCompetencesForCode('COM-PRI'));
+      } else if (
+        lower.includes('química') ||
+        lower.includes('quimica') ||
+        lower.includes('física') ||
+        lower.includes('fisica') ||
+        lower.includes('biología') ||
+        lower.includes('biologia')
+      ) {
+        defaultCompetences.push(...getDefaultCompetencesForCode('CT-PRI'));
+      }
+    }
+
+    let copied = 0;
+    for (const comp of defaultCompetences) {
+      const exists = (area as any).competences?.some(
+        (c: any) => c.name.toLowerCase().trim() === comp.name.toLowerCase().trim(),
+      );
+      if (!exists) {
+        await this.curricularAreaRepository.createCompetence({
+          areaId,
+          name: comp.name,
+          description: comp.description,
+          isActive: true,
+        });
+        copied++;
+      }
+    }
+
+    return { copied };
   }
 
   async seedMineduCurriculum(schoolId: string): Promise<{ count: number }> {

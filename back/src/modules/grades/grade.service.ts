@@ -162,7 +162,7 @@ export class GradeService {
     // Procesar notas por curso y bimestres
     const courses = (rawData.classroom?.assignments || []).map((assignment) => {
       const area = assignment.area;
-      const competences = area.competences || [];
+      const competences = (area.competences || []).filter((c) => (c as any).isActive !== false);
 
       // Bimestres 1 al 4
       const periods = [1, 2, 3, 4].map((periodNumber) => {

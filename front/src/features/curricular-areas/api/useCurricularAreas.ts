@@ -6,6 +6,7 @@ export interface CurricularCompetence {
   areaId: string;
   name: string;
   description?: string;
+  isActive?: boolean;
 }
 
 export interface CurricularArea {
@@ -13,6 +14,7 @@ export interface CurricularArea {
   schoolId: string;
   name: string;
   officialCode?: string;
+  parentAreaId?: string | null;
   isActive: boolean;
   competences?: CurricularCompetence[];
 }
@@ -20,6 +22,7 @@ export interface CurricularArea {
 export interface CreateCurricularAreaPayload {
   name: string;
   officialCode?: string;
+  parentAreaId?: string | null;
   isActive?: boolean;
 }
 
@@ -27,6 +30,7 @@ export interface CreateCompetencePayload {
   areaId: string;
   name: string;
   description?: string;
+  isActive?: boolean;
 }
 
 export interface CurricularAreaPaginatedMeta {
@@ -127,6 +131,63 @@ export const useCreateCompetence = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['curricular-areas'] });
+    },
+  });
+};
+
+export const useDeleteCompetence = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (competenceId: string) => {
+      const response = await api.delete<{ status: string; message: string }>(
+        `/curricular-areas/competences/${competenceId}`,
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['curricular-areas'] });
+      queryClient.invalidateQueries({ queryKey: ['grades-matrix'] });
+      queryClient.invalidateQueries({ queryKey: ['consolidated-grades'] });
+      queryClient.invalidateQueries({ queryKey: ['siagie-status'] });
+    },
+  });
+};
+
+export const useToggleCompetence = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (competenceId: string) => {
+      const response = await api.patch<{ status: string; message: string; data: CurricularCompetence }>(
+        `/curricular-areas/competences/${competenceId}/toggle`,
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['curricular-areas'] });
+      queryClient.invalidateQueries({ queryKey: ['grades-matrix'] });
+      queryClient.invalidateQueries({ queryKey: ['consolidated-grades'] });
+      queryClient.invalidateQueries({ queryKey: ['siagie-status'] });
+    },
+  });
+};
+
+export const useLoadDefaultCompetences = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (areaId: string) => {
+      const response = await api.post<{ status: string; message: string; data: { copied: number } }>(
+        `/curricular-areas/${areaId}/load-default-competences`,
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['curricular-areas'] });
+      queryClient.invalidateQueries({ queryKey: ['grades-matrix'] });
+      queryClient.invalidateQueries({ queryKey: ['consolidated-grades'] });
+      queryClient.invalidateQueries({ queryKey: ['siagie-status'] });
     },
   });
 };

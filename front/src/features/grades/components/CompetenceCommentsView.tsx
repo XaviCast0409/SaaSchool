@@ -19,6 +19,7 @@ import {
   useSaveCompetenceConclusions,
   usePeriodLock,
 } from '../api/useGrades';
+import { toast } from 'sonner';
 import { PredefinedCommentsModal } from './PredefinedCommentsModal';
 
 interface CompetenceCommentsViewProps {
@@ -100,9 +101,11 @@ export const CompetenceCommentsView: React.FC<CompetenceCommentsViewProps> = ({
   }, [data?.students]);
 
   const handleTextChange = (enrollmentId: string, value: string) => {
+    // Sanitización SIAGIE: texto continuo sin saltos de línea (Enter)
+    const sanitized = value.replace(/[\r\n\t]+/g, ' ');
     setConclusions((prev) => ({
       ...prev,
-      [enrollmentId]: value,
+      [enrollmentId]: sanitized,
     }));
     setDirtyEnrollmentIds((prev) => {
       const next = new Set(prev);
@@ -120,6 +123,45 @@ export const CompetenceCommentsView: React.FC<CompetenceCommentsViewProps> = ({
 
   const handleSave = () => {
     if (!selectedCompetenceId) return;
+
+    const isInitial = data?.assignment?.classroom?.educationLevel === 'INITIAL';
+
+    // Validación normativa SIAGIE / RVM N° 094-2020:
+    for (const enrollmentId of dirtyEnrollmentIds) {
+      const st = students.find((s) => s.enrollmentId === enrollmentId);
+      if (!st) continue;
+
+      const rawText = (conclusions[enrollmentId] || '').trim();
+      const isGradeC = st.letter === 'C';
+
+      if (isGradeC && rawText.length < 15) {
+        toast.error(
+          `El estudiante ${st.fullName} tiene calificativo 'C'. La conclusión descriptiva es obligatoria (mínimo 15 caracteres) según la RVM N° 094-2020-MINEDU.`,
+        );
+        return;
+      }
+
+      if (isInitial && st.score !== null && rawText.length < 15) {
+        toast.error(
+          `En Educación Inicial, la conclusión descriptiva es obligatoria (mínimo 15 caracteres) para ${st.fullName} según la RVM N° 094-2020-MINEDU.`,
+        );
+        return;
+      }
+
+      if (rawText.length > 0 && rawText.length < 15) {
+        toast.error(
+          `La conclusión de ${st.fullName} debe tener al menos 15 caracteres (o estar vacía si no aplica).`,
+        );
+        return;
+      }
+
+      if (rawText.length > 350) {
+        toast.error(
+          `La conclusión de ${st.fullName} excede el límite de 350 caracteres permitido por el SIAGIE.`,
+        );
+        return;
+      }
+    }
 
     const payloadConclusions = Array.from(dirtyEnrollmentIds).map((enrollmentId) => ({
       enrollmentId,
@@ -192,11 +234,14 @@ export const CompetenceCommentsView: React.FC<CompetenceCommentsViewProps> = ({
               }}
               className="w-full text-xs font-semibold px-3 py-2 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
             >
-              {competences.map((c, idx) => (
-                <option key={c.id} value={c.id}>
-                  {idx + 1}. {c.name}
-                </option>
-              ))}
+              {competences.map((c: any, idx) => {
+                const isCompActive = c.isActive !== false;
+                return (
+                  <option key={c.id} value={c.id}>
+                    {idx + 1}. {c.name} {!isCompActive ? ' (○ Apagada en este curso)' : ''}
+                  </option>
+                );
+              })}
             </select>
           </div>
 
@@ -287,6 +332,12 @@ export const CompetenceCommentsView: React.FC<CompetenceCommentsViewProps> = ({
           students.map((st) => {
             const currentText = conclusions[st.enrollmentId] ?? st.conclusion ?? '';
             const isDirty = dirtyEnrollmentIds.has(st.enrollmentId);
+            const isWithdrawnOrTransferred =
+              st.enrollmentState === 'WITHDRAWN' || st.enrollmentState === 'TRANSFERRED';
+            const isGradeC = st.letter === 'C';
+            const isInitial = data?.assignment?.classroom?.educationLevel === 'INITIAL';
+            const isMandatory = (isGradeC || isInitial) && st.score !== null;
+            const hasLengthDeficit = isMandatory && currentText.trim().length < 15;
 
             return (
               <div
@@ -294,6 +345,8 @@ export const CompetenceCommentsView: React.FC<CompetenceCommentsViewProps> = ({
                 className={`p-4 rounded-xl border transition-all ${
                   isDirty
                     ? 'border-primary/40 bg-card shadow-sm ring-1 ring-primary/20'
+                    : isWithdrawnOrTransferred
+                    ? 'border-border/60 bg-muted/20 opacity-80'
                     : 'border-border bg-card hover:border-border/80'
                 }`}
               >
@@ -304,10 +357,26 @@ export const CompetenceCommentsView: React.FC<CompetenceCommentsViewProps> = ({
                       {st.orderIndex}
                     </span>
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <h4 className="text-xs sm:text-sm font-bold text-foreground">
                           {st.fullName}
                         </h4>
+                        {isWithdrawnOrTransferred && (
+                          <Badge
+                            variant="destructive"
+                            className="text-[9px] uppercase font-bold tracking-wider h-4 px-1.5"
+                          >
+                            {st.enrollmentState === 'WITHDRAWN' ? 'Retirado' : 'Trasladado'}
+                          </Badge>
+                        )}
+                        {isMandatory && !isWithdrawnOrTransferred && (
+                          <Badge
+                            variant="outline"
+                            className="text-[9px] font-bold border-rose-500/40 text-rose-600 dark:text-rose-400 bg-rose-500/10 h-4 px-1.5"
+                          >
+                            Conclusión Obligatoria SIAGIE
+                          </Badge>
+                        )}
                         {onOpenReportCard && (
                           <button
                             type="button"
@@ -331,7 +400,7 @@ export const CompetenceCommentsView: React.FC<CompetenceCommentsViewProps> = ({
                       <span className="text-[10px] uppercase font-bold text-muted-foreground">
                         Nota:
                       </span>
-                      {st.score !== null ? (
+                      {!isWithdrawnOrTransferred && st.score !== null ? (
                         <div className="flex items-center gap-1 font-mono font-bold text-xs">
                           <span
                             className={
@@ -369,7 +438,7 @@ export const CompetenceCommentsView: React.FC<CompetenceCommentsViewProps> = ({
                       type="button"
                       variant="outline"
                       size="sm"
-                      disabled={isLocked || saveMutation.isPending}
+                      disabled={isLocked || isWithdrawnOrTransferred || saveMutation.isPending}
                       onClick={() =>
                         setModalStudent({
                           enrollmentId: st.enrollmentId,
@@ -389,11 +458,20 @@ export const CompetenceCommentsView: React.FC<CompetenceCommentsViewProps> = ({
                 <div className="pt-2.5">
                   <textarea
                     rows={3}
-                    disabled={isLocked || saveMutation.isPending}
+                    maxLength={350}
+                    disabled={isLocked || isWithdrawnOrTransferred || saveMutation.isPending}
                     value={currentText}
                     onChange={(e) => handleTextChange(st.enrollmentId, e.target.value)}
-                    placeholder="Escribe la conclusión descriptiva de la competencia (evidencias de aprendizaje, avances, dificultades o recomendaciones)..."
-                    className="w-full text-xs p-3 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary transition-all resize-y min-h-[70px]"
+                    placeholder={
+                      isWithdrawnOrTransferred
+                        ? 'Estudiante retirado/trasladado: el SIAGIE exige mantener sus celdas vacías.'
+                        : 'Escribe la conclusión descriptiva de la competencia (mín. 15, máx. 350 caracteres)...'
+                    }
+                    className={`w-full text-xs p-3 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary transition-all resize-y min-h-[70px] ${
+                      hasLengthDeficit
+                        ? 'border-rose-500/60 ring-1 ring-rose-500/30'
+                        : 'border-input'
+                    }`}
                   />
                   <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1 px-1">
                     <span>
@@ -403,7 +481,17 @@ export const CompetenceCommentsView: React.FC<CompetenceCommentsViewProps> = ({
                         </strong>
                       )}
                     </span>
-                    <span>{currentText.length} caracteres</span>
+                    <span>
+                      {isWithdrawnOrTransferred ? (
+                        <span className="text-muted-foreground">Celda protegida SIAGIE</span>
+                      ) : hasLengthDeficit ? (
+                        <span className="text-rose-600 dark:text-rose-400 font-bold">
+                          {currentText.length}/350 car. (Mínimo 15 car. obligatorio)
+                        </span>
+                      ) : (
+                        <span>{currentText.length}/350 caracteres</span>
+                      )}
+                    </span>
                   </div>
                 </div>
               </div>

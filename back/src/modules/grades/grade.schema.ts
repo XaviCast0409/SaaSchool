@@ -66,7 +66,16 @@ export const batchSaveConclusionsSchema = z.object({
   conclusions: z.array(
     z.object({
       enrollmentId: z.string().uuid(),
-      conclusion: z.string(),
+      conclusion: z
+        .string()
+        .transform((val) => val.replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim())
+        .refine(
+          (val) => val.length === 0 || (val.length >= 15 && val.length <= 350),
+          {
+            message:
+              'La conclusión descriptiva debe tener entre 15 y 350 caracteres según RVM N° 094-2020-MINEDU (o estar vacía si no aplica)',
+          },
+        ),
     }),
   ),
 });

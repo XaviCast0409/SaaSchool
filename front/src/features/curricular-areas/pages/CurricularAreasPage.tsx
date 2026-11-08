@@ -7,6 +7,8 @@ import {
   Pencil,
   Trash2,
   CheckCircle2,
+  XCircle,
+  Power,
   Layers,
   ChevronDown,
   ChevronUp,
@@ -21,8 +23,12 @@ import {
   useUpdateCurricularArea,
   useDeleteCurricularArea,
   useCreateCompetence,
+  useDeleteCompetence,
+  useToggleCompetence,
+  useLoadDefaultCompetences,
   useSeedMineduCurriculum,
   type CurricularArea,
+  type CurricularCompetence,
 } from '../api/useCurricularAreas';
 import {
   useCourseCatalog,
@@ -125,6 +131,9 @@ export const CurricularAreasPage: React.FC = () => {
   const { mutateAsync: updateArea, isPending: isUpdatingArea } = useUpdateCurricularArea();
   const { mutateAsync: deleteArea } = useDeleteCurricularArea();
   const { mutateAsync: createCompetence, isPending: isCreatingCompetence } = useCreateCompetence();
+  const { mutateAsync: deleteCompetence } = useDeleteCompetence();
+  const { mutateAsync: toggleCompetence, isPending: isTogglingCompetence } = useToggleCompetence();
+  const { mutateAsync: loadDefaultCompetences, isPending: isLoadingDefaults } = useLoadDefaultCompetences();
   const { mutateAsync: seedMinedu, isPending: isSeeding } = useSeedMineduCurriculum();
 
   const handleCategoryChange = (category: LevelCategory) => {
@@ -206,6 +215,43 @@ export const CurricularAreasPage: React.FC = () => {
       refetch();
     } catch {
       toast.error('Error al agregar la competencia.');
+    }
+  };
+
+  const handleDeleteCompetence = async (comp: { id: string; name: string }) => {
+    if (window.confirm(`¿Deseas eliminar la competencia "${comp.name}" de este curso?`)) {
+      try {
+        await deleteCompetence(comp.id);
+        toast.success('Competencia eliminada del curso.');
+        refetch();
+      } catch (err: any) {
+        toast.error(err?.response?.data?.message || 'Error al eliminar la competencia.');
+      }
+    }
+  };
+
+  const handleToggleCompetence = async (comp: CurricularCompetence) => {
+    try {
+      const res = await toggleCompetence(comp.id);
+      const isNowActive = res.data.isActive ?? true;
+      toast.success(
+        isNowActive
+          ? `Competencia activada para este curso.`
+          : `Competencia desactivada (se ocultará en la matriz de notas).`,
+      );
+      refetch();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Error al cambiar estado de la competencia.');
+    }
+  };
+
+  const handleSyncOfficialCompetences = async (areaId: string, areaName: string) => {
+    try {
+      const res = await loadDefaultCompetences(areaId);
+      toast.success(`Se sincronizaron ${res.data.copied} competencias en "${areaName}".`);
+      refetch();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Error al cargar competencias oficiales.');
     }
   };
 
@@ -437,33 +483,153 @@ export const CurricularAreasPage: React.FC = () => {
 
                     {/* Competencias Subpanel */}
                     {isExpanded && (
-                      <div className="pt-3 border-t border-dashed border-border space-y-2 bg-muted/20 p-3 rounded-xl">
-                        <h4 className="text-xs font-bold text-foreground uppercase flex items-center gap-1.5">
-                          <Award className="w-3.5 h-3.5 text-emerald-500" />
-                          <span>Competencias Evaluables SIAGIE</span>
-                        </h4>
+                      <div className="pt-3 border-t border-dashed border-border space-y-3 bg-muted/20 p-3.5 rounded-xl">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div>
+                            <h4 className="text-xs font-bold text-foreground uppercase flex items-center gap-1.5">
+                              <Award className="w-3.5 h-3.5 text-primary" />
+                              <span>
+                                Competencias del Curso (
+                                {area.competences?.filter((c) => c.isActive !== false).length || 0} Activas de{' '}
+                                {area.competences?.length || 0}
+                                )
+                              </span>
+                            </h4>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                              Activa o desactiva las competencias según el curso (ej. Álgebra vs Geometría). El docente solo verá y calificará las competencias <strong className="text-foreground">Activas</strong>.
+                            </p>
+                          </div>
+
+                          {isAdmin && (
+                            <div className="flex items-center gap-1.5">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 px-2.5 text-[11px] font-semibold gap-1.5 border-border bg-card hover:bg-secondary text-foreground"
+                                title="Cargar competencias oficiales MINEDU para este curso"
+                                onClick={() => handleSyncOfficialCompetences(area.id, area.name)}
+                                disabled={isLoadingDefaults}
+                              >
+                                <Sparkles className="w-3 h-3 text-amber-500" />
+                                <span>Cargar Oficiales MINEDU</span>
+                              </Button>
+
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 px-2.5 text-[11px] font-semibold gap-1 text-primary border-primary/20 hover:bg-primary/10"
+                                onClick={() => {
+                                  setTargetAreaIdForCompetence(area.id);
+                                  setIsCompetenceModalOpen(true);
+                                }}
+                              >
+                                <Plus className="w-3 h-3" />
+                                <span>Nueva</span>
+                              </Button>
+                            </div>
+                          )}
+                        </div>
 
                         {area.competences && area.competences.length > 0 ? (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
-                            {area.competences.map((comp) => (
-                              <div
-                                key={comp.id}
-                                className="p-2.5 rounded-lg bg-card border border-border text-xs space-y-0.5"
-                              >
-                                <div className="font-semibold text-foreground flex items-center gap-1.5">
-                                  <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
-                                  <span>{comp.name}</span>
+                            {area.competences.map((comp) => {
+                              const isActive = comp.isActive !== false;
+                              return (
+                                <div
+                                  key={comp.id}
+                                  className={`p-3 rounded-xl border text-xs space-y-2 transition-all flex flex-col justify-between ${
+                                    isActive
+                                      ? 'bg-card border-border shadow-xs'
+                                      : 'bg-muted/40 border-dashed border-border/70 opacity-70'
+                                  }`}
+                                >
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="space-y-0.5 flex-1 min-w-0">
+                                      <div className="font-semibold text-foreground flex items-center gap-1.5">
+                                        {isActive ? (
+                                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                        ) : (
+                                          <XCircle className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                        )}
+                                        <span className={`truncate ${!isActive ? 'line-through text-muted-foreground' : ''}`}>
+                                          {comp.name}
+                                        </span>
+                                      </div>
+                                      {comp.description && (
+                                        <div className="text-[11px] text-muted-foreground pl-5 line-clamp-2">
+                                          {comp.description}
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {isAdmin && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
+                                        title="Eliminar permanentemente del curso"
+                                        onClick={() => handleDeleteCompetence(comp)}
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </Button>
+                                    )}
+                                  </div>
+
+                                  {/* Barra de Estado y Botón Activar / Desactivar */}
+                                  {isAdmin && (
+                                    <div className="flex items-center justify-between pt-1.5 border-t border-border/60 text-[11px]">
+                                      <span
+                                        className={`font-semibold flex items-center gap-1 ${
+                                          isActive
+                                            ? 'text-emerald-600 dark:text-emerald-400'
+                                            : 'text-muted-foreground'
+                                        }`}
+                                      >
+                                        {isActive ? '● En uso (Visible al docente)' : '○ Desactivada (Oculta)'}
+                                      </span>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => handleToggleCompetence(comp)}
+                                        disabled={isTogglingCompetence}
+                                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all shadow-2xs ${
+                                          isActive
+                                            ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30'
+                                            : 'bg-muted text-foreground border border-border hover:bg-emerald-500/10 hover:text-emerald-600 hover:border-emerald-500/20'
+                                        }`}
+                                        title={
+                                          isActive
+                                            ? 'Clic para desactivar esta competencia en este curso'
+                                            : 'Clic para activar esta competencia en este curso'
+                                        }
+                                      >
+                                        <Power className="w-3 h-3" />
+                                        <span>{isActive ? 'Desactivar' : 'Activar'}</span>
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
-                                {comp.description && (
-                                  <div className="text-[11px] text-muted-foreground pl-4.5">{comp.description}</div>
-                                )}
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         ) : (
-                          <p className="text-xs text-muted-foreground italic">
-                            Sin competencias individuales registradas.
-                          </p>
+                          <div className="text-center py-4 bg-card rounded-lg border border-dashed border-border p-3">
+                            <p className="text-xs text-muted-foreground italic mb-2">
+                              Este curso aún no tiene competencias registradas.
+                            </p>
+                            {isAdmin && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-xs font-semibold gap-1.5"
+                                onClick={() => handleSyncOfficialCompetences(area.id, area.name)}
+                                disabled={isLoadingDefaults}
+                              >
+                                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                                <span>Cargar Competencias Oficiales MINEDU</span>
+                              </Button>
+                            )}
+                          </div>
                         )}
                       </div>
                     )}
