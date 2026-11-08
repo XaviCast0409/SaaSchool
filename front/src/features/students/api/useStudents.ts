@@ -33,6 +33,8 @@ export interface RegisterFichaMatriculaPayload {
     condition: 'INGRESANTE' | 'CONTINUO' | 'TRASLADO' | 'REENTRANTE';
     previousSchoolModularCode?: string | null;
     repeatingGrade?: boolean;
+    customPensionAmount?: number | null;
+    discountReason?: string | null;
   };
   guardian: {
     mode: 'EXISTING' | 'NEW';
@@ -47,7 +49,7 @@ export interface RegisterFichaMatriculaPayload {
       lastNameMaternal?: string | null;
       documentType?: string;
       documentId?: string | null;
-      email?: string;
+      email?: string | null;
       cellphone?: string | null;
       educationLevel?: string | null;
     };
@@ -241,5 +243,66 @@ export const useGetMyChildren = (enabled = true) => {
     },
     enabled,
     staleTime: 1000 * 60 * 2,
+  });
+};
+
+export interface CertificateData {
+  certificateType: 'ENROLLMENT' | 'NO_DEBT';
+  certificateNumber: string;
+  issueDate: string;
+  school: {
+    name: string;
+    modularCode?: string;
+    documentId: string;
+    address?: string;
+    logoUrl?: string;
+  };
+  student: {
+    id: string;
+    fullName: string;
+    documentType: string;
+    documentId: string;
+    studentCode?: string;
+  };
+  enrollment?: {
+    id: string;
+    grade: number;
+    section: string;
+    educationLevel: string;
+    shift: string;
+    academicYear: number;
+    enrollmentDate: string;
+  };
+  academicYear?: number;
+  status?: string;
+}
+
+export const useEnrollmentCertificate = (studentId?: string, enabled = true) => {
+  return useQuery({
+    queryKey: ['certificate-enrollment', studentId],
+    queryFn: async () => {
+      if (!studentId) throw new Error('ID requerido');
+      const response = await api.get<{ status: string; data: CertificateData }>(
+        `/students/${studentId}/certificates/enrollment`,
+      );
+      return response.data.data;
+    },
+    enabled: !!studentId && enabled,
+    retry: false,
+  });
+};
+
+export const useNoDebtCertificate = (studentId?: string, enabled = true) => {
+  return useQuery({
+    queryKey: ['certificate-no-debt', studentId],
+    queryFn: async () => {
+      if (!studentId) throw new Error('ID requerido');
+      const response = await api.get<{ status: string; data: CertificateData }>(
+        `/students/${studentId}/certificates/no-debt`,
+      );
+      return response.data.data;
+    },
+    enabled: !!studentId && enabled,
+    retry: false,
   });
 };

@@ -26,6 +26,7 @@ import { courseContentRouter } from './modules/course-contents/course-content.ro
 import { notificationRouter } from './modules/notifications/notification.routes';
 import { uploadRouter } from './modules/uploads/upload.routes';
 import { academicReportRouter } from './modules/academic-reports/academic-report.routes';
+import { incidentRouter } from './modules/incidents/incident.routes';
 import path from 'path';
 
 const app = express();
@@ -85,6 +86,7 @@ app.use(`${API_PREFIX}/notifications`, notificationRouter);
 app.use(`${API_PREFIX}/uploads`, uploadRouter);
 app.use(`${API_PREFIX}/course-contents`, courseContentRouter);
 app.use(`${API_PREFIX}/academic-reports`, academicReportRouter);
+app.use(`${API_PREFIX}/incidents`, incidentRouter);
 
 // ============================================================================
 // RUTA NO ENCONTRADA (404)

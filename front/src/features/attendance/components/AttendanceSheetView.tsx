@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Save,
   CheckCircle2,
@@ -14,6 +15,7 @@ import {
   UserX,
   Check,
   UserCheck,
+  ShieldAlert,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAttendanceSheet, useSaveAttendanceSheet, useCloseAttendance } from '../api/useAttendance';
@@ -73,6 +75,7 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
   date,
   canWrite = true,
 }) => {
+  const navigate = useNavigate();
   const { data: sheetData, isLoading, isError, refetch } = useAttendanceSheet({
     classroomId,
     date,
@@ -466,13 +469,14 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
                 <th className="p-3">Apellidos y Nombres</th>
                 <th className="p-3 w-40 text-center">Portería / QR</th>
                 <th className="p-3 text-center min-w-[280px]">Pase de Lista (1 Clic)</th>
-                <th className="p-3 w-28 text-center">Obs.</th>
+                <th className="p-3 w-24 text-center">Obs.</th>
+                <th className="p-3 w-28 text-center">Incidencia</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-muted-foreground text-sm">
+                  <td colSpan={6} className="py-12 text-center text-muted-foreground text-sm">
                     {searchFilter
                       ? 'No hay estudiantes que coincidan con la búsqueda.'
                       : 'No hay estudiantes activos matriculados en esta sección.'}
@@ -581,6 +585,24 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
                             {currentNotes ? 'Nota' : '+'}
                           </span>
                         </button>
+                      </td>
+
+                      {/* Registro Rápido de Incidencia / Tópico */}
+                      <td className="p-3 text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            navigate(
+                              `/incidents?studentId=${student.studentId || ''}&enrollmentId=${student.enrollmentId}&studentName=${encodeURIComponent(student.studentName)}`,
+                            );
+                          }}
+                          className="h-7 px-2 text-[11px] gap-1 text-amber-600 dark:text-amber-400 hover:text-amber-700 hover:bg-amber-500/10"
+                          title="Registrar incidencia de convivencia o atención de tópico"
+                        >
+                          <ShieldAlert className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Incidencia</span>
+                        </Button>
                       </td>
                     </tr>
                   );

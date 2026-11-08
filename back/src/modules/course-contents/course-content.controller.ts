@@ -4,6 +4,8 @@ import {
   createCourseContentSchema,
   createForumCommentSchema,
   supervisionFilterSchema,
+  submitHomeworkSchema,
+  gradeSubmissionSchema,
 } from './course-content.schema';
 
 export class CourseContentController {
@@ -65,16 +67,18 @@ export class CourseContentController {
   getStudentCourses = async (req: Request, res: Response): Promise<void> => {
     const schoolId = req.user!.schoolId;
     const studentId = req.params.studentId as string;
+    const user = { id: req.user!.userId, role: req.user!.role, studentId: req.user!.studentId };
 
-    const data = await this.service.getStudentCourses(schoolId, studentId);
+    const data = await this.service.getStudentCourses(schoolId, studentId, user);
     res.status(200).json({ status: 'success', data });
   };
 
   getStudentTasks = async (req: Request, res: Response): Promise<void> => {
     const schoolId = req.user!.schoolId;
     const studentId = req.params.studentId as string;
+    const user = { id: req.user!.userId, role: req.user!.role, studentId: req.user!.studentId };
 
-    const data = await this.service.getStudentTasks(schoolId, studentId);
+    const data = await this.service.getStudentTasks(schoolId, studentId, user);
     res.status(200).json({ status: 'success', data });
   };
 
@@ -99,6 +103,35 @@ export class CourseContentController {
     const filters = supervisionFilterSchema.parse(req.query);
 
     const data = await this.service.getSupervisedFeed(schoolId, filters);
+    res.status(200).json({ status: 'success', data });
+  };
+
+  submitHomework = async (req: Request, res: Response): Promise<void> => {
+    const schoolId = req.user!.schoolId;
+    const user = { id: req.user!.userId, role: req.user!.role, studentId: req.user!.studentId };
+    const courseContentId = req.params.id as string;
+    const validatedData = submitHomeworkSchema.parse(req.body);
+
+    const data = await this.service.submitHomework(schoolId, user, courseContentId, validatedData);
+    res.status(201).json({ status: 'success', data });
+  };
+
+  getSubmissions = async (req: Request, res: Response): Promise<void> => {
+    const schoolId = req.user!.schoolId;
+    const user = { id: req.user!.userId, role: req.user!.role, studentId: req.user!.studentId };
+    const courseContentId = req.params.id as string;
+
+    const data = await this.service.getSubmissions(schoolId, user, courseContentId);
+    res.status(200).json({ status: 'success', data });
+  };
+
+  gradeSubmission = async (req: Request, res: Response): Promise<void> => {
+    const schoolId = req.user!.schoolId;
+    const user = { id: req.user!.userId, role: req.user!.role };
+    const submissionId = req.params.submissionId as string;
+    const validatedData = gradeSubmissionSchema.parse(req.body);
+
+    const data = await this.service.gradeSubmission(schoolId, user, submissionId, validatedData);
     res.status(200).json({ status: 'success', data });
   };
 }

@@ -1,6 +1,6 @@
 import { prisma } from '../../config/prisma';
 import type { RegisterDto } from './auth.schema';
-import type { User } from '@prisma/client';
+import type { User, Student } from '@prisma/client';
 
 /**
  * AuthRepository: Capa de acceso a datos para autenticación.
@@ -35,6 +35,31 @@ export class AuthRepository {
     return prisma.user.update({
       where: { id: userId },
       data: { passwordHash },
+    });
+  }
+
+  async findStudentByIdentifier(identifier: string): Promise<Student | null> {
+    const clean = identifier.trim();
+    return prisma.student.findFirst({
+      where: {
+        OR: [
+          { documentId: clean },
+          { studentCode: clean },
+        ],
+      },
+    });
+  }
+
+  async findStudentById(studentId: string): Promise<Student | null> {
+    return prisma.student.findUnique({
+      where: { id: studentId },
+    });
+  }
+
+  async updateStudentPassword(studentId: string, passwordHash: string, mustChangePassword = false): Promise<Student> {
+    return prisma.student.update({
+      where: { id: studentId },
+      data: { passwordHash, mustChangePassword },
     });
   }
 

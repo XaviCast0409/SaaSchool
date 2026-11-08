@@ -25,6 +25,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PAR
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<CreateUserFormData>({
     resolver: zodResolver(createUserSchema),
@@ -33,6 +34,8 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PAR
       documentType: 'DNI',
     },
   });
+
+  const selectedRole = watch('role');
 
   const onSubmit = (data: CreateUserFormData) => {
     createUser(data, { onSuccess: () => onClose() });
@@ -107,8 +110,9 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PAR
                 {...register('documentType')}
                 className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
-                <option value="DNI">DNI</option>
-                <option value="CE">CE</option>
+                <option value="DNI">DNI (8 dígitos)</option>
+                <option value="CE">CE (Carné Extranjería)</option>
+                <option value="PTP">PTP (Permiso Temporal)</option>
                 <option value="PASSPORT">Pasaporte</option>
                 <option value="OTHER">Otro</option>
               </select>
@@ -116,13 +120,16 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PAR
             <div className="space-y-1.5 col-span-2">
               <label className="text-xs font-semibold uppercase tracking-wide text-foreground">N° Documento</label>
               <Input placeholder="Ej: 47812345" {...register('documentId')} />
+              {errors.documentId && <p className="text-xs text-destructive">{errors.documentId.message}</p>}
             </div>
           </div>
 
           {/* Contacto */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wide text-foreground">Correo Electrónico</label>
+              <label className="text-xs font-semibold uppercase tracking-wide text-foreground">
+                {selectedRole === 'PARENT' ? 'Correo Electrónico (Opcional)' : 'Correo Electrónico *'}
+              </label>
               <Input type="email" placeholder="correo@ejemplo.com" {...register('email')} />
               {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
             </div>

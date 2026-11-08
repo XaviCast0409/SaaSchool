@@ -23,6 +23,7 @@ export interface PaymentObligation {
   amountDue: number;
   dueDate: string;
   status: ObligationStatus;
+  notes?: string | null;
   createdAt: string;
   updatedAt: string;
   transactions: PaymentTransaction[];
@@ -36,6 +37,16 @@ export interface PaymentObligation {
       lastNameMaternal: string;
       documentId: string;
       studentCode?: string;
+      familyRelations?: Array<{
+        user?: {
+          id: string;
+          firstName: string;
+          lastNamePaternal: string;
+          lastNameMaternal: string;
+          cellphone?: string;
+          email?: string;
+        };
+      }>;
     };
     classroom?: {
       id: string;
@@ -99,4 +110,51 @@ export interface TransactionFilterParams {
   startDate?: string;
   endDate?: string;
   paymentMethod?: PaymentMethod;
+}
+
+export interface DailyCashCloseData {
+  date: string;
+  totalCollected: number;
+  byMethod: {
+    CASH: number;
+    BANK_TRANSFER: number;
+    CREDIT_CARD: number;
+  };
+  transactionsCount: number;
+  transactions: Array<
+    PaymentTransaction & {
+      obligation?: {
+        title: string;
+        concept: string;
+        enrollment?: {
+          student?: {
+            firstNames: string;
+            lastNamePaternal: string;
+            lastNameMaternal: string;
+            studentCode?: string;
+          };
+          classroom?: {
+            grade: number;
+            section: string;
+            educationLevel: string;
+          };
+        };
+      };
+    }
+  >;
+}
+
+export interface CreateIndividualObligationPayload {
+  studentId?: string;
+  enrollmentId?: string;
+  title: string;
+  concept: string;
+  amountDue: number;
+  dueDate: string;
+  notes?: string;
+  paidNow?: boolean;
+  paymentMethod?: 'CASH' | 'BANK_TRANSFER' | 'CREDIT_CARD';
+  operationNumber?: string;
+  receiptType?: string;
+  receiptNumber?: string;
 }

@@ -1,10 +1,17 @@
 /**
- * Servicio de Consolidación SIAGIE de Dos Capas (CNEB - MINEDU RVM N° 094-2020)
+ * Servicio de Consolidación SIAGIE Exacto y Jerárquico (CNEB - MINEDU RVM N° 094-2020)
  * 
- * Permite que los colegios privados asignen múltiples cursos internos con docentes distintos
- * (ej: Aritmética, Álgebra, Geometría, Trigonometría, Física, Química, Biología, etc.)
- * y consolida automáticamente las notas y conclusiones hacia las Áreas y Competencias Oficiales
- * requeridas por el SIAGIE (Matemática, Ciencia y Tecnología, Comunicación, Ciencias Sociales, etc.).
+ * Permite que los colegios particulares asignen múltiples cursos internos / sub-cursos (Ramas)
+ * con docentes distintos (ej: Aritmética, Álgebra, Geometría, Trigonometría, Física, Química, Biología)
+ * y consolida automáticamente las calificaciones y conclusiones descriptivas hacia las Áreas Madre
+ * Oficiales requeridas por el SIAGIE (Matemática, Ciencia y Tecnología, Comunicación, etc.).
+ * 
+ * Cumple al 100% con la normativa oficial:
+ * 1. Jerarquía oficial CNEB (Área Madre vs. Sub-cursos).
+ * 2. Detección de competencias oficiales huérfanas (unmappedCompetences).
+ * 3. Modos de cálculo anual: LAST_PERIOD (por defecto RVM 094-2020) vs AVERAGE.
+ * 4. Regla de situación final: Más del 50% de competencias en 'C' por área.
+ * 5. Sanitización limpia de conclusiones descriptivas a 300 caracteres para macros de SIAGIE.
  */
 
 export interface OfficialCompetenceSpec {
@@ -163,9 +170,9 @@ export const MINEDU_MOTHER_AREAS: OfficialAreaSpec[] = [
     ],
   },
   {
-    code: 'AC',
+    code: 'ART',
     name: 'Arte y Cultura',
-    aliases: ['arte y cultura', 'arte', 'ayc', 'ac', '04_ac'],
+    aliases: ['arte y cultura', 'arte', 'ayc', 'ac', '04_ac', 'art'],
     competences: [
       { number: 1, name: 'Aprecia de manera crítica manifestaciones artístico-culturales', shortName: 'C1 - Aprecia', tributaryKeywords: ['aprecia', 'teoria del arte', 'historia del arte'] },
       { number: 2, name: 'Crea proyectos desde los lenguajes artísticos', shortName: 'C2 - Crea proyectos', tributaryKeywords: ['musica', 'música', 'teatro', 'danza', 'dibujo', 'pintura'] },
@@ -182,9 +189,9 @@ export const MINEDU_MOTHER_AREAS: OfficialAreaSpec[] = [
     ],
   },
   {
-    code: 'ER',
+    code: 'REL',
     name: 'Educación Religiosa',
-    aliases: ['educacion religiosa', 'educación religiosa', 'religion', 'religión', 'er', '08_er'],
+    aliases: ['educacion religiosa', 'educación religiosa', 'religion', 'religión', 'er', 'rel', '08_er'],
     competences: [
       { number: 1, name: 'Construye su identidad como persona humana, amada por Dios', shortName: 'C1 - Identidad y Fe', tributaryKeywords: ['fe', 'dios', 'identidad'] },
       { number: 2, name: 'Asume la experiencia del encuentro personal y comunitario con Dios', shortName: 'C2 - Encuentro Comunitario', tributaryKeywords: ['comunidad', 'accion', 'valores'] },
@@ -198,10 +205,37 @@ export const MINEDU_MOTHER_AREAS: OfficialAreaSpec[] = [
       { number: 1, name: 'Gestiona proyectos de emprendimiento económico o social', shortName: 'C1 - Emprendimiento', tributaryKeywords: ['emprendimiento', 'computacion', 'computación', 'robotica', 'robótica', 'proyectos', 'gestion'] },
     ],
   },
+  {
+    code: 'PSI',
+    name: 'Psicomotriz',
+    aliases: ['psicomotriz', 'psi', '00_psi'],
+    competences: [
+      { number: 1, name: 'Se desenvuelve de manera autónoma a través de su motricidad', shortName: 'C1 - Motricidad', tributaryKeywords: ['motricidad', 'movimiento', 'corporal'] },
+    ],
+  },
+  {
+    code: 'TRANS',
+    name: 'Competencias Transversales',
+    aliases: ['competencias transversales', 'transversales', 'trans', 'tic', 'autonomia', '11_trans'],
+    competences: [
+      {
+        number: 28,
+        name: 'Se desenvuelve en entornos virtuales generados por las TIC',
+        shortName: 'C28 - Entornos Virtuales TIC',
+        tributaryKeywords: ['tic', 'virtuales', 'entornos virtuales', 'tecnologia', 'c28'],
+      },
+      {
+        number: 29,
+        name: 'Gestiona su aprendizaje de manera autónoma',
+        shortName: 'C29 - Aprendizaje Autónomo',
+        tributaryKeywords: ['autonoma', 'autónoma', 'aprendizaje', 'metacognicion', 'c29'],
+      },
+    ],
+  },
 ];
 
 /**
- * Normaliza texto para comparaciones flexibles
+ * Normaliza texto para comparaciones semánticas
  */
 function normalizeText(str?: string | null): string {
   if (!str) return '';
@@ -215,6 +249,20 @@ function normalizeText(str?: string | null): string {
 }
 
 /**
+ * Sanitiza conclusiones descriptivas para evitar roturas en macros de SIAGIE Excel
+ */
+export function sanitizeSiagieConclusion(text?: string | null): string {
+  if (!text) return '';
+  return text
+    .replace(/[\r\n\t]+/g, ' ')
+    .replace(/"/g, '')
+    .replace(/[\x00-\x1F\x7F]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 300);
+}
+
+/**
  * Convierte un puntaje numérico (00-20) a la escala literal oficial CNEB
  */
 export function scoreToLetter(score: number | null): 'AD' | 'A' | 'B' | 'C' | null {
@@ -225,13 +273,31 @@ export function scoreToLetter(score: number | null): 'AD' | 'A' | 'B' | 'C' | nu
   return 'C';
 }
 
+export function letterToScore(letter?: string | null): number | null {
+  if (!letter) return null;
+  const upper = letter.trim().toUpperCase();
+  if (upper === 'AD') return 19;
+  if (upper === 'A') return 15;
+  if (upper === 'B') return 12;
+  if (upper === 'C') return 8;
+  return null;
+}
+
 export interface InternalCourseInfo {
   assignmentId: string;
   name: string;
   officialCode?: string | null;
+  officialAreaCode?: string | null;
   parentAreaId?: string | null;
+  parentArea?: {
+    id: string;
+    name: string;
+    officialAreaCode?: string | null;
+    competences: Array<{ id: string; name: string; officialCompetenceCode?: string | null }>;
+  } | null;
+  evaluatedCompetenceIds?: string[];
   teacherName: string;
-  competences: Array<{ id: string; name: string }>;
+  competences: Array<{ id: string; name: string; officialCompetenceCode?: string | null }>;
 }
 
 export interface InternalStudentGradeData {
@@ -241,24 +307,34 @@ export interface InternalStudentGradeData {
   documentId: string;
   studentCode: string | null;
   fullName: string;
+  lastNamePaternal?: string;
+  lastNameMaternal?: string;
+  firstNames?: string;
   courseGrades: Record<
     string,
     {
       periodScore: number | null;
-      letter: 'AD' | 'A' | 'B' | 'C' | null;
+      letter: 'AD' | 'A' | 'B' | 'C' | 'EXO' | '-' | null;
       competences: Record<
         string,
-        { score: number | null; letter: 'AD' | 'A' | 'B' | 'C' | null; conclusion?: string }
+        { score: number | null; letter: 'AD' | 'A' | 'B' | 'C' | 'EXO' | '-' | null; conclusion?: string }
       >;
     }
   >;
+  attendanceStats?: {
+    absentJustified: number;
+    absentUnjustified: number;
+    lateJustified: number;
+    lateUnjustified: number;
+  };
 }
 
 export interface ConsolidatedAreaCompetence {
-  id: string; // Ej: "MAT_C1"
+  id: string; // ID real o compuesto para SIAGIE
   number: number;
   name: string;
   shortName: string;
+  officialCompetenceCode?: string | null;
 }
 
 export interface ConsolidatedArea {
@@ -272,29 +348,61 @@ export interface ConsolidatedArea {
 
 export interface ConsolidatedStudentGrade {
   periodScore: number | null;
-  letter: 'AD' | 'A' | 'B' | 'C' | null;
+  letter: 'AD' | 'A' | 'B' | 'C' | 'EXO' | '-' | null;
   competences: Record<
-    string, // competence id (ej: "MAT_C1")
+    string,
     {
       score: number | null;
-      letter: 'AD' | 'A' | 'B' | 'C' | null;
+      letter: 'AD' | 'A' | 'B' | 'C' | 'EXO' | '-' | null;
       conclusion: string;
     }
   >;
 }
 
+export interface UnmappedCompetenceAlert {
+  areaName: string;
+  competenceCode: string;
+  competenceName: string;
+}
+
 export class SiagieConsolidatorService {
   /**
-   * Identifica a qué Área Madre Oficial de SIAGIE pertenece un curso interno
+   * Resuelve a qué Área Madre Oficial pertenece un curso (por DB o por catálogo CNEB)
    */
   static identifyMotherArea(
     course: InternalCourseInfo,
     motherAreas: OfficialAreaSpec[] = MINEDU_MOTHER_AREAS,
   ): OfficialAreaSpec | null {
+    // 1. Si viene con parentArea de la BD
+    if (course.parentArea) {
+      const code = (course.parentArea.officialAreaCode || '').toUpperCase();
+      const match = motherAreas.find((m) => m.code.toUpperCase() === code);
+      if (match) return match;
+      return {
+        code: code || 'CUSTOM',
+        name: course.parentArea.name,
+        aliases: [normalizeText(course.parentArea.name)],
+        competences: course.parentArea.competences.map((c, idx) => ({
+          number: idx + 1,
+          name: c.name,
+          shortName: c.officialCompetenceCode || `C${idx + 1}`,
+          tributaryKeywords: [normalizeText(c.name)],
+        })),
+      };
+    }
+
+    // 2. Coincidencia por officialAreaCode
+    if (course.officialAreaCode) {
+      const match = motherAreas.find(
+        (m) => m.code.toUpperCase() === course.officialAreaCode?.toUpperCase(),
+      );
+      if (match) return match;
+    }
+
     const normName = normalizeText(course.name);
     const normCode = normalizeText(course.officialCode || '');
 
-    // 1. Coincidencia directa con alias de Áreas Madre
+    // 3. Coincidencia directa con alias de Áreas Madre
     for (const mother of motherAreas) {
       if (
         mother.aliases.some(
@@ -309,7 +417,7 @@ export class SiagieConsolidatorService {
       }
     }
 
-    // 2. Coincidencia por palabras clave de cursos tributarios en sus competencias
+    // 4. Coincidencia por palabras clave de cursos tributarios
     for (const mother of motherAreas) {
       for (const comp of mother.competences) {
         if (
@@ -329,17 +437,28 @@ export class SiagieConsolidatorService {
   }
 
   /**
-   * Determina a qué competencia oficial de la Madre tributa una competencia interna
+   * Mapea una competencia interna al número oficial de competencia de la madre
    */
   static mapToOfficialCompetence(
     course: InternalCourseInfo,
-    internalCompName: string,
+    internalComp: { id?: string; name: string; officialCompetenceCode?: string | null },
     mother: OfficialAreaSpec,
   ): OfficialCompetenceSpec | null {
-    const normCompName = normalizeText(internalCompName);
+    // 0. Si el curso es un sub-curso y la competencia tiene officialCompetenceCode coincidente
+    if (internalComp.officialCompetenceCode) {
+      const compNum = parseInt(internalComp.officialCompetenceCode.replace(/\D/g, ''), 10);
+      const match = mother.competences.find(
+        (c) =>
+          c.number === compNum ||
+          `C${c.number}`.toUpperCase() === internalComp.officialCompetenceCode?.toUpperCase(),
+      );
+      if (match) return match;
+    }
+
+    const normCompName = normalizeText(internalComp.name);
     const normCourseName = normalizeText(course.name);
 
-    // 1. Si la competencia interna coincide con el nombre de la oficial
+    // 1. Coincidencia por nombre de la competencia oficial
     for (const offComp of mother.competences) {
       const normOff = normalizeText(offComp.name);
       if (normCompName === normOff || normCompName.includes(normOff) || normOff.includes(normCompName)) {
@@ -347,48 +466,54 @@ export class SiagieConsolidatorService {
       }
     }
 
-    // 2. Si el curso es de Ciencia y Tecnología (Física, Química, Biología):
-    // Cada curso evalúa transversalmente las 3 competencias según CNEB
+    // 2. Reglas especializadas (Ciencia y Tecnología)
     if (mother.code === 'CYT') {
       if (normCompName.includes('indaga') || normCompName.includes('metodo') || normCompName.includes('laboratorio')) {
         return mother.competences[0];
       }
       if (normCompName.includes('explica') || normCompName.includes('mundo') || normCompName.includes('materia') || normCompName.includes('seres')) {
-        return mother.competences[1];
+        return mother.competences[1] || mother.competences[0];
       }
       if (normCompName.includes('disena') || normCompName.includes('diseña') || normCompName.includes('tecnolog') || normCompName.includes('solucion')) {
-        return mother.competences[2];
+        return mother.competences[2] || mother.competences[0];
       }
-      // Por defecto si no coincide texto exacto, asignar por orden relativo
       return mother.competences[0];
     }
 
-    // 3. Mapeo Directo por Especialidad del Curso
+    // 3. Mapeo por keywords del curso
     for (const offComp of mother.competences) {
       if (offComp.tributaryKeywords.some((kw) => normCourseName.includes(kw) || normCompName.includes(kw))) {
         return offComp;
       }
     }
 
-    // 4. Fallback: primera competencia de la madre
     return mother.competences[0] || null;
   }
 
   /**
-   * Ejecuta la consolidación integral de las notas de un aula hacia las Áreas Oficiales SIAGIE
+   * Ejecuta la consolidación oficial SIAGIE para un aula
    */
   static consolidateClassroom(
     courses: InternalCourseInfo[],
     students: InternalStudentGradeData[],
+    classroomInfo?: {
+      educationLevel?: string;
+      grade?: number | string;
+      annualCalculationMode?: 'LAST_PERIOD' | 'AVERAGE';
+      periodNumber?: number;
+    },
   ): {
     consolidatedAreas: ConsolidatedArea[];
     consolidatedStudents: Array<
       InternalStudentGradeData & {
         consolidatedGrades: Record<string, ConsolidatedStudentGrade>;
+        finalSituation?: 'PROMOTED' | 'RECOVERY' | 'RETAINED' | 'TRANSFERRED' | 'WITHDRAWN' | null;
       }
     >;
+    unmappedCompetences: UnmappedCompetenceAlert[];
   } {
-    // 1. Agrupar cursos por Área Madre Oficial
+    // 1. Agrupar cursos bajo su Área Oficial Madre
+    // SIAGIE NUNCA muestra sub-cursos sueltos. Todo debe agrupar bajo la Madre.
     const motherGroups = new Map<string, { mother: OfficialAreaSpec; courses: InternalCourseInfo[] }>();
     const unmappedCourses: InternalCourseInfo[] = [];
 
@@ -408,7 +533,10 @@ export class SiagieConsolidatorService {
 
     // Registrar Áreas Madres consolidadas
     motherGroups.forEach(({ mother, courses: groupCourses }) => {
-      const isSubdivided = groupCourses.length > 1 || groupCourses[0]?.name.toLowerCase() !== mother.name.toLowerCase();
+      const isSubdivided =
+        groupCourses.length > 1 ||
+        groupCourses.some((c) => Boolean(c.parentAreaId)) ||
+        groupCourses[0]?.name.toLowerCase() !== mother.name.toLowerCase();
 
       consolidatedAreas.push({
         id: mother.code,
@@ -421,41 +549,69 @@ export class SiagieConsolidatorService {
           number: c.number,
           name: c.name,
           shortName: c.shortName,
+          officialCompetenceCode: `C${c.number}`,
         })),
       });
     });
 
-    // Registrar cursos independientes no mapeados como sus propias áreas
-    unmappedCourses.forEach((c) => {
-      consolidatedAreas.push({
-        id: c.assignmentId,
-        code: c.officialCode || 'CUSTOM',
-        name: c.name,
-        isSubdivided: false,
-        tributaryCourses: [c.name],
-        competences: c.competences
-          .filter((comp) => (comp as any).isActive !== false)
-          .map((comp, idx) => ({
-          id: comp.id,
-          number: idx + 1,
-          name: comp.name,
-          shortName: `C${idx + 1}`,
-        })),
+    // 2. Detección de Competencias Oficiales Huérfanas (unmappedCompetences)
+    const unmappedCompetences: UnmappedCompetenceAlert[] = [];
+    motherGroups.forEach(({ mother, courses: groupCourses }) => {
+      mother.competences.forEach((offComp) => {
+        // Verificar si algún curso cubre esta competencia oficial
+        const covered = groupCourses.some((course) => {
+          // Si el sub-curso tiene evaluatedCompetenceIds
+          if (course.evaluatedCompetenceIds && course.evaluatedCompetenceIds.length > 0) {
+            // Verificar si alguna competencia del parentArea mapeada a offComp está en evaluatedCompetenceIds
+            if (course.parentArea?.competences) {
+              const matchingParentComp = course.parentArea.competences.find((pc) => {
+                const mapped = this.mapToOfficialCompetence(course, pc, mother);
+                return mapped?.number === offComp.number;
+              });
+              if (matchingParentComp && course.evaluatedCompetenceIds.includes(matchingParentComp.id)) {
+                return true;
+              }
+            }
+          } else {
+            // Si no tiene evaluatedCompetenceIds (o está vacío), evalúa todas las de la madre
+            if (course.parentAreaId) return true;
+          }
+
+          // Verificación directa en sus propias competencias
+          return course.competences.some((comp) => {
+            const mapped = this.mapToOfficialCompetence(course, comp, mother);
+            return mapped?.number === offComp.number;
+          });
+        });
+
+        if (!covered) {
+          unmappedCompetences.push({
+            areaName: mother.name,
+            competenceCode: `C${offComp.number}`,
+            competenceName: offComp.name,
+          });
+        }
       });
     });
 
-    // 2. Consolidar notas de cada estudiante
-    const consolidatedStudents = students.map((st) => {
+    // 3. Consolidar notas de cada estudiante ordenado alfabéticamente
+    const sortedStudents = [...students].sort((a, b) => {
+      const nameA = `${a.lastNamePaternal || ''} ${a.lastNameMaternal || ''} ${a.firstNames || a.fullName}`.trim();
+      const nameB = `${b.lastNamePaternal || ''} ${b.lastNameMaternal || ''} ${b.firstNames || b.fullName}`.trim();
+      return nameA.localeCompare(nameB, 'es-PE');
+    });
+
+    const consolidatedStudents = sortedStudents.map((st, idx) => {
       const isInactive = st.enrollmentState === 'WITHDRAWN' || st.enrollmentState === 'TRANSFERRED';
       const consolidatedGrades: Record<string, ConsolidatedStudentGrade> = {};
 
-      // Consolidar Áreas Madres
       motherGroups.forEach(({ mother, courses: groupCourses }) => {
         const areaCompGrades: Record<
           string,
-          { score: number | null; letter: 'AD' | 'A' | 'B' | 'C' | null; conclusion: string }
+          { score: number | null; letter: 'AD' | 'A' | 'B' | 'C' | 'EXO' | '-' | null; conclusion: string }
         > = {};
         const validCompScores: number[] = [];
+        const evaluatedCompetencesInArea: Array<'AD' | 'A' | 'B' | 'C'> = [];
 
         mother.competences.forEach((offComp) => {
           const compKey = `${mother.code}_C${offComp.number}`;
@@ -465,53 +621,76 @@ export class SiagieConsolidatorService {
             return;
           }
 
-          // Recolectar todas las notas numéricas que los cursos tributarios aportaron a esta competencia
           const contributingScores: number[] = [];
           const contributingConclusions: string[] = [];
+          let hasExo = false;
+          let hasHyphen = false;
 
           groupCourses.forEach((course) => {
             const courseData = st.courseGrades[course.assignmentId];
             if (!courseData) return;
 
+            // Revisar cada competencia del curso tributario
             course.competences.forEach((intComp) => {
-              if ((intComp as any).isActive === false) return;
-              const matchedOffComp = this.mapToOfficialCompetence(course, intComp.name, mother);
-
-              // Si esta competencia interna tributa a la competencia oficial actual
+              const matchedOffComp = this.mapToOfficialCompetence(course, intComp, mother);
               if (matchedOffComp && matchedOffComp.number === offComp.number) {
                 const gradeInfo = courseData.competences[intComp.id];
-                if (gradeInfo && gradeInfo.score !== null && !isNaN(gradeInfo.score)) {
-                  contributingScores.push(gradeInfo.score);
-                }
-                if (gradeInfo?.conclusion && gradeInfo.conclusion.trim()) {
-                  contributingConclusions.push(gradeInfo.conclusion.trim());
+                if (gradeInfo) {
+                  if (gradeInfo.letter === 'EXO') {
+                    hasExo = true;
+                  } else if (gradeInfo.letter === '-') {
+                    hasHyphen = true;
+                  } else if (gradeInfo.score !== null && !isNaN(gradeInfo.score)) {
+                    contributingScores.push(gradeInfo.score);
+                  } else if (gradeInfo.letter) {
+                    const numericFromLetter = letterToScore(gradeInfo.letter);
+                    if (numericFromLetter !== null) {
+                      contributingScores.push(numericFromLetter);
+                    }
+                  }
+
+                  if (gradeInfo.conclusion && gradeInfo.conclusion.trim()) {
+                    contributingConclusions.push(gradeInfo.conclusion.trim());
+                  }
                 }
               }
             });
           });
 
           if (contributingScores.length > 0) {
-            // Promedio aritmético oficial entre los cursos tributarios
             const avg =
               Math.round(
                 (contributingScores.reduce((acc, val) => acc + val, 0) / contributingScores.length) * 10,
               ) / 10;
             const letter = scoreToLetter(avg);
 
-            // Conclusión descriptiva: usar la del docente responsable o sugerencia pedagógica si es 'C'
-            let finalConclusion = contributingConclusions[0] || '';
-            if (letter === 'C' && !finalConclusion) {
-              finalConclusion = `El estudiante requiere acompañamiento continuo y refuerzo en la competencia "${offComp.name}".`;
+            let rawConc = contributingConclusions.join('. ');
+            if (letter === 'C' && !rawConc.trim()) {
+              rawConc = `El estudiante requiere acompañamiento continuo y refuerzo en la competencia "${offComp.name}".`;
             }
+
+            const sanitized = sanitizeSiagieConclusion(rawConc);
 
             areaCompGrades[compKey] = {
               score: avg,
               letter,
-              conclusion: finalConclusion,
+              conclusion: sanitized,
             };
             validCompScores.push(avg);
+            if (letter) evaluatedCompetencesInArea.push(letter);
+          } else if (hasExo) {
+            areaCompGrades[compKey] = {
+              score: null,
+              letter: 'EXO',
+              conclusion: sanitizeSiagieConclusion(contributingConclusions.join('. ')),
+            };
+          } else if (hasHyphen) {
+            areaCompGrades[compKey] = {
+              score: null,
+              letter: '-',
+              conclusion: sanitizeSiagieConclusion(contributingConclusions.join('. ')),
+            };
           } else {
-            // Competencia no trabajada o sin calificaciones en los cursos tributarios
             areaCompGrades[compKey] = {
               score: null,
               letter: null,
@@ -520,7 +699,6 @@ export class SiagieConsolidatorService {
           }
         });
 
-        // Promedio general del Área Madre
         const periodScore =
           !isInactive && validCompScores.length > 0
             ? Math.round((validCompScores.reduce((a, b) => a + b, 0) / validCompScores.length) * 10) / 10
@@ -534,35 +712,55 @@ export class SiagieConsolidatorService {
         };
       });
 
-      // Consolidar cursos independientes no mapeados
-      unmappedCourses.forEach((c) => {
-        const courseData = st.courseGrades[c.assignmentId];
-        const areaCompGrades: Record<
-          string,
-          { score: number | null; letter: 'AD' | 'A' | 'B' | 'C' | null; conclusion: string }
-        > = {};
+      // 4. Regla Oficial de Situación Final SIAGIE
+      let finalSituation: 'PROMOTED' | 'RECOVERY' | 'RETAINED' | 'TRANSFERRED' | 'WITHDRAWN' | null = null;
+      if (st.enrollmentState === 'WITHDRAWN') {
+        finalSituation = 'WITHDRAWN';
+      } else if (st.enrollmentState === 'TRANSFERRED') {
+        finalSituation = 'TRANSFERRED';
+      } else {
+        const edLevel = (classroomInfo?.educationLevel || '').toUpperCase();
+        const gradeStr = String(classroomInfo?.grade ?? '').trim().toLowerCase();
+        const isAutomaticPromotion =
+          edLevel === 'INITIAL' ||
+          (edLevel === 'PRIMARY' && ['1', '1°', '1ro', 'primero'].includes(gradeStr));
 
-        if (courseData) {
-          c.competences.forEach((comp) => {
-            if ((comp as any).isActive === false) return;
-            const g = courseData.competences[comp.id];
-            areaCompGrades[comp.id] = {
-              score: g?.score ?? null,
-              letter: g?.letter ?? null,
-              conclusion: g?.conclusion ?? '',
-            };
+        if (isAutomaticPromotion) {
+          finalSituation = 'PROMOTED';
+        } else {
+          // Evaluar áreas desaprobadas según regla oficial: cCount > totalComp / 2
+          let failedAreasCount = 0;
+          let totalCCompetences = 0;
+
+          Object.values(consolidatedGrades).forEach((areaGrade) => {
+            const compList = Object.values(areaGrade.competences).filter(
+              (c): c is typeof c & { letter: 'AD' | 'A' | 'B' | 'C' } =>
+                c.letter === 'AD' || c.letter === 'A' || c.letter === 'B' || c.letter === 'C',
+            );
+            const totalComp = compList.length;
+            if (totalComp > 0) {
+              const cCount = compList.filter((c) => c.letter === 'C').length;
+              totalCCompetences += cCount;
+              if (cCount > totalComp / 2) {
+                failedAreasCount++;
+              }
+            }
           });
-        }
 
-        consolidatedGrades[c.assignmentId] = {
-          periodScore: courseData?.periodScore ?? null,
-          letter: courseData?.letter ?? null,
-          competences: areaCompGrades,
-        };
-      });
+          if (failedAreasCount >= 4) {
+            finalSituation = 'RETAINED';
+          } else if (failedAreasCount < 4 && totalCCompetences >= 1) {
+            finalSituation = 'RECOVERY';
+          } else {
+            finalSituation = 'PROMOTED';
+          }
+        }
+      }
 
       return {
         ...st,
+        orderIndex: idx + 1,
+        finalSituation,
         consolidatedGrades,
       };
     });
@@ -570,6 +768,7 @@ export class SiagieConsolidatorService {
     return {
       consolidatedAreas,
       consolidatedStudents,
+      unmappedCompetences,
     };
   }
 }

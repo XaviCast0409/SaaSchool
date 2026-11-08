@@ -17,14 +17,20 @@ export class NotificationController {
     });
   };
 
+  private getTarget(req: Request) {
+    const isStudent = req.user!.role === 'STUDENT';
+    const id = isStudent ? (req.user!.studentId || req.user!.userId) : req.user!.userId;
+    return { id, isStudent };
+  }
+
   savePushSubscription = async (req: Request, res: Response): Promise<void> => {
     const schoolId = req.user!.schoolId;
-    const userId = req.user!.userId;
+    const target = this.getTarget(req);
     const body = savePushSubscriptionSchema.parse(req.body);
 
     const subscription = await this.notificationService.savePushSubscription(
       schoolId,
-      userId,
+      target,
       body,
     );
 
@@ -37,11 +43,11 @@ export class NotificationController {
 
   testPushNotification = async (req: Request, res: Response): Promise<void> => {
     const schoolId = req.user!.schoolId;
-    const userId = req.user!.userId;
+    const target = this.getTarget(req);
 
     const result = await this.notificationService.sendTestPushNotification(
       schoolId,
-      userId,
+      target,
     );
 
     res.status(200).json({
@@ -53,12 +59,12 @@ export class NotificationController {
 
   getMyNotifications = async (req: Request, res: Response): Promise<void> => {
     const schoolId = req.user!.schoolId;
-    const userId = req.user!.userId;
+    const target = this.getTarget(req);
     const filters = notificationFilterSchema.parse(req.query);
 
     const result = await this.notificationService.getMyNotifications(
       schoolId,
-      userId,
+      target,
       filters,
     );
 
@@ -76,10 +82,10 @@ export class NotificationController {
 
   markAsRead = async (req: Request, res: Response): Promise<void> => {
     const schoolId = req.user!.schoolId;
-    const userId = req.user!.userId;
+    const target = this.getTarget(req);
     const { id } = notificationIdParamSchema.parse(req.params);
 
-    const updated = await this.notificationService.markAsRead(schoolId, userId, id);
+    const updated = await this.notificationService.markAsRead(schoolId, target, id);
 
     res.status(200).json({
       status: 'success',
@@ -90,9 +96,9 @@ export class NotificationController {
 
   markAllAsRead = async (req: Request, res: Response): Promise<void> => {
     const schoolId = req.user!.schoolId;
-    const userId = req.user!.userId;
+    const target = this.getTarget(req);
 
-    const result = await this.notificationService.markAllAsRead(schoolId, userId);
+    const result = await this.notificationService.markAllAsRead(schoolId, target);
 
     res.status(200).json({
       status: 'success',
@@ -103,12 +109,12 @@ export class NotificationController {
 
   delete = async (req: Request, res: Response): Promise<void> => {
     const schoolId = req.user!.schoolId;
-    const userId = req.user!.userId;
+    const target = this.getTarget(req);
     const { id } = notificationIdParamSchema.parse(req.params);
 
     const deleted = await this.notificationService.deleteNotification(
       schoolId,
-      userId,
+      target,
       id,
     );
 

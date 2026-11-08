@@ -202,6 +202,11 @@ export const StudentFichaModal: React.FC<StudentFichaModalProps> = ({
                               Repitente
                             </Badge>
                           )}
+                          {(enr as any).customPensionAmount && (
+                            <Badge variant="outline" className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
+                              Pensión Especial: S/ {Number((enr as any).customPensionAmount).toFixed(2)} ({(enr as any).discountReason || 'Beca'})
+                            </Badge>
+                          )}
                         </div>
                         <div className="text-muted-foreground mt-1 text-[11px]">
                           Aula:{' '}
@@ -251,7 +256,7 @@ export const StudentFichaModal: React.FC<StudentFichaModalProps> = ({
                       </div>
                       <div className="text-muted-foreground text-[11px] space-y-0.5">
                         <div>Doc: <strong className="text-foreground">{rel.user?.documentType || 'DNI'}: {rel.user?.documentId || 'S/N'}</strong></div>
-                        <div>Email: <strong className="text-foreground">{rel.user?.email}</strong></div>
+                        <div>Email: <strong className="text-foreground">{rel.user?.email || '(Sin correo registrado)'}</strong></div>
                         <div>Celular: <strong className="text-foreground">{rel.user?.cellphone || 'No registrado'}</strong></div>
                         <div>Grado de Instrucción: <strong className="text-foreground">{rel.user?.educationLevel || 'No especificado'}</strong></div>
                       </div>

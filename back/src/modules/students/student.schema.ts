@@ -21,6 +21,8 @@ const documentTypeSchema = z.enum([
   'PASSPORT',
   'PNA',
   'CODIGO_TEMPORAL',
+  'PTP',
+  'BIRTH_CERTIFICATE',
   'OTHER',
 ]);
 
@@ -58,7 +60,7 @@ export const createStudentSchema = z
     studentCode: z
       .string()
       .trim()
-      .regex(/^\d{14}$/, 'El código SIAGIE debe constar de 14 dígitos numéricos')
+      .regex(/^\d{8,14}$/, 'El código SIAGIE debe constar de entre 8 y 14 dígitos numéricos')
       .optional()
       .nullable()
       .or(z.literal('')),
@@ -71,6 +73,15 @@ export const createStudentSchema = z
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: 'El DNI debe tener exactamente 8 dígitos numéricos (ej: 08123456)',
+          path: ['documentId'],
+        });
+      }
+    } else if (['CE', 'PTP', 'PASSPORT', 'BIRTH_CERTIFICATE'].includes(data.documentType)) {
+      const cleanDoc = data.documentId.trim();
+      if (!/^[A-Za-z0-9-]{6,15}$/.test(cleanDoc)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `El documento ${data.documentType} debe tener entre 6 y 15 caracteres alfanuméricos`,
           path: ['documentId'],
         });
       }
@@ -96,16 +107,27 @@ export const updateStudentSchema = z
     hasDisability: z.boolean().optional(),
     disabilityType: z.string().trim().optional().nullable().or(z.literal('')),
     address: z.string().trim().optional().nullable().or(z.literal('')),
-    studentCode: z.string().trim().regex(/^\d{14}$/).optional().nullable().or(z.literal('')),
+    studentCode: z.string().trim().regex(/^\d{8,14}$/, 'El código SIAGIE debe constar de entre 8 y 14 dígitos numéricos').optional().nullable().or(z.literal('')),
   })
   .superRefine((data, ctx) => {
-    if (data.documentType === 'DNI' && data.documentId) {
-      if (!/^\d{8}$/.test(data.documentId.trim())) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'El DNI debe tener exactamente 8 dígitos numéricos (ej: 08123456)',
-          path: ['documentId'],
-        });
+    if (data.documentId && data.documentId.trim().length > 0) {
+      const cleanDoc = data.documentId.trim();
+      if (data.documentType === 'DNI') {
+        if (!/^\d{8}$/.test(cleanDoc)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'El DNI debe tener exactamente 8 dígitos numéricos (ej: 08123456)',
+            path: ['documentId'],
+          });
+        }
+      } else if (data.documentType && ['CE', 'PTP', 'PASSPORT', 'BIRTH_CERTIFICATE'].includes(data.documentType)) {
+        if (!/^[A-Za-z0-9-]{6,15}$/.test(cleanDoc)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `El documento ${data.documentType} debe tener entre 6 y 15 caracteres alfanuméricos`,
+            path: ['documentId'],
+          });
+        }
       }
     }
   });
@@ -160,7 +182,12 @@ export const registerFichaMatriculaSchema = z.object({
           lastNameMaternal: z.string().trim().optional().nullable().or(z.literal('')),
           documentType: documentTypeSchema.default('DNI'),
           documentId: z.string().trim().optional().nullable().or(z.literal('')),
-          email: z.string().email('Email de apoderado inválido').optional(),
+          email: z
+            .string()
+            .email('Email de apoderado inválido')
+            .optional()
+            .nullable()
+            .or(z.literal('')),
           cellphone: z
             .string()
             .trim()

@@ -171,6 +171,8 @@ export class CourseContentRepository {
         schoolId,
         studentId,
         enrollmentState: 'REGISTERED',
+        isActive: true,
+        academicYear: { isActive: true },
       },
       include: {
         classroom: {
@@ -223,6 +225,8 @@ export class CourseContentRepository {
         schoolId,
         studentId,
         enrollmentState: 'REGISTERED',
+        isActive: true,
+        academicYear: { isActive: true },
       },
       select: {
         classroomId: true,
@@ -547,6 +551,196 @@ export class CourseContentRepository {
       limit: filters.limit,
       totalPages: Math.ceil(total / filters.limit),
     };
+  }
+
+  // ==========================================
+  // LMS TAREAS / HOMEWORK SUBMISSIONS
+  // ==========================================
+
+  async findEnrollmentByStudent(schoolId: string, studentId: string, classroomId: string) {
+    return prisma.enrollment.findFirst({
+      where: {
+        schoolId,
+        studentId,
+        classroomId,
+        isActive: true,
+        academicYear: { isActive: true },
+        enrollmentState: 'REGISTERED',
+      },
+    });
+  }
+
+  async findEnrollmentsByParent(
+    schoolId: string,
+    parentUserId: string,
+    classroomId: string,
+    targetStudentId?: string | null,
+  ) {
+    return prisma.enrollment.findMany({
+      where: {
+        schoolId,
+        classroomId,
+        isActive: true,
+        academicYear: { isActive: true },
+        enrollmentState: 'REGISTERED',
+        ...(targetStudentId ? { studentId: targetStudentId } : {}),
+        student: {
+          familyRelations: {
+            some: {
+              userId: parentUserId,
+            },
+          },
+        },
+      },
+      select: { id: true, studentId: true },
+    });
+  }
+
+  async findAllClassroomEnrollments(schoolId: string, classroomId: string) {
+    return prisma.enrollment.findMany({
+      where: {
+        schoolId,
+        classroomId,
+        isActive: true,
+        enrollmentState: 'REGISTERED',
+      },
+      include: {
+        student: {
+          select: {
+            id: true,
+            firstNames: true,
+            lastNamePaternal: true,
+            lastNameMaternal: true,
+            documentId: true,
+            studentCode: true,
+          },
+        },
+      },
+      orderBy: [
+        { student: { lastNamePaternal: 'asc' } },
+        { student: { firstNames: 'asc' } },
+      ],
+    });
+  }
+
+  async upsertSubmission(data: {
+    schoolId: string;
+    courseContentId: string;
+    enrollmentId: string;
+    fileUrl: string;
+    fileName: string;
+    fileSize?: number | null;
+    studentComment?: string | null;
+    isLate: boolean;
+  }) {
+    return prisma.homeworkSubmission.upsert({
+      where: {
+        courseContentId_enrollmentId: {
+          courseContentId: data.courseContentId,
+          enrollmentId: data.enrollmentId,
+        },
+      },
+      update: {
+        fileUrl: data.fileUrl,
+        fileName: data.fileName,
+        fileSize: data.fileSize ?? null,
+        studentComment: data.studentComment ?? null,
+        isLate: data.isLate,
+        submittedAt: new Date(),
+      },
+      create: {
+        schoolId: data.schoolId,
+        courseContentId: data.courseContentId,
+        enrollmentId: data.enrollmentId,
+        fileUrl: data.fileUrl,
+        fileName: data.fileName,
+        fileSize: data.fileSize ?? null,
+        studentComment: data.studentComment ?? null,
+        isLate: data.isLate,
+      },
+      include: {
+        enrollment: {
+          include: {
+            student: true,
+          },
+        },
+      },
+    });
+  }
+
+  async findSubmissions(courseContentId: string, enrollmentIds?: string[]) {
+    return prisma.homeworkSubmission.findMany({
+      where: {
+        courseContentId,
+        ...(enrollmentIds && enrollmentIds.length > 0 ? { enrollmentId: { in: enrollmentIds } } : {}),
+      },
+      include: {
+        enrollment: {
+          include: {
+            student: {
+              select: {
+                id: true,
+                firstNames: true,
+                lastNamePaternal: true,
+                lastNameMaternal: true,
+                documentId: true,
+                studentCode: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { submittedAt: 'desc' },
+    });
+  }
+
+  async findSubmissionById(submissionId: string) {
+    return prisma.homeworkSubmission.findUnique({
+      where: { id: submissionId },
+      include: {
+        courseContent: {
+          include: {
+            courseAssignment: true,
+          },
+        },
+        enrollment: {
+          include: {
+            student: {
+              include: {
+                familyRelations: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  async gradeSubmission(
+    submissionId: string,
+    data: {
+      numericScore?: number | null;
+      literalScore?: string | null;
+      teacherFeedback?: string | null;
+    },
+  ) {
+    return prisma.homeworkSubmission.update({
+      where: { id: submissionId },
+      data: {
+        numericScore: data.numericScore ?? null,
+        literalScore: data.literalScore ?? null,
+        teacherFeedback: data.teacherFeedback ?? null,
+        gradedAt: new Date(),
+      },
+      include: {
+        courseContent: true,
+        enrollment: {
+          include: {
+            student: true,
+          },
+        },
+      },
+    });
   }
 }
 

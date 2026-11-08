@@ -1,5 +1,4 @@
 import { google, drive_v3 } from 'googleapis';
-import { Readable } from 'stream';
 import path from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
@@ -8,6 +7,7 @@ import { AppError } from '../../core/errors/app-error';
 export interface UploadResult {
   fileId: string;
   downloadUrl: string;
+  viewUrl: string;
   webViewLink?: string;
   storage: 'GOOGLE_DRIVE' | 'LOCAL';
 }
@@ -105,65 +105,72 @@ export class GoogleDriveService {
   }
 
   /**
-   * Sube un archivo directamente a Google Drive sin saturar el disco del servidor.
-   * Asigna permisos públicos de lectura y genera el enlace de descarga directa en 1 clic.
+   * Sube un archivo mediante stream desde disco a Google Drive sin saturar la RAM de Node.js.
+   * Envuelto en try/finally para garantizar la eliminación del archivo temporal en disco.
    */
   public async uploadFile(
-    fileBuffer: Buffer,
+    filePath: string,
     originalName: string,
     mimeType: string
   ): Promise<UploadResult> {
     const targetFolderId = await this.getFolderId();
 
     if (!this.driveClient || !targetFolderId) {
+      await fs.promises.unlink(filePath).catch(() => {});
       throw new AppError(
         'Google Drive no está configurado. Asegúrate de tener las credenciales y la carpeta SaaSchool compartida.',
         500
       );
     }
 
-    const stream = Readable.from(fileBuffer);
-
-    // 1. Crear el archivo en la carpeta compartida de Google Drive
-    const response = await this.driveClient.files.create({
-      requestBody: {
-        name: originalName,
-        parents: [targetFolderId],
-      },
-      media: {
-        mimeType,
-        body: stream,
-      },
-      fields: 'id, name, webViewLink, webContentLink',
-    });
-
-    const fileId = response.data.id;
-    if (!fileId) {
-      throw new AppError('Error al subir el archivo a Google Drive (ID no generado).', 500);
-    }
-
-    // 2. Asignar permiso público de lectura ('anyone - reader') para descarga directa en 1 clic
     try {
-      await this.driveClient.permissions.create({
-        fileId,
+      const stream = fs.createReadStream(filePath);
+
+      // 1. Crear el archivo en la carpeta compartida de Google Drive
+      const response = await this.driveClient.files.create({
         requestBody: {
-          role: 'reader',
-          type: 'anyone',
+          name: originalName,
+          parents: [targetFolderId],
         },
+        media: {
+          mimeType,
+          body: stream,
+        },
+        fields: 'id, name, webViewLink, webContentLink',
       });
-    } catch (permError) {
-      console.warn('Advertencia al asignar permisos públicos en Drive:', permError);
+
+      const fileId = response.data.id;
+      if (!fileId) {
+        throw new AppError('Error al subir el archivo a Google Drive (ID no generado).', 500);
+      }
+
+      // 2. Asignar permiso público de lectura ('anyone - reader')
+      try {
+        await this.driveClient.permissions.create({
+          fileId,
+          requestBody: {
+            role: 'reader',
+            type: 'anyone',
+          },
+        });
+      } catch (permError) {
+        console.warn('Advertencia al asignar permisos públicos en Drive:', permError);
+      }
+
+      // 3. Generar URLs: descarga directa y visor embebido anti-bloqueo
+      const directDownloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+      const viewUrl = `https://drive.google.com/file/d/${fileId}/view?usp=sharing`;
+
+      return {
+        fileId,
+        downloadUrl: directDownloadUrl,
+        viewUrl,
+        webViewLink: response.data.webViewLink || viewUrl,
+        storage: 'GOOGLE_DRIVE',
+      };
+    } finally {
+      await fs.promises.unlink(filePath).catch(() => {});
     }
-
-    // 3. Enlace directo de descarga en 1 clic (sin pasar por el visor web de Drive)
-    const directDownloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
-
-    return {
-      fileId,
-      downloadUrl: directDownloadUrl,
-      webViewLink: response.data.webViewLink || undefined,
-      storage: 'GOOGLE_DRIVE',
-    };
   }
 }
 

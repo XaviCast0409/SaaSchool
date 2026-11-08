@@ -6,6 +6,10 @@ import type {
   ForumComment,
   CreateCommentPayload,
   UploadFileResponse,
+  HomeworkSubmission,
+  HomeworkSubmissionsResponse,
+  SubmitHomeworkPayload,
+  GradeSubmissionPayload,
 } from '../types';
 
 /**
@@ -180,4 +184,95 @@ export const useGetStudentTasks = (studentId?: string | null) => {
     enabled: !!studentId,
   });
 };
+
+/**
+ * Enviar entrega de tarea (Estudiante / Apoderado)
+ */
+export const useSubmitHomework = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      courseContentId,
+      payload,
+    }: {
+      courseContentId: string;
+      payload: SubmitHomeworkPayload;
+    }): Promise<HomeworkSubmission> => {
+      const res = await api.post<{ status: string; data: HomeworkSubmission }>(
+        `/course-contents/${courseContentId}/submissions`,
+        payload,
+      );
+      return res.data.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['homework-submissions', variables.courseContentId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['student-tasks'],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['course-contents'],
+      });
+    },
+  });
+};
+
+/**
+ * Obtener entregas de una tarea escolar (Docente ve nómina completa; Alumno/Apoderado ve la propia)
+ */
+export const useGetHomeworkSubmissions = (courseContentId?: string | null) => {
+  return useQuery({
+    queryKey: ['homework-submissions', courseContentId],
+    queryFn: async (): Promise<HomeworkSubmissionsResponse> => {
+      if (!courseContentId) throw new Error('courseContentId is required');
+      const res = await api.get<{ status: string; data: HomeworkSubmissionsResponse }>(
+        `/course-contents/${courseContentId}/submissions`,
+      );
+      return res.data.data;
+    },
+    enabled: !!courseContentId,
+  });
+};
+
+/**
+ * Calificar entrega de tarea con nota vigesimal o literal y feedback docente
+ */
+export const useGradeHomeworkSubmission = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      submissionId,
+      courseContentId: _courseContentId,
+      payload,
+    }: {
+      submissionId: string;
+      courseContentId?: string;
+      payload: GradeSubmissionPayload;
+    }): Promise<HomeworkSubmission> => {
+      const res = await api.patch<{ status: string; data: HomeworkSubmission }>(
+        `/course-contents/submissions/${submissionId}/grade`,
+        payload,
+      );
+      return res.data.data;
+    },
+    onSuccess: (_, variables) => {
+      if (variables.courseContentId) {
+        queryClient.invalidateQueries({
+          queryKey: ['homework-submissions', variables.courseContentId],
+        });
+      } else {
+        queryClient.invalidateQueries({
+          queryKey: ['homework-submissions'],
+        });
+      }
+      queryClient.invalidateQueries({
+        queryKey: ['student-tasks'],
+      });
+    },
+  });
+};
+
 

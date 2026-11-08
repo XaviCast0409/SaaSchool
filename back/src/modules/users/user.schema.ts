@@ -3,14 +3,21 @@ import { Role } from '@prisma/client';
 
 const emptyToUndefined = z.literal('').transform(() => undefined);
 
-export const createUserSchema = z.object({
-  email: z.string().email('Email inválido'),
+const baseUserSchema = z.object({
+  email: z
+    .string()
+    .email('Email inválido')
+    .optional()
+    .nullable()
+    .or(z.literal('')),
   password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
   firstName: z.string().min(2, 'Nombre requerido'),
   lastNamePaternal: z.string().min(2, 'Apellido paterno requerido'),
   lastNameMaternal: z.string().optional().nullable().or(z.literal('')),
   role: z.enum(['SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT']).default('PARENT'),
-  documentType: z.enum(['DNI', 'CE', 'CARNET_EXTRANJERIA', 'PASSPORT', 'PNA', 'CODIGO_TEMPORAL', 'OTHER']).default('DNI'),
+  documentType: z
+    .enum(['DNI', 'CE', 'CARNET_EXTRANJERIA', 'PASSPORT', 'PNA', 'CODIGO_TEMPORAL', 'PTP', 'BIRTH_CERTIFICATE', 'OTHER'])
+    .default('DNI'),
   documentId: z.string().optional(),
   cellphone: z
     .string()
@@ -21,7 +28,38 @@ export const createUserSchema = z.object({
   educationLevel: z.string().optional().nullable().or(z.literal('')),
 });
 
-export const updateUserSchema = createUserSchema.omit({ password: true }).partial();
+export const createUserSchema = baseUserSchema.superRefine((data, ctx) => {
+  if (data.role !== 'PARENT' && (!data.email || data.email.trim() === '')) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'El correo electrónico es obligatorio para personal institucional',
+      path: ['email'],
+    });
+  }
+
+  if (data.documentId && data.documentId.trim().length > 0) {
+    const trimmedDoc = data.documentId.trim();
+    if (data.documentType === 'DNI') {
+      if (!/^\d{8}$/.test(trimmedDoc)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'El DNI debe tener exactamente 8 dígitos numéricos',
+          path: ['documentId'],
+        });
+      }
+    } else if (['CE', 'PTP', 'PASSPORT', 'BIRTH_CERTIFICATE'].includes(data.documentType)) {
+      if (!/^[A-Za-z0-9-]{6,15}$/.test(trimmedDoc)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `El documento ${data.documentType} debe tener entre 6 y 15 caracteres alfanuméricos`,
+          path: ['documentId'],
+        });
+      }
+    }
+  }
+});
+
+export const updateUserSchema = baseUserSchema.omit({ password: true }).partial();
 
 export const userFilterSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),

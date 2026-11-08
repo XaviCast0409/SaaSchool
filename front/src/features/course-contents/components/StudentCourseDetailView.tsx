@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
+import { useActiveAcademicYear } from '@/features/academic-years/api/useAcademicYears';
 
 interface StudentCourseDetailViewProps {
   assignment: StudentCourseAssignment;
@@ -28,6 +29,11 @@ export const StudentCourseDetailView: React.FC<StudentCourseDetailViewProps> = (
   const [selectedBimester, setSelectedBimester] = useState<number>(1);
   const [filterType, setFilterType] = useState<ContentType | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const { activeYear } = useActiveAcademicYear();
+  const isTrimester = activeYear?.periodType === 'TRIMESTER';
+  const periods = isTrimester ? [1, 2, 3] : [1, 2, 3, 4];
+  const periodLabel = isTrimester ? 'Trimestre' : 'Bimestre';
   const [activeForumContent, setActiveForumContent] = useState<CourseContent | null>(null);
 
   const theme = getSubjectTheme(assignment.area.name);
@@ -134,9 +140,9 @@ export const StudentCourseDetailView: React.FC<StudentCourseDetailViewProps> = (
 
       {/* 3. Selector de Bimestres y Filtros */}
       <div className="space-y-3">
-        {/* Selector de Bimestres */}
+        {/* Selector de Bimestres / Trimestres */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-          {[1, 2, 3, 4].map((bim) => (
+          {periods.map((bim) => (
             <button
               key={bim}
               onClick={() => setSelectedBimester(bim)}
@@ -146,7 +152,7 @@ export const StudentCourseDetailView: React.FC<StudentCourseDetailViewProps> = (
                   : 'bg-card text-muted-foreground border-border hover:bg-secondary'
               }`}
             >
-              <span>{bim}° Bimestre</span>
+              <span>{bim}° {periodLabel}</span>
               {selectedBimester === bim && (
                 <Badge
                   variant="secondary"
@@ -223,7 +229,7 @@ export const StudentCourseDetailView: React.FC<StudentCourseDetailViewProps> = (
           <h3 className="text-sm font-bold text-foreground">
             {searchQuery
               ? 'No se encontraron publicaciones con esa búsqueda'
-              : `Sin publicaciones en el ${selectedBimester}° Bimestre`}
+              : `Sin publicaciones en el ${selectedBimester}° ${periodLabel}`}
           </h3>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
             {searchQuery

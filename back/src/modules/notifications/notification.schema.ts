@@ -5,11 +5,13 @@ export const notificationTypeEnum = z.enum([
   'ATTENDANCE',
   'ANNOUNCEMENT',
   'ACADEMIC',
+  'INCIDENT',
   'GENERAL',
 ]);
 
 export const createNotificationSchema = z.object({
-  userId: z.string().uuid('ID de usuario inválido'),
+  userId: z.string().uuid('ID de usuario inválido').optional().nullable(),
+  studentId: z.string().uuid('ID de estudiante inválido').optional().nullable(),
   title: z.string().min(1, 'El título es requerido').max(150),
   message: z.string().min(1, 'El mensaje es requerido'),
   type: notificationTypeEnum.default('GENERAL'),

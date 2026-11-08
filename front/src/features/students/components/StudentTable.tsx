@@ -5,7 +5,7 @@ import {
   flexRender,
   type ColumnDef,
 } from '@tanstack/react-table';
-import { Search, UserCheck, ChevronDown, ChevronUp, Users, Filter, Accessibility, BookOpen, Pencil, FileText, QrCode, FileSpreadsheet } from 'lucide-react';
+import { Search, UserCheck, ChevronDown, ChevronUp, Users, Filter, Accessibility, BookOpen, Pencil, FileText, QrCode, FileSpreadsheet, FileCheck2 } from 'lucide-react';
 import { Student } from '../types';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useUsers } from '@/features/users/api/useUsers';
@@ -15,6 +15,7 @@ import { StudentParentsPanel } from '@/features/users/family-relationships/compo
 import { EditStudentModal } from './EditStudentModal';
 import { StudentFichaModal } from './StudentFichaModal';
 import { StudentQrCardModal } from './StudentQrCardModal';
+import { StudentCertificateModal } from './StudentCertificateModal';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -70,6 +71,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({
   const [selectedStudentForEdit, setSelectedStudentForEdit] = useState<Student | null>(null);
   const [selectedStudentForFicha, setSelectedStudentForFicha] = useState<string | null>(null);
   const [selectedStudentForQr, setSelectedStudentForQr] = useState<Student | null>(null);
+  const [selectedStudentForCertificates, setSelectedStudentForCertificates] = useState<Student | null>(null);
 
   const { data: allParents = [] } = useUsers('PARENT');
   const { data: classrooms = [] } = useClassrooms();
@@ -377,6 +379,17 @@ export const StudentTable: React.FC<StudentTableProps> = ({
                             <Button
                               variant="ghost"
                               size="sm"
+                              className="h-8 px-2 gap-1 text-xs text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 font-bold"
+                              onClick={() => setSelectedStudentForCertificates(student)}
+                              title="Constancias de Matrícula y No Adeudo"
+                            >
+                              <FileCheck2 className="w-3.5 h-3.5" />
+                              <span>Constancias</span>
+                            </Button>
+
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               className="h-8 gap-1.5 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground"
                               onClick={() => setExpandedStudentId(isExpanded ? null : student.id)}
                             >
@@ -458,6 +471,16 @@ export const StudentTable: React.FC<StudentTableProps> = ({
           educationLevel={selectedStudentForQr.enrollments?.[0]?.classroom?.educationLevel || ''}
           schoolName={school?.name}
           onClose={() => setSelectedStudentForQr(null)}
+        />
+      )}
+
+      {/* Modal de Constancias Oficiales */}
+      {selectedStudentForCertificates && (
+        <StudentCertificateModal
+          isOpen={Boolean(selectedStudentForCertificates)}
+          studentId={selectedStudentForCertificates.id}
+          studentName={`${selectedStudentForCertificates.lastNamePaternal} ${selectedStudentForCertificates.lastNameMaternal || ''}, ${selectedStudentForCertificates.firstNames}`.trim()}
+          onClose={() => setSelectedStudentForCertificates(null)}
         />
       )}
     </div>

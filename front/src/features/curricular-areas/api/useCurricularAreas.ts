@@ -13,16 +13,25 @@ export interface CurricularArea {
   id: string;
   schoolId: string;
   name: string;
+  level?: 'INITIAL' | 'PRIMARY' | 'SECONDARY';
+  officialAreaCode?: string | null;
   officialCode?: string;
+  isTransversal?: boolean;
   parentAreaId?: string | null;
+  evaluatedCompetenceIds?: string[];
+  parentArea?: { id: string; name: string; officialAreaCode?: string | null } | null;
+  subAreas?: CurricularArea[];
   isActive: boolean;
   competences?: CurricularCompetence[];
 }
 
 export interface CreateCurricularAreaPayload {
   name: string;
+  level?: 'INITIAL' | 'PRIMARY' | 'SECONDARY';
+  officialAreaCode?: string | null;
   officialCode?: string;
   parentAreaId?: string | null;
+  evaluatedCompetenceIds?: string[];
   isActive?: boolean;
 }
 

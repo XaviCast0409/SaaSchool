@@ -7,6 +7,7 @@ import {
   sendReminderSchema,
   transactionFilterSchema,
   updateObligationSchema,
+  dailyCashCloseQuerySchema,
 } from './payment.schema';
 import type { PaymentService } from './payment.service';
 
@@ -119,7 +120,7 @@ export class PaymentController {
     const schoolId = request.user!.schoolId;
     const { channel } = sendReminderSchema.parse(request.body);
     const result = await this.paymentService.sendBulkOverdueReminders(schoolId, channel);
-    response.status(200).json({ status: 'success', data: result });
+    response.status(202).json({ status: 'success', data: result });
   };
 
   /** GET /api/payments/summary — resumen financiero del colegio */
@@ -127,5 +128,13 @@ export class PaymentController {
     const schoolId = request.user!.schoolId;
     const summary = await this.paymentService.getFinancialSummary(schoolId);
     response.status(200).json({ status: 'success', data: summary });
+  };
+
+  /** GET /api/payments/daily-cash-close?date=YYYY-MM-DD — arqueo de caja diario */
+  getDailyCashClose = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const { date } = dailyCashCloseQuerySchema.parse(request.query);
+    const cashClose = await this.paymentService.getDailyCashClose(schoolId, date);
+    response.status(200).json({ status: 'success', data: cashClose });
   };
 }

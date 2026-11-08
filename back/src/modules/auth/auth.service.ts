@@ -8,7 +8,7 @@ interface AuthResponse {
   token: string;
   user: {
     id: string;
-    email: string;
+    email: string | null;
     role: string;
     firstName: string;
     lastNamePaternal: string;
@@ -29,7 +29,52 @@ export class AuthService {
     const existingUser = await this.authRepository.findUserByIdentifier(loginDto.email);
 
     if (!existingUser) {
-      throw new AppError('Credenciales inválidas', 401);
+      // Login Dual: Buscar en el catálogo de estudiantes (por documentId o studentCode SIAGIE)
+      const student = await this.authRepository.findStudentByIdentifier(loginDto.email);
+      if (!student) {
+        throw new AppError('Credenciales inválidas', 401);
+      }
+
+      let isPasswordValid = false;
+      let mustChangePassword = student.mustChangePassword;
+
+      if (!student.passwordHash) {
+        // Primer acceso del estudiante: la contraseña temporal por defecto es su propio DNI / documento
+        if (loginDto.password.trim() === student.documentId.trim()) {
+          isPasswordValid = true;
+          const initialHash = await hashPassword(loginDto.password.trim());
+          await this.authRepository.updateStudentPassword(student.id, initialHash, true);
+          mustChangePassword = true;
+        }
+      } else {
+        isPasswordValid = await comparePassword(loginDto.password, student.passwordHash);
+      }
+
+      if (!isPasswordValid) {
+        throw new AppError('Credenciales inválidas', 401);
+      }
+
+      const token = signToken({
+        userId: student.id,
+        studentId: student.id,
+        schoolId: student.schoolId,
+        role: 'STUDENT',
+        email: student.studentCode || student.documentId,
+      });
+
+      return {
+        token,
+        user: {
+          id: student.id,
+          email: student.studentCode || student.documentId,
+          role: 'STUDENT',
+          firstName: student.firstNames,
+          lastNamePaternal: student.lastNamePaternal,
+          schoolId: student.schoolId,
+          documentId: student.documentId,
+          mustChangePassword,
+        },
+      };
     }
 
     if (!existingUser.isActive) {
@@ -73,7 +118,40 @@ export class AuthService {
     };
   }
 
-  async changePassword(userId: string, changePasswordDto: ChangePasswordDto): Promise<{ message: string }> {
+  async changePassword(
+    userId: string,
+    changePasswordDto: ChangePasswordDto,
+    role?: string,
+  ): Promise<{ message: string }> {
+    if (role === 'STUDENT') {
+      const student = await this.authRepository.findStudentById(userId);
+      if (!student) {
+        throw new AppError('Estudiante no encontrado', 404);
+      }
+
+      if (changePasswordDto.currentPassword) {
+        if (!student.passwordHash) {
+          if (changePasswordDto.currentPassword.trim() !== student.documentId.trim()) {
+            throw new AppError('La contraseña actual ingresada es incorrecta', 400);
+          }
+        } else {
+          const isCurrentValid = await comparePassword(changePasswordDto.currentPassword, student.passwordHash);
+          if (!isCurrentValid) {
+            throw new AppError('La contraseña actual ingresada es incorrecta', 400);
+          }
+        }
+      }
+
+      if (student.documentId && changePasswordDto.newPassword.trim() === student.documentId.trim()) {
+        throw new AppError('La nueva contraseña no puede ser idéntica a tu número de documento por motivos de seguridad.', 400);
+      }
+
+      const newPasswordHash = await hashPassword(changePasswordDto.newPassword);
+      await this.authRepository.updateStudentPassword(student.id, newPasswordHash, false);
+
+      return { message: 'Contraseña de estudiante actualizada exitosamente' };
+    }
+
     const user = await this.authRepository.findUserById(userId);
     if (!user) {
       throw new AppError('Usuario no encontrado', 404);

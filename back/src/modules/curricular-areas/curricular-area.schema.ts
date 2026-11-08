@@ -3,7 +3,9 @@ import { z } from 'zod';
 export const createCurricularAreaSchema = z.object({
   name: z.string().min(2, 'El nombre del área es requerido'),
   officialCode: z.string().optional(),
+  officialAreaCode: z.string().optional(),
   parentAreaId: z.string().uuid().optional().nullable(),
+  evaluatedCompetenceIds: z.array(z.string().uuid()).optional().default([]),
   isActive: z.boolean().default(true),
 });
 

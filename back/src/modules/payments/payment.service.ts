@@ -1,6 +1,7 @@
 import { AppError } from '../../core/errors/app-error';
 import { prisma } from '../../config/prisma';
 import { sendReminderNotification } from '../../utils/notification.util';
+import { getSchoolNow, parseSchoolDate } from '../../utils/timezone.util';
 import type { PaginatedResult } from '../../core/interfaces/global.interfaces';
 import type { PaymentRepository } from './payment.repository';
 import type {
@@ -47,24 +48,120 @@ export class PaymentService {
     schoolId: string,
     createObligationDto: CreateObligationDto,
   ): Promise<PaymentObligation> {
-    const existing = await prisma.paymentObligation.findFirst({
-      where: {
-        schoolId,
-        enrollmentId: createObligationDto.enrollmentId,
-        title: { equals: createObligationDto.title, mode: 'insensitive' },
-        concept: { equals: createObligationDto.concept, mode: 'insensitive' },
-        status: { not: 'CANCELLED' },
-      },
-    });
+    let enrollmentId = createObligationDto.enrollmentId;
 
-    if (existing) {
-      throw new AppError(
-        `Ya existe una pensión/obligación emitida con el título "${createObligationDto.title}" para este estudiante.`,
-        400,
-      );
+    if (!enrollmentId && createObligationDto.studentId) {
+      const activeEnrollment = await prisma.enrollment.findFirst({
+        where: {
+          schoolId,
+          studentId: createObligationDto.studentId,
+          isActive: true,
+          academicYear: { isActive: true },
+          enrollmentState: 'REGISTERED',
+        },
+        select: { id: true },
+      });
+
+      if (!activeEnrollment) {
+        const anyEnrollment = await prisma.enrollment.findFirst({
+          where: { schoolId, studentId: createObligationDto.studentId, isActive: true },
+          select: { id: true },
+        });
+        if (!anyEnrollment) {
+          throw new AppError('No se encontró una matrícula activa para el estudiante.', 404);
+        }
+        enrollmentId = anyEnrollment.id;
+      } else {
+        enrollmentId = activeEnrollment.id;
+      }
     }
 
-    return this.paymentRepository.createObligation(schoolId, createObligationDto);
+    if (!enrollmentId) {
+      throw new AppError('Se requiere el ID de matrícula del estudiante.', 400);
+    }
+
+    // Para pensiones, evitar duplicar el mismo concepto/título en el año
+    if (createObligationDto.concept === 'PENSION') {
+      const existing = await prisma.paymentObligation.findFirst({
+        where: {
+          schoolId,
+          enrollmentId,
+          title: { equals: createObligationDto.title, mode: 'insensitive' },
+          concept: 'PENSION',
+          status: { not: 'CANCELLED' },
+        },
+      });
+
+      if (existing) {
+        throw new AppError(
+          `Ya existe una pensión emitida con el título "${createObligationDto.title}" para este estudiante.`,
+          400,
+        );
+      }
+    }
+
+    const isPaidNow = Boolean(createObligationDto.paidNow || createObligationDto.paymentMethod);
+
+    if (isPaidNow) {
+      // Transacción atómica: Crear obligación PAGADA y registrar pago en caja con recibo correlativo
+      return prisma.$transaction(async (tx) => {
+        const obligation = await tx.paymentObligation.create({
+          data: {
+            schoolId,
+            enrollmentId: enrollmentId!,
+            title: createObligationDto.title,
+            concept: createObligationDto.concept,
+            amountDue: createObligationDto.amountDue,
+            dueDate: parseSchoolDate(createObligationDto.dueDate),
+            status: 'PAID',
+          },
+        });
+
+        let receiptNumber = createObligationDto.receiptNumber?.trim();
+        if (!receiptNumber) {
+          const updatedSchool = await tx.school.update({
+            where: { id: schoolId },
+            data: { receiptCounter: { increment: 1 } },
+            select: { receiptCounter: true },
+          });
+          receiptNumber = `REC-${String(updatedSchool.receiptCounter).padStart(6, '0')}`;
+        }
+
+        await tx.paymentTransaction.create({
+          data: {
+            schoolId,
+            obligationId: obligation.id,
+            amountPaid: createObligationDto.amountDue,
+            paymentMethod: createObligationDto.paymentMethod || 'CASH',
+            operationNumber: createObligationDto.operationNumber,
+            receiptType: createObligationDto.receiptType || 'RECIBO_INTERNO',
+            receiptNumber,
+            notes: createObligationDto.notes,
+            paymentDate: new Date(),
+          },
+        });
+
+        const obligationWithIncludes = await tx.paymentObligation.findUnique({
+          where: { id: obligation.id },
+          include: {
+            enrollment: {
+              include: {
+                student: true,
+                classroom: true,
+              },
+            },
+            transactions: true,
+          },
+        });
+
+        return obligationWithIncludes || obligation;
+      });
+    }
+
+    return this.paymentRepository.createObligation(schoolId, {
+      ...createObligationDto,
+      enrollmentId,
+    });
   }
 
   async bulkCreateObligations(
@@ -78,7 +175,7 @@ export class PaymentService {
         isActive: true,
         ...(bulkDto.classroomId ? { classroomId: bulkDto.classroomId } : {}),
       },
-      select: { id: true },
+      select: { id: true, customPensionAmount: true },
     });
 
     if (enrollments.length === 0) {
@@ -100,25 +197,47 @@ export class PaymentService {
     });
 
     const existingEnrollmentIds = new Set(existingObligations.map((o) => o.enrollmentId));
-    const newEnrollmentIds = enrollmentIds.filter((id) => !existingEnrollmentIds.has(id));
+    const newEnrollments = enrollments.filter((e) => !existingEnrollmentIds.has(e.id));
 
-    if (newEnrollmentIds.length === 0) {
+    if (newEnrollments.length === 0) {
       throw new AppError(
         `Todas las matrículas seleccionadas (${enrollments.length}) ya tienen registrada la pensión "${bulkDto.title}".`,
         400,
       );
     }
 
-    const createdResult = await this.paymentRepository.bulkCreateObligations(schoolId, newEnrollmentIds, {
+    const itemsToCreate: Array<{ enrollmentId: string; amountDue: number }> = [];
+    let integralScholarshipCount = 0;
+
+    for (const enrollment of newEnrollments) {
+      if (bulkDto.concept === 'PENSION' && enrollment.customPensionAmount !== null) {
+        const customAmount = Number(enrollment.customPensionAmount);
+        if (customAmount === 0) {
+          // Beca Integral: omitir la creación de la deuda
+          integralScholarshipCount++;
+          continue;
+        }
+        itemsToCreate.push({
+          enrollmentId: enrollment.id,
+          amountDue: customAmount,
+        });
+      } else {
+        itemsToCreate.push({
+          enrollmentId: enrollment.id,
+          amountDue: bulkDto.amountDue,
+        });
+      }
+    }
+
+    const createdResult = await this.paymentRepository.bulkCreateObligations(schoolId, itemsToCreate, {
       title: bulkDto.title,
       concept: bulkDto.concept,
-      amountDue: bulkDto.amountDue,
       dueDate: bulkDto.dueDate,
     });
 
     return {
       count: createdResult.count,
-      skippedCount: existingEnrollmentIds.size,
+      skippedCount: existingEnrollmentIds.size + integralScholarshipCount,
       totalMatriculados: enrollments.length,
     };
   }
@@ -365,29 +484,35 @@ export class PaymentService {
   async sendBulkOverdueReminders(
     schoolId: string,
     channel: 'EMAIL' = 'EMAIL',
-  ) {
+  ): Promise<{ message: string; totalQueued: number }> {
     const { data: obligations } = await this.getAllObligations(schoolId, { status: 'PENDING', page: 1, limit: 1000 });
     const now = new Date();
     const overdueObligations = obligations.filter((o) => new Date(o.dueDate) < now);
 
-    const results = [];
-    for (const ob of overdueObligations) {
-      try {
-        const res = await this.sendObligationReminder(ob.id, schoolId, channel);
-        results.push(res);
-      } catch (err) {
-        console.error(`Error sending reminder for obligation ${ob.id}:`, err);
+    // Encolar y procesar envíos secuenciales en segundo plano (2000ms delay para evitar bloqueo SMTP)
+    void (async () => {
+      for (const ob of overdueObligations) {
+        try {
+          await this.sendObligationReminder(ob.id, schoolId, channel);
+        } catch (err) {
+          console.error(`[OverdueReminderError] Error al enviar recordatorio de obligación ${ob.id}:`, err);
+        }
+        await new Promise((resolve) => setTimeout(resolve, 2000));
       }
-    }
+    })();
 
     return {
-      processedCount: overdueObligations.length,
-      sentCount: results.length,
-      details: results,
+      message: 'Envío de recordatorios iniciado en segundo plano',
+      totalQueued: overdueObligations.length,
     };
   }
 
   async getFinancialSummary(schoolId: string) {
     return this.paymentRepository.getFinancialSummary(schoolId);
+  }
+
+  async getDailyCashClose(schoolId: string, dateStr?: string) {
+    const targetDate = dateStr || getSchoolNow().dateStr;
+    return this.paymentRepository.getDailyCashClose(schoolId, targetDate);
   }
 }

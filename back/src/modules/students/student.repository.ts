@@ -149,6 +149,40 @@ export class StudentRepository {
     });
   }
 
+  async findStudentForCertificate(studentId: string, schoolId: string) {
+    return prisma.student.findFirst({
+      where: { id: studentId, schoolId },
+      include: {
+        school: true,
+        familyRelations: true,
+        enrollments: {
+          where: {
+            isActive: true,
+            academicYear: { isActive: true },
+            enrollmentState: 'REGISTERED',
+          },
+          include: {
+            academicYear: true,
+            classroom: true,
+          },
+          orderBy: { enrollmentDate: 'desc' },
+        },
+      },
+    });
+  }
+
+  async countStudentPendingObligations(studentId: string, schoolId: string): Promise<number> {
+    return prisma.paymentObligation.count({
+      where: {
+        schoolId,
+        enrollment: {
+          studentId,
+        },
+        status: { in: ['PENDING', 'PARTIAL'] },
+      },
+    });
+  }
+
   async getSchoolPlan(schoolId: string): Promise<string> {
     const school = await prisma.school.findUnique({
       where: { id: schoolId },
@@ -415,7 +449,11 @@ export class StudentRepository {
           },
         },
         enrollments: {
-          where: { isActive: true },
+          where: {
+            isActive: true,
+            enrollmentState: 'REGISTERED',
+            academicYear: { isActive: true },
+          },
           orderBy: { enrollmentDate: 'desc' },
           take: 1,
           include: {

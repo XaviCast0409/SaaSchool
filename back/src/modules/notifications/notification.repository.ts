@@ -3,12 +3,19 @@ import type { Notification, PushSubscription, Prisma } from '@prisma/client';
 import type { CreateNotificationDto, NotificationFilterDto, SavePushSubscriptionDto } from './notification.schema';
 import { AppError } from '../../core/errors/app-error';
 
+export interface NotificationTarget {
+  id: string;
+  isStudent: boolean;
+}
+
 export class NotificationRepository {
   async create(schoolId: string, data: CreateNotificationDto): Promise<Notification> {
+    const isStudent = Boolean(data.studentId);
     return prisma.notification.create({
       data: {
         schoolId,
-        userId: data.userId,
+        userId: isStudent ? null : data.userId,
+        studentId: isStudent ? data.studentId : null,
         title: data.title,
         message: data.message,
         type: data.type,
@@ -28,7 +35,8 @@ export class NotificationRepository {
     return prisma.notification.createMany({
       data: notifications.map((n) => ({
         schoolId,
-        userId: n.userId,
+        userId: n.studentId ? null : n.userId,
+        studentId: n.studentId ? n.studentId : null,
         title: n.title,
         message: n.message,
         type: n.type,
@@ -39,13 +47,19 @@ export class NotificationRepository {
 
   async findByUser(
     schoolId: string,
-    userId: string,
+    target: NotificationTarget,
     filters: NotificationFilterDto,
   ): Promise<{ list: Notification[]; total: number; unreadCount: number }> {
     const whereClause: Prisma.NotificationWhereInput = {
       schoolId,
-      userId,
+      ...(target.isStudent ? { studentId: target.id } : { userId: target.id }),
       ...(filters.isRead !== undefined && { isRead: filters.isRead }),
+    };
+
+    const unreadWhereClause: Prisma.NotificationWhereInput = {
+      schoolId,
+      ...(target.isStudent ? { studentId: target.id } : { userId: target.id }),
+      isRead: false,
     };
 
     const [list, total, unreadCount] = await Promise.all([
@@ -56,13 +70,7 @@ export class NotificationRepository {
         take: filters.limit,
       }),
       prisma.notification.count({ where: whereClause }),
-      prisma.notification.count({
-        where: {
-          schoolId,
-          userId,
-          isRead: false,
-        },
-      }),
+      prisma.notification.count({ where: unreadWhereClause }),
     ]);
 
     return { list, total, unreadCount };
@@ -70,14 +78,14 @@ export class NotificationRepository {
 
   async markAsRead(
     schoolId: string,
-    userId: string,
+    target: NotificationTarget,
     notificationId: string,
   ): Promise<Notification> {
     const existing = await prisma.notification.findFirst({
       where: {
         id: notificationId,
         schoolId,
-        userId,
+        ...(target.isStudent ? { studentId: target.id } : { userId: target.id }),
       },
     });
 
@@ -91,11 +99,11 @@ export class NotificationRepository {
     });
   }
 
-  async markAllAsRead(schoolId: string, userId: string): Promise<{ count: number }> {
+  async markAllAsRead(schoolId: string, target: NotificationTarget): Promise<{ count: number }> {
     return prisma.notification.updateMany({
       where: {
         schoolId,
-        userId,
+        ...(target.isStudent ? { studentId: target.id } : { userId: target.id }),
         isRead: false,
       },
       data: { isRead: true },
@@ -104,14 +112,14 @@ export class NotificationRepository {
 
   async delete(
     schoolId: string,
-    userId: string,
+    target: NotificationTarget,
     notificationId: string,
   ): Promise<Notification> {
     const existing = await prisma.notification.findFirst({
       where: {
         id: notificationId,
         schoolId,
-        userId,
+        ...(target.isStudent ? { studentId: target.id } : { userId: target.id }),
       },
     });
 
@@ -126,14 +134,15 @@ export class NotificationRepository {
 
   async upsertPushSubscription(
     schoolId: string,
-    userId: string,
+    target: NotificationTarget,
     data: SavePushSubscriptionDto,
   ): Promise<PushSubscription> {
     return prisma.pushSubscription.upsert({
       where: { endpoint: data.endpoint },
       create: {
         schoolId,
-        userId,
+        userId: target.isStudent ? null : target.id,
+        studentId: target.isStudent ? target.id : null,
         endpoint: data.endpoint,
         p256dh: data.keys.p256dh,
         auth: data.keys.auth,
@@ -141,7 +150,8 @@ export class NotificationRepository {
       },
       update: {
         schoolId,
-        userId,
+        userId: target.isStudent ? null : target.id,
+        studentId: target.isStudent ? target.id : null,
         p256dh: data.keys.p256dh,
         auth: data.keys.auth,
         userAgent: data.userAgent,
@@ -157,21 +167,42 @@ export class NotificationRepository {
 
   async findPushSubscriptionsByUser(
     schoolId: string,
-    userId: string,
+    target: NotificationTarget | string,
   ): Promise<PushSubscription[]> {
+    if (typeof target === 'string') {
+      return prisma.pushSubscription.findMany({
+        where: {
+          schoolId,
+          OR: [{ userId: target }, { studentId: target }],
+        },
+      });
+    }
     return prisma.pushSubscription.findMany({
-      where: { schoolId, userId },
+      where: {
+        schoolId,
+        ...(target.isStudent ? { studentId: target.id } : { userId: target.id }),
+      },
     });
   }
 
   async findPushSubscriptionsByUsers(
     schoolId: string,
     userIds: string[],
+    studentIds?: string[],
   ): Promise<PushSubscription[]> {
+    const conditions: Prisma.PushSubscriptionWhereInput[] = [];
+    if (userIds.length > 0) {
+      conditions.push({ userId: { in: userIds } });
+    }
+    if (studentIds && studentIds.length > 0) {
+      conditions.push({ studentId: { in: studentIds } });
+    }
+    if (conditions.length === 0) return [];
+
     return prisma.pushSubscription.findMany({
       where: {
         schoolId,
-        userId: { in: userIds },
+        OR: conditions,
       },
     });
   }

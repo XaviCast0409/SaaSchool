@@ -11,13 +11,15 @@ import {
   Power,
   FileText,
   Lock,
+  ShieldAlert,
+  Sparkles,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useGradeMatrix, useSaveGradeMatrix, usePeriodLock } from '../api/useGrades';
+import { useGradeMatrix, useSaveGradeMatrix, usePeriodLock, useSyncHomeworkToMatrix } from '../api/useGrades';
 import { useToggleCompetence } from '@/features/curricular-areas/api/useCurricularAreas';
 import { getSiagieConversion } from '../types';
 
@@ -40,27 +42,86 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
 }) => {
   const { data, isLoading, isError, refetch } = useGradeMatrix(courseAssignmentId, periodNumber);
   const saveMatrixMutation = useSaveGradeMatrix();
+  const syncHomeworkMutation = useSyncHomeworkToMatrix();
   const { data: periodLock } = usePeriodLock(data?.assignment?.classroom?.id, periodNumber);
   const isLocked = periodLock?.isLocked || false;
 
+  const draftKey = `saaschool_grades_draft_${courseAssignmentId}_${periodNumber}`;
+
+  // Modo de calificación: Vigesimal (0-20) vs Literal (AD, A, B, C)
+  const [gradeMode, setGradeMode] = useState<'NUMERIC' | 'LITERAL'>('NUMERIC');
+  const [hasDraft, setHasDraft] = useState<boolean>(false);
+
   // Matriz local de calificaciones: key = `${enrollmentId}_${competenceId}_${criterionId}` -> valor numérico
   const [scores, setScores] = useState<Record<string, number | null>>({});
+  // Valores raw tipeados en celdas (ej: "18", "AD", "EXO")
+  const [cellValues, setCellValues] = useState<Record<string, string>>({});
+  // Alumnos marcados como exonerados en el curso
+  const [exoneratedEnrollments, setExoneratedEnrollments] = useState<Set<string>>(new Set());
   const [dirtyKeys, setDirtyKeys] = useState<Set<string>>(new Set());
 
   // Referencias para navegación rápida por teclado (tipo Excel)
   const inputsRef = useRef<Map<string, HTMLInputElement>>(new Map());
 
-  // Inicializar estado local cuando llegan datos del servidor
+  // Nivel educativo para modo por defecto
+  useEffect(() => {
+    const level = data?.assignment?.classroom?.educationLevel;
+    if (level === 'INITIAL' || level === 'PRIMARY') {
+      setGradeMode('LITERAL');
+    } else if (level === 'SECONDARY') {
+      setGradeMode('NUMERIC');
+    }
+  }, [data?.assignment?.classroom?.educationLevel]);
+
+  // Inicializar estado local cuando llegan datos del servidor o recuperar borrador local
   useEffect(() => {
     if (!data) return;
     const initialScores: Record<string, number | null> = {};
+    const initialCellValues: Record<string, string> = {};
+    const initialExonerated = new Set<string>();
+
     data.detailedGrades.forEach((g) => {
       const key = `${g.enrollmentId}_${g.competenceId}_${g.criterionId}`;
-      initialScores[key] = g.numericScore;
+      initialScores[key] = g.numericScore ?? null;
+      if (g.isExonerated || g.literalScore === 'EXO') {
+        initialCellValues[key] = 'EXO';
+        initialExonerated.add(g.enrollmentId);
+      } else if (g.literalScore) {
+        initialCellValues[key] = g.literalScore;
+      } else if (g.numericScore !== null && g.numericScore !== undefined) {
+        initialCellValues[key] = String(g.numericScore);
+      }
     });
+
+    // Comprobar si existe borrador local en localStorage
+    const savedDraft = localStorage.getItem(draftKey);
+    if (savedDraft) {
+      try {
+        const parsed = JSON.parse(savedDraft);
+        if (parsed && typeof parsed === 'object') {
+          const draftScores = parsed.scores || {};
+          const draftCellValues = parsed.cellValues || {};
+          const draftExonerated = new Set<string>(parsed.exoneratedEnrollments || []);
+          const draftDirty = new Set<string>(parsed.dirtyKeys || Object.keys(draftCellValues));
+
+          setScores({ ...initialScores, ...draftScores });
+          setCellValues({ ...initialCellValues, ...draftCellValues });
+          setExoneratedEnrollments(new Set([...initialExonerated, ...draftExonerated]));
+          setDirtyKeys(draftDirty);
+          setHasDraft(true);
+          return;
+        }
+      } catch (e) {
+        console.warn('Error al leer borrador local de notas:', e);
+      }
+    }
+
     setScores(initialScores);
+    setCellValues(initialCellValues);
+    setExoneratedEnrollments(initialExonerated);
     setDirtyKeys(new Set());
-  }, [data]);
+    setHasDraft(false);
+  }, [data, draftKey]);
 
   const assignment = data?.assignment;
   const criteria = useMemo(() => data?.criteria || [], [data?.criteria]);
@@ -95,6 +156,96 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
     });
   }, [assignment?.classroom?.enrollments, showWithdrawn, showTransferred]);
 
+  const saveDraftToStorage = (
+    nextScores: Record<string, number | null>,
+    nextCellValues: Record<string, string>,
+    nextExonerated: Set<string>,
+    nextDirty: Set<string>,
+  ) => {
+    try {
+      localStorage.setItem(
+        draftKey,
+        JSON.stringify({
+          scores: nextScores,
+          cellValues: nextCellValues,
+          exoneratedEnrollments: Array.from(nextExonerated),
+          dirtyKeys: Array.from(nextDirty),
+        }),
+      );
+      setHasDraft(true);
+    } catch (e) {
+      console.warn('No se pudo guardar borrador local:', e);
+    }
+  };
+
+  const handleDiscardDraft = () => {
+    localStorage.removeItem(draftKey);
+    setHasDraft(false);
+    if (!data) return;
+    const initialScores: Record<string, number | null> = {};
+    const initialCellValues: Record<string, string> = {};
+    const initialExonerated = new Set<string>();
+
+    data.detailedGrades.forEach((g) => {
+      const key = `${g.enrollmentId}_${g.competenceId}_${g.criterionId}`;
+      initialScores[key] = g.numericScore ?? null;
+      if (g.isExonerated || g.literalScore === 'EXO') {
+        initialCellValues[key] = 'EXO';
+        initialExonerated.add(g.enrollmentId);
+      } else if (g.literalScore) {
+        initialCellValues[key] = g.literalScore;
+      } else if (g.numericScore !== null && g.numericScore !== undefined) {
+        initialCellValues[key] = String(g.numericScore);
+      }
+    });
+
+    setScores(initialScores);
+    setCellValues(initialCellValues);
+    setExoneratedEnrollments(initialExonerated);
+    setDirtyKeys(new Set());
+    toast.info('Borrador local descartado. Se cargaron los datos del servidor.');
+  };
+
+  const handleToggleExoneration = (enrollmentId: string) => {
+    const isNowExo = !exoneratedEnrollments.has(enrollmentId);
+    const nextExo = new Set(exoneratedEnrollments);
+    const nextDirty = new Set(dirtyKeys);
+    const nextScores = { ...scores };
+    const nextCellValues = { ...cellValues };
+
+    if (isNowExo) {
+      nextExo.add(enrollmentId);
+      competences.forEach((comp) => {
+        criteria.forEach((crit) => {
+          const key = `${enrollmentId}_${comp.id}_${crit.id}`;
+          nextCellValues[key] = 'EXO';
+          nextScores[key] = null;
+          nextDirty.add(key);
+        });
+      });
+      toast.info('Estudiante marcado como Exonerado en este curso.');
+    } else {
+      nextExo.delete(enrollmentId);
+      competences.forEach((comp) => {
+        criteria.forEach((crit) => {
+          const key = `${enrollmentId}_${comp.id}_${crit.id}`;
+          if (nextCellValues[key] === 'EXO') {
+            delete nextCellValues[key];
+            nextScores[key] = null;
+            nextDirty.add(key);
+          }
+        });
+      });
+      toast.info('Exoneración removida para este estudiante.');
+    }
+
+    setExoneratedEnrollments(nextExo);
+    setScores(nextScores);
+    setCellValues(nextCellValues);
+    setDirtyKeys(nextDirty);
+    saveDraftToStorage(nextScores, nextCellValues, nextExo, nextDirty);
+  };
+
   // Manejador de cambio en celda
   const handleScoreChange = (
     enrollmentId: string,
@@ -112,19 +263,143 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
     }
 
     const key = `${enrollmentId}_${competenceId}_${criterionId}`;
-    if (rawValue.trim() === '') {
-      setScores((prev) => ({ ...prev, [key]: null }));
-      setDirtyKeys((prev) => new Set(prev).add(key));
-      return;
+    const trimmed = rawValue.trim().toUpperCase();
+
+    const nextScores = { ...scores };
+    const nextCellValues = { ...cellValues };
+    const nextExonerated = new Set(exoneratedEnrollments);
+    const nextDirty = new Set(dirtyKeys).add(key);
+
+    if (trimmed === '') {
+      nextScores[key] = null;
+      delete nextCellValues[key];
+    } else if (trimmed === 'EXO') {
+      nextScores[key] = null;
+      nextCellValues[key] = 'EXO';
+    } else if (gradeMode === 'LITERAL') {
+      if (['AD', 'A', 'B', 'C'].includes(trimmed)) {
+        nextCellValues[key] = trimmed;
+        const siagieMap: Record<string, number> = { AD: 19, A: 15, B: 12, C: 9 };
+        nextScores[key] = siagieMap[trimmed];
+      } else {
+        return;
+      }
+    } else {
+      // Modo Vigesimal
+      const numeric = parseFloat(rawValue);
+      if (isNaN(numeric) || numeric < 0 || numeric > 20) {
+        return;
+      }
+      nextScores[key] = numeric;
+      nextCellValues[key] = rawValue;
     }
 
-    const numeric = parseFloat(rawValue);
-    if (isNaN(numeric) || numeric < 0 || numeric > 20) {
-      return;
-    }
+    setScores(nextScores);
+    setCellValues(nextCellValues);
+    setExoneratedEnrollments(nextExonerated);
+    setDirtyKeys(nextDirty);
+    saveDraftToStorage(nextScores, nextCellValues, nextExonerated, nextDirty);
+  };
 
-    setScores((prev) => ({ ...prev, [key]: numeric }));
-    setDirtyKeys((prev) => new Set(prev).add(key));
+  // Protección anti-pérdida de datos con beforeunload
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (dirtyKeys.size > 0) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [dirtyKeys.size]);
+
+  // Pegado Inteligente Masivo desde Excel (Ctrl + V)
+  const handlePaste = (
+    e: React.ClipboardEvent<HTMLInputElement>,
+    startRowIndex: number,
+    startColIndex: number,
+  ) => {
+    e.preventDefault();
+    const clipboardData = e.clipboardData.getData('text');
+    if (!clipboardData) return;
+
+    const pastedRows = clipboardData
+      .split(/\r\n|\n|\r/)
+      .map((r) => r.split('\t'))
+      .filter((r) => r.length > 0 && !(r.length === 1 && r[0].trim() === ''));
+
+    if (pastedRows.length === 0) return;
+
+    const activeCompetences = competences.filter((c: any) => c.isActive !== false);
+    const flattenedCols: Array<{ compId: string; critId: string }> = [];
+    activeCompetences.forEach((comp) => {
+      criteria.forEach((crit) => {
+        flattenedCols.push({ compId: comp.id, critId: crit.id });
+      });
+    });
+
+    const nextScores = { ...scores };
+    const nextCellValues = { ...cellValues };
+    const nextDirty = new Set(dirtyKeys);
+    let updatedAny = false;
+
+    pastedRows.forEach((pastedRow, rOffset) => {
+      const targetRowIdx = startRowIndex + rOffset;
+      if (targetRowIdx >= enrollments.length) return;
+      const targetEnrollment = enrollments[targetRowIdx];
+      if (
+        targetEnrollment.enrollmentState === 'WITHDRAWN' ||
+        targetEnrollment.enrollmentState === 'TRANSFERRED' ||
+        exoneratedEnrollments.has(targetEnrollment.id)
+      ) {
+        return;
+      }
+
+      pastedRow.forEach((val, cOffset) => {
+        const targetColIdx = startColIndex + cOffset;
+        if (targetColIdx >= flattenedCols.length) return;
+        const targetCol = flattenedCols[targetColIdx];
+        const key = `${targetEnrollment.id}_${targetCol.compId}_${targetCol.critId}`;
+        const trimmed = val.trim().toUpperCase();
+
+        if (trimmed === '' || trimmed === '-') {
+          nextScores[key] = null;
+          nextCellValues[key] = trimmed === '-' ? '-' : '';
+          nextDirty.add(key);
+          updatedAny = true;
+        } else if (trimmed === 'EXO') {
+          nextScores[key] = null;
+          nextCellValues[key] = 'EXO';
+          nextDirty.add(key);
+          updatedAny = true;
+        } else if (gradeMode === 'LITERAL') {
+          if (['AD', 'A', 'B', 'C'].includes(trimmed)) {
+            nextCellValues[key] = trimmed;
+            const map: Record<string, number> = { AD: 19, A: 15, B: 12, C: 9 };
+            nextScores[key] = map[trimmed];
+            nextDirty.add(key);
+            updatedAny = true;
+          }
+        } else {
+          const numeric = parseFloat(val.replace(',', '.'));
+          if (!isNaN(numeric) && numeric >= 0 && numeric <= 20) {
+            nextScores[key] = numeric;
+            nextCellValues[key] = String(numeric);
+            nextDirty.add(key);
+            updatedAny = true;
+          }
+        }
+      });
+    });
+
+    if (updatedAny) {
+      setScores(nextScores);
+      setCellValues(nextCellValues);
+      setDirtyKeys(nextDirty);
+      saveDraftToStorage(nextScores, nextCellValues, exoneratedEnrollments, nextDirty);
+      toast.success(`Pegado masivo desde Excel aplicado (${pastedRows.length} fila/s procesadas).`);
+    }
   };
 
   // Cálculo reactivo de promedios por estudiante y competencia
@@ -132,9 +407,30 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
     return enrollments.map((enrollment, index) => {
       const student = enrollment.student;
       const fullName = `${student.lastNamePaternal} ${student.lastNameMaternal || ''}, ${student.firstNames}`.trim();
+      const isExonerated = exoneratedEnrollments.has(enrollment.id);
 
       // Promedio por cada competencia
       const competenceAverages: Record<string, number | null> = {};
+
+      if (isExonerated) {
+        competences.forEach((comp) => {
+          competenceAverages[comp.id] = null;
+        });
+
+        return {
+          orderIndex: index + 1,
+          enrollmentId: enrollment.id,
+          enrollmentState: enrollment.enrollmentState,
+          studentId: student.id,
+          fullName,
+          studentCode: student.studentCode,
+          documentId: student.documentId,
+          competenceAverages,
+          periodAverage: null,
+          isExonerated: true,
+          incidentsSummary: enrollment.incidentsSummary,
+        };
+      }
 
       competences.forEach((comp) => {
         const isCompActive = (comp as any).isActive !== false;
@@ -148,6 +444,9 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
 
         criteria.forEach((crit) => {
           const key = `${enrollment.id}_${comp.id}_${crit.id}`;
+          const isCellExo = cellValues[key] === 'EXO';
+          if (isCellExo) return;
+
           const val = scores[key];
           if (val !== undefined && val !== null) {
             weightedSum += val * (crit.weight || 1);
@@ -181,13 +480,16 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
         documentId: student.documentId,
         competenceAverages,
         periodAverage,
+        isExonerated: false,
+        incidentsSummary: enrollment.incidentsSummary,
       };
     });
-  }, [enrollments, competences, criteria, scores]);
+  }, [enrollments, competences, criteria, scores, cellValues, exoneratedEnrollments]);
 
   // Estadísticas globales del aula
   const summaryStats = useMemo(() => {
     const validScores = calculatedRows
+      .filter((r) => !r.isExonerated)
       .map((r) => r.periodAverage)
       .filter((s): s is number => s !== null);
 
@@ -263,20 +565,46 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
       enrollmentId: string;
       competenceId: string;
       criterionId: string;
-      numericScore: number;
+      numericScore?: number | null;
+      literalScore?: 'AD' | 'A' | 'B' | 'C' | 'EXO' | null;
+      isExonerated?: boolean;
     }> = [];
 
     enrollments.forEach((enrollment) => {
+      const isStudentExo = exoneratedEnrollments.has(enrollment.id);
+
       competences.forEach((comp) => {
         criteria.forEach((crit) => {
           const key = `${enrollment.id}_${comp.id}_${crit.id}`;
           const val = scores[key];
-          if (val !== undefined && val !== null) {
+          const rawCell = cellValues[key];
+
+          if (rawCell === 'EXO' || isStudentExo) {
+            gradesPayload.push({
+              enrollmentId: enrollment.id,
+              competenceId: comp.id,
+              criterionId: crit.id,
+              numericScore: null,
+              literalScore: 'EXO',
+              isExonerated: true,
+            });
+          } else if (rawCell && ['AD', 'A', 'B', 'C'].includes(rawCell)) {
+            gradesPayload.push({
+              enrollmentId: enrollment.id,
+              competenceId: comp.id,
+              criterionId: crit.id,
+              numericScore: val ?? null,
+              literalScore: rawCell as 'AD' | 'A' | 'B' | 'C',
+              isExonerated: false,
+            });
+          } else if (val !== undefined && val !== null) {
             gradesPayload.push({
               enrollmentId: enrollment.id,
               competenceId: comp.id,
               criterionId: crit.id,
               numericScore: val,
+              literalScore: null,
+              isExonerated: false,
             });
           }
         });
@@ -292,6 +620,8 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
       {
         onSuccess: () => {
           setDirtyKeys(new Set());
+          setHasDraft(false);
+          localStorage.removeItem(draftKey);
         },
       },
     );
@@ -434,7 +764,33 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
         </div>
 
         {/* Botonera de Control */}
-        <div className="flex items-center gap-2 self-end sm:self-auto">
+        <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
+          {/* Toggle de Modo: Vigesimal vs Literal */}
+          <div className="flex items-center gap-1 bg-muted p-0.5 rounded-lg border border-border">
+            <button
+              type="button"
+              onClick={() => setGradeMode('NUMERIC')}
+              className={`px-2 py-1 text-xs font-semibold rounded-md transition-all ${
+                gradeMode === 'NUMERIC'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Vigesimal (0-20)
+            </button>
+            <button
+              type="button"
+              onClick={() => setGradeMode('LITERAL')}
+              className={`px-2 py-1 text-xs font-semibold rounded-md transition-all ${
+                gradeMode === 'LITERAL'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Literal (AD, A, B, C)
+            </button>
+          </div>
+
           {hasUnsavedChanges && (
             <Button
               variant="outline"
@@ -464,6 +820,28 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
               </span>
             </Button>
           )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              try {
+                await syncHomeworkMutation.mutateAsync({
+                  courseAssignmentId,
+                  periodNumber,
+                });
+                refetch();
+              } catch {
+                // handled by onError
+              }
+            }}
+            isLoading={syncHomeworkMutation.isPending}
+            className="text-xs font-semibold gap-1.5 h-8 border-primary/30 text-foreground hover:bg-primary/5"
+            title="Importa y promedia automáticamente las calificaciones del módulo LMS Tareas"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-primary" />
+            <span>Importar Tareas LMS</span>
+          </Button>
 
           <Button
             variant="outline"
@@ -502,6 +880,26 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
           </Button>
         </div>
       </div>
+
+      {/* Banner de Borrador Local Recuperado */}
+      {hasDraft && (
+        <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs text-amber-800 dark:text-amber-300 font-medium shadow-sm">
+          <div className="flex items-center gap-2.5">
+            <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <span>
+              <strong>Borrador local activo:</strong> Se recuperaron notas no guardadas de tu última sesión.
+            </span>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDiscardDraft}
+            className="text-xs h-7 border-amber-500/40 hover:bg-amber-500/15 text-amber-900 dark:text-amber-200"
+          >
+            Descartar borrador local
+          </Button>
+        </div>
+      )}
 
       {/* Banner de Periodo Bloqueado por Dirección */}
       {isLocked && (
@@ -691,6 +1089,14 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
                           <span className="font-semibold text-foreground truncate text-xs" title={row.fullName}>
                             {row.fullName}
                           </span>
+                          {row.isExonerated && (
+                            <Badge
+                              variant="outline"
+                              className="text-[9px] uppercase font-bold tracking-wider h-3.5 px-1 bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 shrink-0"
+                            >
+                              EXONERADO
+                            </Badge>
+                          )}
                           {(row.enrollmentState === 'WITHDRAWN' || row.enrollmentState === 'TRANSFERRED') && (
                             <Badge
                               variant="destructive"
@@ -699,17 +1105,42 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
                               {row.enrollmentState === 'WITHDRAWN' ? 'Retirado' : 'Trasladado'}
                             </Badge>
                           )}
+                          {row.incidentsSummary && row.incidentsSummary.total > 0 && (
+                            <Badge
+                              variant="outline"
+                              className="text-[9px] font-bold px-1.5 py-0 border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300 gap-1 shrink-0"
+                              title={`Incidencias en el periodo: ${row.incidentsSummary.total} (${row.incidentsSummary.topics} tópico, ${row.incidentsSummary.convivencia} convivencia, ${row.incidentsSummary.acoso} acoso)`}
+                            >
+                              <ShieldAlert className="w-2.5 h-2.5 text-amber-600 dark:text-amber-400" />
+                              <span>{row.incidentsSummary.total} inc.</span>
+                            </Badge>
+                          )}
                         </div>
-                        {onOpenReportCard && (
+                        <div className="flex items-center gap-0.5 shrink-0">
                           <button
                             type="button"
-                            onClick={() => onOpenReportCard(row.enrollmentId)}
-                            className="p-1 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary shrink-0 opacity-50 group-hover:opacity-100 hover:!opacity-100 transition-opacity"
-                            title="Ver e Imprimir Libreta PDF"
+                            onClick={() => handleToggleExoneration(row.enrollmentId)}
+                            disabled={isLocked || row.enrollmentState === 'WITHDRAWN' || row.enrollmentState === 'TRANSFERRED'}
+                            className={`p-1 rounded text-xs transition-colors ${
+                              row.isExonerated
+                                ? 'text-amber-600 dark:text-amber-400 bg-amber-500/20'
+                                : 'text-muted-foreground hover:text-foreground hover:bg-muted opacity-40 group-hover:opacity-100'
+                            }`}
+                            title={row.isExonerated ? 'Quitar Exoneración' : 'Marcar Alumno como Exonerado (EXO)'}
                           >
-                            <FileText className="w-3.5 h-3.5" />
+                            <ShieldAlert className="w-3.5 h-3.5" />
                           </button>
-                        )}
+                          {onOpenReportCard && (
+                            <button
+                              type="button"
+                              onClick={() => onOpenReportCard(row.enrollmentId)}
+                              className="p-1 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary opacity-50 group-hover:opacity-100 hover:!opacity-100 transition-opacity"
+                              title="Ver e Imprimir Libreta PDF"
+                            >
+                              <FileText className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                       <div className="text-[10px] font-mono text-muted-foreground truncate">
                         <span>DNI: {row.documentId}</span>
@@ -722,7 +1153,14 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
                       style={{ backgroundColor: 'hsl(var(--secondary))' }}
                       className="sticky left-[284px] z-20 w-[76px] min-w-[76px] max-w-[76px] border-r-2 border-border shadow-[4px_0_8px_-2px_rgba(0,0,0,0.12)] px-2 py-1 text-center font-bold"
                     >
-                      {row.periodAverage !== null ? (
+                      {row.isExonerated ? (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] font-mono font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30"
+                        >
+                          EXO
+                        </Badge>
+                      ) : row.periodAverage !== null ? (
                         <div className="flex flex-col items-center">
                           <span
                             className={`font-mono font-extrabold text-sm ${
@@ -786,6 +1224,14 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
                             const isInactive =
                               row.enrollmentState === 'WITHDRAWN' ||
                               row.enrollmentState === 'TRANSFERRED';
+                            const isCellExo = cellValues[key] === 'EXO' || row.isExonerated;
+                            const cellDisplay = isCellExo
+                              ? 'EXO'
+                              : cellValues[key] !== undefined
+                              ? cellValues[key]
+                              : scoreValue !== undefined && scoreValue !== null
+                              ? String(scoreValue)
+                              : '';
 
                             const inputRefKey = `${rowIndex}_${colIdx}`;
 
@@ -795,6 +1241,8 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
                                 className={`p-1 border-r border-border/40 text-center ${
                                   isInactive
                                     ? 'bg-muted/30'
+                                    : isCellExo
+                                    ? 'bg-amber-500/10'
                                     : isDirty
                                     ? 'bg-amber-500/10'
                                     : ''
@@ -806,14 +1254,19 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
                                     else inputsRef.current.delete(inputRefKey);
                                   }}
                                   type="text"
-                                  inputMode="decimal"
-                                  disabled={isLocked || isInactive || saveMatrixMutation.isPending}
-                                  value={scoreValue !== undefined && scoreValue !== null ? scoreValue : ''}
+                                  inputMode={gradeMode === 'NUMERIC' ? 'decimal' : 'text'}
+                                  disabled={isLocked || isInactive || row.isExonerated || saveMatrixMutation.isPending}
+                                  value={cellDisplay}
                                   placeholder={isInactive ? '' : '—'}
+                                  onPaste={(e) => handlePaste(e, rowIndex, colIdx)}
                                   title={
                                     isInactive
                                       ? 'Estudiante retirado/trasladado: el SIAGIE exige mantener sus celdas vacías'
-                                      : ''
+                                      : row.isExonerated
+                                      ? 'Estudiante Exonerado'
+                                      : gradeMode === 'LITERAL'
+                                      ? 'Ingresa AD, A, B, C o EXO'
+                                      : 'Ingresa 0-20 o EXO'
                                   }
                                   onChange={(e) =>
                                     handleScoreChange(
@@ -827,6 +1280,8 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
                                   className={`w-12 h-7 text-center font-mono font-bold text-xs rounded border transition-all focus:outline-none focus:ring-2 focus:ring-primary ${
                                     isInactive
                                       ? 'bg-muted/40 border-border/40 text-muted-foreground/30 cursor-not-allowed'
+                                      : isCellExo
+                                      ? 'bg-amber-500/15 border-amber-500/40 text-amber-700 dark:text-amber-400 font-extrabold'
                                       : scoreValue !== null && scoreValue !== undefined && scoreValue < 11
                                       ? 'text-rose-600 dark:text-rose-400 border-rose-400/50 bg-rose-500/5'
                                       : scoreValue !== null && scoreValue !== undefined

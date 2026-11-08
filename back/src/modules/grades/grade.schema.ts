@@ -31,7 +31,9 @@ export const batchGradeItemSchema = z.object({
   enrollmentId: z.string().uuid(),
   competenceId: z.string().uuid(),
   criterionId: z.string().uuid(),
-  numericScore: z.number().min(0, 'La nota mínima es 0').max(20, 'La nota máxima es 20'),
+  numericScore: z.number().min(0, 'La nota mínima es 0').max(20, 'La nota máxima es 20').nullable().optional(),
+  literalScore: z.enum(['AD', 'A', 'B', 'C', 'EXO', '-']).nullable().optional(),
+  isExonerated: z.boolean().optional(),
   comment: z.string().optional().nullable(),
 });
 
@@ -41,9 +43,17 @@ export const batchSaveGradesSchema = z.object({
   grades: z.array(batchGradeItemSchema),
 });
 
+export const syncHomeworkToMatrixSchema = z.object({
+  courseAssignmentId: z.string().uuid(),
+  periodNumber: z.number().int().min(1).max(4),
+  targetCriterionId: z.string().uuid(),
+  targetCompetenceId: z.string().uuid().optional(),
+});
+
 export type GetMatrixQueryDto = z.infer<typeof getMatrixQuerySchema>;
 export type BatchGradeItemDto = z.infer<typeof batchGradeItemSchema>;
 export type BatchSaveGradesDto = z.infer<typeof batchSaveGradesSchema>;
+export type SyncHomeworkToMatrixDto = z.infer<typeof syncHomeworkToMatrixSchema>;
 
 // ==========================================
 // Conclusiones Descriptivas por Competencia (Docente)
@@ -94,6 +104,7 @@ export const siagieSummaryQuerySchema = z.object({
     .or(z.literal(''))
     .transform((val) => val || undefined),
   periodNumber: z.coerce.number().int().min(1).max(4),
+  calculationMode: z.enum(['LAST_PERIOD', 'AVERAGE']).optional(),
 });
 
 export type SiagieSummaryQueryDto = z.infer<typeof siagieSummaryQuerySchema>;

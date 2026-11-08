@@ -35,7 +35,80 @@ export class EnrollmentRepository {
     enrollmentId: string,
     schoolId: string,
     data: UpdateEnrollmentDto,
+    existingEnrollment?: Enrollment | null,
   ): Promise<Enrollment> {
+    const isStateChange = data.enrollmentState === 'WITHDRAWN' || data.enrollmentState === 'TRANSFERRED';
+    const isClassroomChange = Boolean(
+      data.classroomId &&
+      existingEnrollment &&
+      data.classroomId !== existingEnrollment.classroomId,
+    );
+
+    if (isStateChange || isClassroomChange) {
+      return prisma.$transaction(async (tx) => {
+        // Conexión 3: Migración automática de notas y conclusiones al cambiar de aula
+        if (isClassroomChange && existingEnrollment && data.classroomId) {
+          const oldAssignments = await tx.courseAssignment.findMany({
+            where: { schoolId, classroomId: existingEnrollment.classroomId },
+          });
+          const newAssignments = await tx.courseAssignment.findMany({
+            where: { schoolId, classroomId: data.classroomId },
+          });
+
+          for (const oldAssignment of oldAssignments) {
+            const matchedNewAssignment = newAssignments.find(
+              (na) => na.areaId === oldAssignment.areaId,
+            );
+            if (matchedNewAssignment) {
+              await tx.detailedGrade.updateMany({
+                where: {
+                  schoolId,
+                  enrollmentId,
+                  courseAssignmentId: oldAssignment.id,
+                },
+                data: {
+                  courseAssignmentId: matchedNewAssignment.id,
+                },
+              });
+
+              await tx.competenceConclusion.updateMany({
+                where: {
+                  schoolId,
+                  enrollmentId,
+                  courseAssignmentId: oldAssignment.id,
+                },
+                data: {
+                  courseAssignmentId: matchedNewAssignment.id,
+                },
+              });
+            }
+          }
+        }
+
+        const updated = await tx.enrollment.update({
+          where: { id: enrollmentId, schoolId },
+          data,
+        });
+
+        // Cancelar automáticamente pensiones futuras pendientes por retiro o traslado
+        if (isStateChange) {
+          await tx.paymentObligation.updateMany({
+            where: {
+              schoolId,
+              enrollmentId,
+              status: 'PENDING',
+              dueDate: { gt: new Date() },
+            },
+            data: {
+              status: 'CANCELLED',
+            },
+          });
+        }
+
+        return updated;
+      });
+    }
+
     return prisma.enrollment.update({
       where: { id: enrollmentId, schoolId },
       data,

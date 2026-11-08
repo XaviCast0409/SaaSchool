@@ -28,7 +28,7 @@ const enrollWizardSchema = z
     firstNames: z.string().trim().min(2, 'Nombres requeridos (mínimo 2 letras)'),
     lastNamePaternal: z.string().trim().min(2, 'Apellido paterno requerido'),
     lastNameMaternal: z.string().trim().optional(),
-    documentType: z.enum(['DNI', 'CE', 'CARNET_EXTRANJERIA', 'PASSPORT', 'PNA', 'CODIGO_TEMPORAL', 'OTHER']).default('DNI'),
+    documentType: z.enum(['DNI', 'CE', 'PTP', 'PASSPORT', 'BIRTH_CERTIFICATE', 'CARNET_EXTRANJERIA', 'PNA', 'CODIGO_TEMPORAL', 'OTHER']).default('DNI'),
     documentId: z.string().trim().min(1, 'Número de documento requerido'),
     gender: z.enum(['MALE', 'FEMALE']),
     birthDate: z.string().min(1, 'Fecha de nacimiento requerida'),
@@ -47,6 +47,8 @@ const enrollWizardSchema = z
     condition: z.enum(['INGRESANTE', 'CONTINUO', 'TRASLADO', 'REENTRANTE']).default('CONTINUO'),
     previousSchoolModularCode: z.string().trim().optional(),
     repeatingGrade: z.boolean().default(false),
+    customPensionAmount: z.coerce.number().min(0, 'El monto no puede ser negativo').optional().nullable(),
+    discountReason: z.string().trim().optional(),
 
     // Paso 3: Apoderado y Familia
     parentMode: z.enum(['EXISTING', 'NEW']).default('EXISTING'),
@@ -71,13 +73,22 @@ const enrollWizardSchema = z
     livesWithStudent: z.boolean().default(true),
   })
   .superRefine((data, ctx) => {
-    // Validar DNI de Alumno (8 dígitos numéricos exactos si es DNI)
+    // Validar Documento de Alumno (8 dígitos numéricos exactos si es DNI, 6-15 si extranjero)
     if (data.documentType === 'DNI') {
       const cleanDoc = data.documentId.trim();
       if (!/^\d{8}$/.test(cleanDoc)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: 'El DNI peruano debe tener exactamente 8 dígitos numéricos (ej: 72819203)',
+          path: ['documentId'],
+        });
+      }
+    } else if (['CE', 'PTP', 'PASSPORT', 'BIRTH_CERTIFICATE'].includes(data.documentType)) {
+      const cleanDoc = data.documentId.trim();
+      if (!/^[A-Za-z0-9-]{6,15}$/.test(cleanDoc)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'El documento extranjero debe tener entre 6 y 15 caracteres alfanuméricos',
           path: ['documentId'],
         });
       }
@@ -143,20 +154,32 @@ const enrollWizardSchema = z
           path: ['newParentLastNamePaternal'],
         });
       }
-      if (!data.newParentEmail || !z.string().email().safeParse(data.newParentEmail).success) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Ingresa un correo electrónico válido para el apoderado',
-          path: ['newParentEmail'],
-        });
+      if (data.newParentEmail && data.newParentEmail.trim().length > 0) {
+        if (!z.string().email().safeParse(data.newParentEmail).success) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Ingresa un correo electrónico válido para el apoderado',
+            path: ['newParentEmail'],
+          });
+        }
       }
 
-      if (!data.newParentDocumentId || !/^\d{8}$/.test(data.newParentDocumentId.trim())) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'El DNI del apoderado es requerido (8 dígitos numéricos) para su usuario y contraseña',
-          path: ['newParentDocumentId'],
-        });
+      if (data.newParentDocumentType === 'DNI') {
+        if (!data.newParentDocumentId || !/^\d{8}$/.test(data.newParentDocumentId.trim())) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'El DNI del apoderado debe constar de 8 dígitos numéricos para su acceso',
+            path: ['newParentDocumentId'],
+          });
+        }
+      } else if (['CE', 'PTP', 'PASSPORT'].includes(data.newParentDocumentType)) {
+        if (!data.newParentDocumentId || !/^[A-Za-z0-9-]{6,15}$/.test(data.newParentDocumentId.trim())) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'El documento extranjero debe tener entre 6 y 15 caracteres alfanuméricos',
+            path: ['newParentDocumentId'],
+          });
+        }
       }
 
       if (data.newParentCellphone && data.newParentCellphone.trim().length > 0) {
@@ -305,6 +328,8 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
           condition: data.condition,
           previousSchoolModularCode: data.condition === 'TRASLADO' ? data.previousSchoolModularCode?.trim() : null,
           repeatingGrade: data.repeatingGrade,
+          customPensionAmount: data.customPensionAmount ? Number(data.customPensionAmount) : null,
+          discountReason: data.discountReason?.trim() || null,
         },
         guardian: {
           mode: data.parentMode,
@@ -319,7 +344,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                   firstName: data.newParentFirstName!.trim(),
                   lastNamePaternal: data.newParentLastNamePaternal!.trim(),
                   lastNameMaternal: data.newParentLastNameMaternal?.trim() || null,
-                  email: data.newParentEmail!.trim(),
+                  email: data.newParentEmail?.trim() || null,
                   documentType: data.newParentDocumentType,
                   documentId: data.newParentDocumentId?.trim() || null,
                   cellphone: data.newParentCellphone?.trim() || null,
@@ -541,10 +566,10 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                     className="w-full text-xs rounded-xl border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="DNI">DNI (8 dígitos)</option>
-                    <option value="CARNET_EXTRANJERIA">Carné Extranjería (CE)</option>
+                    <option value="CE">Carné de Extranjería (CE)</option>
+                    <option value="PTP">Permiso Temporal (PTP)</option>
                     <option value="PASSPORT">Pasaporte</option>
-                    <option value="PNA">Partida de Nacimiento</option>
-                    <option value="CODIGO_TEMPORAL">Cód. Temporal SIAGIE</option>
+                    <option value="BIRTH_CERTIFICATE">Partida de Nacimiento</option>
                     <option value="OTHER">Otro</option>
                   </select>
                 </div>
@@ -839,6 +864,43 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                 </label>
               </div>
 
+              {/* Becas, Descuentos y Pensión Personalizada */}
+              <div className="p-3.5 rounded-xl border border-border bg-muted/20 space-y-3">
+                <span className="text-xs font-bold text-foreground block">
+                  Pensión Especial, Beca o Descuento (Opcional)
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-foreground block mb-1">
+                      Monto de Pensión Personalizada (S/)
+                    </label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      {...register('customPensionAmount')}
+                      placeholder="Ej: 350.00 (dejar vacío si es regular)"
+                      className="text-xs rounded-xl font-mono"
+                    />
+                    {errors.customPensionAmount && (
+                      <p className="text-[10px] text-destructive mt-1 font-medium">
+                        {errors.customPensionAmount.message}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-foreground block mb-1">
+                      Motivo de Descuento / Beca
+                    </label>
+                    <Input
+                      {...register('discountReason')}
+                      placeholder="Ej: Media Beca, Hijo de Docente, Convenio"
+                      className="text-xs rounded-xl"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="flex justify-between pt-2">
                 <Button type="button" variant="outline" onClick={() => setStep(1)} className="gap-2 text-xs">
                   <ChevronLeft className="w-4 h-4" />
@@ -968,24 +1030,41 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                       <label className="text-xs font-semibold text-foreground block mb-1">
-                        DNI del Apoderado (8 dígitos) *
+                        Tipo Doc. Apoderado *
+                      </label>
+                      <select
+                        {...register('newParentDocumentType')}
+                        className="w-full text-xs rounded-xl border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                      >
+                        <option value="DNI">DNI (8 dígitos)</option>
+                        <option value="CE">Carné Extranjería (CE)</option>
+                        <option value="PTP">Permiso Temporal (PTP)</option>
+                        <option value="PASSPORT">Pasaporte</option>
+                        <option value="OTHER">Otro</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-foreground block mb-1">
+                        N° Documento *
                       </label>
                       <Input
                         {...register('newParentDocumentId')}
-                        placeholder="8 dígitos numéricos"
-                        maxLength={8}
+                        placeholder="N° de documento"
+                        maxLength={15}
                         className="text-xs rounded-xl font-mono"
                       />
                       {errors.newParentDocumentId && (
                         <p className="text-[10px] text-destructive mt-1 font-medium">{errors.newParentDocumentId.message}</p>
                       )}
                       <span className="text-[10px] text-muted-foreground block mt-0.5">
-                        Este DNI será su usuario y contraseña inicial de acceso.
+                        Será su usuario y contraseña de acceso inicial.
                       </span>
                     </div>
+
                     <div>
                       <label className="text-xs font-semibold text-foreground block mb-1">
                         Celular (9 dígitos)
@@ -1002,14 +1081,17 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs font-semibold text-foreground block mb-1">
-                        Correo Electrónico *
+                        Correo Electrónico (Opcional)
                       </label>
                       <Input
                         type="email"
                         {...register('newParentEmail')}
-                        placeholder="padre@ejemplo.com"
+                        placeholder="padre@ejemplo.com (opcional)"
                         className="text-xs rounded-xl"
                       />
+                      {errors.newParentEmail && (
+                        <p className="text-[10px] text-destructive mt-1 font-medium">{errors.newParentEmail.message}</p>
+                      )}
                     </div>
                     <div>
                       <label className="text-xs font-semibold text-foreground block mb-1">

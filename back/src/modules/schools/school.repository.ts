@@ -134,7 +134,7 @@ export class SchoolRepository {
     });
 
     return {
-      adminEmail: adminUser.email,
+      adminEmail: adminUser.email ?? '',
       newPassword: passwordToSet,
       adminName: `${adminUser.firstName} ${adminUser.lastNamePaternal}`,
     };

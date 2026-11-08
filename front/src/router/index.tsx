@@ -19,6 +19,7 @@ import { SuperAdminPage } from '@/features/super-admin/pages/SuperAdminPage';
 import { StudentCoursesPage } from '@/features/course-contents/pages/StudentCoursesPage';
 import { VirtualClassroomSupervisionPage } from '@/features/course-contents/pages/VirtualClassroomSupervisionPage';
 import { AcademicReportsPage } from '@/features/academic-reports/pages/AcademicReportsPage';
+import { IncidentsPage } from '@/features/incidents/pages/IncidentsPage';
 import { PlanGuard } from '@/components/ui/PlanGuard';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -54,7 +55,7 @@ const RoleGuard: React.FC<{
     return <Navigate to="/dashboard" replace />;
   }
 
-  const isStudent = Boolean(
+  const isStudent = user.role === 'STUDENT' || Boolean(
     user.email &&
       (user.email.toLowerCase().includes('alumno') || user.email.toLowerCase().includes('estudiante')),
   );
@@ -94,7 +95,7 @@ export const AppRouter: React.FC = () => {
           <Route
             path="/announcements"
             element={
-              <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT']}>
+              <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT']}>
                 <AnnouncementsPage />
               </RoleGuard>
             }
@@ -161,7 +162,7 @@ export const AppRouter: React.FC = () => {
           <Route
             path="/grades"
             element={
-              <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT']}>
+              <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT', 'STUDENT']}>
                 <GradesPage />
               </RoleGuard>
             }
@@ -179,7 +180,7 @@ export const AppRouter: React.FC = () => {
           <Route
             path="/virtual-classroom"
             element={
-              <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT']}>
+              <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT', 'STUDENT']}>
                 <StudentCoursesPage />
               </RoleGuard>
             }
@@ -195,8 +196,16 @@ export const AppRouter: React.FC = () => {
           <Route
             path="/attendance"
             element={
-              <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT']}>
+              <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT']}>
                 <AttendancePage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="/incidents"
+            element={
+              <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT']}>
+                <IncidentsPage />
               </RoleGuard>
             }
           />

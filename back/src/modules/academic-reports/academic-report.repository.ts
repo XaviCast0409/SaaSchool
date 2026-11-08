@@ -1,6 +1,7 @@
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
 import { EducationLevel, EnrollmentState } from '@prisma/client';
+import { getPeriodDateRange } from '../../utils/period-dates.util';
 
 export class AcademicReportRepository {
   /**
@@ -188,11 +189,26 @@ export class AcademicReportRepository {
       },
     });
 
-    // Asistencias agregadas de los estudiantes del aula
+    const academicYear = await prisma.academicYear.findFirst({
+      where: { schoolId, isActive: true },
+    });
+    const dateRange = getPeriodDateRange(
+      academicYear || {
+        startDate: new Date(new Date().getFullYear(), 0, 1),
+        endDate: new Date(new Date().getFullYear(), 11, 31),
+      },
+      periodNumber,
+    );
+
+    // Asistencias agregadas de los estudiantes del aula en el periodo
     const attendances = await prisma.attendance.findMany({
       where: {
         schoolId,
         enrollmentId: { in: enrollmentIds },
+        date: {
+          gte: dateRange.startDate,
+          lte: dateRange.endDate,
+        },
       },
       select: {
         enrollmentId: true,

@@ -14,7 +14,9 @@ export interface DetailedGradeItem {
   enrollmentId: string;
   competenceId: string;
   criterionId: string;
-  numericScore: number;
+  numericScore: number | null;
+  literalScore?: 'AD' | 'A' | 'B' | 'C' | 'EXO' | '-' | null;
+  isExonerated?: boolean;
   comment?: string | null;
 }
 
@@ -31,6 +33,12 @@ export interface MatrixEnrollment {
   id: string; // enrollmentId
   enrollmentState?: 'REGISTERED' | 'TRANSFERRED' | 'WITHDRAWN';
   student: MatrixStudent;
+  incidentsSummary?: {
+    total: number;
+    topics: number;
+    convivencia: number;
+    acoso: number;
+  };
 }
 
 export interface MatrixCompetence {
@@ -76,7 +84,9 @@ export interface BatchSaveGradesPayload {
     enrollmentId: string;
     competenceId: string;
     criterionId: string;
-    numericScore: number;
+    numericScore?: number | null;
+    literalScore?: 'AD' | 'A' | 'B' | 'C' | 'EXO' | '-' | null;
+    isExonerated?: boolean;
     comment?: string | null;
   }>;
 }
@@ -211,6 +221,8 @@ export interface ReportCardCourse {
   assignmentId: string;
   areaName: string;
   officialCode?: string | null;
+  parentAreaId?: string | null;
+  parentAreaName?: string | null;
   teacherName: string;
   periods: ReportCardPeriod[];
   annualScore: number | null;
@@ -249,6 +261,15 @@ export interface ReportCardData {
     absentUnjustified: number;
     totalRegisteredDays: number;
   };
+  periodAttendanceStats?: Array<{
+    periodNumber: number;
+    present: number;
+    lateJustified: number;
+    lateUnjustified: number;
+    absentJustified: number;
+    absentUnjustified: number;
+    totalRegisteredDays: number;
+  }>;
   courses: ReportCardCourse[];
   generalAnnualAverage: number | null;
   generalAnnualSiagie: {
@@ -365,6 +386,12 @@ export interface SiagieSummaryData {
   overallPercentage: number;
   courses: SiagieCourseSummary[];
   matrix?: SiagieMatrixData;
+  unmappedCompetences?: Array<{
+    areaName: string;
+    competenceCode: string;
+    competenceName: string;
+  }>;
+  calculationMode?: 'LAST_PERIOD' | 'AVERAGE';
 }
 
 // ==========================================

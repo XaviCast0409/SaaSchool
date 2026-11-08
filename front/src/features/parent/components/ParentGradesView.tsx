@@ -8,6 +8,7 @@ import {
   Award,
   Sparkles,
   X,
+  Lock,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -29,7 +30,12 @@ export const ParentGradesView: React.FC = () => {
     children.find((c) => c.id === selectedChildId) || children[0] || null;
   const enrollmentId = activeChild?.activeEnrollment?.id;
 
-  const { data: reportCard, isLoading: loadingReportCard } = useReportCard(enrollmentId || '');
+  const {
+    data: reportCard,
+    isLoading: loadingReportCard,
+    error: reportCardError,
+  } = useReportCard(enrollmentId || '');
+  const is402Blocked = (reportCardError as any)?.response?.status === 402;
   const courses = useMemo(() => reportCard?.courses || [], [reportCard]);
 
   // Filtro de búsqueda
@@ -79,6 +85,27 @@ export const ParentGradesView: React.FC = () => {
         <p className="text-xs text-muted-foreground">
           No hay alumnos vinculados a tu cuenta de usuario.
         </p>
+      </div>
+    );
+  }
+
+  if (is402Blocked) {
+    return (
+      <div className="p-8 sm:p-12 text-center bg-card border-2 border-dashed border-amber-500/30 rounded-3xl space-y-4 shadow-sm max-w-xl mx-auto my-8">
+        <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
+          <Lock className="w-8 h-8" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-lg font-black text-foreground">
+            Acceso Restringido a Calificaciones
+          </h2>
+          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+            La visualización de notas y libretas se encuentra temporalmente restringida debido a pensiones o conceptos educativos pendientes de pago.
+          </p>
+        </div>
+        <div className="p-3 bg-muted/50 rounded-xl text-xs text-muted-foreground border border-border">
+          Por favor, comuníquese con el área de <strong>Tesorería o Administración</strong> del colegio para regularizar su situación.
+        </div>
       </div>
     );
   }

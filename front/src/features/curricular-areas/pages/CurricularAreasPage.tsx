@@ -99,10 +99,14 @@ export const CurricularAreasPage: React.FC = () => {
   const [isCompetenceModalOpen, setIsCompetenceModalOpen] = useState(false);
   const [targetAreaIdForCompetence, setTargetAreaIdForCompetence] = useState<string | null>(null);
 
-  // Form State para la creación mediante Catálogo
+  // Form State para la creación / edición
+  const [areaMode, setAreaMode] = useState<'OFFICIAL' | 'SUB_AREA'>('OFFICIAL');
   const [modalLevel, setModalLevel] = useState<EducationLevel>('PRIMARY');
   const [selectedCourseCode, setSelectedCourseCode] = useState<string>('');
   const [customCourseName, setCustomCourseName] = useState<string>('');
+  const [subCourseName, setSubCourseName] = useState<string>('');
+  const [parentAreaId, setParentAreaId] = useState<string>('');
+  const [evaluatedCompIds, setEvaluatedCompIds] = useState<string[]>([]);
 
   // Form State para la edición directa
   const [editForm, setEditForm] = useState({ name: '', officialCode: '' });
@@ -121,8 +125,20 @@ export const CurricularAreasPage: React.FC = () => {
     activeCategory,
   );
 
-  // Consulta de todas las áreas (para totales generales de KPIs)
+  // Consulta de todas las áreas (para totales generales de KPIs y selección de Área Madre)
   const { data: allAreas = [] } = useCurricularAreas();
+
+  // Filtrar áreas oficiales madre (parentAreaId === null)
+  const motherAreas = useMemo(() => allAreas.filter((a) => !a.parentAreaId), [allAreas]);
+  const availableMotherAreas = useMemo(() => {
+    const filtered = motherAreas.filter((a) => (a.level || getAreaLevel(a)) === modalLevel);
+    return filtered.length > 0 ? filtered : motherAreas;
+  }, [motherAreas, modalLevel]);
+
+  const selectedMotherArea = useMemo(
+    () => motherAreas.find((a) => a.id === parentAreaId),
+    [motherAreas, parentAreaId],
+  );
 
   const areas = paginatedResponse?.data || [];
   const meta = paginatedResponse?.meta;
@@ -155,31 +171,57 @@ export const CurricularAreasPage: React.FC = () => {
     e.preventDefault();
     try {
       if (editingArea) {
-        await updateArea({ id: editingArea.id, payload: editForm });
-        toast.success('Asignatura / Área actualizada correctamente.');
+        await updateArea({
+          id: editingArea.id,
+          payload: {
+            name: editForm.name,
+            officialCode: editForm.officialCode || undefined,
+            parentAreaId: areaMode === 'SUB_AREA' ? parentAreaId : null,
+            evaluatedCompetenceIds: areaMode === 'SUB_AREA' ? evaluatedCompIds : [],
+          },
+        });
+        toast.success('Asignatura / Sub-curso actualizado correctamente.');
       } else {
-        let finalName = '';
-        let finalCode = '';
-
-        if (selectedCourseCode === 'CUSTOM') {
-          if (!customCourseName.trim()) {
-            toast.error('Ingresa el nombre del curso personalizado o taller.');
+        if (areaMode === 'SUB_AREA') {
+          if (!subCourseName.trim()) {
+            toast.error('Ingresa el nombre del sub-curso o rama interna.');
             return;
           }
-          finalName = customCourseName.trim();
-          finalCode = 'CUSTOM';
+          if (!parentAreaId) {
+            toast.error('Selecciona el Área Oficial Madre.');
+            return;
+          }
+          await createArea({
+            name: subCourseName.trim(),
+            level: modalLevel,
+            parentAreaId,
+            evaluatedCompetenceIds: evaluatedCompIds,
+          });
+          toast.success('✨ Sub-curso registrado con vinculación oficial al Área Madre.');
         } else {
-          const selectedCourse = catalogCourses.find((c) => c.officialCode === selectedCourseCode);
-          if (!selectedCourse) {
-            toast.error('Selecciona un curso válido del catálogo.');
-            return;
-          }
-          finalName = selectedCourse.name;
-          finalCode = selectedCourse.officialCode;
-        }
+          let finalName = '';
+          let finalCode = '';
 
-        await createArea({ name: finalName, officialCode: finalCode });
-        toast.success('✨ Asignatura creada con sus competencias oficiales SIAGIE autogeneradas.');
+          if (selectedCourseCode === 'CUSTOM') {
+            if (!customCourseName.trim()) {
+              toast.error('Ingresa el nombre del curso personalizado o taller.');
+              return;
+            }
+            finalName = customCourseName.trim();
+            finalCode = 'CUSTOM';
+          } else {
+            const selectedCourse = catalogCourses.find((c) => c.officialCode === selectedCourseCode);
+            if (!selectedCourse) {
+              toast.error('Selecciona un curso válido del catálogo.');
+              return;
+            }
+            finalName = selectedCourse.name;
+            finalCode = selectedCourse.officialCode;
+          }
+
+          await createArea({ name: finalName, officialCode: finalCode, level: modalLevel });
+          toast.success('✨ Asignatura oficial creada con sus competencias SIAGIE autogeneradas.');
+        }
       }
       setIsAreaModalOpen(false);
       refetch();
@@ -284,10 +326,28 @@ export const CurricularAreasPage: React.FC = () => {
               <span>{isSeeding ? 'Precargando...' : 'Precargar Malla Oficial MINEDU'}</span>
             </Button>
             <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 text-xs font-semibold border-primary/30 hover:bg-primary/5 text-foreground"
+              onClick={() => {
+                setEditingArea(null);
+                setAreaMode('SUB_AREA');
+                setModalLevel('SECONDARY');
+                setSubCourseName('');
+                setParentAreaId(availableMotherAreas[0]?.id || '');
+                setEvaluatedCompIds([]);
+                setIsAreaModalOpen(true);
+              }}
+            >
+              <Plus className="w-4 h-4 text-primary" />
+              <span>Agregar Sub-curso / Rama</span>
+            </Button>
+            <Button
               size="sm"
               className="gap-2 text-xs font-bold"
               onClick={() => {
                 setEditingArea(null);
+                setAreaMode('OFFICIAL');
                 setModalLevel('PRIMARY');
                 setSelectedCourseCode('');
                 setCustomCourseName('');
@@ -391,6 +451,8 @@ export const CurricularAreasPage: React.FC = () => {
             {areas.map((area) => {
               const isExpanded = expandedAreaId === area.id;
               const level = getAreaLevel(area);
+              const isMotherArea = !area.parentAreaId;
+              const subCourses = allAreas.filter((s) => s.parentAreaId === area.id);
 
               return (
                 <Card key={area.id} className="bg-card hover:border-primary/40 transition-all">
@@ -419,6 +481,15 @@ export const CurricularAreasPage: React.FC = () => {
                                 ? 'Secundaria (Polidocencia)'
                                 : 'Primaria (Polidocencia/Unidocencia)'}
                           </Badge>
+                          {isMotherArea ? (
+                            <Badge variant="outline" className="text-[10px] font-bold border-primary/40 bg-primary/10 text-primary">
+                              Área Madre Oficial
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] font-bold border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300">
+                              Sub-curso de: {area.parentArea?.name || 'Área Madre'}
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-xs text-muted-foreground flex items-center gap-1">
                           <Award className="w-3 h-3 text-emerald-500" />
@@ -429,6 +500,26 @@ export const CurricularAreasPage: React.FC = () => {
                       <div className="flex items-center gap-2 self-end sm:self-auto">
                         {isAdmin && (
                           <>
+                            {isMotherArea && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 text-xs gap-1 border-primary/30 text-primary hover:bg-primary/10 font-semibold"
+                                onClick={() => {
+                                  setEditingArea(null);
+                                  setAreaMode('SUB_AREA');
+                                  setParentAreaId(area.id);
+                                  setModalLevel(level);
+                                  setSubCourseName('');
+                                  setEvaluatedCompIds([]);
+                                  setIsAreaModalOpen(true);
+                                }}
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                                <span>Sub-curso</span>
+                              </Button>
+                            )}
+
                             <Button
                               variant="outline"
                               size="sm"
@@ -453,6 +544,13 @@ export const CurricularAreasPage: React.FC = () => {
                                   name: area.name,
                                   officialCode: area.officialCode || '',
                                 });
+                                if (area.parentAreaId) {
+                                  setAreaMode('SUB_AREA');
+                                  setParentAreaId(area.parentAreaId);
+                                  setEvaluatedCompIds(area.evaluatedCompetenceIds || []);
+                                } else {
+                                  setAreaMode('OFFICIAL');
+                                }
                                 setIsAreaModalOpen(true);
                               }}
                             >
@@ -480,6 +578,81 @@ export const CurricularAreasPage: React.FC = () => {
                         </Button>
                       </div>
                     </div>
+
+                    {/* Sub-cursos Asociados (Jerarquía CNEB) */}
+                    {isMotherArea && subCourses.length > 0 && (
+                      <div className="pt-2.5 border-t border-border/60">
+                        <div className="flex items-center justify-between pb-2">
+                          <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                            <Layers className="w-3.5 h-3.5 text-primary" />
+                            <span>Sub-cursos / Ramas del Área ({subCourses.length})</span>
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                          {subCourses.map((sub) => {
+                            const hasSpecificComps = sub.evaluatedCompetenceIds && sub.evaluatedCompetenceIds.length > 0;
+                            return (
+                              <div
+                                key={sub.id}
+                                className="p-2.5 rounded-xl border border-border bg-muted/30 flex flex-col justify-between gap-1.5"
+                              >
+                                <div className="flex items-start justify-between gap-1">
+                                  <span className="font-bold text-xs text-foreground truncate">{sub.name}</span>
+                                  {isAdmin && (
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-5 w-5 p-0 text-muted-foreground hover:text-primary"
+                                        onClick={() => {
+                                          setEditingArea(sub);
+                                          setEditForm({ name: sub.name, officialCode: sub.officialCode || '' });
+                                          setAreaMode('SUB_AREA');
+                                          setParentAreaId(area.id);
+                                          setEvaluatedCompIds(sub.evaluatedCompetenceIds || []);
+                                          setIsAreaModalOpen(true);
+                                        }}
+                                      >
+                                        <Pencil className="w-3 h-3" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive"
+                                        onClick={() => handleDeleteArea(sub)}
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1 flex-wrap text-[10px]">
+                                  {hasSpecificComps ? (
+                                    sub.evaluatedCompetenceIds!.map((cid, i) => {
+                                      const compObj = area.competences?.find((c) => c.id === cid);
+                                      return (
+                                        <Badge
+                                          key={cid}
+                                          variant="secondary"
+                                          className="text-[9px] px-1.5 py-0 font-mono font-bold bg-primary/10 text-primary border border-primary/20"
+                                          title={compObj?.name || `Competencia ${i + 1}`}
+                                        >
+                                          C{i + 1}
+                                        </Badge>
+                                      );
+                                    })
+                                  ) : (
+                                    <Badge variant="outline" className="text-[9px] px-1 py-0 text-muted-foreground">
+                                      Evalúa todas
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Competencias Subpanel */}
                     {isExpanded && (
@@ -695,21 +868,57 @@ export const CurricularAreasPage: React.FC = () => {
         </div>
       )}
 
-      {/* Modal Crear mediante Catálogo / Editar Área */}
+      {/* Modal Crear mediante Catálogo / Sub-curso / Editar Área */}
       {isAreaModalOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-8 sm:pt-14 p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
           <div className="relative w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4 my-auto sm:my-0">
             <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-primary" />
-              <span>{editingArea ? 'Editar Curso / Área' : 'Agregar Curso Oficial (Catálogo SIAGIE)'}</span>
+              <span>
+                {editingArea
+                  ? editingArea.parentAreaId
+                    ? 'Editar Sub-curso / Rama Interna'
+                    : 'Editar Asignatura Oficial'
+                  : areaMode === 'SUB_AREA'
+                  ? 'Nuevo Sub-curso / Rama Interna'
+                  : 'Agregar Curso Oficial (Catálogo SIAGIE)'}
+              </span>
             </h2>
+
+            {!editingArea && (
+              <div className="flex rounded-xl bg-secondary p-1 border border-border">
+                <button
+                  type="button"
+                  onClick={() => setAreaMode('OFFICIAL')}
+                  className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+                    areaMode === 'OFFICIAL' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  🏛️ Área Oficial Madre
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAreaMode('SUB_AREA');
+                    if (!parentAreaId && availableMotherAreas.length > 0) {
+                      setParentAreaId(availableMotherAreas[0].id);
+                    }
+                  }}
+                  className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+                    areaMode === 'SUB_AREA' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  🌿 Sub-curso / Rama Interna
+                </button>
+              </div>
+            )}
 
             <form onSubmit={handleSaveArea} className="space-y-4">
               {editingArea ? (
                 <>
                   <div>
                     <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">
-                      Nombre del Curso / Área Curricular *
+                      Nombre del Curso / Sub-curso *
                     </label>
                     <input
                       type="text"
@@ -720,16 +929,163 @@ export const CurricularAreasPage: React.FC = () => {
                     />
                   </div>
 
+                  {!editingArea.parentAreaId ? (
+                    <div>
+                      <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">
+                        Código Oficial MINEDU (Opcional)
+                      </label>
+                      <input
+                        type="text"
+                        value={editForm.officialCode}
+                        onChange={(e) => setEditForm({ ...editForm, officialCode: e.target.value.toUpperCase() })}
+                        className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-primary uppercase"
+                      />
+                    </div>
+                  ) : (
+                    selectedMotherArea && selectedMotherArea.competences && selectedMotherArea.competences.length > 0 && (
+                      <div className="space-y-2 p-3 rounded-xl bg-muted/40 border border-border">
+                        <label className="text-xs font-bold text-foreground block">
+                          Competencias Evaluables del Área Madre:
+                        </label>
+                        <p className="text-[11px] text-muted-foreground">
+                          Marca las competencias que este sub-curso evaluará. Si dejas todas sin marcar, evaluará todas las competencias del área madre.
+                        </p>
+                        <div className="space-y-1.5 pt-1 max-h-48 overflow-y-auto">
+                          {selectedMotherArea.competences.map((c, idx) => {
+                            const checked = evaluatedCompIds.includes(c.id);
+                            return (
+                              <label
+                                key={c.id}
+                                className="flex items-center gap-2 p-2 rounded-lg bg-card border border-border/80 text-xs cursor-pointer hover:bg-secondary/50"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setEvaluatedCompIds([...evaluatedCompIds, c.id]);
+                                    } else {
+                                      setEvaluatedCompIds(evaluatedCompIds.filter((id) => id !== c.id));
+                                    }
+                                  }}
+                                  className="rounded border-border text-primary focus:ring-primary"
+                                />
+                                <span className="font-mono text-[11px] font-bold text-primary">C{idx + 1}</span>
+                                <span className="font-medium text-foreground">{c.name}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )
+                  )}
+                </>
+              ) : areaMode === 'SUB_AREA' ? (
+                <>
                   <div>
                     <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">
-                      Código Oficial MINEDU (Opcional)
+                      1. Nivel Educativo *
+                    </label>
+                    <select
+                      value={modalLevel}
+                      onChange={(e) => {
+                        const newLvl = e.target.value as EducationLevel;
+                        setModalLevel(newLvl);
+                        const forLvl = motherAreas.filter((a) => (a.level || getAreaLevel(a)) === newLvl);
+                        setParentAreaId(forLvl[0]?.id || motherAreas[0]?.id || '');
+                        setEvaluatedCompIds([]);
+                      }}
+                      className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="INITIAL">Inicial (3 a 5 Años)</option>
+                      <option value="PRIMARY">Primaria (1° a 6° Grado)</option>
+                      <option value="SECONDARY">Secundaria (1° a 5° Año)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">
+                      2. Área Madre Oficial a la que pertenece *
+                    </label>
+                    <select
+                      value={parentAreaId}
+                      required
+                      onChange={(e) => {
+                        setParentAreaId(e.target.value);
+                        setEvaluatedCompIds([]);
+                      }}
+                      className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="">-- Selecciona el Área Oficial --</option>
+                      {availableMotherAreas.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name} ({m.officialCode || m.officialAreaCode || 'OFICIAL'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">
+                      3. Nombre del Sub-curso o Rama Interna *
                     </label>
                     <input
                       type="text"
-                      value={editForm.officialCode}
-                      onChange={(e) => setEditForm({ ...editForm, officialCode: e.target.value.toUpperCase() })}
-                      className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-primary uppercase"
+                      required
+                      placeholder='Ej: "Aritmética", "Álgebra", "Geometría", "Física", "Biología"'
+                      value={subCourseName}
+                      onChange={(e) => setSubCourseName(e.target.value)}
+                      className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     />
+                  </div>
+
+                  {selectedMotherArea && selectedMotherArea.competences && selectedMotherArea.competences.length > 0 && (
+                    <div className="space-y-2 p-3 rounded-xl bg-muted/40 border border-border">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-foreground">
+                          Competencias que evaluará este sub-curso:
+                        </label>
+                        <span className="text-[10px] text-muted-foreground">
+                          {evaluatedCompIds.length === 0 ? 'Evalúa todas' : `${evaluatedCompIds.length} seleccionadas`}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Marca las competencias específicas. Si no marcas ninguna, evaluará todas las competencias del Área Madre.
+                      </p>
+                      <div className="space-y-1.5 pt-1 max-h-48 overflow-y-auto">
+                        {selectedMotherArea.competences.map((c, idx) => {
+                          const checked = evaluatedCompIds.includes(c.id);
+                          return (
+                            <label
+                              key={c.id}
+                              className="flex items-center gap-2 p-2 rounded-lg bg-card border border-border/80 text-xs cursor-pointer hover:bg-secondary/50"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setEvaluatedCompIds([...evaluatedCompIds, c.id]);
+                                  } else {
+                                    setEvaluatedCompIds(evaluatedCompIds.filter((id) => id !== c.id));
+                                  }
+                                }}
+                                className="rounded border-border text-primary focus:ring-primary"
+                              />
+                              <span className="font-mono text-[11px] font-bold text-primary">C{idx + 1}</span>
+                              <span className="font-medium text-foreground">{c.name}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="p-3 rounded-xl bg-muted/40 border border-border text-xs text-muted-foreground flex items-start gap-2">
+                    <Info className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <span>
+                      <strong>Consolidación SIAGIE Automática:</strong> Las notas de este sub-curso se promediarán directamente con las de los demás sub-cursos en las competencias de su Área Madre oficial.
+                    </span>
                   </div>
                 </>
               ) : (
@@ -783,7 +1139,7 @@ export const CurricularAreasPage: React.FC = () => {
                   <div className="p-3 rounded-xl bg-muted/40 border border-border text-xs text-muted-foreground flex items-start gap-2">
                     <Info className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                     <span>
-                      <strong>Competencias Automáticas:</strong> Al guardar, el sistema asociará automáticamente las 3 o 4 competencias oficiales evaluables SIAGIE para este curso.
+                      <strong>Competencias Automáticas:</strong> Al guardar, el sistema asociará automáticamente las competencias oficiales CNEB correspondientes para este nivel.
                     </span>
                   </div>
                 </>

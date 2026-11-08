@@ -27,6 +27,46 @@ export class ClassroomService {
     }
   }
 
+  private async syncTransversalAssignment(
+    schoolId: string,
+    classroomId: string,
+    _educationLevel: string,
+    tutorTeacherId?: string | null,
+  ): Promise<void> {
+    if (!tutorTeacherId) return;
+
+    const transversalArea = await prisma.curricularArea.findFirst({
+      where: {
+        schoolId,
+        isTransversal: true,
+        OR: [
+          { officialAreaCode: 'TRANS' },
+          { officialCode: { contains: 'TRANS' } },
+        ],
+      },
+    });
+
+    if (!transversalArea) return;
+
+    await prisma.courseAssignment.upsert({
+      where: {
+        classroomId_areaId: {
+          classroomId,
+          areaId: transversalArea.id,
+        },
+      },
+      create: {
+        schoolId,
+        classroomId,
+        areaId: transversalArea.id,
+        teacherId: tutorTeacherId,
+      },
+      update: {
+        teacherId: tutorTeacherId,
+      },
+    });
+  }
+
   async getAllClassrooms(schoolId: string): Promise<ClassroomWithTutor[]> {
     return this.classroomRepository.findAllBySchool(schoolId);
   }
@@ -46,7 +86,11 @@ export class ClassroomService {
     createClassroomDto: CreateClassroomDto,
   ): Promise<ClassroomWithTutor> {
     await this.validateTutorTeacher(schoolId, createClassroomDto.tutorTeacherId);
-    return this.classroomRepository.create(schoolId, createClassroomDto);
+    const result = await this.classroomRepository.create(schoolId, createClassroomDto);
+    if (createClassroomDto.tutorTeacherId) {
+      await this.syncTransversalAssignment(schoolId, result.id, result.educationLevel, createClassroomDto.tutorTeacherId);
+    }
+    return result;
   }
 
   async updateClassroom(
@@ -58,7 +102,11 @@ export class ClassroomService {
     if (updateClassroomDto.tutorTeacherId !== undefined) {
       await this.validateTutorTeacher(schoolId, updateClassroomDto.tutorTeacherId);
     }
-    return this.classroomRepository.update(classroomId, schoolId, updateClassroomDto);
+    const updated = await this.classroomRepository.update(classroomId, schoolId, updateClassroomDto);
+    if (updateClassroomDto.tutorTeacherId) {
+      await this.syncTransversalAssignment(schoolId, classroomId, updated.educationLevel, updateClassroomDto.tutorTeacherId);
+    }
+    return updated;
   }
 
   async deleteClassroom(classroomId: string, schoolId: string): Promise<Classroom> {

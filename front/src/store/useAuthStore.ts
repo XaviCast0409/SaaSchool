@@ -1,15 +1,18 @@
 import { create } from 'zustand';
 import { queryClient } from '../lib/queryClient';
 
+export type Role = 'SUPER_ADMIN' | 'SCHOOL_ADMIN' | 'ADMINISTRATIVE' | 'TEACHER' | 'PARENT' | 'STUDENT';
+
 export interface User {
   id: string;
   email: string;
-  role: 'SUPER_ADMIN' | 'SCHOOL_ADMIN' | 'ADMINISTRATIVE' | 'TEACHER' | 'PARENT';
+  role: Role;
   firstName: string;
   lastNamePaternal: string;
   schoolId: string;
   documentId?: string | null;
   mustChangePassword?: boolean;
+  studentId?: string;
 }
 
 export interface ImpersonatedSchool {

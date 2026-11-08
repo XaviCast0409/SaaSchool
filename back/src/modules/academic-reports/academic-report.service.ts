@@ -25,7 +25,7 @@ export class AcademicReportService {
     const criteriaWeightMap = new Map(criteria.map((c) => [c.id, c.weight || 1]));
 
     // Mapeo en memoria de notas por clave: `${enrollmentId}_${courseAssignmentId}_${competenceId}`
-    const gradesMap = new Map<string, Array<{ criterionId: string; numericScore: number; shortName?: string }>>();
+    const gradesMap = new Map<string, Array<{ criterionId: string; numericScore: number | null; shortName?: string }>>();
     detailedGrades.forEach((gradeItem) => {
       const key = `${gradeItem.enrollmentId}_${gradeItem.courseAssignmentId}_${gradeItem.competenceId}`;
       if (!gradesMap.has(key)) {
@@ -76,12 +76,13 @@ export class AcademicReportService {
           const key = `${enr.id}_${assignment.id}_${comp.id}`;
           const items = gradesMap.get(key) || [];
 
-          if (items.length > 0) {
-            const totalWeight = items.reduce(
+          const numericItems = items.filter((it): it is typeof it & { numericScore: number } => it.numericScore !== null && it.numericScore !== undefined);
+          if (numericItems.length > 0) {
+            const totalWeight = numericItems.reduce(
               (acc, it) => acc + (criteriaWeightMap.get(it.criterionId) || 1),
               0,
             );
-            const weightedSum = items.reduce(
+            const weightedSum = numericItems.reduce(
               (acc, it) => acc + it.numericScore * (criteriaWeightMap.get(it.criterionId) || 1),
               0,
             );
@@ -92,7 +93,7 @@ export class AcademicReportService {
 
             // Buscar si alguno corresponde al rubro de Conducta (COND)
             const condItem = items.find((it) => it.shortName === 'COND');
-            if (condItem && conductScore === null) {
+            if (condItem && conductScore === null && condItem.numericScore !== null && condItem.numericScore !== undefined) {
               conductScore = condItem.numericScore;
             }
           }
@@ -388,7 +389,7 @@ export class AcademicReportService {
     const { school, classrooms, criteria, detailedGrades } = raw;
     const criteriaWeightMap = new Map(criteria.map((c) => [c.id, c.weight || 1]));
 
-    const gradesMap = new Map<string, Array<{ criterionId: string; numericScore: number; shortName?: string }>>();
+    const gradesMap = new Map<string, Array<{ criterionId: string; numericScore: number | null; shortName?: string }>>();
     detailedGrades.forEach((g) => {
       const key = `${g.enrollmentId}_${g.courseAssignmentId}_${g.competenceId}`;
       if (!gradesMap.has(key)) gradesMap.set(key, []);
@@ -423,14 +424,17 @@ export class AcademicReportService {
           const compScores: number[] = [];
           assignment.area.competences.forEach((comp) => {
             const items = gradesMap.get(`${enr.id}_${assignment.id}_${comp.id}`) || [];
-            if (items.length > 0) {
-              const totalW = items.reduce((acc, it) => acc + (criteriaWeightMap.get(it.criterionId) || 1), 0);
-              const weightedSum = items.reduce((acc, it) => acc + it.numericScore * (criteriaWeightMap.get(it.criterionId) || 1), 0);
+            const numericItems = items.filter((it): it is typeof it & { numericScore: number } => it.numericScore !== null && it.numericScore !== undefined);
+            if (numericItems.length > 0) {
+              const totalW = numericItems.reduce((acc, it) => acc + (criteriaWeightMap.get(it.criterionId) || 1), 0);
+              const weightedSum = numericItems.reduce((acc, it) => acc + it.numericScore * (criteriaWeightMap.get(it.criterionId) || 1), 0);
               const sc = totalW > 0 ? weightedSum / totalW : null;
               if (sc !== null) compScores.push(sc);
 
               const cond = items.find((it) => it.shortName === 'COND');
-              if (cond && conductScore === null) conductScore = cond.numericScore;
+              if (cond && conductScore === null && cond.numericScore !== null && cond.numericScore !== undefined) {
+                conductScore = cond.numericScore;
+              }
             }
           });
 
@@ -619,7 +623,9 @@ export class AcademicReportService {
     );
 
     const students = classroom.enrollments.map((enr, idx) => {
-      const conductGrades = enr.detailedGrades.map((dg) => dg.numericScore);
+      const conductGrades = enr.detailedGrades
+        .map((dg) => dg.numericScore)
+        .filter((score): score is number => score !== null && score !== undefined);
       const avgConduct =
         conductGrades.length > 0
           ? Math.round(conductGrades.reduce((a, b) => a + b, 0) / conductGrades.length)

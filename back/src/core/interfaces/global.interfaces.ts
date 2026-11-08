@@ -26,9 +26,10 @@ export interface PaginationParams {
  */
 export interface AuthenticatedUser {
   userId: string;
+  studentId?: string;
   schoolId: string;
   role: string;
-  email: string;
+  email?: string | null;
 }
 
 // Augmentación del namespace de Express para tipado global

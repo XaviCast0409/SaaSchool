@@ -1,5 +1,6 @@
 import React from 'react';
 import { School, BookOpen, Calendar, UserCheck } from 'lucide-react';
+import { useActiveAcademicYear } from '@/features/academic-years/api/useAcademicYears';
 
 interface ClassroomOption {
   id: string;
@@ -52,6 +53,11 @@ export const GradesFilterBar: React.FC<GradesFilterBarProps> = ({
   onToggleWithdrawn,
   onToggleTransferred,
 }) => {
+  const { activeYear } = useActiveAcademicYear();
+  const isTrimester = activeYear?.periodType === 'TRIMESTER';
+  const periods = isTrimester ? [1, 2, 3] : [1, 2, 3, 4];
+  const periodLabel = isTrimester ? 'Trimestre' : 'Bimestre';
+
   return (
     <div className="bg-card border border-border rounded-xl p-4 shadow-sm space-y-3">
       {/* Fila Principal de Filtros */}
@@ -118,10 +124,11 @@ export const GradesFilterBar: React.FC<GradesFilterBarProps> = ({
               onChange={(e) => onPeriodChange(Number(e.target.value))}
               className="w-full h-9 rounded-md border border-input bg-background px-3 text-xs font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
             >
-              <option value={1}>1° Bimestre</option>
-              <option value={2}>2° Bimestre</option>
-              <option value={3}>3° Bimestre</option>
-              <option value={4}>4° Bimestre</option>
+              {periods.map((p) => (
+                <option key={p} value={p}>
+                  {p}° {periodLabel}
+                </option>
+              ))}
             </select>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import type { Notification, PushSubscription } from '@prisma/client';
-import type { NotificationRepository } from './notification.repository';
+import type { NotificationRepository, NotificationTarget } from './notification.repository';
 import type {
   CreateNotificationDto,
   NotificationFilterDto,
@@ -11,53 +11,60 @@ import { env } from '../../config/env';
 export class NotificationService {
   constructor(private readonly notificationRepository: NotificationRepository) {}
 
+  private resolveTarget(target: NotificationTarget | string): NotificationTarget {
+    if (typeof target === 'string') {
+      return { id: target, isStudent: false };
+    }
+    return target;
+  }
+
   getVapidPublicKey(): string {
     return env.VAPID_PUBLIC_KEY;
   }
 
   async getMyNotifications(
     schoolId: string,
-    userId: string,
+    target: NotificationTarget | string,
     filters: NotificationFilterDto,
   ): Promise<{ list: Notification[]; total: number; unreadCount: number }> {
-    return this.notificationRepository.findByUser(schoolId, userId, filters);
+    return this.notificationRepository.findByUser(schoolId, this.resolveTarget(target), filters);
   }
 
   async markAsRead(
     schoolId: string,
-    userId: string,
+    target: NotificationTarget | string,
     notificationId: string,
   ): Promise<Notification> {
-    return this.notificationRepository.markAsRead(schoolId, userId, notificationId);
+    return this.notificationRepository.markAsRead(schoolId, this.resolveTarget(target), notificationId);
   }
 
-  async markAllAsRead(schoolId: string, userId: string): Promise<{ count: number }> {
-    return this.notificationRepository.markAllAsRead(schoolId, userId);
+  async markAllAsRead(schoolId: string, target: NotificationTarget | string): Promise<{ count: number }> {
+    return this.notificationRepository.markAllAsRead(schoolId, this.resolveTarget(target));
   }
 
   async deleteNotification(
     schoolId: string,
-    userId: string,
+    target: NotificationTarget | string,
     notificationId: string,
   ): Promise<Notification> {
-    return this.notificationRepository.delete(schoolId, userId, notificationId);
+    return this.notificationRepository.delete(schoolId, this.resolveTarget(target), notificationId);
   }
 
   async savePushSubscription(
     schoolId: string,
-    userId: string,
+    target: NotificationTarget | string,
     data: SavePushSubscriptionDto,
   ): Promise<PushSubscription> {
-    return this.notificationRepository.upsertPushSubscription(schoolId, userId, data);
+    return this.notificationRepository.upsertPushSubscription(schoolId, this.resolveTarget(target), data);
   }
 
   async sendTestPushNotification(
     schoolId: string,
-    userId: string,
+    target: NotificationTarget | string,
   ): Promise<{ sent: number; failed: number }> {
     const subscriptions = await this.notificationRepository.findPushSubscriptionsByUser(
       schoolId,
-      userId,
+      this.resolveTarget(target),
     );
 
     let sent = 0;
@@ -94,13 +101,16 @@ export class NotificationService {
   ): Promise<Notification> {
     const notification = await this.notificationRepository.create(schoolId, data);
 
-    // Enviar Web Push en segundo plano a los celulares/navegadores registrados del usuario
-    this.dispatchPushToUser(schoolId, data.userId, {
-      title: data.title,
-      message: data.message,
-      type: data.type,
-      link: data.link,
-    }).catch((err) => console.error('Error dispatching push to user:', err));
+    // Enviar Web Push en segundo plano a los celulares/navegadores registrados del usuario o alumno
+    const targetId = (data.studentId || data.userId)!;
+    if (targetId) {
+      this.dispatchPushToUser(schoolId, targetId, {
+        title: data.title,
+        message: data.message,
+        type: data.type,
+        link: data.link,
+      }).catch((err) => console.error('Error dispatching push to user/student:', err));
+    }
 
     return notification;
   }
@@ -113,7 +123,13 @@ export class NotificationService {
 
     // Enviar Web Push en segundo plano a los usuarios afectados
     if (notifications.length > 0) {
-      const userIds = Array.from(new Set(notifications.map((n) => n.userId)));
+      const userIds = Array.from(
+        new Set(
+          notifications
+            .map((n) => n.userId)
+            .filter((uid): uid is string => Boolean(uid)),
+        ),
+      );
       this.dispatchPushToMultipleUsers(schoolId, userIds, {
         title: notifications[0].title,
         message: notifications[0].message,

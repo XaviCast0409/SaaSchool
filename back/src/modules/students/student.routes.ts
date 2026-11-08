@@ -54,6 +54,18 @@ studentRouter.get(
   studentController.getMyChildren,
 );
 
+// Constancias oficiales del estudiante
+studentRouter.get(
+  '/:id/certificates/enrollment',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'PARENT', 'STUDENT'),
+  studentController.getEnrollmentCertificate,
+);
+studentRouter.get(
+  '/:id/certificates/no-debt',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'PARENT', 'STUDENT'),
+  studentController.getNoDebtCertificate,
+);
+
 studentRouter.get(
   '/:id',
   authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),

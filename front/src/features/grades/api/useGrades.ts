@@ -207,8 +207,14 @@ export const useReportCard = (enrollmentId: string) => {
 export const useSiagieSummary = (
   classroomId: string,
   periodNumber: number,
+  calculationModeOrOptions?: 'LAST_PERIOD' | 'AVERAGE' | { enabled?: boolean },
   options?: { enabled?: boolean },
 ) => {
+  const calculationMode =
+    typeof calculationModeOrOptions === 'string' ? calculationModeOrOptions : undefined;
+  const opts =
+    typeof calculationModeOrOptions === 'object' ? calculationModeOrOptions : options;
+
   const { user, impersonatedSchool } = useAuthStore();
   const currentSchoolId =
     user?.role === 'SUPER_ADMIN' && impersonatedSchool?.id
@@ -216,14 +222,50 @@ export const useSiagieSummary = (
       : user?.schoolId;
 
   return useQuery({
-    queryKey: ['siagie-summary', classroomId, periodNumber, currentSchoolId],
+    queryKey: ['siagie-summary', classroomId, periodNumber, calculationMode, currentSchoolId],
     queryFn: async () => {
       const response = await api.get<ApiResponse<SiagieSummaryData>>('/grades/siagie/summary', {
-        params: { classroomId, periodNumber },
+        params: { classroomId, periodNumber, calculationMode },
       });
       return response.data.data;
     },
-    enabled: (options?.enabled ?? true) && Boolean(classroomId && periodNumber > 0),
+    enabled: (opts?.enabled ?? true) && Boolean(classroomId && periodNumber > 0),
+  });
+};
+
+/**
+ * Conexión 1: Sincroniza calificaciones desde las tareas entregadas en el LMS hacia la matriz de notas.
+ */
+export const useSyncHomeworkToMatrix = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      courseAssignmentId,
+      periodNumber,
+    }: {
+      courseAssignmentId: string;
+      periodNumber: number;
+    }) => {
+      const response = await api.post<ApiResponse<{ updatedCount: number; message: string }>>(
+        '/grades/matrix/sync-homework',
+        { courseAssignmentId, periodNumber },
+      );
+      return response.data.data;
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['grades-matrix', variables.courseAssignmentId, variables.periodNumber],
+      });
+      toast.success('Tareas LMS Sincronizadas', {
+        description: data.message || `Se actualizaron ${data.updatedCount} notas con éxito.`,
+      });
+    },
+    onError: (error: any) => {
+      toast.error('Error al sincronizar tareas LMS', {
+        description: error?.response?.data?.message || 'No se pudieron sincronizar las tareas evaluadas.',
+      });
+    },
   });
 };
 

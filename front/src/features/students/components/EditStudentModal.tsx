@@ -36,6 +36,14 @@ const editStudentSchema = z
           path: ['documentId'],
         });
       }
+    } else if (['CE', 'PTP', 'PASSPORT', 'BIRTH_CERTIFICATE'].includes(data.documentType)) {
+      if (!/^[A-Za-z0-9-]{6,15}$/.test(data.documentId.trim())) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'El documento extranjero debe tener entre 6 y 15 caracteres alfanuméricos',
+          path: ['documentId'],
+        });
+      }
     }
     if (data.birthUbigeo && data.birthUbigeo.trim().length > 0) {
       if (!/^\d{6}$/.test(data.birthUbigeo.trim())) {
@@ -181,10 +189,10 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isO
                 className="w-full h-9 rounded-md border border-border bg-background px-3 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="DNI">DNI (8 dígitos)</option>
-                <option value="CARNET_EXTRANJERIA">Carné Extranjería (CE)</option>
+                <option value="CE">Carné de Extranjería (CE)</option>
+                <option value="PTP">Permiso Temporal (PTP)</option>
                 <option value="PASSPORT">Pasaporte</option>
-                <option value="PNA">Partida Nacimiento</option>
-                <option value="CODIGO_TEMPORAL">Cód. Temporal SIAGIE</option>
+                <option value="BIRTH_CERTIFICATE">Partida de Nacimiento</option>
                 <option value="OTHER">Otro</option>
               </select>
             </div>

@@ -9,6 +9,7 @@ export interface AcademicYear {
   startDate: string;
   endDate: string;
   isActive: boolean;
+  periodType?: 'BIMESTER' | 'TRIMESTER';
 }
 
 export interface CreateAcademicYearPayload {
@@ -32,6 +33,12 @@ export const useAcademicYears = () => {
       return response.data.data;
     },
   });
+};
+
+export const useActiveAcademicYear = () => {
+  const query = useAcademicYears();
+  const activeYear = (query.data || []).find((y) => y.isActive);
+  return { ...query, activeYear };
 };
 
 export const useCreateAcademicYear = () => {

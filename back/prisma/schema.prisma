@@ -28,6 +28,8 @@ enum DocumentType {
   PASSPORT
   PNA // Partida de Nacimiento
   CODIGO_TEMPORAL
+  PTP
+  BIRTH_CERTIFICATE
   OTHER
 }
 
@@ -121,6 +123,7 @@ enum NotificationType {
   ATTENDANCE
   ANNOUNCEMENT
   ACADEMIC
+  INCIDENT
   GENERAL
 }
 
@@ -143,7 +146,9 @@ model School {
   plan            SubscriptionPlan @default(BASIC) // Plan contratado (BASIC, PRO, ENTERPRISE)
   planExpiresAt   DateTime?        // Fecha límite de vigencia del plan
   offeredLevels   EducationLevel[] @default([PRIMARY, SECONDARY]) // Niveles que opera el colegio
-  isActive        Boolean          @default(true)
+  blockGradesOnOverdue Boolean         @default(false) // Bloqueo de libretas a familias morosas
+  receiptCounter       Int             @default(0)     // Correlativo oficial de recibos (REC-XXXXXX)
+  isActive             Boolean         @default(true)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
@@ -168,12 +173,13 @@ model School {
   courseContents      CourseContent[]
   forumComments       ForumComment[]
   attendanceScheduleConfigs AttendanceScheduleConfig[]
+  incidents           StudentIncident[]
 }
 
 model User {
   id               String       @id @default(uuid())
   schoolId         String
-  email            String       @unique
+  email            String?      @unique
   passwordHash     String
   role             Role         @default(PARENT)
   
@@ -202,6 +208,7 @@ model User {
   pushSubscriptions PushSubscription[]
   authoredContents CourseContent[]      @relation("AuthoredContents")
   forumComments    ForumComment[]
+  incidentsAuthored StudentIncident[]   @relation("IncidentAuthor")
 
   @@index([schoolId, role])
 }
@@ -232,6 +239,8 @@ model Student {
   hasDisability      Boolean      @default(false)
   disabilityType     String?
   address            String?
+  passwordHash       String?
+  mustChangePassword Boolean      @default(true)
 
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
@@ -239,6 +248,8 @@ model Student {
   school             School       @relation(fields: [schoolId], references: [id])
   familyRelations    FamilyRelationship[]
   enrollments        Enrollment[]
+  notifications      Notification[]
+  pushSubscriptions  PushSubscription[]
 
   @@unique([schoolId, documentType, documentId])
   @@index([schoolId, documentId])
@@ -268,8 +279,11 @@ model AcademicYear {
   schoolId    String
   year        Int          // Ej: 2026
   name        String?      // Ej: "Año Escolar 2026"
-  startDate   DateTime
-  endDate     DateTime
+  periodType            String       @default("BIMESTER") // BIMESTER (4 periodos) o TRIMESTER (3 periodos)
+  periodsConfig         Json?        // Array<{ periodNumber: number, name: string, startDate: string, endDate: string }>
+  annualCalculationMode String       @default("LAST_PERIOD") // 'LAST_PERIOD' (RVM 094-2020) o 'AVERAGE'
+  startDate             DateTime
+  endDate               DateTime
   isActive    Boolean      @default(true)
 
   school      School       @relation(fields: [schoolId], references: [id])
@@ -308,6 +322,9 @@ model Enrollment {
   condition                 EnrollmentCondition @default(CONTINUO)
   previousSchoolModularCode String?
   repeatingGrade            Boolean             @default(false)
+  customPensionAmount       Decimal?            @db.Decimal(10, 2)
+  discountReason            String?
+  finalSituation            String?             // PROMOTED, RECOVERY, RETAINED, TRANSFERRED, WITHDRAWN
   isActive                  Boolean             @default(true)
 
   student                   Student         @relation(fields: [studentId], references: [id])
@@ -319,6 +336,8 @@ model Enrollment {
   grades                    Grade[]
   detailedGrades            DetailedGrade[]
   competenceConclusions     CompetenceConclusion[]
+  homeworkSubmissions       HomeworkSubmission[]
+  incidents                 StudentIncident[]
 
   @@unique([studentId, academicYearId])
   @@index([schoolId, academicYearId])
@@ -370,33 +389,37 @@ model PaymentTransaction {
 // 7. ACADÉMICO, SIAGIE Y CONVERSIÓN DE NOTAS (MVP Fase 2)
 // ============================================================================
 model CurricularArea {
-  id             String   @id @default(uuid())
-  schoolId       String
-  name           String   // Ej: "Matemática"
-  officialCode   String?  // Código MINEDU
-  parentAreaId   String?  // ID del Área Madre Oficial SIAGIE (si es una sub-área interna)
-  isActive       Boolean  @default(true)
+  id               String                 @id @default(uuid())
+  schoolId         String
+  name             String                 // Ej: "Matemática"
+  officialCode     String?                // Código MINEDU
+  isTransversal    Boolean                @default(false)
+  officialAreaCode String?                // Ej: 'MAT', 'COM', 'CYT', 'TRANS'
+  parentAreaId           String?                // ID del Área Madre Oficial SIAGIE (si es una sub-área interna)
+  evaluatedCompetenceIds String[]               @default([]) // Competencias evaluadas por el sub-curso
+  isActive               Boolean                @default(true)
 
-  school         School                 @relation(fields: [schoolId], references: [id])
-  parentArea     CurricularArea?        @relation("SubAreas", fields: [parentAreaId], references: [id], onDelete: SetNull)
-  subAreas       CurricularArea[]       @relation("SubAreas")
-  competences    CurricularCompetence[]
-  assignments    CourseAssignment[]
+  school                 School                 @relation(fields: [schoolId], references: [id])
+  parentArea             CurricularArea?        @relation("AreaHierarchy", fields: [parentAreaId], references: [id], onDelete: SetNull)
+  subAreas               CurricularArea[]       @relation("AreaHierarchy")
+  competences            CurricularCompetence[]
+  assignments            CourseAssignment[]
 
   @@index([schoolId, parentAreaId])
 }
 
 model CurricularCompetence {
-  id             String         @id @default(uuid())
-  areaId         String
-  name           String         // Ej: "Resuelve problemas de cantidad"
-  description    String?
-  isActive       Boolean        @default(true)
+  id                     String                 @id @default(uuid())
+  areaId                 String
+  name                   String                 // Ej: "Resuelve problemas de cantidad"
+  description            String?
+  officialCompetenceCode String?                // Ej: 'C1', 'C2', 'C28', 'C29'
+  isActive               Boolean                @default(true)
 
-  area           CurricularArea @relation(fields: [areaId], references: [id])
-  grades         Grade[]
-  detailedGrades DetailedGrade[]
-  conclusions    CompetenceConclusion[]
+  area                   CurricularArea         @relation(fields: [areaId], references: [id])
+  grades                 Grade[]
+  detailedGrades         DetailedGrade[]
+  conclusions            CompetenceConclusion[]
 }
 
 model CourseAssignment {
@@ -490,7 +513,9 @@ model DetailedGrade {
   competenceId       String
   criterionId        String
   periodNumber       Int                  // 1, 2, 3, 4 (Bimestres)
-  numericScore       Float                // 0.0 - 20.0
+  numericScore       Float?               // 0.0 - 20.0
+  literalScore       String?              // 'AD', 'A', 'B', 'C', 'EXO', '-'
+  isExonerated       Boolean              @default(false)
   comment            String?
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
@@ -625,7 +650,8 @@ model GradingPeriodLock {
 model Notification {
   id        String           @id @default(uuid())
   schoolId  String
-  userId    String
+  userId    String?
+  studentId String?
   title     String
   message   String           @db.Text
   type      NotificationType @default(GENERAL)
@@ -634,16 +660,19 @@ model Notification {
   createdAt DateTime         @default(now())
 
   school    School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  student   Student?         @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([schoolId, userId, isRead])
+  @@index([schoolId, studentId, isRead])
   @@index([schoolId, createdAt])
 }
 
 model PushSubscription {
   id        String   @id @default(uuid())
   schoolId  String
-  userId    String
+  userId    String?
+  studentId String?
   endpoint  String   @unique
   p256dh    String
   auth      String
@@ -652,9 +681,11 @@ model PushSubscription {
   updatedAt DateTime @updatedAt
 
   school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  student   Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([schoolId, userId])
+  @@index([schoolId, studentId])
 }
 
 // ============================================================================
@@ -688,6 +719,7 @@ model CourseContent {
   courseAssignment   CourseAssignment @relation(fields: [courseAssignmentId], references: [id], onDelete: Cascade)
   teacher            User             @relation("AuthoredContents", fields: [teacherId], references: [id])
   comments           ForumComment[]
+  submissions        HomeworkSubmission[]
 
   @@index([schoolId, courseAssignmentId, bimester])
   @@index([schoolId, contentType])
@@ -708,5 +740,54 @@ model ForumComment {
 
   @@index([schoolId, courseContentId, createdAt])
 }
+
+model HomeworkSubmission {
+  id              String        @id @default(uuid())
+  schoolId        String
+  courseContentId String
+  enrollmentId    String
+  fileUrl         String
+  fileName        String
+  fileSize        Int?
+  studentComment  String?
+  submittedAt     DateTime      @default(now())
+  isLate          Boolean       @default(false)
+  numericScore    Float?
+  literalScore    String?
+  teacherFeedback String?
+  gradedAt        DateTime?
+
+  courseContent   CourseContent @relation(fields: [courseContentId], references: [id], onDelete: Cascade)
+  enrollment      Enrollment    @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@unique([courseContentId, enrollmentId])
+  @@index([schoolId, courseContentId])
+}
+
+// ============================================================================
+// 13. AGENDA DE INCIDENCIAS, TÓPICO Y CITACIONES
+// ============================================================================
+model StudentIncident {
+  id                   String     @id @default(uuid())
+  schoolId             String
+  enrollmentId         String
+  authorId             String
+  type                 String     // 'MERITO' | 'DEMERITO' | 'ATENCION_TOPICO' | 'CITACION_PADRES'
+  severity             String     @default("LOW") // 'LOW' | 'MEDIUM' | 'HIGH'
+  title                String
+  description          String     @db.Text
+  actionTaken          String?    @db.Text // Ej: "Se aplicó hielo en tópico", "Se cita al apoderado"
+  citationDate         DateTime?  // Fecha y hora si es CITACION_PADRES
+  acknowledgedAt       DateTime?  // Fecha y hora exacta en que el padre presionó "Enterado"
+  acknowledgedByUserId String?
+  createdAt            DateTime   @default(now())
+
+  school               School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  enrollment           Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  author               User       @relation("IncidentAuthor", fields: [authorId], references: [id])
+
+  @@index([schoolId, enrollmentId])
+}
+
 
 

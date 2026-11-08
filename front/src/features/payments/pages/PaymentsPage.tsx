@@ -10,7 +10,12 @@ import {
   FileText,
   Ban,
   Search,
+  Edit3,
+  MessageCircle,
+  Receipt,
+  PlusCircle,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuthStore } from '@/store/useAuthStore';
 import {
   usePayments,
@@ -31,6 +36,9 @@ import { RegisterTransactionModal } from '../components/RegisterTransactionModal
 import { BulkObligationModal } from '../components/BulkObligationModal';
 import { ReceiptModal } from '../components/ReceiptModal';
 import { ReminderModal } from '../components/ReminderModal';
+import { EditObligationModal } from '../components/EditObligationModal';
+import { DailyCashCloseModal } from '../components/DailyCashCloseModal';
+import { CreateIndividualObligationModal } from '../components/CreateIndividualObligationModal';
 import { PaymentObligation, ObligationStatus } from '../types';
 
 export const PaymentsPage: React.FC = () => {
@@ -50,8 +58,11 @@ export const PaymentsPage: React.FC = () => {
   // Modals state
   const [selectedObligationForTransaction, setSelectedObligationForTransaction] = useState<PaymentObligation | null>(null);
   const [selectedObligationForReminder, setSelectedObligationForReminder] = useState<PaymentObligation | null>(null);
+  const [selectedObligationForEdit, setSelectedObligationForEdit] = useState<PaymentObligation | null>(null);
   const [selectedTransactionIdForReceipt, setSelectedTransactionIdForReceipt] = useState<string | null>(null);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [isDailyCashCloseOpen, setIsDailyCashCloseOpen] = useState(false);
+  const [isCreateIndividualOpen, setIsCreateIndividualOpen] = useState(false);
 
   // Queries & Mutations (Solo el Director consulta el resumen financiero macro)
   const { data: classrooms = [] } = useClassrooms();
@@ -117,6 +128,24 @@ export const PaymentsPage: React.FC = () => {
 
         {canManagePayments && (
           <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 text-xs"
+              onClick={() => setIsDailyCashCloseOpen(true)}
+            >
+              <Receipt className="w-3.5 h-3.5 text-primary" />
+              <span>Arqueo de Caja</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 text-xs"
+              onClick={() => setIsCreateIndividualOpen(true)}
+            >
+              <PlusCircle className="w-3.5 h-3.5 text-primary" />
+              <span>Nuevo Cobro</span>
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -349,6 +378,20 @@ export const PaymentsPage: React.FC = () => {
                               </Button>
                             )}
 
+                            {/* Editar Cuota / Descuento */}
+                            {canManagePayments && item.status !== 'PAID' && item.status !== 'CANCELLED' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs gap-1 border-border hover:bg-muted text-foreground"
+                                onClick={() => setSelectedObligationForEdit(item)}
+                                title="Editar cuota o aplicar descuento/beca"
+                              >
+                                <Edit3 className="w-3.5 h-3.5 text-primary" />
+                                <span className="hidden sm:inline">Editar</span>
+                              </Button>
+                            )}
+
                             {/* Ver Recibo / Boleta */}
                             {item.transactions && item.transactions.length > 0 && (
                               <Button
@@ -360,6 +403,38 @@ export const PaymentsPage: React.FC = () => {
                                 <FileText className="w-3.5 h-3.5 text-primary" />
                                 <span>Boleta</span>
                               </Button>
+                            )}
+
+                            {/* Cobranza Preventiva por WhatsApp Web */}
+                            {canManagePayments && item.status !== 'PAID' && item.status !== 'CANCELLED' && (
+                              <button
+                                onClick={() => {
+                                  const parent = item.enrollment?.student?.familyRelations?.[0]?.user;
+                                  const rawPhone = parent?.cellphone || '';
+                                  const cleanPhone = rawPhone.replace(/\D/g, '');
+                                  if (!cleanPhone || cleanPhone.length < 9) {
+                                    toast.warning('El apoderado no tiene un número celular válido registrado.');
+                                    return;
+                                  }
+                                  const parentName = parent?.firstName
+                                    ? `${parent.firstName} ${parent.lastNamePaternal || ''}`.trim()
+                                    : 'Estimado(a) Apoderado(a)';
+                                  const studentName = item.enrollment?.student
+                                    ? `${item.enrollment.student.firstNames} ${item.enrollment.student.lastNamePaternal}`
+                                    : 'su menor hijo(a)';
+                                  const formattedDueDate = new Date(item.dueDate).toLocaleDateString('es-PE');
+                                  const paid = (item.transactions || []).reduce((s, t) => s + t.amountPaid, 0);
+                                  const remaining = Math.max(0, item.amountDue - paid).toFixed(2);
+
+                                  const waText = `Estimado(a) ${parentName}, le saludamos cordialmente del Colegio. Le recordamos que la cuota correspondiente a ${item.title} (${item.concept}) de su hijo(a) ${studentName} venció el ${formattedDueDate}. Monto pendiente: S/ ${remaining}. Agradecemos regularizar a la brevedad. Gracias.`;
+                                  const waUrl = `https://wa.me/51${cleanPhone}?text=${encodeURIComponent(waText)}`;
+                                  window.open(waUrl, '_blank');
+                                }}
+                                className="p-1.5 rounded text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors"
+                                title="Enviar recordatorio por WhatsApp Web"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5" />
+                              </button>
                             )}
 
                             {/* Recordatorio Individual */}
@@ -442,6 +517,28 @@ export const PaymentsPage: React.FC = () => {
         <ReminderModal
           obligation={selectedObligationForReminder}
           onClose={() => setSelectedObligationForReminder(null)}
+        />
+      )}
+
+      {selectedObligationForEdit && (
+        <EditObligationModal
+          isOpen={!!selectedObligationForEdit}
+          obligation={selectedObligationForEdit}
+          onClose={() => setSelectedObligationForEdit(null)}
+        />
+      )}
+
+      {isDailyCashCloseOpen && (
+        <DailyCashCloseModal
+          isOpen={isDailyCashCloseOpen}
+          onClose={() => setIsDailyCashCloseOpen(false)}
+        />
+      )}
+
+      {isCreateIndividualOpen && (
+        <CreateIndividualObligationModal
+          isOpen={isCreateIndividualOpen}
+          onClose={() => setIsCreateIndividualOpen(false)}
         />
       )}
     </div>

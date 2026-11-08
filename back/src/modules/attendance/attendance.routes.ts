@@ -51,7 +51,7 @@ attendanceRouter.put(
 // Expediente individual del estudiante por matrícula
 attendanceRouter.get(
   '/student/:enrollmentId/summary',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT', 'ADMINISTRATIVE'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT', 'ADMINISTRATIVE', 'STUDENT'),
   attendanceController.getStudentDetail,
 );
 
@@ -65,7 +65,7 @@ attendanceRouter.get(
 // Asistencia por matrícula (histórico de un estudiante)
 attendanceRouter.get(
   '/enrollment/:enrollmentId',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT', 'ADMINISTRATIVE'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT', 'ADMINISTRATIVE', 'STUDENT'),
   attendanceController.getByEnrollment,
 );
 

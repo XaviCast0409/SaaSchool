@@ -78,4 +78,30 @@ export class StudentController {
     const children = await this.studentService.getMyChildren(schoolId, userId);
     response.status(200).json({ status: 'success', data: children });
   };
+
+  /** GET /api/students/:id/certificates/enrollment — constancia de matrícula */
+  getEnrollmentCertificate = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const studentId = request.params.id as string;
+    const userContext = {
+      userId: request.user!.userId,
+      role: request.user!.role,
+      studentId: request.user!.studentId,
+    };
+    const certificate = await this.studentService.getEnrollmentCertificate(schoolId, studentId, userContext);
+    response.status(200).json({ status: 'success', data: certificate });
+  };
+
+  /** GET /api/students/:id/certificates/no-debt — constancia de no adeudo */
+  getNoDebtCertificate = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const studentId = request.params.id as string;
+    const userContext = {
+      userId: request.user!.userId,
+      role: request.user!.role,
+      studentId: request.user!.studentId,
+    };
+    const certificate = await this.studentService.getNoDebtCertificate(schoolId, studentId, userContext);
+    response.status(200).json({ status: 'success', data: certificate });
+  };
 }

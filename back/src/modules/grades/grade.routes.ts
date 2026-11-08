@@ -56,6 +56,12 @@ gradeRouter.post(
   gradeController.saveBatchGrades,
 );
 
+gradeRouter.post(
+  '/matrix/sync-homework',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'),
+  gradeController.syncHomeworkToMatrix,
+);
+
 // ==========================================
 // Conclusiones Descriptivas por Competencia
 // ==========================================
@@ -76,7 +82,7 @@ gradeRouter.post(
 // ==========================================
 gradeRouter.get(
   '/report-card/:enrollmentId',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT'),
   gradeController.getReportCard,
 );
 

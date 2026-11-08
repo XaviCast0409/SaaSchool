@@ -9,7 +9,9 @@ import type {
 export interface MineduSeedArea {
   name: string;
   officialCode: string;
-  competences?: { name: string; description?: string }[];
+  isTransversal?: boolean;
+  officialAreaCode?: string;
+  competences?: { name: string; description?: string; officialCompetenceCode?: string }[];
 }
 
 export function getAreaLevel(area: { name: string; officialCode?: string | null }): 'INITIAL' | 'PRIMARY' | 'SECONDARY' {
@@ -24,17 +26,7 @@ export function getAreaLevel(area: { name: string; officialCode?: string | null 
   }
   if (
     code.includes('-SEC') ||
-    code.startsWith('MAT-') ||
-    code.startsWith('COM-') ||
-    code.startsWith('CCSS-') ||
-    code.startsWith('CT-') ||
-    code.startsWith('DPCC-') ||
-    code.startsWith('EPT-') ||
-    code.startsWith('AYC-') ||
-    code.startsWith('EF-') ||
-    code.startsWith('ER-') ||
-    code.startsWith('TOE-') ||
-    code.startsWith('RAZ-') ||
+    code.startsWith('SEC-') ||
     name.includes('secundaria')
   ) {
     return 'SECONDARY';
@@ -47,7 +39,11 @@ export class CurricularAreaRepository {
   async findAllBySchool(schoolId: string): Promise<CurricularArea[]> {
     return prisma.curricularArea.findMany({
       where: { schoolId },
-      include: { competences: true },
+      include: {
+        competences: true,
+        parentArea: { select: { id: true, name: true, officialAreaCode: true } },
+        subAreas: true,
+      },
       orderBy: { name: 'asc' },
     });
   }
@@ -60,7 +56,11 @@ export class CurricularAreaRepository {
   ): Promise<{ data: CurricularArea[]; total: number; page: number; limit: number; totalPages: number }> {
     const allAreas = await prisma.curricularArea.findMany({
       where: { schoolId },
-      include: { competences: true },
+      include: {
+        competences: true,
+        parentArea: { select: { id: true, name: true, officialAreaCode: true } },
+        subAreas: true,
+      },
       orderBy: { name: 'asc' },
     });
 
@@ -87,30 +87,44 @@ export class CurricularAreaRepository {
   async findById(areaId: string, schoolId: string): Promise<CurricularArea | null> {
     return prisma.curricularArea.findFirst({
       where: { id: areaId, schoolId },
-      include: { competences: true },
+      include: {
+        competences: true,
+        parentArea: { select: { id: true, name: true, officialAreaCode: true } },
+        subAreas: true,
+      },
     });
   }
 
   async create(
     schoolId: string,
     data: CreateCurricularAreaDto,
-    defaultCompetences?: { name: string; description?: string }[],
+    defaultCompetences?: { name: string; description?: string; officialCompetenceCode?: string }[],
   ): Promise<CurricularArea> {
     return prisma.curricularArea.create({
       data: {
-        ...data,
         schoolId,
+        name: data.name,
+        officialCode: data.officialCode,
+        officialAreaCode: data.officialAreaCode,
+        parentAreaId: data.parentAreaId || null,
+        evaluatedCompetenceIds: data.evaluatedCompetenceIds || [],
+        isActive: data.isActive ?? true,
         competences:
-          defaultCompetences && defaultCompetences.length > 0
+          defaultCompetences && defaultCompetences.length > 0 && !data.parentAreaId
             ? {
                 create: defaultCompetences.map((c) => ({
                   name: c.name,
                   description: c.description,
+                  officialCompetenceCode: c.officialCompetenceCode || null,
                 })),
               }
             : undefined,
       },
-      include: { competences: true },
+      include: {
+        competences: true,
+        parentArea: { select: { id: true, name: true, officialAreaCode: true } },
+        subAreas: true,
+      },
     });
   }
 
@@ -122,6 +136,11 @@ export class CurricularAreaRepository {
     return prisma.curricularArea.update({
       where: { id: areaId, schoolId },
       data,
+      include: {
+        competences: true,
+        parentArea: { select: { id: true, name: true, officialAreaCode: true } },
+        subAreas: true,
+      },
     });
   }
 
@@ -234,6 +253,7 @@ export class CurricularAreaRepository {
     for (const item of areas) {
       const existing = await prisma.curricularArea.findFirst({
         where: { schoolId, officialCode: item.officialCode },
+        include: { competences: true },
       });
 
       if (!existing) {
@@ -242,17 +262,49 @@ export class CurricularAreaRepository {
             schoolId,
             name: item.name,
             officialCode: item.officialCode,
+            isTransversal: item.isTransversal || false,
+            officialAreaCode: item.officialAreaCode || null,
+            parentAreaId: null,
+            evaluatedCompetenceIds: [],
             competences: item.competences
               ? {
                   create: item.competences.map((c) => ({
                     name: c.name,
                     description: c.description,
+                    officialCompetenceCode: c.officialCompetenceCode || null,
                   })),
                 }
               : undefined,
           },
         });
         createdCount++;
+      } else {
+        if (!existing.officialAreaCode && item.officialAreaCode) {
+          await prisma.curricularArea.update({
+            where: { id: existing.id },
+            data: { officialAreaCode: item.officialAreaCode },
+          });
+        }
+        if (item.competences && item.competences.length > 0) {
+          for (const c of item.competences) {
+            const hasComp = existing.competences.some(
+              (ec) =>
+                (c.officialCompetenceCode && ec.officialCompetenceCode === c.officialCompetenceCode) ||
+                ec.name.toLowerCase().trim() === c.name.toLowerCase().trim(),
+            );
+            if (!hasComp) {
+              await prisma.curricularCompetence.create({
+                data: {
+                  areaId: existing.id,
+                  name: c.name,
+                  description: c.description,
+                  officialCompetenceCode: c.officialCompetenceCode || null,
+                  isActive: true,
+                },
+              });
+            }
+          }
+        }
       }
     }
 

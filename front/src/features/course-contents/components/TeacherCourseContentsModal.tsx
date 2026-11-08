@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
+import { useActiveAcademicYear } from '@/features/academic-years/api/useAcademicYears';
 
 interface CourseAssignmentMeta {
   id: string;
@@ -74,7 +75,12 @@ export const TeacherCourseContentsModal: React.FC<TeacherCourseContentsModalProp
     });
   }, [contents, filterType, searchQuery]);
 
-  // Contadores del bimestre activo
+  const { activeYear } = useActiveAcademicYear();
+  const isTrimester = activeYear?.periodType === 'TRIMESTER';
+  const periods = isTrimester ? [1, 2, 3] : [1, 2, 3, 4];
+  const periodLabel = isTrimester ? 'Trimestre' : 'Bimestre';
+
+  // Contadores del bimestre/trimestre activo
   const materialsCount = contents.filter((c) => c.contentType === 'LESSON_MATERIAL').length;
   const homeworksCount = contents.filter((c) => c.contentType === 'HOMEWORK').length;
   const forumsCount = contents.filter((c) => c.contentType === 'FORUM').length;
@@ -155,9 +161,9 @@ export const TeacherCourseContentsModal: React.FC<TeacherCourseContentsModalProp
           {/* 2. Barra de Control: Bimestres, Filtros y Métricas */}
           <div className="p-3 sm:p-4 border-b border-border bg-muted/10 space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              {/* Selector de Bimestres */}
+              {/* Selector de Bimestres / Trimestres */}
               <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-                {[1, 2, 3, 4].map((bim) => (
+                {periods.map((bim) => (
                   <button
                     key={bim}
                     onClick={() => {
@@ -171,7 +177,7 @@ export const TeacherCourseContentsModal: React.FC<TeacherCourseContentsModalProp
                         : 'bg-card text-muted-foreground border-border hover:bg-muted'
                     }`}
                   >
-                    <span>{bim}° Bimestre</span>
+                    <span>{bim}° {periodLabel}</span>
                     {selectedBimester === bim && (
                       <Badge
                         variant="secondary"
@@ -288,7 +294,7 @@ export const TeacherCourseContentsModal: React.FC<TeacherCourseContentsModalProp
                     <FolderOpen className="w-7 h-7" />
                   </div>
                   <h3 className="text-base sm:text-lg font-black text-foreground">
-                    Aún no hay publicaciones en el {selectedBimester}° Bimestre
+                    Aún no hay publicaciones en el {selectedBimester}° {periodLabel}
                   </h3>
                   <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
                     Comienza a nutrir tu aula virtual. Los estudiantes podrán acceder a tus materiales digitales, entregar tareas y participar en foros.

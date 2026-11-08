@@ -16,7 +16,9 @@ export class AnnouncementRepository {
       schoolId,
       isActive: true,
       ...(userRole !== 'SUPER_ADMIN' && userRole !== 'SCHOOL_ADMIN'
-        ? { targetRoles: { has: userRole } }
+        ? (userRole as string) === 'STUDENT'
+          ? { targetRoles: { has: 'PARENT' as Role } }
+          : { targetRoles: { has: userRole } }
         : {}),
       ...(priority ? { priority } : {}),
       ...(classroomId ? { classroomId } : {}),

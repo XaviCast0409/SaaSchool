@@ -184,7 +184,7 @@ export class PaymentRepository {
    */
   async createObligation(
     schoolId: string,
-    data: CreateObligationDto,
+    data: CreateObligationDto & { enrollmentId: string },
   ): Promise<PaymentObligation> {
     return prisma.paymentObligation.create({
       data: {
@@ -204,16 +204,17 @@ export class PaymentRepository {
    */
   async bulkCreateObligations(
     schoolId: string,
-    enrollmentIds: string[],
-    data: { title: string; concept: string; amountDue: number; dueDate: string },
+    items: Array<{ enrollmentId: string; amountDue: number }>,
+    data: { title: string; concept: string; dueDate: string },
   ): Promise<{ count: number }> {
+    if (items.length === 0) return { count: 0 };
     return prisma.paymentObligation.createMany({
-      data: enrollmentIds.map((enrollmentId) => ({
+      data: items.map((item) => ({
         schoolId,
-        enrollmentId,
+        enrollmentId: item.enrollmentId,
         title: data.title,
         concept: data.concept,
-        amountDue: data.amountDue,
+        amountDue: item.amountDue,
         dueDate: new Date(data.dueDate),
       })),
     });
@@ -262,6 +263,16 @@ export class PaymentRepository {
     schoolId: string,
     data: CreateTransactionDto,
   ): Promise<PaymentTransaction> {
+    let receiptNumber = data.receiptNumber?.trim();
+    if (!receiptNumber) {
+      const updatedSchool = await prisma.school.update({
+        where: { id: schoolId },
+        data: { receiptCounter: { increment: 1 } },
+        select: { receiptCounter: true },
+      });
+      receiptNumber = `REC-${String(updatedSchool.receiptCounter).padStart(6, '0')}`;
+    }
+
     return prisma.paymentTransaction.create({
       data: {
         schoolId,
@@ -269,8 +280,8 @@ export class PaymentRepository {
         amountPaid: data.amountPaid,
         paymentMethod: data.paymentMethod,
         operationNumber: data.operationNumber,
-        receiptType: data.receiptType,
-        receiptNumber: data.receiptNumber,
+        receiptType: data.receiptType || 'RECIBO_INTERNO',
+        receiptNumber,
         notes: data.notes,
       },
       include: TRANSACTION_INCLUDE,
@@ -365,6 +376,54 @@ export class PaymentRepository {
       totalCollected: Number(totalCollected.toFixed(2)),
       totalPending: Number(totalPending.toFixed(2)),
       overdueCount,
+    };
+  }
+
+  /**
+   * Arqueo de caja diario: resumen por método y detalle de transacciones.
+   */
+  async getDailyCashClose(schoolId: string, targetDateStr: string) {
+    // Zona horaria oficial del colegio (America/Lima, UTC-5):
+    // Cubre desde las 00:00:00.000-05:00 hasta las 23:59:59.999-05:00 del día escolar
+    const startOfDay = new Date(`${targetDateStr}T00:00:00.000-05:00`);
+    const endOfDay = new Date(`${targetDateStr}T23:59:59.999-05:00`);
+
+    const transactions = await prisma.paymentTransaction.findMany({
+      where: {
+        schoolId,
+        paymentDate: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+      include: TRANSACTION_INCLUDE,
+      orderBy: { paymentDate: 'desc' },
+    });
+
+    let totalCollected = 0;
+    const byMethod: Record<string, number> = {
+      CASH: 0,
+      BANK_TRANSFER: 0,
+      CREDIT_CARD: 0,
+    };
+
+    for (const tx of transactions) {
+      totalCollected += tx.amountPaid;
+      if (tx.paymentMethod in byMethod) {
+        byMethod[tx.paymentMethod] += tx.amountPaid;
+      }
+    }
+
+    return {
+      date: targetDateStr,
+      totalCollected: Number(totalCollected.toFixed(2)),
+      byMethod: {
+        CASH: Number((byMethod.CASH || 0).toFixed(2)),
+        BANK_TRANSFER: Number((byMethod.BANK_TRANSFER || 0).toFixed(2)),
+        CREDIT_CARD: Number((byMethod.CREDIT_CARD || 0).toFixed(2)),
+      },
+      transactionsCount: transactions.length,
+      transactions,
     };
   }
 }

@@ -22,8 +22,9 @@ export class AuthController {
 
   changePassword = async (request: Request, response: Response): Promise<void> => {
     const userId = request.user!.userId;
+    const role = request.user?.role;
     const dto = changePasswordSchema.parse(request.body);
-    const result = await this.authService.changePassword(userId, dto);
+    const result = await this.authService.changePassword(userId, dto, role);
 
     response.status(200).json({
       status: 'success',

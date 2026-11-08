@@ -240,3 +240,73 @@ export interface SupervisionFeedFilters {
   limit?: number;
 }
 
+export interface HomeworkSubmission {
+  id: string;
+  schoolId?: string;
+  courseContentId: string;
+  enrollmentId: string;
+  submittedAt: string;
+  isLate: boolean;
+  fileUrl: string;
+  fileName: string;
+  fileSize?: number | null;
+  studentComment?: string | null;
+  numericScore?: number | null;
+  literalScore?: 'AD' | 'A' | 'B' | 'C' | 'EXO' | null;
+  teacherFeedback?: string | null;
+  gradedAt?: string | null;
+  enrollment?: {
+    student: {
+      id: string;
+      firstNames: string;
+      lastNamePaternal: string;
+      lastNameMaternal?: string | null;
+      studentCode?: string | null;
+      documentId: string;
+    };
+  };
+}
+
+export interface HomeworkTeacherSubmissionItem {
+  enrollmentId: string;
+  student: {
+    id: string;
+    firstNames: string;
+    lastNamePaternal: string;
+    lastNameMaternal?: string | null;
+    studentCode?: string | null;
+    documentId: string;
+  };
+  status: 'CALIFICADA' | 'ENTREGADA' | 'PENDIENTE';
+  submission: HomeworkSubmission | null;
+}
+
+export interface HomeworkSubmissionsResponse {
+  courseContent: {
+    id: string;
+    title: string;
+    dueDate?: string | null;
+  };
+  totalStudents?: number;
+  submittedCount?: number;
+  items?: HomeworkTeacherSubmissionItem[];
+  submission?: HomeworkSubmission | null;
+  submissions?: HomeworkSubmission[];
+}
+
+export interface SubmitHomeworkPayload {
+  studentId?: string;
+  enrollmentId?: string;
+  fileUrl: string;
+  fileName: string;
+  fileSize?: number;
+  studentComment?: string;
+}
+
+export interface GradeSubmissionPayload {
+  numericScore?: number | null;
+  literalScore?: 'AD' | 'A' | 'B' | 'C' | 'EXO' | null;
+  teacherFeedback?: string;
+}
+
+

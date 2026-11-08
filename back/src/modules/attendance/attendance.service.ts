@@ -1,6 +1,7 @@
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
 import { getSchoolNow } from '../../utils/timezone.util';
+import { sendWebPushNotification } from '../../utils/web-push.util';
 import type {
   AttendanceRepository,
   AttendanceMonthlySummary,
@@ -398,6 +399,10 @@ export class AttendanceService {
       notes: noteText,
     });
 
+    void this.sendScanPushNotification(enrollment, attendance).catch((err) =>
+      console.error('[AttendanceScanPushError]:', err),
+    );
+
     return {
       alreadyRegistered: false,
       message:
@@ -473,5 +478,73 @@ export class AttendanceService {
           ? `Cierre completado: Se asignó Falta Injustificada a ${result.closedCount} alumno(s) sin marcación.`
           : 'Todos los alumnos contaban con asistencia registrada para la fecha.',
     };
+  }
+
+  /**
+   * Notificación asíncrona Web Push al apoderado tras escaneo de carnet (Fire-and-Forget).
+   */
+  private async sendScanPushNotification(enrollment: any, attendance: any): Promise<void> {
+    try {
+      const studentId = enrollment.student?.id;
+      if (!studentId) return;
+
+      const studentWithFamily = await prisma.student.findUnique({
+        where: { id: studentId },
+        select: {
+          firstNames: true,
+          lastNamePaternal: true,
+          familyRelations: {
+            select: {
+              userId: true,
+            },
+          },
+        },
+      });
+
+      const parentUserIds = (studentWithFamily?.familyRelations || [])
+        .map((p) => p.userId)
+        .filter((id): id is string => Boolean(id));
+
+      if (parentUserIds.length === 0) return;
+
+      const subscriptions = await prisma.pushSubscription.findMany({
+        where: {
+          schoolId: attendance.schoolId,
+          userId: { in: parentUserIds },
+        },
+      });
+
+      if (subscriptions.length === 0) return;
+
+      const studentName = `${enrollment.student.firstNames} ${enrollment.student.lastNamePaternal}`;
+      const statusLabel = attendance.status === 'PRESENT' ? 'Puntual' : 'Tardanza';
+      const timeStr = attendance.checkInTime
+        ? new Date(attendance.checkInTime).toLocaleTimeString('es-PE', {
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZone: 'America/Lima',
+          })
+        : '';
+
+      const payload = {
+        title: `Ingreso al Colegio: ${statusLabel}`,
+        message: `${studentName} registró su ingreso a las ${timeStr}.`,
+        link: '/parent/attendance',
+      };
+
+      await Promise.allSettled(
+        subscriptions.map(async (sub) => {
+          const res = await sendWebPushNotification(
+            { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
+            payload,
+          );
+          if (res.shouldRemove) {
+            await prisma.pushSubscription.deleteMany({ where: { endpoint: sub.endpoint } });
+          }
+        }),
+      );
+    } catch (err) {
+      console.error('[AttendanceScanPushError]:', err);
+    }
   }
 }

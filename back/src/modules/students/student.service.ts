@@ -217,4 +217,135 @@ export class StudentService {
   async getMyChildren(schoolId: string, parentUserId: string) {
     return this.studentRepository.findMyChildren(schoolId, parentUserId);
   }
+
+  async getEnrollmentCertificate(
+    schoolId: string,
+    studentId: string,
+    userContext?: { userId: string; role: string; studentId?: string },
+  ) {
+    const student = await this.studentRepository.findStudentForCertificate(studentId, schoolId);
+    if (!student) {
+      throw new AppError('Estudiante no encontrado.', 404);
+    }
+
+    // IDOR
+    if (userContext?.role === 'STUDENT') {
+      const currentStudentId = userContext.studentId || userContext.userId;
+      if (student.id !== currentStudentId) {
+        throw new AppError('No tienes permisos para ver esta constancia.', 403);
+      }
+    } else if (userContext?.role === 'PARENT') {
+      const isParent = (student.familyRelations || []).some((rel) => rel.userId === userContext.userId);
+      if (!isParent) {
+        throw new AppError('No tienes permisos para ver esta constancia.', 403);
+      }
+    }
+
+    const activeEnrollment = student.enrollments[0];
+    if (!activeEnrollment) {
+      throw new AppError('El estudiante no cuenta con una matrícula activa registrada.', 400);
+    }
+
+    const months = [
+      'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+      'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+    ];
+    const today = new Date();
+    const issueDate = `${today.getDate()} de ${months[today.getMonth()]} de ${today.getFullYear()}`;
+
+    return {
+      certificateType: 'ENROLLMENT',
+      certificateNumber: `CE-${student.studentCode || student.documentId}-${activeEnrollment.academicYear.year}`,
+      issueDate,
+      school: {
+        name: student.school.name,
+        modularCode: student.school.modularCode,
+        documentId: student.school.documentId,
+        address: student.school.address,
+        logoUrl: student.school.logoUrl,
+      },
+      student: {
+        id: student.id,
+        fullName: `${student.lastNamePaternal} ${student.lastNameMaternal || ''}, ${student.firstNames}`.trim(),
+        documentType: student.documentType,
+        documentId: student.documentId,
+        studentCode: student.studentCode,
+      },
+      enrollment: {
+        id: activeEnrollment.id,
+        grade: activeEnrollment.classroom.grade,
+        section: activeEnrollment.classroom.section,
+        educationLevel: activeEnrollment.classroom.educationLevel,
+        shift: activeEnrollment.classroom.shift,
+        academicYear: activeEnrollment.academicYear.year,
+        enrollmentDate: activeEnrollment.enrollmentDate,
+      },
+    };
+  }
+
+  async getNoDebtCertificate(
+    schoolId: string,
+    studentId: string,
+    userContext?: { userId: string; role: string; studentId?: string },
+  ) {
+    const student = await this.studentRepository.findStudentForCertificate(studentId, schoolId);
+    if (!student) {
+      throw new AppError('Estudiante no encontrado.', 404);
+    }
+
+    // IDOR
+    if (userContext?.role === 'STUDENT') {
+      const currentStudentId = userContext.studentId || userContext.userId;
+      if (student.id !== currentStudentId) {
+        throw new AppError('No tienes permisos para ver esta constancia.', 403);
+      }
+    } else if (userContext?.role === 'PARENT') {
+      const isParent = (student.familyRelations || []).some((rel) => rel.userId === userContext.userId);
+      if (!isParent) {
+        throw new AppError('No tienes permisos para ver esta constancia.', 403);
+      }
+    }
+
+    const activeEnrollment = student.enrollments[0];
+    if (!activeEnrollment) {
+      throw new AppError('El estudiante no cuenta con una matrícula activa registrada.', 400);
+    }
+
+    const pendingObligationsCount = await this.studentRepository.countStudentPendingObligations(studentId, schoolId);
+    if (pendingObligationsCount > 0) {
+      throw new AppError(
+        `No se puede emitir la Constancia de No Adeudo porque el estudiante presenta ${pendingObligationsCount} obligación(es) de pago pendiente(s).`,
+        400,
+      );
+    }
+
+    const months = [
+      'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+      'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+    ];
+    const today = new Date();
+    const issueDate = `${today.getDate()} de ${months[today.getMonth()]} de ${today.getFullYear()}`;
+
+    return {
+      certificateType: 'NO_DEBT',
+      certificateNumber: `CNA-${student.studentCode || student.documentId}-${activeEnrollment.academicYear.year}`,
+      issueDate,
+      school: {
+        name: student.school.name,
+        modularCode: student.school.modularCode,
+        documentId: student.school.documentId,
+        address: student.school.address,
+        logoUrl: student.school.logoUrl,
+      },
+      student: {
+        id: student.id,
+        fullName: `${student.lastNamePaternal} ${student.lastNameMaternal || ''}, ${student.firstNames}`.trim(),
+        documentType: student.documentType,
+        documentId: student.documentId,
+        studentCode: student.studentCode,
+      },
+      academicYear: activeEnrollment.academicYear.year,
+      status: 'CLEARED',
+    };
+  }
 }

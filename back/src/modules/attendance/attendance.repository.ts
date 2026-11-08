@@ -305,6 +305,8 @@ export class AttendanceRepository {
       where: {
         schoolId,
         isActive: true,
+        enrollmentState: 'REGISTERED',
+        academicYear: { isActive: true },
         OR: [
           { student: { studentCode: trimmed } },
           { student: { documentId: trimmed } },

@@ -44,8 +44,8 @@ export const DashboardPage: React.FC = () => {
     return null;
   }
 
-  // Si el usuario es PADRE / APODERADO, renderizar directamente su portal familiar
-  if (user?.role === 'PARENT') {
+  // Si el usuario es PADRE / APODERADO o ESTUDIANTE, renderizar directamente su portal
+  if (user?.role === 'PARENT' || user?.role === 'STUDENT') {
     return <ParentPortalPage />;
   }
 

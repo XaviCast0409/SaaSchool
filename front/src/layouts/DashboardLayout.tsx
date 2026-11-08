@@ -88,20 +88,41 @@ export const DashboardLayout: React.FC = () => {
   // Menú estructurado por áreas de gestión
   const schoolNavSections: NavSection[] = [
     {
-      title: 'Principal',
+      title: 'Operación Diaria',
       items: [
         {
           label: 'Dashboard',
           path: '/dashboard',
           icon: LayoutDashboard,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT'],
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
           minPlan: 'BASIC',
         },
         {
-          label: 'Comunicados',
+          label: 'Asistencia y Kiosco QR',
+          path: '/attendance',
+          icon: CalendarCheck,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Muro de Comunicados',
           path: '/announcements',
           icon: Megaphone,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT'],
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Directorio y Familias',
+          path: '/directory',
+          icon: Users,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Agenda e Incidencias',
+          path: '/incidents',
+          icon: ShieldAlert,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
           minPlan: 'BASIC',
         },
       ],
@@ -110,31 +131,69 @@ export const DashboardLayout: React.FC = () => {
       title: 'Gestión Académica',
       items: [
         {
-          label: userRole === 'PARENT' ? 'Libreta de Calificaciones' : 'Registro de Notas',
-          path: '/grades',
-          icon: BookOpenCheck,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT'],
+          label: 'Matrícula SIAGIE (Alumnos)',
+          path: '/students',
+          icon: GraduationCap,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Aula Virtual (Supervisión)',
+          path: '/virtual-classroom-supervision',
+          icon: Laptop,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'],
           minPlan: 'PRO',
         },
         {
-          label: 'Reportes y Actas',
+          label: userRole === 'TEACHER' ? 'Mis Cursos y Notas' : 'Calificaciones y Actas',
+          path: '/grades',
+          icon: BookOpenCheck,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'],
+          minPlan: 'PRO',
+        },
+        {
+          label: 'Reportes Oficiales MINEDU',
           path: '/academic-reports',
           icon: FileSpreadsheet,
           roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
           minPlan: 'PRO',
         },
+      ],
+    },
+    {
+      title: 'Tesorería y Caja',
+      items: [
         {
-          label: 'Asistencia',
-          path: '/attendance',
-          icon: CalendarCheck,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
+          label: 'Cobranzas y Pensiones',
+          path: '/payments',
+          icon: CreditCard,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'],
+          minPlan: 'BASIC',
+        },
+      ],
+    },
+    {
+      title: 'Configuración Escolar',
+      items: [
+        {
+          label: 'Años Lectivos',
+          path: '/academic-years',
+          icon: Calendar,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
           minPlan: 'BASIC',
         },
         {
-          label: 'Estudiantes',
-          path: '/students',
-          icon: GraduationCap,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'],
+          label: 'Aulas y Secciones',
+          path: '/classrooms',
+          icon: SchoolIcon,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Cursos CNEB',
+          path: '/curricular-areas',
+          icon: BookOpen,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
           minPlan: 'BASIC',
         },
         {
@@ -145,68 +204,11 @@ export const DashboardLayout: React.FC = () => {
           minPlan: 'BASIC',
         },
         {
-          label: 'Supervisión Aula Virtual',
-          path: '/virtual-classroom-supervision',
-          icon: Laptop,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'],
-          minPlan: 'PRO',
-        },
-      ],
-    },
-    {
-      title: 'Estructura y Currículo',
-      items: [
-        {
-          label: 'Cursos y Áreas SIAGIE',
-          path: '/curricular-areas',
-          icon: BookOpen,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Grados, Aulas y Tutoría',
-          path: '/classrooms',
-          icon: SchoolIcon,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Criterios de Calificación',
+          label: 'Rúbricas de Evaluación',
           path: '/evaluation-criteria',
           icon: SlidersHorizontal,
           roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
           minPlan: 'PRO',
-        },
-        {
-          label: 'Años Lectivos',
-          path: '/academic-years',
-          icon: Calendar,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
-          minPlan: 'BASIC',
-        },
-      ],
-    },
-    {
-      title: 'Administración y Finanzas',
-      items: [
-        {
-          label:
-            userRole === 'PARENT'
-              ? 'Mis Pagos y Pensiones'
-              : userRole === 'ADMINISTRATIVE'
-              ? 'Caja y Cobranzas'
-              : 'Cobranzas y Pagos',
-          path: '/payments',
-          icon: CreditCard,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'PARENT'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Directorio',
-          path: '/directory',
-          icon: Users,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
-          minPlan: 'BASIC',
         },
       ],
     },
@@ -263,7 +265,7 @@ export const DashboardLayout: React.FC = () => {
     },
   ];
 
-  const isStudent = Boolean(
+  const isStudent = userRole === 'STUDENT' || Boolean(
     user?.email &&
       (user.email.toLowerCase().includes('alumno') || user.email.toLowerCase().includes('estudiante')),
   );
@@ -277,35 +279,35 @@ export const DashboardLayout: React.FC = () => {
           label: 'Mi Mochila Digital',
           path: '/dashboard',
           icon: LayoutDashboard,
-          roles: ['PARENT'],
+          roles: ['STUDENT', 'PARENT'],
           minPlan: 'BASIC',
         },
         {
           label: 'Aula Virtual / Cursos',
           path: '/virtual-classroom',
           icon: GraduationCap,
-          roles: ['PARENT'],
+          roles: ['STUDENT', 'PARENT'],
           minPlan: 'PRO',
         },
         {
           label: 'Mis Calificaciones',
           path: '/grades',
           icon: BookOpenCheck,
-          roles: ['PARENT'],
+          roles: ['STUDENT', 'PARENT'],
           minPlan: 'PRO',
         },
         {
           label: 'Mi Asistencia',
           path: '/attendance',
           icon: CalendarCheck,
-          roles: ['PARENT'],
+          roles: ['STUDENT', 'PARENT'],
           minPlan: 'BASIC',
         },
         {
           label: 'Avisos y Comunicados',
           path: '/announcements',
           icon: Megaphone,
-          roles: ['PARENT'],
+          roles: ['STUDENT', 'PARENT'],
           minPlan: 'BASIC',
         },
       ],
@@ -438,7 +440,7 @@ export const DashboardLayout: React.FC = () => {
             {navSections.map((section) => (
               <div key={section.title} className="space-y-1">
                 <div className="px-2 pt-1 pb-0.5">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground/60">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     {section.title}
                   </span>
                 </div>

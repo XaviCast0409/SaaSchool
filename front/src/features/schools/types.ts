@@ -16,6 +16,7 @@ export interface School {
   plan: SubscriptionPlan;
   planExpiresAt?: string | null;
   isActive: boolean;
+  blockGradesOnOverdue?: boolean;
 }
 
 export interface UpdateSchoolPayload {
@@ -29,4 +30,5 @@ export interface UpdateSchoolPayload {
   district?: string;
   plan?: SubscriptionPlan;
   planExpiresAt?: string;
+  blockGradesOnOverdue?: boolean;
 }

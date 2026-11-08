@@ -32,7 +32,12 @@ export class EnrollmentService {
     schoolId: string,
     updateEnrollmentDto: UpdateEnrollmentDto,
   ): Promise<Enrollment> {
-    await this.getEnrollmentById(enrollmentId, schoolId);
-    return this.enrollmentRepository.update(enrollmentId, schoolId, updateEnrollmentDto);
+    const existingEnrollment = await this.getEnrollmentById(enrollmentId, schoolId);
+    return this.enrollmentRepository.update(
+      enrollmentId,
+      schoolId,
+      updateEnrollmentDto,
+      existingEnrollment,
+    );
   }
 }

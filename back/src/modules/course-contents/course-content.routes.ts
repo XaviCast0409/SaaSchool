@@ -16,21 +16,21 @@ courseContentRouter.use(authMiddleware, tenantMiddleware);
 // Asignaturas y materias de un alumno (para portal de padres / alumnos)
 courseContentRouter.get(
   '/student/:studentId/courses',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT'),
   controller.getStudentCourses,
 );
 
 // Tareas pendientes y foros activos del alumno
 courseContentRouter.get(
   '/student/:studentId/tasks',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT'),
   controller.getStudentTasks,
 );
 
 // Contenidos (Clases, Tareas, Foros) de un curso con filtro opcional ?bimester=1
 courseContentRouter.get(
   '/assignment/:assignmentId',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT'),
   controller.getByAssignment,
 );
 
@@ -58,7 +58,7 @@ courseContentRouter.get(
 // Detalle de una publicación específica
 courseContentRouter.get(
   '/:id',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT'),
   controller.getById,
 );
 
@@ -79,13 +79,38 @@ courseContentRouter.delete(
 // Comentarios / Respuestas de debate en un foro
 courseContentRouter.get(
   '/:id/comments',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT'),
   controller.getComments,
 );
 
 // Agregar comentario a un foro (Alumnos, Padres, Docentes)
 courseContentRouter.post(
   '/:id/comments',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT'),
   controller.addComment,
+);
+
+// ==========================================
+// ENTREGAS DE TAREAS (LMS AULA VIRTUAL)
+// ==========================================
+
+// Enviar entrega de tarea (Estudiantes y Apoderados)
+courseContentRouter.post(
+  '/:id/submissions',
+  authorizeRoles('STUDENT', 'PARENT', 'SUPER_ADMIN', 'SCHOOL_ADMIN'),
+  controller.submitHomework,
+);
+
+// Consultar entregas de una tarea (Docente ve todos; Estudiante/Apoderado ve la propia)
+courseContentRouter.get(
+  '/:id/submissions',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'STUDENT', 'PARENT'),
+  controller.getSubmissions,
+);
+
+// Calificar entrega de tarea (Docente y Dirección)
+courseContentRouter.patch(
+  '/submissions/:submissionId/grade',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'),
+  controller.gradeSubmission,
 );

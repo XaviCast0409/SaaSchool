@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Layers, Filter } from 'lucide-react';
 import { ReportClassroomItem, EducationLevel, ReportCode } from '../types';
+import { useActiveAcademicYear } from '@/features/academic-years/api/useAcademicYears';
 
 interface AcademicReportsFilterBarProps {
   reportCode: ReportCode;
@@ -33,6 +34,11 @@ export const AcademicReportsFilterBar: React.FC<AcademicReportsFilterBarProps> =
   selectedPeriod,
   onSelectPeriod,
 }) => {
+  const { activeYear } = useActiveAcademicYear();
+  const isTrimester = activeYear?.periodType === 'TRIMESTER';
+  const periods = isTrimester ? [1, 2, 3] : [1, 2, 3, 4];
+  const periodLabel = isTrimester ? 'Trimestre' : 'Bimestre';
+
   // Niveles disponibles
   const availableLevels = useMemo(() => {
     const set = new Set<EducationLevel>();
@@ -131,10 +137,11 @@ export const AcademicReportsFilterBar: React.FC<AcademicReportsFilterBarProps> =
               onChange={(e) => onSelectPeriod(Number(e.target.value))}
               className="text-xs font-medium bg-background border border-border rounded-lg px-2.5 py-1.5 text-foreground focus:ring-1 focus:ring-primary outline-none"
             >
-              <option value={1}>1er Bimestre</option>
-              <option value={2}>2do Bimestre</option>
-              <option value={3}>3er Bimestre</option>
-              <option value={4}>4to Bimestre</option>
+              {periods.map((p) => (
+                <option key={p} value={p}>
+                  {p}° {periodLabel}
+                </option>
+              ))}
             </select>
           </div>
         )}

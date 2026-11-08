@@ -10,6 +10,10 @@ import {
   Clock,
   Sparkles,
   Eye,
+  UploadCloud,
+  Users,
+  CheckCircle2,
+  Award,
 } from 'lucide-react';
 import type { CourseContent } from '../types';
 import { Badge } from '@/components/ui/badge';
@@ -17,11 +21,17 @@ import { Button } from '@/components/ui/button';
 import { getDirectDownloadUrl, isGoogleDriveUrl } from '../utils/fileUrls';
 import { getFileMetadata, getDueDateStatus, formatFileSize } from '../utils/fileHelpers';
 import { DocumentPreviewModal } from './DocumentPreviewModal';
+import { HomeworkSubmissionsModal } from './HomeworkSubmissionsModal';
+import { SubmitHomeworkModal } from './SubmitHomeworkModal';
+import { useGetHomeworkSubmissions } from '../api/useCourseContents';
+import { useAuthStore } from '@/store/useAuthStore';
 
 interface CourseContentCardProps {
   content: CourseContent;
   onOpenForum?: (content: CourseContent) => void;
   onDelete?: (id: string) => void;
+  onViewSubmissions?: (content: CourseContent) => void;
+  onSubmitHomework?: (content: CourseContent) => void;
   canManage?: boolean;
 }
 
@@ -29,12 +39,29 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
   content,
   onOpenForum,
   onDelete,
+  onViewSubmissions,
+  onSubmitHomework,
   canManage = false,
 }) => {
+  const { user } = useAuthStore();
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isSubmissionsModalOpen, setIsSubmissionsModalOpen] = useState(false);
+  const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
+
   const isHomework = content.contentType === 'HOMEWORK';
   const isForum = content.contentType === 'FORUM';
   const isMaterial = content.contentType === 'LESSON_MATERIAL';
+
+  const isTeacherOrAdmin =
+    canManage ||
+    user?.role === 'TEACHER' ||
+    user?.role === 'SCHOOL_ADMIN' ||
+    user?.role === 'SUPER_ADMIN';
+
+  // Solo consultar submissions si es de tipo tarea
+  const { data: submissionsData } = useGetHomeworkSubmissions(
+    isHomework ? content.id : null,
+  );
 
   const downloadUrl = getDirectDownloadUrl(content.fileUrl);
   const isDrive = isGoogleDriveUrl(content.fileUrl);
@@ -47,6 +74,29 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
     month: 'short',
     year: 'numeric',
   });
+
+  // Datos de entrega del alumno / apoderado
+  const studentSubmission =
+    submissionsData?.submission ||
+    (submissionsData?.submissions && submissionsData.submissions[0]) ||
+    null;
+  const isGraded = !!studentSubmission?.gradedAt;
+
+  const handleOpenTeacherSubmissions = () => {
+    if (onViewSubmissions) {
+      onViewSubmissions(content);
+    } else {
+      setIsSubmissionsModalOpen(true);
+    }
+  };
+
+  const handleOpenStudentSubmit = () => {
+    if (onSubmitHomework) {
+      onSubmitHomework(content);
+    } else {
+      setIsSubmitModalOpen(true);
+    }
+  };
 
   return (
     <div className="p-4 sm:p-5 rounded-2xl border border-border bg-card hover:border-primary/30 hover:shadow-md transition-all duration-200 flex flex-col justify-between gap-4 text-xs">
@@ -109,16 +159,90 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
         </div>
       </div>
 
-      {/* Tarea: Alerta de fecha límite con cálculo de urgencia */}
-      {isHomework && dueDateStatus && (
-        <div className="flex items-center justify-between p-2.5 rounded-xl bg-amber-500/5 border border-amber-500/20 gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 text-amber-800 dark:text-amber-200 font-semibold text-xs">
-            <Calendar className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-            <span>Entrega: {dueDateStatus.formattedDate}</span>
-          </div>
-          <Badge className={`text-[10px] font-bold ${dueDateStatus.urgencyBadge}`}>
-            {dueDateStatus.urgencyLabel}
-          </Badge>
+      {/* Tarea: Alerta de fecha límite y estado de entrega */}
+      {isHomework && (
+        <div className="space-y-2">
+          {dueDateStatus && (
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-amber-500/5 border border-amber-500/20 gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5 text-amber-800 dark:text-amber-200 font-semibold text-xs">
+                <Calendar className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span>Entrega: {dueDateStatus.formattedDate}</span>
+              </div>
+              <Badge className={`text-[10px] font-bold ${dueDateStatus.urgencyBadge}`}>
+                {dueDateStatus.urgencyLabel}
+              </Badge>
+            </div>
+          )}
+
+          {/* Estado de Entrega (Vista Alumno / Apoderado) */}
+          {!isTeacherOrAdmin && (
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/40 border border-border gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                {isGraded ? (
+                  <Badge className="text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 gap-1">
+                    <Award className="w-3 h-3" />
+                    <span>
+                      Calificado:{' '}
+                      {studentSubmission?.literalScore ||
+                        (studentSubmission?.numericScore !== null &&
+                        studentSubmission?.numericScore !== undefined
+                          ? `${studentSubmission.numericScore}/20`
+                          : 'Revisada')}
+                    </span>
+                  </Badge>
+                ) : studentSubmission?.isLate ? (
+                  <Badge variant="destructive" className="text-[10px] font-bold">
+                    Entregado fuera de fecha
+                  </Badge>
+                ) : studentSubmission ? (
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border-emerald-500/30 gap-1"
+                  >
+                    <CheckCircle2 className="w-3 h-3" />
+                    <span>Entregado a tiempo</span>
+                  </Badge>
+                ) : (
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] font-bold text-amber-600 dark:text-amber-400 border-amber-500/30"
+                  >
+                    Pendiente
+                  </Badge>
+                )}
+              </div>
+
+              <Button
+                size="sm"
+                onClick={handleOpenStudentSubmit}
+                className="gap-1.5 h-7 px-2.5 text-xs font-bold rounded-lg"
+              >
+                <UploadCloud className="w-3.5 h-3.5" />
+                <span>{studentSubmission ? 'Ver Mi Entrega' : 'Subir mi Tarea'}</span>
+              </Button>
+            </div>
+          )}
+
+          {/* Botón Ver Entregas (Vista Docente / Dirección) */}
+          {isTeacherOrAdmin && (
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/30 border border-border gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                <Users className="w-4 h-4 text-primary" />
+                <span>
+                  {submissionsData?.submittedCount ?? 0} de{' '}
+                  {submissionsData?.totalStudents ?? 0} alumnos entregaron
+                </span>
+              </div>
+              <Button
+                size="sm"
+                onClick={handleOpenTeacherSubmissions}
+                className="gap-1.5 h-7 px-3 text-xs font-bold rounded-lg shadow-xs"
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>Ver Entregas</span>
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
@@ -206,6 +330,20 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
         fileUrl={content.fileUrl}
         fileName={content.fileName}
         title={content.title}
+      />
+
+      {/* Modal de Entregas (Docente) */}
+      <HomeworkSubmissionsModal
+        isOpen={isSubmissionsModalOpen}
+        onClose={() => setIsSubmissionsModalOpen(false)}
+        content={content}
+      />
+
+      {/* Modal de Entrega (Estudiante / Apoderado) */}
+      <SubmitHomeworkModal
+        isOpen={isSubmitModalOpen}
+        onClose={() => setIsSubmitModalOpen(false)}
+        content={content}
       />
     </div>
   );

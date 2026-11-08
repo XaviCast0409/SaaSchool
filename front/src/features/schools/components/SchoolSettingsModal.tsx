@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { X, School as SchoolIcon, Save, Loader2, Lock } from 'lucide-react';
+import { X, School as SchoolIcon, Save, Loader2, Lock, ShieldAlert } from 'lucide-react';
 import { useGetActiveSchool, useUpdateSchool } from '../api/useSchool';
 import { toast } from 'sonner';
 
@@ -18,6 +18,7 @@ interface SchoolFormValues {
   department: string;
   province: string;
   district: string;
+  blockGradesOnOverdue: boolean;
 }
 
 export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
@@ -41,6 +42,7 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
         department: school.department || '',
         province: school.province || '',
         district: school.district || '',
+        blockGradesOnOverdue: school.blockGradesOnOverdue ?? false,
       });
     }
   }, [school, reset]);
@@ -50,10 +52,13 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
   const onSubmit = async (values: SchoolFormValues) => {
     try {
       const sanitizedPayload = Object.fromEntries(
-        Object.entries(values).map(([key, val]) => [key, val?.trim() === '' ? undefined : val])
+        Object.entries(values).map(([key, val]) => [
+          key,
+          typeof val === 'string' ? (val.trim() === '' ? undefined : val) : val,
+        ])
       );
       await updateSchool(sanitizedPayload);
-      toast.success('🏫 Datos y logo de la institución guardados correctamente.');
+      toast.success('🏫 Datos y configuración de la institución guardados correctamente.');
       onClose();
     } catch (error: any) {
       console.error('Error actualizando datos del colegio:', error);
@@ -203,6 +208,26 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
                   placeholder="MIRAFLORES"
                   {...register('district')}
                   className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+            </div>
+
+            {/* Control de Morosidad y Bloqueo de Libretas */}
+            <div className="p-4 rounded-xl bg-card border border-border space-y-2">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-0.5">
+                  <label className="text-xs font-bold text-foreground flex items-center gap-1.5 cursor-pointer">
+                    <ShieldAlert className="w-4 h-4 text-amber-500" />
+                    <span>Bloqueo de Libretas por Morosidad</span>
+                  </label>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Restringe automáticamente la consulta de notas y la descarga de libretas a estudiantes y familias con pensiones o cuotas vencidas. Los directores y profesores siempre podrán ver las notas.
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  {...register('blockGradesOnOverdue')}
+                  className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary cursor-pointer mt-0.5"
                 />
               </div>
             </div>

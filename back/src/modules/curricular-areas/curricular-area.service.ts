@@ -9,288 +9,292 @@ import type {
 import type { CurricularArea, CurricularCompetence } from '@prisma/client';
 
 export const MINEDU_OFFICIAL_CURRICULUM: MineduSeedArea[] = [
-  // NIVEL INICIAL (3 A 5 AÑOS - UNIDOCENCIA / APRESTAMIENTO INTEGRAL)
+  // ============================================================================
+  // NIVEL INICIAL (Ciclo II — 3, 4 y 5 años)
+  // ============================================================================
   {
     name: 'Personal Social (Inicial)',
     officialCode: 'PS-INI',
+    officialAreaCode: 'PS',
     competences: [
-      { name: 'Construye su identidad', description: 'Reconocimiento de emociones y autoestima' },
-      { name: 'Convive y participa democráticamente', description: 'Normas de convivencia y respeto' },
+      { name: 'Construye su identidad', officialCompetenceCode: 'C1' },
+      { name: 'Convive y participa democráticamente en la búsqueda del bien común', officialCompetenceCode: 'C2' },
+      { name: 'Construye su identidad, como persona humana, amada por Dios, digna, libre y trascendente', officialCompetenceCode: 'C3' },
     ],
   },
   {
     name: 'Psicomotriz (Inicial)',
     officialCode: 'PSI-INI',
-    competences: [{ name: 'Se desenvuelve de manera autónoma a través de su motricidad' }],
-  },
-  {
-    name: 'Comunicación Integral (Inicial)',
-    officialCode: 'COM-INI',
+    officialAreaCode: 'PSI',
     competences: [
-      { name: 'Se comunica oralmente en su lengua materna' },
-      { name: 'Crea proyectos desde los lenguajes artísticos' },
-      { name: 'Lee diversos tipos de textos en su lengua materna' },
+      { name: 'Se desenvuelve de manera autónoma a través de su motricidad', officialCompetenceCode: 'C1' },
     ],
   },
   {
-    name: 'Descubrimiento del Mundo / Ciencia y Tecnología (Inicial)',
-    officialCode: 'CT-INI',
+    name: 'Comunicación (Inicial)',
+    officialCode: 'COM-INI',
+    officialAreaCode: 'COM',
     competences: [
-      { name: 'Indaga mediante métodos científicos para construir sus conocimientos' },
-      { name: 'Resuelve problemas de cantidad y forma en su entorno' },
+      { name: 'Se comunica oralmente en su lengua materna', officialCompetenceCode: 'C1' },
+      { name: 'Lee diversos tipos de textos en su lengua materna', officialCompetenceCode: 'C2' },
+      { name: 'Escribe diversos tipos de textos en su lengua materna', officialCompetenceCode: 'C3' },
+      { name: 'Crea proyectos desde los lenguajes artísticos', officialCompetenceCode: 'C4' },
+    ],
+  },
+  {
+    name: 'Matemática (Inicial)',
+    officialCode: 'MAT-INI',
+    officialAreaCode: 'MAT',
+    competences: [
+      { name: 'Resuelve problemas de cantidad', officialCompetenceCode: 'C1' },
+      { name: 'Resuelve problemas de forma, movimiento y localización', officialCompetenceCode: 'C2' },
+    ],
+  },
+  {
+    name: 'Ciencia y Tecnología (Inicial)',
+    officialCode: 'CYT-INI',
+    officialAreaCode: 'CYT',
+    competences: [
+      { name: 'Indaga mediante métodos científicos para construir sus conocimientos', officialCompetenceCode: 'C1' },
+    ],
+  },
+  {
+    name: 'Competencias Transversales (Inicial)',
+    officialCode: 'TRANS-INI',
+    isTransversal: true,
+    officialAreaCode: 'TRANS',
+    competences: [
+      {
+        name: 'Se desenvuelve en entornos virtuales generados por las TIC',
+        description: 'Uso formativo de herramientas tecnológicas y virtuales',
+        officialCompetenceCode: 'C28',
+      },
+      {
+        name: 'Gestiona su aprendizaje de manera autónoma',
+        description: 'Autorregulación y metas de aprendizaje continuo',
+        officialCompetenceCode: 'C29',
+      },
     ],
   },
 
-  // NIVEL PRIMARIA (6 A 11 AÑOS - UNIDOCENCIA Y POLIDOCENCIA)
-  {
-    name: 'Matemática (Primaria)',
-    officialCode: 'MAT-PRI',
-    competences: [
-      { name: 'Resuelve problemas de cantidad' },
-      { name: 'Resuelve problemas de regularidad, equivalencia y cambio' },
-      { name: 'Resuelve problemas de forma, movimiento y localización' },
-      { name: 'Resuelve problemas de gestión de datos e incertidumbre' },
-    ],
-  },
-  {
-    name: 'Comunicación (Primaria)',
-    officialCode: 'COM-PRI',
-    competences: [
-      { name: 'Se comunica oralmente en su lengua materna' },
-      { name: 'Lee diversos tipos de textos escritos' },
-      { name: 'Escribe diversos tipos de textos' },
-    ],
-  },
-  {
-    name: 'Ciencia y Tecnología (Primaria)',
-    officialCode: 'CT-PRI',
-    competences: [
-      { name: 'Indaga mediante métodos científicos' },
-      { name: 'Explica el mundo físico basándose en conocimientos científicos' },
-      { name: 'Diseña y construye soluciones tecnológicas' },
-    ],
-  },
+  // ============================================================================
+  // NIVEL PRIMARIA (1.° a 6.° grado)
+  // ============================================================================
   {
     name: 'Personal Social (Primaria)',
     officialCode: 'PS-PRI',
+    officialAreaCode: 'PS',
     competences: [
-      { name: 'Construye su identidad' },
-      { name: 'Convive y participa democráticamente' },
-      { name: 'Construye interpretaciones históricas' },
-      { name: 'Gestiona responsablemente el espacio y el ambiente' },
-      { name: 'Gestiona responsablemente los recursos económicos' },
-    ],
-  },
-  {
-    name: 'Arte y Cultura (Primaria)',
-    officialCode: 'AC-PRI',
-    competences: [
-      { name: 'Aprecia de manera crítica manifestaciones artístico-culturales' },
-      { name: 'Crea proyectos desde los lenguajes artísticos' },
+      { name: 'Construye su identidad', officialCompetenceCode: 'C1' },
+      { name: 'Convive y participa democráticamente en la búsqueda del bien común', officialCompetenceCode: 'C2' },
+      { name: 'Construye interpretaciones históricas', officialCompetenceCode: 'C3' },
+      { name: 'Gestiona responsablemente el espacio y el ambiente', officialCompetenceCode: 'C4' },
+      { name: 'Gestiona responsablemente los recursos económicos', officialCompetenceCode: 'C5' },
     ],
   },
   {
     name: 'Educación Física (Primaria)',
     officialCode: 'EF-PRI',
+    officialAreaCode: 'EF',
     competences: [
-      { name: 'Se desenvuelve de manera autónoma a través de su motricidad' },
-      { name: 'Asume una vida saludable' },
-      { name: 'Interactúa a través de sus habilidades sociomotrices' },
+      { name: 'Se desenvuelve de manera autónoma a través de su motricidad', officialCompetenceCode: 'C1' },
+      { name: 'Asume una vida saludable', officialCompetenceCode: 'C2' },
+      { name: 'Interactúa a través de sus habilidades sociomotrices', officialCompetenceCode: 'C3' },
+    ],
+  },
+  {
+    name: 'Arte y Cultura (Primaria)',
+    officialCode: 'ART-PRI',
+    officialAreaCode: 'ART',
+    competences: [
+      { name: 'Aprecia de manera crítica manifestaciones artístico-culturales', officialCompetenceCode: 'C1' },
+      { name: 'Crea proyectos desde los lenguajes artísticos', officialCompetenceCode: 'C2' },
+    ],
+  },
+  {
+    name: 'Comunicación (Primaria)',
+    officialCode: 'COM-PRI',
+    officialAreaCode: 'COM',
+    competences: [
+      { name: 'Se comunica oralmente en su lengua materna', officialCompetenceCode: 'C1' },
+      { name: 'Lee diversos tipos de textos escritos en su lengua materna', officialCompetenceCode: 'C2' },
+      { name: 'Escribe diversos tipos de textos en su lengua materna', officialCompetenceCode: 'C3' },
+    ],
+  },
+  {
+    name: 'Inglés como lengua extranjera (Primaria)',
+    officialCode: 'ING-PRI',
+    officialAreaCode: 'ING',
+    competences: [
+      { name: 'Se comunica oralmente en inglés como lengua extranjera', officialCompetenceCode: 'C1' },
+      { name: 'Lee diversos tipos de textos escritos en inglés como lengua extranjera', officialCompetenceCode: 'C2' },
+      { name: 'Escribe diversos tipos de textos en inglés como lengua extranjera', officialCompetenceCode: 'C3' },
+    ],
+  },
+  {
+    name: 'Matemática (Primaria)',
+    officialCode: 'MAT-PRI',
+    officialAreaCode: 'MAT',
+    competences: [
+      { name: 'Resuelve problemas de cantidad', officialCompetenceCode: 'C1' },
+      { name: 'Resuelve problemas de regularidad, equivalencia y cambio', officialCompetenceCode: 'C2' },
+      { name: 'Resuelve problemas de forma, movimiento y localización', officialCompetenceCode: 'C3' },
+      { name: 'Resuelve problemas de gestión de datos e incertidumbre', officialCompetenceCode: 'C4' },
+    ],
+  },
+  {
+    name: 'Ciencia y Tecnología (Primaria)',
+    officialCode: 'CYT-PRI',
+    officialAreaCode: 'CYT',
+    competences: [
+      { name: 'Indaga mediante métodos científicos para construir sus conocimientos', officialCompetenceCode: 'C1' },
+      { name: 'Explica el mundo físico basándose en conocimientos sobre los seres vivos, materia y energía, biodiversidad, Tierra y universo', officialCompetenceCode: 'C2' },
+      { name: 'Diseña y construye soluciones tecnológicas para resolver problemas de su entorno', officialCompetenceCode: 'C3' },
     ],
   },
   {
     name: 'Educación Religiosa (Primaria)',
-    officialCode: 'ER-PRI',
+    officialCode: 'REL-PRI',
+    officialAreaCode: 'REL',
     competences: [
-      { name: 'Construye su identidad como persona humana, amada por Dios' },
-      { name: 'Asume la experiencia del encuentro personal y comunitario con Dios' },
+      { name: 'Construye su identidad como persona humana, amada por Dios, digna, libre y trascendente', officialCompetenceCode: 'C1' },
+      { name: 'Asume la experiencia del encuentro personal y comunitario con Dios en su proyecto de vida', officialCompetenceCode: 'C2' },
     ],
   },
   {
-    name: 'Inglés como Lengua Extranjera (Primaria)',
-    officialCode: 'ING-PRI',
+    name: 'Competencias Transversales (Primaria)',
+    officialCode: 'TRANS-PRI',
+    isTransversal: true,
+    officialAreaCode: 'TRANS',
     competences: [
-      { name: 'Se comunica oralmente en inglés como lengua extranjera' },
-      { name: 'Lee diversos tipos de textos escritos en inglés' },
-      { name: 'Escribe diversos tipos de textos en inglés' },
+      {
+        name: 'Se desenvuelve en entornos virtuales generados por las TIC',
+        description: 'Uso formativo de herramientas tecnológicas y virtuales',
+        officialCompetenceCode: 'C28',
+      },
+      {
+        name: 'Gestiona su aprendizaje de manera autónoma',
+        description: 'Autorregulación y metas de aprendizaje continuo',
+        officialCompetenceCode: 'C29',
+      },
     ],
   },
 
-  // NIVEL SECUNDARIA (12 A 17 AÑOS - POLIDOCENCIA / ASIGNATURAS ESPECIALIZADAS)
+  // ============================================================================
+  // NIVEL SECUNDARIA (1.° a 5.° grado)
+  // ============================================================================
   {
-    name: 'Matemática - Álgebra',
-    officialCode: 'MAT-ALG',
-    competences: [
-      { name: 'Resuelve problemas de regularidad, equivalencia y cambio' },
-      { name: 'Resuelve problemas de cantidad' },
-      { name: 'Resuelve problemas de forma, movimiento y localización' },
-      { name: 'Resuelve problemas de gestión de datos e incertidumbre' },
-    ],
-  },
-  {
-    name: 'Matemática - Geometría',
-    officialCode: 'MAT-GEO',
-    competences: [
-      { name: 'Resuelve problemas de forma, movimiento y localización' },
-      { name: 'Resuelve problemas de cantidad' },
-      { name: 'Resuelve problemas de regularidad, equivalencia y cambio' },
-      { name: 'Resuelve problemas de gestión de datos e incertidumbre' },
-    ],
-  },
-  {
-    name: 'Matemática - Aritmética',
-    officialCode: 'MAT-ARI',
-    competences: [
-      { name: 'Resuelve problemas de cantidad' },
-      { name: 'Resuelve problemas de regularidad, equivalencia y cambio' },
-      { name: 'Resuelve problemas de forma, movimiento y localización' },
-      { name: 'Resuelve problemas de gestión de datos e incertidumbre' },
-    ],
-  },
-  {
-    name: 'Matemática - Trigonometría',
-    officialCode: 'MAT-TRI',
-    competences: [
-      { name: 'Resuelve problemas de forma, movimiento y localización' },
-      { name: 'Resuelve problemas de cantidad' },
-      { name: 'Resuelve problemas de regularidad, equivalencia y cambio' },
-      { name: 'Resuelve problemas de gestión de datos e incertidumbre' },
-    ],
-  },
-  {
-    name: 'Comunicación - Literatura',
-    officialCode: 'COM-LIT',
-    competences: [
-      { name: 'Lee diversos tipos de textos escritos' },
-      { name: 'Se comunica oralmente en su lengua materna' },
-      { name: 'Escribe diversos tipos de textos' },
-    ],
-  },
-  {
-    name: 'Comunicación - Lenguaje',
-    officialCode: 'COM-LEN',
-    competences: [
-      { name: 'Escribe diversos tipos de textos' },
-      { name: 'Se comunica oralmente en su lengua materna' },
-      { name: 'Lee diversos tipos de textos escritos' },
-    ],
-  },
-  {
-    name: 'Comunicación - Razonamiento Verbal',
-    officialCode: 'COM-RV',
-    competences: [
-      { name: 'Lee diversos tipos de textos escritos' },
-      { name: 'Se comunica oralmente en su lengua materna' },
-      { name: 'Escribe diversos tipos de textos' },
-    ],
-  },
-  {
-    name: 'Desarrollo Personal, Ciudadanía y Cívica (DPCC)',
+    name: 'Desarrollo Personal, Ciudadanía y Cívica (Secundaria)',
     officialCode: 'DPCC-SEC',
+    officialAreaCode: 'DPCC',
     competences: [
-      { name: 'Construye su identidad' },
-      { name: 'Convive y participa democráticamente' },
+      { name: 'Construye su identidad', officialCompetenceCode: 'C1' },
+      { name: 'Convive y participa democráticamente en la búsqueda del bien común', officialCompetenceCode: 'C2' },
     ],
   },
   {
-    name: 'Ciencias Sociales - Historia del Perú',
-    officialCode: 'CCSS-HP',
+    name: 'Ciencias Sociales (Secundaria)',
+    officialCode: 'CCSS-SEC',
+    officialAreaCode: 'CCSS',
     competences: [
-      { name: 'Construye interpretaciones históricas' },
-      { name: 'Gestiona responsablemente el espacio y el ambiente' },
-      { name: 'Gestiona responsablemente los recursos económicos' },
+      { name: 'Construye interpretaciones históricas', officialCompetenceCode: 'C1' },
+      { name: 'Gestiona responsablemente el espacio y el ambiente', officialCompetenceCode: 'C2' },
+      { name: 'Gestiona responsablemente los recursos económicos', officialCompetenceCode: 'C3' },
     ],
   },
   {
-    name: 'Ciencias Sociales - Historia Universal',
-    officialCode: 'CCSS-HU',
-    competences: [
-      { name: 'Construye interpretaciones históricas' },
-      { name: 'Gestiona responsablemente el espacio y el ambiente' },
-      { name: 'Gestiona responsablemente los recursos económicos' },
-    ],
-  },
-  {
-    name: 'Ciencias Sociales - Geografía',
-    officialCode: 'CCSS-GEO',
-    competences: [
-      { name: 'Gestiona responsablemente el espacio y el ambiente' },
-      { name: 'Construye interpretaciones históricas' },
-      { name: 'Gestiona responsablemente los recursos económicos' },
-    ],
-  },
-  {
-    name: 'Ciencia y Tecnología - Biología',
-    officialCode: 'CT-BIO',
-    competences: [
-      { name: 'Explica el mundo físico basándose en conocimientos científicos' },
-      { name: 'Indaga mediante métodos científicos' },
-      { name: 'Diseña y construye soluciones tecnológicas' },
-    ],
-  },
-  {
-    name: 'Ciencia y Tecnología - Química',
-    officialCode: 'CT-QUI',
-    competences: [
-      { name: 'Explica el mundo físico basándose en conocimientos científicos' },
-      { name: 'Indaga mediante métodos científicos' },
-      { name: 'Diseña y construye soluciones tecnológicas' },
-    ],
-  },
-  {
-    name: 'Ciencia y Tecnología - Física',
-    officialCode: 'CT-FIS',
-    competences: [
-      { name: 'Explica el mundo físico basándose en conocimientos científicos' },
-      { name: 'Indaga mediante métodos científicos' },
-      { name: 'Diseña y construye soluciones tecnológicas' },
-    ],
-  },
-  {
-    name: 'Inglés como Lengua Extranjera (Secundaria)',
-    officialCode: 'ING-SEC',
-    competences: [
-      { name: 'Se comunica oralmente en inglés avanzado' },
-      { name: 'Lee textos complejos en inglés' },
-      { name: 'Redacta ensayos y cartas en inglés' },
-    ],
-  },
-  {
-    name: 'Educación para el Trabajo (EPT) - Computación y Emprendimiento',
+    name: 'Educación para el Trabajo (Secundaria)',
     officialCode: 'EPT-SEC',
+    officialAreaCode: 'EPT',
     competences: [
-      { name: 'Gestiona proyectos de emprendimiento económico o social' },
-      { name: 'Aplica habilidades técnicas en computación y finanzas' },
-    ],
-  },
-  {
-    name: 'Arte y Cultura (Secundaria)',
-    officialCode: 'AC-SEC',
-    competences: [
-      { name: 'Aprecia de manera crítica manifestaciones artístico-culturales' },
-      { name: 'Crea proyectos desde los lenguajes artísticos' },
+      { name: 'Gestiona proyectos de emprendimiento económico o social', officialCompetenceCode: 'C1' },
     ],
   },
   {
     name: 'Educación Física (Secundaria)',
     officialCode: 'EF-SEC',
+    officialAreaCode: 'EF',
     competences: [
-      { name: 'Se desenvuelve de manera autónoma a través de su motricidad' },
-      { name: 'Asume una vida saludable y acondicionamiento físico' },
+      { name: 'Se desenvuelve de manera autónoma a través de su motricidad', officialCompetenceCode: 'C1' },
+      { name: 'Asume una vida saludable', officialCompetenceCode: 'C2' },
+      { name: 'Interactúa a través de sus habilidades sociomotrices', officialCompetenceCode: 'C3' },
+    ],
+  },
+  {
+    name: 'Arte y Cultura (Secundaria)',
+    officialCode: 'ART-SEC',
+    officialAreaCode: 'ART',
+    competences: [
+      { name: 'Aprecia de manera crítica manifestaciones artístico-culturales', officialCompetenceCode: 'C1' },
+      { name: 'Crea proyectos desde los lenguajes artísticos', officialCompetenceCode: 'C2' },
+    ],
+  },
+  {
+    name: 'Comunicación (Secundaria)',
+    officialCode: 'COM-SEC',
+    officialAreaCode: 'COM',
+    competences: [
+      { name: 'Se comunica oralmente en su lengua materna', officialCompetenceCode: 'C1' },
+      { name: 'Lee diversos tipos de textos escritos en su lengua materna', officialCompetenceCode: 'C2' },
+      { name: 'Escribe diversos tipos de textos en su lengua materna', officialCompetenceCode: 'C3' },
+    ],
+  },
+  {
+    name: 'Inglés como lengua extranjera (Secundaria)',
+    officialCode: 'ING-SEC',
+    officialAreaCode: 'ING',
+    competences: [
+      { name: 'Se comunica oralmente en inglés como lengua extranjera', officialCompetenceCode: 'C1' },
+      { name: 'Lee diversos tipos de textos escritos en inglés como lengua extranjera', officialCompetenceCode: 'C2' },
+      { name: 'Escribe diversos tipos de textos en inglés como lengua extranjera', officialCompetenceCode: 'C3' },
+    ],
+  },
+  {
+    name: 'Matemática (Secundaria)',
+    officialCode: 'MAT-SEC',
+    officialAreaCode: 'MAT',
+    competences: [
+      { name: 'Resuelve problemas de cantidad', officialCompetenceCode: 'C1' },
+      { name: 'Resuelve problemas de regularidad, equivalencia y cambio', officialCompetenceCode: 'C2' },
+      { name: 'Resuelve problemas de forma, movimiento y localización', officialCompetenceCode: 'C3' },
+      { name: 'Resuelve problemas de gestión de datos e incertidumbre', officialCompetenceCode: 'C4' },
+    ],
+  },
+  {
+    name: 'Ciencia y Tecnología (Secundaria)',
+    officialCode: 'CYT-SEC',
+    officialAreaCode: 'CYT',
+    competences: [
+      { name: 'Indaga mediante métodos científicos para construir sus conocimientos', officialCompetenceCode: 'C1' },
+      { name: 'Explica el mundo físico basándose en conocimientos sobre los seres vivos, materia y energía, biodiversidad, Tierra y universo', officialCompetenceCode: 'C2' },
+      { name: 'Diseña y construye soluciones tecnológicas para resolver problemas de su entorno', officialCompetenceCode: 'C3' },
     ],
   },
   {
     name: 'Educación Religiosa (Secundaria)',
-    officialCode: 'ER-SEC',
+    officialCode: 'REL-SEC',
+    officialAreaCode: 'REL',
     competences: [
-      { name: 'Construye su identidad como persona humana, amada por Dios' },
+      { name: 'Construye su identidad como persona humana, amada por Dios, digna, libre y trascendente', officialCompetenceCode: 'C1' },
+      { name: 'Asume la experiencia del encuentro personal y comunitario con Dios en su proyecto de vida', officialCompetenceCode: 'C2' },
     ],
   },
   {
-    name: 'Tutoría y Orientación Educativa (TOE)',
-    officialCode: 'TOE-SEC',
+    name: 'Competencias Transversales (Secundaria)',
+    officialCode: 'TRANS-SEC',
+    isTransversal: true,
+    officialAreaCode: 'TRANS',
     competences: [
-      { name: 'Desarrolla habilidades socioemocionales y orientación vocacional' },
+      {
+        name: 'Se desenvuelve en entornos virtuales generados por las TIC',
+        description: 'Uso formativo de herramientas tecnológicas y virtuales',
+        officialCompetenceCode: 'C28',
+      },
+      {
+        name: 'Gestiona su aprendizaje de manera autónoma',
+        description: 'Autorregulación y metas de aprendizaje continuo',
+        officialCompetenceCode: 'C29',
+      },
     ],
   },
 ];

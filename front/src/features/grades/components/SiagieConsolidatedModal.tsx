@@ -11,6 +11,7 @@ import {
   Upload,
   Loader2,
   CheckCircle2,
+  Copy,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
@@ -50,14 +51,30 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [matrixView, setMatrixView] = useState<'consolidated' | 'internal'>('consolidated');
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [calculationMode, setCalculationMode] = useState<'LAST_PERIOD' | 'AVERAGE'>('LAST_PERIOD');
 
-  const { data, isLoading, isError } = useSiagieSummary(classroomId, periodNumber, {
+  const { data, isLoading, isError } = useSiagieSummary(classroomId, periodNumber, calculationMode, {
     enabled: isOpen && Boolean(classroomId),
   });
   const { data: periodLock } = usePeriodLock(classroomId, periodNumber, {
     enabled: isOpen && Boolean(classroomId),
   });
   const toggleLockMutation = useTogglePeriodLock();
+
+  const handleCopyColumnValues = (colName: string, getVal: (st: any) => string) => {
+    const sorted = [...(matrix?.students || [])].sort((a, b) => a.orderIndex - b.orderIndex);
+    const lines = sorted.map((st) => {
+      if (st.enrollmentState === 'WITHDRAWN' || st.enrollmentState === 'TRANSFERRED') {
+        return '';
+      }
+      return getVal(st) || '-';
+    });
+    const textToCopy = lines.join('\r\n');
+    navigator.clipboard.writeText(textToCopy);
+    toast.success(`Columna "${colName}" copiada al portapapeles.`, {
+      description: `Se copiaron ${lines.length} notas en orden de lista oficial para pegar en Excel de SIAGIE.`,
+    });
+  };
 
   const handleConfirmToggleLock = () => {
     const isCurrentlyLocked = periodLock?.isLocked || false;
@@ -451,11 +468,11 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
         </div>
 
         {/* Barra de Pestañas y Controles */}
-        <div className="flex items-center justify-between px-5 pt-3 border-b border-border bg-card">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between px-5 pt-3 border-b border-border bg-card gap-2">
+          <div className="flex items-center gap-2 overflow-x-auto">
             <button
               onClick={() => setActiveTab('audit')}
-              className={`pb-2.5 text-xs font-bold transition-colors border-b-2 ${
+              className={`pb-2.5 text-xs font-bold transition-colors border-b-2 whitespace-nowrap ${
                 activeTab === 'audit'
                   ? 'border-primary text-primary'
                   : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -465,7 +482,7 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
             </button>
             <button
               onClick={() => setActiveTab('matrix')}
-              className={`pb-2.5 text-xs font-bold transition-colors border-b-2 ${
+              className={`pb-2.5 text-xs font-bold transition-colors border-b-2 whitespace-nowrap ${
                 activeTab === 'matrix'
                   ? 'border-primary text-primary'
                   : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -475,8 +492,36 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
             </button>
           </div>
 
-          {activeTab === 'matrix' && (
-            <div className="flex items-center gap-2 pb-2">
+          <div className="flex items-center gap-2 pb-2 flex-wrap">
+            {/* Selector de Modo de Cálculo Anual */}
+            <div className="flex items-center gap-1 bg-muted p-0.5 rounded-lg border border-border">
+              <button
+                type="button"
+                onClick={() => setCalculationMode('LAST_PERIOD')}
+                className={`px-2 py-1 text-[11px] font-semibold rounded-md transition-all ${
+                  calculationMode === 'LAST_PERIOD'
+                    ? 'bg-card text-foreground shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                title="Norma RVM N° 094-2020: Nivel de logro conclusivo del último periodo"
+              >
+                RVM 094 (Último Periodo)
+              </button>
+              <button
+                type="button"
+                onClick={() => setCalculationMode('AVERAGE')}
+                className={`px-2 py-1 text-[11px] font-semibold rounded-md transition-all ${
+                  calculationMode === 'AVERAGE'
+                    ? 'bg-card text-foreground shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                title="Promedio anual ponderado de todos los periodos"
+              >
+                Promedio Anual
+              </button>
+            </div>
+
+            {activeTab === 'matrix' && (
               <Button
                 variant={showCompetencesDetail ? 'default' : 'outline'}
                 size="sm"
@@ -485,12 +530,33 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
               >
                 {showCompetencesDetail ? 'Ver por Áreas' : 'Desglosar Competencias'}
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Cuerpo del Modal */}
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
+          {/* Banner de Alerta de Competencias Huérfanas */}
+          {data?.unmappedCompetences && data.unmappedCompetences.length > 0 && (
+            <div className="p-3.5 rounded-xl bg-destructive/10 border border-destructive/30 flex items-start gap-2.5 text-xs text-destructive shadow-sm">
+              <AlertTriangle className="w-5 h-5 shrink-0 text-destructive mt-0.5" />
+              <div className="space-y-1">
+                <strong className="block font-bold text-sm">
+                  ⚠️ Alerta SIAGIE — Competencias Oficiales Huérfanas ({data.unmappedCompetences.length})
+                </strong>
+                <p className="text-[11px] leading-relaxed text-destructive/90">
+                  Las siguientes competencias oficiales del CNEB no están siendo evaluadas por ningún curso ni sub-curso en este salón. El SIAGIE podría rechazar el procesamiento si quedan desiertas:
+                </p>
+                <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                  {data.unmappedCompetences.map((uc, i) => (
+                    <Badge key={i} variant="outline" className="border-destructive/40 bg-destructive/15 text-destructive text-[10px] font-bold">
+                      [{uc.areaName}] {uc.competenceCode}: {uc.competenceName}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
           {isLoading ? (
             <div className="space-y-4">
               <Skeleton className="h-24 w-full rounded-xl" />
@@ -842,14 +908,56 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
                               {col.competences.map((comp: any, cIdx: number) => (
                                 <th
                                   key={comp.id}
-                                  className="p-1.5 border-r border-border text-center min-w-[65px] font-mono text-[10px]"
+                                  className="p-1.5 border-r border-border text-center min-w-[70px] font-mono text-[10px]"
                                   title={`${col.name} - ${comp.name}`}
                                 >
-                                  {col.name.substring(0, 3)}. C{cIdx + 1}
+                                  <div className="flex items-center justify-center gap-1">
+                                    <span>{col.name.substring(0, 3)}. C{cIdx + 1}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleCopyColumnValues(
+                                          `${col.name} - C${cIdx + 1}`,
+                                          (st) => {
+                                            const g =
+                                              matrixView === 'consolidated' && st.consolidatedGrades
+                                                ? st.consolidatedGrades[col.code] || st.consolidatedGrades[col.id]
+                                                : st.courseGrades[col.id];
+                                            return g?.competences?.[comp.id]?.letter || '-';
+                                          },
+                                        )
+                                      }
+                                      className="p-0.5 rounded text-muted-foreground hover:text-primary hover:bg-muted"
+                                      title="Copiar calificaciones de esta columna para pegar en SIAGIE"
+                                    >
+                                      <Copy className="w-2.5 h-2.5" />
+                                    </button>
+                                  </div>
                                 </th>
                               ))}
-                              <th className="p-1.5 border-r border-border text-center min-w-[60px] bg-secondary/50 font-bold">
-                                Prom
+                              <th className="p-1.5 border-r border-border text-center min-w-[65px] bg-secondary/50 font-bold">
+                                <div className="flex items-center justify-center gap-1">
+                                  <span>Prom</span>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleCopyColumnValues(
+                                        `${col.name} - Promedio`,
+                                        (st) => {
+                                          const g =
+                                            matrixView === 'consolidated' && st.consolidatedGrades
+                                              ? st.consolidatedGrades[col.code] || st.consolidatedGrades[col.id]
+                                              : st.courseGrades[col.id];
+                                          return g?.letter || '-';
+                                        },
+                                      )
+                                    }
+                                    className="p-0.5 rounded text-muted-foreground hover:text-primary hover:bg-muted"
+                                    title="Copiar columna de promedio"
+                                  >
+                                    <Copy className="w-2.5 h-2.5" />
+                                  </button>
+                                </div>
                               </th>
                             </React.Fragment>
                           );
@@ -858,14 +966,32 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
                         return (
                           <th
                             key={col.id}
-                            className="p-2 border-r border-border text-center min-w-[80px]"
+                            className="p-2 border-r border-border text-center min-w-[85px]"
                             title={
                               isSubdivided
                                 ? `${col.name} (Subdividido en: ${col.tributaryCourses?.join(', ')})`
                                 : col.name
                             }
                           >
-                            <span className="truncate block max-w-[90px] mx-auto">{col.name}</span>
+                            <div className="flex items-center justify-center gap-1">
+                              <span className="truncate block max-w-[80px]">{col.name}</span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleCopyColumnValues(col.name, (st) => {
+                                    const g =
+                                      matrixView === 'consolidated' && st.consolidatedGrades
+                                        ? st.consolidatedGrades[col.code] || st.consolidatedGrades[col.id]
+                                        : st.courseGrades[col.id];
+                                    return g?.letter || '-';
+                                  })
+                                }
+                                className="p-0.5 rounded text-muted-foreground hover:text-primary hover:bg-muted"
+                                title="Copiar columna para SIAGIE"
+                              >
+                                <Copy className="w-2.5 h-2.5" />
+                              </button>
+                            </div>
                             {isSubdivided && (
                               <span className="text-[9px] font-mono text-primary font-bold block leading-none mt-0.5">
                                 Subdividido

@@ -22,6 +22,13 @@ paymentRouter.get(
   paymentController.getSummary,
 );
 
+// Arqueo de caja diario (Cierre de caja)
+paymentRouter.get(
+  '/daily-cash-close',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
+  paymentController.getDailyCashClose,
+);
+
 // ──────────────────────────────────────────────────────────────────
 // OBLIGACIONES DE PAGO (Cronograma)
 // ──────────────────────────────────────────────────────────────────

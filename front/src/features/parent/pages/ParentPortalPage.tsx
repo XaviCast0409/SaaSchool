@@ -13,15 +13,23 @@ import { ChildAnnouncementsCard } from '../components/ChildAnnouncementsCard';
 import { ChildGradesPreviewCard } from '../components/ChildGradesPreviewCard';
 import { ChildVirtualClassroomCard } from '../components/ChildVirtualClassroomCard';
 import { StudentDashboardView } from '../components/StudentDashboardView';
+import { ChildIncidentsCard } from '@/features/incidents/components/ChildIncidentsCard';
 
 export const ParentPortalPage: React.FC = () => {
   const { user } = useAuthStore();
   const { selectedChildId, setSelectedChildId, viewMode, setViewMode } = useParentStore();
 
-  const isStudentUser = Boolean(
+  const isStudentUser = user?.role === 'STUDENT' || Boolean(
     user?.email &&
       (user.email.toLowerCase().includes('alumno') || user.email.toLowerCase().includes('estudiante')),
   );
+
+  useEffect(() => {
+    if (isStudentUser && viewMode !== 'STUDENT') {
+      setViewMode('STUDENT');
+    }
+  }, [isStudentUser, viewMode, setViewMode]);
+
   const effectiveMode = isStudentUser ? 'STUDENT' : viewMode;
 
   const { data: children = [], isLoading, isError } = useGetMyChildren();
@@ -36,7 +44,33 @@ export const ParentPortalPage: React.FC = () => {
     }
   }, [children, selectedChildId, setSelectedChildId]);
 
-  const activeChild = children.find((c) => c.id === selectedChildId) || children[0] || null;
+  const activeChild =
+    children.find((c) => c.id === selectedChildId) ||
+    children[0] ||
+    (isStudentUser
+      ? ({
+          id: user?.studentId || user?.id || '',
+          firstNames: user?.firstName || 'Estudiante',
+          lastNamePaternal: user?.lastNamePaternal || '',
+          lastNameMaternal: null,
+          documentId: user?.documentId || '',
+          studentCode: null,
+          activeEnrollment: {
+            id: '',
+            classroom: {
+              id: '',
+              grade: 1,
+              section: 'A',
+              educationLevel: 'SECONDARY',
+            },
+            academicYear: {
+              name: '2026',
+            },
+            obligations: [],
+            attendances: [],
+          },
+        } as any)
+      : null);
 
   if (isLoading) {
     return (
@@ -51,7 +85,7 @@ export const ParentPortalPage: React.FC = () => {
     );
   }
 
-  if (isError || children.length === 0) {
+  if (!isStudentUser && (isError || children.length === 0)) {
     return (
       <div className="p-8 rounded-2xl bg-card border border-border text-center space-y-4 my-6 shadow-sm">
         <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center mx-auto text-muted-foreground">
@@ -62,9 +96,7 @@ export const ParentPortalPage: React.FC = () => {
             No se encontraron alumnos vinculados
           </h2>
           <p className="text-xs text-muted-foreground max-w-md mx-auto">
-            {isStudentUser
-              ? `Tu cuenta de estudiante (${user?.email}) aún no tiene una matrícula activa vinculada en este colegio.`
-              : `Tu cuenta de usuario apoderado (${user?.email}) aún no tiene estudiantes registrados en el sistema escolar.`}
+            Tu cuenta de usuario apoderado ({user?.email}) aún no tiene estudiantes registrados en el sistema escolar.
           </p>
         </div>
       </div>
@@ -75,7 +107,7 @@ export const ParentPortalPage: React.FC = () => {
   if (effectiveMode === 'STUDENT' && activeChild) {
     return (
       <div className="space-y-6">
-        {/* Selector de hijos si el padre tiene varios y está en modo alumno */}
+        {/* Selector de hijos solo si el padre tiene varios y está explorando modo alumno */}
         {!isStudentUser && children.length > 1 && (
           <ChildSwitcher
             childrenList={children}
@@ -86,7 +118,7 @@ export const ParentPortalPage: React.FC = () => {
         <StudentDashboardView
           child={activeChild}
           isParentViewing={!isStudentUser}
-          onSwitchToParentView={() => setViewMode('PARENT')}
+          onSwitchToParentView={!isStudentUser ? () => setViewMode('PARENT') : undefined}
         />
       </div>
     );
@@ -134,10 +166,14 @@ export const ParentPortalPage: React.FC = () => {
       {/* Grid Central de Información Esencial */}
       {activeChild && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* Columna Izquierda: Asistencia y Finanzas */}
+          {/* Columna Izquierda: Asistencia, Finanzas e Incidencias */}
           <div className="space-y-5">
             <ChildAttendanceCard enrollment={activeChild.activeEnrollment} />
             <ChildFinancialCard enrollment={activeChild.activeEnrollment} />
+            <ChildIncidentsCard
+              studentId={activeChild.id}
+              studentName={`${activeChild.firstNames} ${activeChild.lastNamePaternal}`}
+            />
           </div>
 
           {/* Columna Derecha: Aula Virtual, Comunicados y Libreta de Notas */}

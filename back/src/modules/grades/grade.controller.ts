@@ -9,6 +9,7 @@ import {
   siagieSummaryQuerySchema,
   getPeriodLockQuerySchema,
   togglePeriodLockSchema,
+  syncHomeworkToMatrixSchema,
   createGradeSchema,
   createGradeEntrySchema,
 } from './grade.schema';
@@ -120,7 +121,12 @@ export class GradeController {
   getReportCard = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
     const enrollmentId = request.params.enrollmentId as string;
-    const reportCard = await this.gradeService.getReportCard(schoolId, enrollmentId);
+    const userContext = {
+      userId: request.user!.userId,
+      role: request.user!.role,
+      studentId: request.user!.studentId,
+    };
+    const reportCard = await this.gradeService.getReportCard(schoolId, enrollmentId, userContext);
     response.status(200).json({ status: 'success', data: reportCard });
   };
 
@@ -130,12 +136,33 @@ export class GradeController {
 
   getSiagieSummary = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
-    const { classroomId, periodNumber } = siagieSummaryQuerySchema.parse(request.query);
+    const { classroomId, periodNumber, calculationMode } = siagieSummaryQuerySchema.parse(request.query);
     if (!classroomId) {
       throw new AppError('El ID del aula es obligatorio para el consolidado SIAGIE.', 400);
     }
-    const summary = await this.gradeService.getSiagieSummary(schoolId, classroomId, periodNumber);
+    const summary = await this.gradeService.getSiagieSummary(
+      schoolId,
+      classroomId,
+      periodNumber,
+      calculationMode,
+    );
     response.status(200).json({ status: 'success', data: summary });
+  };
+
+  syncHomeworkToMatrix = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const dto = syncHomeworkToMatrixSchema.parse(request.body);
+    const userContext = {
+      userId: request.user!.userId,
+      schoolId,
+      role: request.user!.role,
+    };
+    const result = await this.gradeService.syncHomeworkToMatrix(schoolId, userContext, dto);
+    response.status(200).json({
+      status: 'success',
+      data: result,
+      message: `Se sincronizaron las notas de ${result.updatedStudentsCount} alumno(s) desde el Aula Virtual.`,
+    });
   };
 
   // ============================================================================

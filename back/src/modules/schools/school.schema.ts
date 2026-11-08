@@ -59,6 +59,7 @@ export const updateSchoolSchema = createSchoolSchema
       .array(z.enum(['INITIAL', 'PRIMARY', 'SECONDARY']))
       .min(1, 'El colegio debe operar al menos un nivel educativo')
       .optional(),
+    blockGradesOnOverdue: z.boolean().optional(),
   })
   .partial();
 

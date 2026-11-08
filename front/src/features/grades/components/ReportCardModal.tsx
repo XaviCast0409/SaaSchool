@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
+  Lock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -44,6 +45,7 @@ export const ReportCardModal: React.FC<ReportCardModalProps> = ({
   const [activeEnrollmentId, setActiveEnrollmentId] = useState<string | null>(enrollmentId);
   // Por defecto activamos la vista oficial MINEDU con conclusiones descriptivas por competencia
   const [showConclusionsFormat, setShowConclusionsFormat] = useState(true);
+  const [viewHierarchy, setViewHierarchy] = useState<'OFFICIAL' | 'DETAILED'>('OFFICIAL');
 
   useEffect(() => {
     if (enrollmentId) {
@@ -51,7 +53,8 @@ export const ReportCardModal: React.FC<ReportCardModalProps> = ({
     }
   }, [enrollmentId]);
 
-  const { data: reportCard, isLoading, isError } = useReportCard(activeEnrollmentId || '');
+  const { data: reportCard, isLoading, isError, error } = useReportCard(activeEnrollmentId || '');
+  const is402Blocked = (error as any)?.response?.status === 402;
 
   if (!isOpen || !activeEnrollmentId || typeof document === 'undefined') return null;
 
@@ -208,6 +211,34 @@ export const ReportCardModal: React.FC<ReportCardModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
+            {/* Toggle Jerarquía de Áreas: Madre vs Detallada */}
+            <div className="flex items-center gap-0.5 bg-background border border-input rounded-md p-0.5 h-8">
+              <button
+                type="button"
+                onClick={() => setViewHierarchy('OFFICIAL')}
+                className={`px-2 py-1 text-xs font-semibold rounded transition-all ${
+                  viewHierarchy === 'OFFICIAL'
+                    ? 'bg-primary text-primary-foreground shadow-xs font-bold'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                title="Vista Oficial MINEDU: Agrupa bajo Áreas Madre del CNEB"
+              >
+                Oficial MINEDU
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewHierarchy('DETAILED')}
+                className={`px-2 py-1 text-xs font-semibold rounded transition-all ${
+                  viewHierarchy === 'DETAILED'
+                    ? 'bg-primary text-primary-foreground shadow-xs font-bold'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                title="Vista Detallada: Muestra todos los sub-cursos internos (ej: Aritmética, Geometría, Física)"
+              >
+                Con Sub-cursos
+              </button>
+            </div>
+
             {/* Toggle Formato con Conclusiones Descriptivas */}
             <Button
               variant={showConclusionsFormat ? 'default' : 'outline'}
@@ -282,6 +313,21 @@ export const ReportCardModal: React.FC<ReportCardModalProps> = ({
               <Skeleton className="h-28 w-full rounded-xl" />
               <Skeleton className="h-64 w-full rounded-xl" />
               <Skeleton className="h-24 w-full rounded-xl" />
+            </div>
+          ) : is402Blocked ? (
+            <div className="p-8 sm:p-12 text-center bg-card border-2 border-dashed border-amber-500/30 rounded-2xl space-y-3 my-4">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
+                <Lock className="w-7 h-7" />
+              </div>
+              <h3 className="text-base font-black text-foreground">
+                Acceso Restringido por Morosidad
+              </h3>
+              <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
+                La emisión y descarga de esta libreta de calificaciones se encuentra temporalmente restringida debido a pensiones pendientes de pago.
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                Por favor, acérquese a Administración o Tesorería para regularizar su situación.
+              </p>
             </div>
           ) : isError || !reportCard ? (
             <div className="p-12 text-center text-muted-foreground space-y-2">
@@ -579,7 +625,18 @@ export const ReportCardModal: React.FC<ReportCardModalProps> = ({
                                     rowSpan={rowSpanTotal}
                                     className="p-2 border-r border-border font-bold uppercase text-foreground print:text-black align-top bg-muted/20 print:bg-transparent print:border-black text-[11px] print:text-[9px]"
                                   >
-                                    <div className="font-extrabold">{course.areaName}</div>
+                                    <div className="font-extrabold">
+                                      {viewHierarchy === 'OFFICIAL' && course.parentAreaName
+                                        ? course.parentAreaName
+                                        : course.areaName}
+                                    </div>
+                                    {course.parentAreaName && (
+                                      <div className="text-[9px] text-primary print:text-black font-semibold mt-0.5">
+                                        {viewHierarchy === 'OFFICIAL'
+                                          ? `Rama: ${course.areaName}`
+                                          : `Madre: ${course.parentAreaName}`}
+                                      </div>
+                                    )}
                                     <div className="text-[9px] text-muted-foreground print:text-black font-normal mt-0.5">
                                       {course.teacherName}
                                     </div>
@@ -688,48 +745,79 @@ export const ReportCardModal: React.FC<ReportCardModalProps> = ({
                   )}
                 </div>
 
-                {/* Resumen de Asistencia */}
-                <div className="p-3 rounded-xl border border-border bg-muted/20 text-xs space-y-1 print:border-black print:bg-transparent">
+                {/* Resumen Oficial de Asistencia SIAGIE */}
+                <div className="p-3 rounded-xl border border-border bg-muted/20 text-xs space-y-2 print:border-black print:bg-transparent">
                   <div className="flex items-center justify-between border-b border-border/80 pb-1 font-bold print:border-black text-[11px]">
                     <span className="flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-primary print:text-black" />
-                      <span>Control de Asistencia del Año Escolar</span>
+                      <span>Control de Asistencia SIAGIE (Oficial por Bimestre)</span>
                     </span>
                     <span className="font-mono text-foreground print:text-black text-[10px]">
                       Total: {reportCard.attendanceStats.totalRegisteredDays} días
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 text-center pt-1 font-mono text-[11px]">
-                    <div className="bg-card p-1 rounded border border-border print:border-black">
-                      <span className="text-[9px] text-muted-foreground block font-sans print:text-black">
-                        Asistencias
-                      </span>
-                      <strong className="text-emerald-600 print:text-black font-black">
-                        {reportCard.attendanceStats.present}
-                      </strong>
+                  {reportCard.periodAttendanceStats && reportCard.periodAttendanceStats.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-center text-[10px] print:text-[8px] font-mono border-collapse">
+                        <thead>
+                          <tr className="bg-muted/50 border-b border-border print:border-black font-bold">
+                            <th className="p-1 text-left font-sans">Periodo</th>
+                            <th className="p-1">Asist.</th>
+                            <th className="p-1" title="Inasistencia Justificada">IJ</th>
+                            <th className="p-1" title="Inasistencia Injustificada">II</th>
+                            <th className="p-1" title="Tardanza Justificada">TJ</th>
+                            <th className="p-1" title="Tardanza Injustificada">TI</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border/60 print:divide-black">
+                          {reportCard.periodAttendanceStats.map((pa) => (
+                            <tr key={pa.periodNumber}>
+                              <td className="p-1 text-left font-sans font-semibold">
+                                {pa.periodNumber}° Bimestre
+                              </td>
+                              <td className="p-1 font-bold text-emerald-600 print:text-black">{pa.present}</td>
+                              <td className="p-1 font-bold text-amber-600 print:text-black">{pa.absentJustified}</td>
+                              <td className="p-1 font-bold text-rose-600 print:text-black">{pa.absentUnjustified}</td>
+                              <td className="p-1 text-muted-foreground print:text-black">{pa.lateJustified}</td>
+                              <td className="p-1 text-muted-foreground print:text-black">{pa.lateUnjustified}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-2 text-center pt-1 font-mono text-[11px]">
+                      <div className="bg-card p-1 rounded border border-border print:border-black">
+                        <span className="text-[9px] text-muted-foreground block font-sans print:text-black">
+                          Asistencias
+                        </span>
+                        <strong className="text-emerald-600 print:text-black font-black">
+                          {reportCard.attendanceStats.present}
+                        </strong>
+                      </div>
 
-                    <div className="bg-card p-1 rounded border border-border print:border-black">
-                      <span className="text-[9px] text-muted-foreground block font-sans print:text-black">
-                        Tardanzas
-                      </span>
-                      <strong className="text-amber-600 print:text-black font-black">
-                        {reportCard.attendanceStats.lateJustified +
-                          reportCard.attendanceStats.lateUnjustified}
-                      </strong>
-                    </div>
+                      <div className="bg-card p-1 rounded border border-border print:border-black">
+                        <span className="text-[9px] text-muted-foreground block font-sans print:text-black">
+                          Tardanzas
+                        </span>
+                        <strong className="text-amber-600 print:text-black font-black">
+                          {reportCard.attendanceStats.lateJustified +
+                            reportCard.attendanceStats.lateUnjustified}
+                        </strong>
+                      </div>
 
-                    <div className="bg-card p-1 rounded border border-border print:border-black">
-                      <span className="text-[9px] text-muted-foreground block font-sans print:text-black">
-                        Faltas
-                      </span>
-                      <strong className="text-rose-600 print:text-black font-black">
-                        {reportCard.attendanceStats.absentJustified +
-                          reportCard.attendanceStats.absentUnjustified}
-                      </strong>
+                      <div className="bg-card p-1 rounded border border-border print:border-black">
+                        <span className="text-[9px] text-muted-foreground block font-sans print:text-black">
+                          Faltas
+                        </span>
+                        <strong className="text-rose-600 print:text-black font-black">
+                          {reportCard.attendanceStats.absentJustified +
+                            reportCard.attendanceStats.absentUnjustified}
+                        </strong>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
 

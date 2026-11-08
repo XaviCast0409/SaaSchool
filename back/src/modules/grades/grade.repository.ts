@@ -7,15 +7,19 @@ import type {
   BatchSaveConclusionsDto,
   CreateGradeDto,
   CreateGradeEntryDto,
+  SyncHomeworkToMatrixDto,
 } from './grade.schema';
 import { AppError } from '../../core/errors/app-error';
-import { SiagieConsolidatorService } from './siagie-consolidator.service';
+import { SiagieConsolidatorService, letterToScore, scoreToLetter } from './siagie-consolidator.service';
+import { getSchoolNow } from '../../utils/timezone.util';
+import { getPeriodDateRange } from '../../utils/period-dates.util';
 
 export type ReportCardEnrollment = Prisma.EnrollmentGetPayload<{
   include: {
     student: {
       include: {
         school: true;
+        familyRelations: true;
       };
     };
     classroom: {
@@ -186,6 +190,11 @@ export class GradeRepository {
         area: {
           include: {
             competences: true,
+            parentArea: {
+              include: {
+                competences: true,
+              },
+            },
           },
         },
         classroom: {
@@ -233,6 +242,64 @@ export class GradeRepository {
       );
     }
 
+    // Herencia oficial de competencias CNEB para Sub-cursos (Ramas)
+    let effectiveCompetences = assignment.area.competences.filter((c: any) => c.isActive !== false);
+    if (assignment.area.parentAreaId && assignment.area.parentArea) {
+      const parentComps = (assignment.area.parentArea.competences || []).filter((c: any) => c.isActive !== false);
+      const evaluatedIds = assignment.area.evaluatedCompetenceIds || [];
+      if (evaluatedIds.length > 0) {
+        effectiveCompetences = parentComps.filter((c: any) => evaluatedIds.includes(c.id));
+      } else {
+        effectiveCompetences = parentComps;
+      }
+    }
+    (assignment.area as any).competences = effectiveCompetences;
+
+    // Conexión 4: Historial de Incidencias dentro del rango de fechas del periodo
+    const academicYear = await prisma.academicYear.findFirst({
+      where: { schoolId, isActive: true },
+    });
+    const dateRange = getPeriodDateRange(
+      academicYear || {
+        startDate: new Date(new Date().getFullYear(), 0, 1),
+        endDate: new Date(new Date().getFullYear(), 11, 31),
+      },
+      periodNumber,
+    );
+
+    const enrollmentIds = assignment.classroom.enrollments.map((e) => e.id);
+    const incidents = await prisma.studentIncident.findMany({
+      where: {
+        schoolId,
+        enrollmentId: { in: enrollmentIds },
+        createdAt: {
+          gte: dateRange.startDate,
+          lte: dateRange.endDate,
+        },
+      },
+      select: {
+        enrollmentId: true,
+        type: true,
+        severity: true,
+      },
+    });
+
+    const enrichedEnrollments = assignment.classroom.enrollments.map((enr) => {
+      const stIncidents = incidents.filter((i) => i.enrollmentId === enr.id);
+      return {
+        ...enr,
+        incidentsSummary: {
+          behavioralCount: stIncidents.filter((i) => i.type === 'DEMERITO').length,
+          academicCount: stIncidents.filter((i) => i.type === 'MERITO').length,
+          nursingCount: stIncidents.filter((i) => i.type === 'ATENCION_TOPICO').length,
+          citationsCount: stIncidents.filter((i) => i.type === 'CITACION_PADRES').length,
+          totalHighSeverity: stIncidents.filter((i) => i.severity === 'HIGH').length,
+        },
+      };
+    });
+
+    (assignment.classroom as any).enrollments = enrichedEnrollments;
+
     // Criterios aplicables al nivel del aula
     const criteria = await this.findCriteria(schoolId, assignment.classroom.educationLevel);
 
@@ -249,6 +316,8 @@ export class GradeRepository {
         competenceId: true,
         criterionId: true,
         numericScore: true,
+        literalScore: true,
+        isExonerated: true,
         comment: true,
       },
     });
@@ -316,8 +385,34 @@ export class GradeRepository {
 
     // Ejecución transaccional para garantizar consistencia atómica
     await prisma.$transaction(
-      cleanGrades.map((grade) =>
-        prisma.detailedGrade.upsert({
+      cleanGrades.map((grade) => {
+        const isExo = grade.isExonerated === true || grade.literalScore === 'EXO';
+        const isHyphen = grade.literalScore === '-';
+        let numericScore: number | null = grade.numericScore ?? null;
+        let literalScore: string | null = grade.literalScore ?? null;
+
+        if (isExo) {
+          numericScore = null;
+          literalScore = 'EXO';
+        } else if (isHyphen) {
+          numericScore = null;
+          literalScore = '-';
+        } else if (literalScore && (numericScore === null || numericScore === undefined)) {
+          const literalToNumeric: Record<string, number> = {
+            AD: 19,
+            A: 15,
+            B: 12,
+            C: 8,
+          };
+          numericScore = literalToNumeric[literalScore] ?? null;
+        } else if (numericScore !== null && numericScore !== undefined && !literalScore) {
+          if (numericScore >= 17.5) literalScore = 'AD';
+          else if (numericScore >= 13.5) literalScore = 'A';
+          else if (numericScore >= 10.5) literalScore = 'B';
+          else literalScore = 'C';
+        }
+
+        return prisma.detailedGrade.upsert({
           where: {
             enrollmentId_courseAssignmentId_competenceId_criterionId_periodNumber: {
               enrollmentId: grade.enrollmentId,
@@ -328,7 +423,9 @@ export class GradeRepository {
             },
           },
           update: {
-            numericScore: grade.numericScore,
+            numericScore,
+            literalScore,
+            isExonerated: isExo,
             comment: grade.comment ?? null,
           },
           create: {
@@ -338,11 +435,13 @@ export class GradeRepository {
             competenceId: grade.competenceId,
             criterionId: grade.criterionId,
             periodNumber,
-            numericScore: grade.numericScore,
+            numericScore,
+            literalScore,
+            isExonerated: isExo,
             comment: grade.comment ?? null,
           },
-        }),
-      ),
+        });
+      }),
     );
 
     return cleanGrades.length;
@@ -447,7 +546,7 @@ export class GradeRepository {
     });
 
     // Mapear notas por enrollmentId
-    const gradesMap = new Map<string, Array<{ criterionId: string; numericScore: number }>>();
+    const gradesMap = new Map<string, Array<{ criterionId: string; numericScore: number | null }>>();
     detailedGrades.forEach((g) => {
       if (!gradesMap.has(g.enrollmentId)) {
         gradesMap.set(g.enrollmentId, []);
@@ -484,12 +583,13 @@ export class GradeRepository {
       let score: number | null = null;
       let letter: 'AD' | 'A' | 'B' | 'C' | null = null;
 
-      if (items.length > 0) {
-        const totalWeight = items.reduce(
+      const numericItems = items.filter((it): it is typeof it & { numericScore: number } => it.numericScore !== null && it.numericScore !== undefined);
+      if (numericItems.length > 0) {
+        const totalWeight = numericItems.reduce(
           (acc, it) => acc + (criteriaWeightMap.get(it.criterionId) || 1),
           0,
         );
-        const weightedSum = items.reduce(
+        const weightedSum = numericItems.reduce(
           (acc, it) => acc + it.numericScore * (criteriaWeightMap.get(it.criterionId) || 1),
           0,
         );
@@ -625,7 +725,7 @@ export class GradeRepository {
       },
     });
 
-    const gradesByEnrollment = new Map<string, Array<{ criterionId: string; numericScore: number }>>();
+    const gradesByEnrollment = new Map<string, Array<{ criterionId: string; numericScore: number | null }>>();
     detailedGrades.forEach((g) => {
       if (!gradesByEnrollment.has(g.enrollmentId)) {
         gradesByEnrollment.set(g.enrollmentId, []);
@@ -651,12 +751,13 @@ export class GradeRepository {
       const hasGrades = studentGrades.length > 0;
       let isGradeC = false;
 
-      if (hasGrades) {
-        const totalWeight = studentGrades.reduce(
+      const numericStudentGrades = studentGrades.filter((it): it is typeof it & { numericScore: number } => it.numericScore !== null && it.numericScore !== undefined);
+      if (numericStudentGrades.length > 0) {
+        const totalWeight = numericStudentGrades.reduce(
           (acc, it) => acc + (criteriaWeightMap.get(it.criterionId) || 1),
           0,
         );
-        const weightedSum = studentGrades.reduce(
+        const weightedSum = numericStudentGrades.reduce(
           (acc, it) => acc + it.numericScore * (criteriaWeightMap.get(it.criterionId) || 1),
           0,
         );
@@ -739,6 +840,7 @@ export class GradeRepository {
         student: {
           include: {
             school: true,
+            familyRelations: true,
           },
         },
         classroom: {
@@ -790,9 +892,31 @@ export class GradeRepository {
   }
 
   /**
+   * Cuenta las obligaciones vencidas de un estudiante para bloqueo de libretas.
+   */
+  async countOverdueObligations(schoolId: string, studentId: string): Promise<number> {
+    const { dateObj } = getSchoolNow();
+    return prisma.paymentObligation.count({
+      where: {
+        schoolId,
+        enrollment: {
+          studentId,
+        },
+        status: { in: ['PENDING', 'PARTIAL'] },
+        dueDate: { lt: dateObj },
+      },
+    });
+  }
+
+  /**
    * Auditoría de avance de llenado de notas por aula para la validación SIAGIE.
    */
-  async findSiagieSummary(schoolId: string, classroomId: string, periodNumber: number) {
+  async findSiagieSummary(
+    schoolId: string,
+    classroomId: string,
+    periodNumber: number,
+    calculationMode?: 'LAST_PERIOD' | 'AVERAGE',
+  ) {
     const classroom = await prisma.classroom.findFirst({
       where: { id: classroomId, schoolId },
       include: {
@@ -808,6 +932,11 @@ export class GradeRepository {
             area: {
               include: {
                 competences: true,
+                parentArea: {
+                  include: {
+                    competences: true,
+                  },
+                },
               },
             },
             teacher: {
@@ -847,6 +976,32 @@ export class GradeRepository {
       throw new AppError('Aula no encontrada.', 404);
     }
 
+    const academicYear = await prisma.academicYear.findFirst({
+      where: { schoolId, isActive: true },
+    });
+    const effectiveCalculationMode =
+      calculationMode || (academicYear?.annualCalculationMode as any) || 'LAST_PERIOD';
+
+    const dateRange = getPeriodDateRange(
+      academicYear || {
+        startDate: new Date(new Date().getFullYear(), 0, 1),
+        endDate: new Date(new Date().getFullYear(), 11, 31),
+      },
+      periodNumber,
+    );
+
+    const periodAttendances = await prisma.attendance.findMany({
+      where: {
+        schoolId,
+        enrollmentId: { in: classroom.enrollments.map((e) => e.id) },
+        date: { gte: dateRange.startDate, lte: dateRange.endDate },
+      },
+      select: {
+        enrollmentId: true,
+        status: true,
+      },
+    });
+
     const registeredEnrollments = classroom.enrollments.filter(
       (e) => e.enrollmentState === 'REGISTERED',
     );
@@ -872,6 +1027,8 @@ export class GradeRepository {
         competenceId: true,
         criterionId: true,
         numericScore: true,
+        literalScore: true,
+        isExonerated: true,
       },
     });
 
@@ -899,25 +1056,46 @@ export class GradeRepository {
     });
 
     // Mapeo en memoria de notas por clave: `${enrollmentId}_${courseAssignmentId}_${competenceId}`
-    const gradesMap = new Map<string, Array<{ criterionId: string; numericScore: number }>>();
+    const gradesMap = new Map<
+      string,
+      Array<{
+        criterionId: string;
+        numericScore: number | null;
+        literalScore: string | null;
+        isExonerated: boolean;
+      }>
+    >();
     detailedGrades.forEach((g) => {
       const key = `${g.enrollmentId}_${g.courseAssignmentId}_${g.competenceId}`;
       if (!gradesMap.has(key)) {
         gradesMap.set(key, []);
       }
-      gradesMap.get(key)!.push({ criterionId: g.criterionId, numericScore: g.numericScore });
+      gradesMap.get(key)!.push({
+        criterionId: g.criterionId,
+        numericScore: g.numericScore,
+        literalScore: g.literalScore,
+        isExonerated: g.isExonerated,
+      });
     });
 
     // Resumen por curso para auditoría de avance de docentes con soporte para competencias no trabajadas
     const courseSummaries = classroom.assignments.map((assignment) => {
-      const competenceCount = assignment.area.competences.length;
+      let comps = assignment.area.competences;
+      if (assignment.area.parentAreaId && assignment.area.parentArea) {
+        const parentComps = assignment.area.parentArea.competences || [];
+        const evaluatedIds = assignment.area.evaluatedCompetenceIds || [];
+        comps = evaluatedIds.length > 0
+          ? parentComps.filter((c: any) => evaluatedIds.includes(c.id))
+          : parentComps;
+      }
+      const competenceCount = comps.length;
 
       let workedCompetenceCount = 0;
       let unworkedCompetenceCount = 0;
       let hasInconsistencies = false;
       let filledGradesCount = 0;
 
-      assignment.area.competences.forEach((comp) => {
+      comps.forEach((comp) => {
         let compStudentCount = 0;
         registeredEnrollments.forEach((enr) => {
           const key = `${enr.id}_${assignment.id}_${comp.id}`;
@@ -938,8 +1116,6 @@ export class GradeRepository {
         }
       });
 
-      // Si no hay notas aún, se espera el total. Si se trabajaron solo algunas (RVM 094-2020),
-      // la expectativa se calcula sobre las competencias trabajadas sin penalizar las no programadas
       const effectiveCompetences =
         workedCompetenceCount > 0 ? workedCompetenceCount : competenceCount;
       const totalExpectedGrades =
@@ -984,10 +1160,10 @@ export class GradeRepository {
         string,
         {
           periodScore: number | null;
-          letter: 'AD' | 'A' | 'B' | 'C' | null;
+          letter: 'AD' | 'A' | 'B' | 'C' | 'EXO' | '-' | null;
           competences: Record<
             string,
-            { score: number | null; letter: 'AD' | 'A' | 'B' | 'C' | null; conclusion: string }
+            { score: number | null; letter: 'AD' | 'A' | 'B' | 'C' | 'EXO' | '-' | null; conclusion: string }
           >;
         }
       > = {};
@@ -995,30 +1171,58 @@ export class GradeRepository {
       const validCourseScores: number[] = [];
 
       classroom.assignments.forEach((assignment) => {
+        let comps = assignment.area.competences;
+        if (assignment.area.parentAreaId && assignment.area.parentArea) {
+          const parentComps = assignment.area.parentArea.competences || [];
+          const evaluatedIds = assignment.area.evaluatedCompetenceIds || [];
+          comps = evaluatedIds.length > 0
+            ? parentComps.filter((c: any) => evaluatedIds.includes(c.id))
+            : parentComps;
+        }
+
         const compGrades: Record<
           string,
-          { score: number | null; letter: 'AD' | 'A' | 'B' | 'C' | null; conclusion: string }
+          { score: number | null; letter: 'AD' | 'A' | 'B' | 'C' | 'EXO' | '-' | null; conclusion: string }
         > = {};
         const validCompScores: number[] = [];
 
-        assignment.area.competences.forEach((comp) => {
+        comps.forEach((comp) => {
           const key = `${enr.id}_${assignment.id}_${comp.id}`;
           const rawConclusion = conclusionsMap.get(key) || '';
 
           if (isInactive) {
-            // REGLA CRÍTICA SIAGIE: Retirados/trasladados deben mantenerse con notas y conclusiones vacías
             compGrades[comp.id] = { score: null, letter: null, conclusion: '' };
             return;
           }
 
           const items = gradesMap.get(key) || [];
+          const isExo = items.some((it) => it.isExonerated || it.literalScore === 'EXO');
+          if (isExo) {
+            compGrades[comp.id] = { score: null, letter: 'EXO', conclusion: rawConclusion };
+            return;
+          }
 
-          if (items.length > 0) {
-            const totalWeight = items.reduce(
+          const isHyphen = items.some((it) => it.literalScore === '-');
+          if (isHyphen && items.every((it) => it.literalScore === '-' || it.numericScore === null)) {
+            compGrades[comp.id] = { score: null, letter: '-', conclusion: rawConclusion };
+            return;
+          }
+
+          const numericItems = items.filter(
+            (it): it is typeof it & { numericScore: number } =>
+              it.numericScore !== null &&
+              it.numericScore !== undefined &&
+              !it.isExonerated &&
+              it.literalScore !== 'EXO' &&
+              it.literalScore !== '-',
+          );
+
+          if (numericItems.length > 0) {
+            const totalWeight = numericItems.reduce(
               (acc, it) => acc + (criteriaWeightMap.get(it.criterionId) || 1),
               0,
             );
-            const weightedSum = items.reduce(
+            const weightedSum = numericItems.reduce(
               (acc, it) => acc + it.numericScore * (criteriaWeightMap.get(it.criterionId) || 1),
               0,
             );
@@ -1085,6 +1289,14 @@ export class GradeRepository {
             : 'C'
           : null;
 
+      const stAtts = periodAttendances.filter((a) => a.enrollmentId === enr.id);
+      const attendanceStats = {
+        absentJustified: stAtts.filter((a) => a.status === 'ABSENT_JUSTIFIED').length,
+        absentUnjustified: stAtts.filter((a) => a.status === 'ABSENT_UNJUSTIFIED').length,
+        lateJustified: stAtts.filter((a) => a.status === 'LATE_JUSTIFIED').length,
+        lateUnjustified: stAtts.filter((a) => a.status === 'LATE_UNJUSTIFIED').length,
+      };
+
       return {
         enrollmentId: enr.id,
         enrollmentState: enr.enrollmentState,
@@ -1092,34 +1304,70 @@ export class GradeRepository {
         documentId: student.documentId,
         studentCode: student.studentCode,
         fullName,
+        lastNamePaternal: student.lastNamePaternal,
+        lastNameMaternal: student.lastNameMaternal || '',
+        firstNames: student.firstNames,
         courseGrades,
         generalScore,
         generalLetter,
+        attendanceStats,
       };
     });
 
-    const coursesMatrix = classroom.assignments.map((a) => ({
-      id: a.id,
-      name: a.area.name,
-      officialCode: a.area.officialCode,
-      teacherName: `Prof. ${a.teacher.firstName} ${a.teacher.lastNamePaternal}`,
-      competences: a.area.competences.map((c) => ({
-        id: c.id,
-        name: c.name,
-      })),
-    }));
+    const coursesMatrix = classroom.assignments.map((a) => {
+      let comps = a.area.competences;
+      if (a.area.parentAreaId && a.area.parentArea) {
+        const parentComps = a.area.parentArea.competences || [];
+        const evaluatedIds = a.area.evaluatedCompetenceIds || [];
+        comps = evaluatedIds.length > 0
+          ? parentComps.filter((c: any) => evaluatedIds.includes(c.id))
+          : parentComps;
+      }
+      return {
+        id: a.id,
+        name: a.area.name,
+        officialCode: a.area.officialCode,
+        teacherName: `Prof. ${a.teacher.firstName} ${a.teacher.lastNamePaternal}`,
+        competences: comps.map((c) => ({
+          id: c.id,
+          name: c.name,
+        })),
+      };
+    });
 
-    const coursesInfo = classroom.assignments.map((a) => ({
-      assignmentId: a.id,
-      name: a.area.name,
-      officialCode: a.area.officialCode,
-      parentAreaId: a.area.parentAreaId,
-      teacherName: `Prof. ${a.teacher.firstName} ${a.teacher.lastNamePaternal}`,
-      competences: a.area.competences.map((c) => ({ id: c.id, name: c.name })),
-    }));
+    const coursesInfo = classroom.assignments.map((a) => {
+      let comps = a.area.competences;
+      if (a.area.parentAreaId && a.area.parentArea) {
+        const parentComps = a.area.parentArea.competences || [];
+        const evaluatedIds = a.area.evaluatedCompetenceIds || [];
+        comps = evaluatedIds.length > 0
+          ? parentComps.filter((c: any) => evaluatedIds.includes(c.id))
+          : parentComps;
+      }
+      return {
+        assignmentId: a.id,
+        name: a.area.name,
+        officialCode: a.area.officialCode,
+        officialAreaCode: a.area.officialAreaCode,
+        parentAreaId: a.area.parentAreaId,
+        parentArea: a.area.parentArea,
+        evaluatedCompetenceIds: a.area.evaluatedCompetenceIds || [],
+        teacherName: `Prof. ${a.teacher.firstName} ${a.teacher.lastNamePaternal}`,
+        competences: comps.map((c) => ({
+          id: c.id,
+          name: c.name,
+          officialCompetenceCode: c.officialCompetenceCode,
+        })),
+      };
+    });
 
-    const { consolidatedAreas, consolidatedStudents } =
-      SiagieConsolidatorService.consolidateClassroom(coursesInfo, students);
+    const { consolidatedAreas, consolidatedStudents, unmappedCompetences } =
+      SiagieConsolidatorService.consolidateClassroom(coursesInfo, students, {
+        educationLevel: classroom.educationLevel,
+        grade: classroom.grade,
+        annualCalculationMode: effectiveCalculationMode,
+        periodNumber,
+      });
 
     return {
       school: {
@@ -1133,13 +1381,176 @@ export class GradeRepository {
       educationLevel: classroom.educationLevel,
       totalStudents,
       periodNumber,
+      calculationMode: effectiveCalculationMode,
       overallPercentage,
       courses: courseSummaries,
+      unmappedCompetences,
       matrix: {
         courses: coursesMatrix,
         students: consolidatedStudents,
         consolidatedAreas,
       },
+    };
+  }
+
+  /**
+   * Conexión 1: Sincroniza tareas calificadas del Aula Virtual hacia la Matriz de Notas
+   */
+  async syncHomeworkToMatrix(
+    schoolId: string,
+    dto: SyncHomeworkToMatrixDto,
+    teacherId?: string,
+  ): Promise<{ updatedStudentsCount: number; totalHomeworksFound: number }> {
+    const assignment = await prisma.courseAssignment.findFirst({
+      where: {
+        id: dto.courseAssignmentId,
+        schoolId,
+        ...(teacherId ? { teacherId } : {}),
+      },
+      include: {
+        area: {
+          include: {
+            competences: true,
+            parentArea: {
+              include: { competences: true },
+            },
+          },
+        },
+        classroom: {
+          include: {
+            enrollments: {
+              where: { schoolId, isActive: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!assignment) {
+      throw new AppError('Asignación de curso no encontrada o no tienes permisos.', 404);
+    }
+
+    if (teacherId) {
+      const isLocked = await this.isPeriodLocked(schoolId, dto.periodNumber, assignment.classroomId);
+      if (isLocked) {
+        throw new AppError(
+          `El ${dto.periodNumber}° Periodo se encuentra cerrado y auditado por Dirección.`,
+          403,
+        );
+      }
+    }
+
+    let targetCompId = dto.targetCompetenceId;
+    if (!targetCompId) {
+      if (assignment.area.parentAreaId && assignment.area.parentArea?.competences) {
+        const comps =
+          assignment.area.evaluatedCompetenceIds && assignment.area.evaluatedCompetenceIds.length > 0
+            ? assignment.area.parentArea.competences.filter((c) =>
+                assignment.area.evaluatedCompetenceIds.includes(c.id),
+              )
+            : assignment.area.parentArea.competences;
+        targetCompId = comps[0]?.id;
+      } else {
+        targetCompId = assignment.area.competences[0]?.id;
+      }
+    }
+
+    if (!targetCompId) {
+      throw new AppError('El curso no tiene competencias configuradas para asociar la nota.', 400);
+    }
+
+    const homeworkContents = await prisma.courseContent.findMany({
+      where: {
+        schoolId,
+        courseAssignmentId: dto.courseAssignmentId,
+        contentType: 'HOMEWORK',
+        bimester: dto.periodNumber,
+      },
+      select: { id: true },
+    });
+
+    const contentIds = homeworkContents.map((h) => h.id);
+    if (contentIds.length === 0) {
+      return { updatedStudentsCount: 0, totalHomeworksFound: 0 };
+    }
+
+    const activeEnrollmentIds = assignment.classroom.enrollments.map((e) => e.id);
+    const submissions = await prisma.homeworkSubmission.findMany({
+      where: {
+        schoolId,
+        courseContentId: { in: contentIds },
+        enrollmentId: { in: activeEnrollmentIds },
+        OR: [{ numericScore: { not: null } }, { literalScore: { not: null } }],
+      },
+      select: {
+        enrollmentId: true,
+        numericScore: true,
+        literalScore: true,
+      },
+    });
+
+    const studentGradesMap = new Map<string, number[]>();
+    submissions.forEach((sub) => {
+      let score = sub.numericScore;
+      if (score === null && sub.literalScore) {
+        score = letterToScore(sub.literalScore);
+      }
+      if (score !== null && score !== undefined && !isNaN(score)) {
+        if (!studentGradesMap.has(sub.enrollmentId)) {
+          studentGradesMap.set(sub.enrollmentId, []);
+        }
+        studentGradesMap.get(sub.enrollmentId)!.push(score);
+      }
+    });
+
+    let updatedStudentsCount = 0;
+    const upsertPromises: any[] = [];
+
+    studentGradesMap.forEach((scores, enrollmentId) => {
+      if (scores.length > 0) {
+        const avg = Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10;
+        const literal = scoreToLetter(avg);
+
+        upsertPromises.push(
+          prisma.detailedGrade.upsert({
+            where: {
+              enrollmentId_courseAssignmentId_competenceId_criterionId_periodNumber: {
+                enrollmentId,
+                courseAssignmentId: dto.courseAssignmentId,
+                competenceId: targetCompId!,
+                criterionId: dto.targetCriterionId,
+                periodNumber: dto.periodNumber,
+              },
+            },
+            update: {
+              numericScore: avg,
+              literalScore: literal,
+              comment: `Sincronizado de ${scores.length} tarea(s) del Aula Virtual`,
+            },
+            create: {
+              schoolId,
+              enrollmentId,
+              courseAssignmentId: dto.courseAssignmentId,
+              competenceId: targetCompId!,
+              criterionId: dto.targetCriterionId,
+              periodNumber: dto.periodNumber,
+              numericScore: avg,
+              literalScore: literal,
+              comment: `Sincronizado de ${scores.length} tarea(s) del Aula Virtual`,
+            },
+          }),
+        );
+        updatedStudentsCount++;
+      }
+    });
+
+    if (upsertPromises.length > 0) {
+      await prisma.$transaction(upsertPromises);
+    }
+
+    return {
+      updatedStudentsCount,
+      totalHomeworksFound: contentIds.length,
     };
   }
 

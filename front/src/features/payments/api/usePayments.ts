@@ -8,6 +8,8 @@ import {
   ObligationFilterParams,
   TransactionFilterParams,
   ObligationsPaginatedResponse,
+  DailyCashCloseData,
+  CreateIndividualObligationPayload,
 } from '../types';
 import type {
   CreateObligationFormData,
@@ -174,6 +176,7 @@ export const useRegisterTransaction = () => {
       queryClient.invalidateQueries({ queryKey: ['parent-payments-obligations'] });
       queryClient.invalidateQueries({ queryKey: ['financial-summary'] });
       queryClient.invalidateQueries({ queryKey: ['payments-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['daily-cash-close'] });
     },
   });
 };
@@ -192,6 +195,7 @@ export const useDeleteTransaction = () => {
       queryClient.invalidateQueries({ queryKey: ['parent-payments-obligations'] });
       queryClient.invalidateQueries({ queryKey: ['financial-summary'] });
       queryClient.invalidateQueries({ queryKey: ['payments-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['daily-cash-close'] });
     },
   });
 };
@@ -237,3 +241,72 @@ export const useSendBulkReminders = () => {
     },
   });
 };
+
+export interface UpdateObligationDto {
+  amountDue?: number;
+  dueDate?: string;
+  title?: string;
+  notes?: string | null;
+  status?: 'PENDING' | 'PAID' | 'PARTIALLY_PAID' | 'OVERDUE' | 'CANCELLED';
+}
+
+/** Mutation para editar una cuota o aplicar descuento */
+export const useUpdateObligation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: UpdateObligationDto;
+    }) => {
+      const response = await api.patch<SingleObligationResponse>(
+        `/payments/obligations/${id}`,
+        data,
+      );
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments-obligations'] });
+      queryClient.invalidateQueries({ queryKey: ['financial-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['parent-payments-obligations'] });
+      queryClient.invalidateQueries({ queryKey: ['payments-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['daily-cash-close'] });
+    },
+  });
+};
+
+/** Mutation para crear una obligación/cuota individual para un alumno */
+export const useCreateIndividualObligation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: CreateIndividualObligationPayload) => {
+      const response = await api.post<SingleObligationResponse>('/payments/obligations', payload);
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments-obligations'] });
+      queryClient.invalidateQueries({ queryKey: ['financial-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['parent-payments-obligations'] });
+      queryClient.invalidateQueries({ queryKey: ['payments-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['daily-cash-close'] });
+    },
+  });
+};
+
+/** Hook para obtener el arqueo de caja diario */
+export const useDailyCashClose = (date?: string) => {
+  return useQuery({
+    queryKey: ['daily-cash-close', date],
+    queryFn: async () => {
+      const response = await api.get<{ status: string; data: DailyCashCloseData }>(
+        '/payments/daily-cash-close',
+        { params: date ? { date } : {} },
+      );
+      return response.data.data;
+    },
+  });
+};
+

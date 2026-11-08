@@ -33,3 +33,21 @@ export const supervisionFilterSchema = z.object({
 export type CreateCourseContentDto = z.infer<typeof createCourseContentSchema>;
 export type CreateForumCommentDto = z.infer<typeof createForumCommentSchema>;
 export type SupervisionFilterDto = z.infer<typeof supervisionFilterSchema>;
+
+export const submitHomeworkSchema = z.object({
+  studentId: z.string().uuid('studentId debe ser un UUID válido').optional().nullable(),
+  enrollmentId: z.string().uuid('enrollmentId debe ser un UUID válido').optional().nullable(),
+  fileUrl: z.string().url('fileUrl debe ser una URL válida'),
+  fileName: z.string().trim().min(1, 'El nombre de archivo es requerido'),
+  fileSize: z.number().int().positive().optional().nullable(),
+  studentComment: z.string().trim().max(1000).optional().nullable(),
+});
+
+export const gradeSubmissionSchema = z.object({
+  numericScore: z.number().min(0).max(20).optional().nullable(),
+  literalScore: z.enum(['AD', 'A', 'B', 'C', 'EXO']).optional().nullable(),
+  teacherFeedback: z.string().trim().max(1000).optional().nullable(),
+});
+
+export type SubmitHomeworkDto = z.infer<typeof submitHomeworkSchema>;
+export type GradeSubmissionDto = z.infer<typeof gradeSubmissionSchema>;
