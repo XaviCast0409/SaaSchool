@@ -21,6 +21,7 @@ import {
   useSubmitHomework,
   useUploadMaterial,
 } from '../api/useCourseContents';
+import { getDirectDownloadUrl } from '../utils/fileUrls';
 import type { CourseContent } from '../types';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useParentStore } from '@/store/useParentStore';
@@ -210,7 +211,7 @@ export const SubmitHomeworkModal: React.FC<SubmitHomeworkModalProps> = ({
                     </span>
                   </div>
                   <a
-                    href={currentSubmission.fileUrl}
+                    href={getDirectDownloadUrl(currentSubmission.fileUrl)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline shrink-0"

@@ -137,6 +137,7 @@ export class GoogleDriveService {
           body: stream,
         },
         fields: 'id, name, webViewLink, webContentLink',
+        supportsAllDrives: true,
       });
 
       const fileId = response.data.id;
@@ -152,6 +153,7 @@ export class GoogleDriveService {
             role: 'reader',
             type: 'anyone',
           },
+          supportsAllDrives: true,
         });
       } catch (permError) {
         console.warn('Advertencia al asignar permisos públicos en Drive:', permError);

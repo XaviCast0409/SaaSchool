@@ -18,6 +18,7 @@ import {
   useGetHomeworkSubmissions,
   useGradeHomeworkSubmission,
 } from '../api/useCourseContents';
+import { getDirectDownloadUrl } from '../utils/fileUrls';
 import type {
   CourseContent,
   HomeworkTeacherSubmissionItem,
@@ -260,7 +261,7 @@ export const HomeworkSubmissionsModal: React.FC<HomeworkSubmissionsModalProps> =
                       {sub?.fileUrl && (
                         <div className="mt-2 flex items-center gap-1.5">
                           <a
-                            href={sub.fileUrl}
+                            href={getDirectDownloadUrl(sub.fileUrl)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline truncate"
