@@ -55,4 +55,12 @@ export class UserController {
     const user = await this.userService.reactivateUser(id, schoolId);
     response.status(200).json({ status: 'success', data: user });
   };
+
+  resetPassword = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const id = request.params.id as string;
+    const { newPassword } = request.body || {};
+    const result = await this.userService.resetPassword(id, schoolId, newPassword);
+    response.status(200).json({ status: 'success', data: result });
+  };
 }

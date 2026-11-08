@@ -1,4 +1,6 @@
-import { google, drive_v3 } from 'googleapis';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { google } = require('googleapis');
+import type { drive_v3 } from 'googleapis/build/src/apis/drive';
 import path from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
@@ -116,7 +118,7 @@ export class GoogleDriveService {
     const targetFolderId = await this.getFolderId();
 
     if (!this.driveClient || !targetFolderId) {
-      await fs.promises.unlink(filePath).catch(() => {});
+      await fs.promises.unlink(filePath).catch(() => { });
       throw new AppError(
         'Google Drive no está configurado. Asegúrate de tener las credenciales y la carpeta SaaSchool compartida.',
         500
@@ -171,7 +173,7 @@ export class GoogleDriveService {
         storage: 'GOOGLE_DRIVE',
       };
     } finally {
-      await fs.promises.unlink(filePath).catch(() => {});
+      await fs.promises.unlink(filePath).catch(() => { });
     }
   }
 }

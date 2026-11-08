@@ -144,6 +144,24 @@ export class StudentService {
     return this.studentRepository.delete(studentId, schoolId);
   }
 
+  async resetPassword(
+    studentId: string,
+    schoolId: string,
+    newPassword?: string,
+  ): Promise<{ message: string }> {
+    const student = await this.getStudentById(studentId, schoolId);
+    const targetPassword = newPassword?.trim() || student.documentId?.trim();
+    if (!targetPassword) {
+      throw new AppError(
+        'El estudiante no cuenta con número de documento registrado para usar como contraseña.',
+        400,
+      );
+    }
+    const passwordHash = await hashPassword(targetPassword);
+    await this.studentRepository.updatePassword(studentId, schoolId, passwordHash);
+    return { message: 'Contraseña restablecida correctamente al número de documento' };
+  }
+
   async getNominaMatricula(schoolId: string, classroomId: string) {
     const { classroom, enrollments } = await this.studentRepository.getNominaByClassroom(schoolId, classroomId);
 
@@ -214,8 +232,21 @@ export class StudentService {
     };
   }
 
-  async getMyChildren(schoolId: string, parentUserId: string) {
-    return this.studentRepository.findMyChildren(schoolId, parentUserId);
+  async getMyChildren(
+    schoolId: string,
+    userContextOrParentId: string | { userId: string; role: string; studentId?: string },
+  ) {
+    if (typeof userContextOrParentId === 'string') {
+      return this.studentRepository.findMyChildren(schoolId, userContextOrParentId);
+    }
+
+    if (userContextOrParentId.role === 'STUDENT') {
+      const studentId = userContextOrParentId.studentId || userContextOrParentId.userId;
+      const self = await this.studentRepository.findStudentSelf(schoolId, studentId);
+      return self ? [self] : [];
+    }
+
+    return this.studentRepository.findMyChildren(schoolId, userContextOrParentId.userId);
   }
 
   async getEnrollmentCertificate(

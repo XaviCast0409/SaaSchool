@@ -1,4 +1,5 @@
 import { AppError } from '../../core/errors/app-error';
+import { hashPassword } from '../../utils/hash.util';
 import type { UserRepository } from './user.repository';
 import type { CreateUserDto, UpdateUserDto, UserFilterDto } from './user.schema';
 import type { User } from '@prisma/client';
@@ -74,5 +75,29 @@ export class UserService {
   ): Promise<Omit<User, 'passwordHash'>> {
     await this.getUserById(userId, schoolId);
     return this.userRepository.reactivate(userId, schoolId);
+  }
+
+  async resetPassword(
+    userId: string,
+    schoolId: string,
+    newPassword?: string,
+  ): Promise<{ message: string }> {
+    const user = await this.userRepository.findByIdRaw(userId, schoolId);
+    if (!user) {
+      throw new AppError(`Usuario con id ${userId} no encontrado`, 404);
+    }
+
+    const targetPassword = newPassword?.trim() || user.documentId?.trim();
+    if (!targetPassword) {
+      throw new AppError(
+        'El usuario no cuenta con número de documento registrado para usar como contraseña.',
+        400,
+      );
+    }
+
+    const passwordHash = await hashPassword(targetPassword);
+    await this.userRepository.updatePassword(userId, schoolId, passwordHash);
+
+    return { message: 'Contraseña restablecida correctamente al número de documento' };
   }
 }

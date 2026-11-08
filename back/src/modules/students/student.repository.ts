@@ -221,6 +221,13 @@ export class StudentRepository {
     });
   }
 
+  async updatePassword(studentId: string, schoolId: string, passwordHash: string): Promise<void> {
+    await prisma.student.update({
+      where: { id: studentId, schoolId },
+      data: { passwordHash, mustChangePassword: true },
+    });
+  }
+
   /**
    * Registra atómicamente la Ficha de Matrícula SIAGIE
    * (Crea/Actualiza Alumno + Matrícula en Año/Aula + Apoderado)
@@ -575,5 +582,139 @@ export class StudentRepository {
           : null,
       };
     });
+  }
+
+  /**
+   * Retorna el perfil y matrícula activa del estudiante autenticado (Rol STUDENT)
+   * Omitiendo detalles financieros por privacidad.
+   */
+  async findStudentSelf(schoolId: string, studentId: string) {
+    const student = await prisma.student.findFirst({
+      where: {
+        id: studentId,
+        schoolId,
+      },
+      include: {
+        familyRelations: {
+          select: {
+            relationshipType: true,
+            isLegalGuardian: true,
+            isFinancialResponsible: true,
+          },
+        },
+        enrollments: {
+          where: {
+            isActive: true,
+            enrollmentState: 'REGISTERED',
+            academicYear: { isActive: true },
+          },
+          orderBy: { enrollmentDate: 'desc' },
+          take: 1,
+          include: {
+            classroom: {
+              include: {
+                tutorTeacher: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastNamePaternal: true,
+                    lastNameMaternal: true,
+                    cellphone: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+            academicYear: true,
+            attendances: {
+              orderBy: { date: 'desc' },
+              take: 31,
+            },
+          },
+        },
+      },
+    });
+
+    if (!student) return null;
+
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+
+    const activeEnrollment = student.enrollments[0] || null;
+
+    const attendances = activeEnrollment?.attendances || [];
+    const todayAttendance = attendances.find((a) => {
+      const aDate = new Date(a.date);
+      aDate.setHours(0, 0, 0, 0);
+      return aDate.getTime() === todayDate.getTime();
+    });
+
+    const totalRecordedAttendances = attendances.length;
+    const presentCount = attendances.filter(
+      (a) => a.status === 'PRESENT' || a.status === 'LATE_JUSTIFIED',
+    ).length;
+    const lateCount = attendances.filter(
+      (a) => a.status === 'LATE_UNJUSTIFIED' || a.status === 'LATE_JUSTIFIED',
+    ).length;
+    const absentCount = attendances.filter(
+      (a) => a.status === 'ABSENT_UNJUSTIFIED' || a.status === 'ABSENT_JUSTIFIED',
+    ).length;
+
+    const attendancePercentage =
+      totalRecordedAttendances > 0
+        ? Math.round((presentCount / totalRecordedAttendances) * 100)
+        : 100;
+
+    return {
+      id: student.id,
+      firstNames: student.firstNames,
+      lastNamePaternal: student.lastNamePaternal,
+      lastNameMaternal: student.lastNameMaternal || '',
+      fullName: `${student.lastNamePaternal} ${student.lastNameMaternal || ''}, ${student.firstNames}`.trim(),
+      documentType: student.documentType,
+      documentId: student.documentId,
+      studentCode: student.studentCode,
+      gender: student.gender,
+      relationshipType: 'STUDENT',
+      isLegalGuardian: false,
+      isFinancialResponsible: false,
+      activeEnrollment: activeEnrollment
+        ? {
+            id: activeEnrollment.id,
+            academicYear: activeEnrollment.academicYear.year,
+            classroom: {
+              id: activeEnrollment.classroom.id,
+              grade: activeEnrollment.classroom.grade,
+              section: activeEnrollment.classroom.section,
+              educationLevel: activeEnrollment.classroom.educationLevel,
+              shift: activeEnrollment.classroom.shift,
+              label: `${activeEnrollment.classroom.grade}° "${activeEnrollment.classroom.section}" - ${activeEnrollment.classroom.educationLevel}`,
+              tutor: activeEnrollment.classroom.tutorTeacher
+                ? {
+                    fullName: `${activeEnrollment.classroom.tutorTeacher.firstName} ${activeEnrollment.classroom.tutorTeacher.lastNamePaternal}`,
+                    cellphone: activeEnrollment.classroom.tutorTeacher.cellphone,
+                    email: activeEnrollment.classroom.tutorTeacher.email,
+                  }
+                : null,
+            },
+            attendanceSummary: {
+              todayStatus: todayAttendance ? todayAttendance.status : 'NOT_RECORDED',
+              todayCheckIn: todayAttendance?.checkInTime || null,
+              attendancePercentage,
+              presentCount,
+              lateCount,
+              absentCount,
+              totalRecorded: totalRecordedAttendances,
+            },
+            financialSummary: {
+              hasPending: false,
+              pendingCount: 0,
+              totalPendingAmount: 0,
+              nextDueDate: null,
+              nextTitle: null,
+            },
+          }
+        : null,
+    };
   }
 }

@@ -31,9 +31,17 @@ export class AcademicReportService {
       if (!gradesMap.has(key)) {
         gradesMap.set(key, []);
       }
+      let score = gradeItem.numericScore;
+      if (score === null || score === undefined) {
+        if (gradeItem.literalScore === 'AD') score = 18;
+        else if (gradeItem.literalScore === 'A') score = 15;
+        else if (gradeItem.literalScore === 'B') score = 12;
+        else if (gradeItem.literalScore === 'C') score = 9;
+        // 'EXO' y '-' se excluyen del promedio
+      }
       gradesMap.get(key)!.push({
         criterionId: gradeItem.criterionId,
-        numericScore: gradeItem.numericScore,
+        numericScore: score,
         shortName: gradeItem.criterion?.shortName,
       });
     });
@@ -66,11 +74,13 @@ export class AcademicReportService {
       const fullName = `${student.lastNamePaternal} ${student.lastNameMaternal || ''}, ${student.firstNames}`.trim();
 
       const courseScores: Record<string, number | null> = {};
-      const validScores: number[] = [];
+      const motherAreaScoresMap = new Map<string, { totalScore: number; count: number; name: string }>();
       let conductScore: number | null = null;
 
       classroom.assignments.forEach((assignment) => {
         const competenceScores: number[] = [];
+        const motherAreaId = assignment.area.parentAreaId || assignment.area.id;
+        const motherAreaName = assignment.area.parentArea?.name || assignment.area.name;
 
         assignment.area.competences.forEach((comp) => {
           const key = `${enr.id}_${assignment.id}_${comp.id}`;
@@ -99,7 +109,7 @@ export class AcademicReportService {
           }
         });
 
-        // Promedio bimestral del curso
+        // Promedio bimestral del curso (o sub-curso)
         const periodScore =
           competenceScores.length > 0
             ? Math.round(
@@ -109,24 +119,38 @@ export class AcademicReportService {
 
         courseScores[assignment.id] = periodScore;
         if (periodScore !== null) {
-          validScores.push(periodScore);
+          if (!motherAreaScoresMap.has(motherAreaId)) {
+            motherAreaScoresMap.set(motherAreaId, { totalScore: 0, count: 0, name: motherAreaName });
+          }
+          const entry = motherAreaScoresMap.get(motherAreaId)!;
+          entry.totalScore += periodScore;
+          entry.count++;
         }
       });
 
-      // Cálculo de Promedio y Puntaje
+      // Calcular la nota consolidada por Área Madre oficial
+      const motherAreaAverages: number[] = [];
+      motherAreaScoresMap.forEach((entry) => {
+        if (entry.count > 0) {
+          const areaAvg = Math.round((entry.totalScore / entry.count) * 10) / 10;
+          motherAreaAverages.push(areaAvg);
+        }
+      });
+
+      // Cálculo de Promedio General y Puntaje basado en Áreas Madre oficiales (evita peso múltiple por sub-cursos)
       const generalAverage =
-        validScores.length > 0
+        motherAreaAverages.length > 0
           ? Math.round(
-              (validScores.reduce((a, b) => a + b, 0) / validScores.length) * 100,
+              (motherAreaAverages.reduce((a, b) => a + b, 0) / motherAreaAverages.length) * 100,
             ) / 100
           : null;
 
       const totalPoints =
-        validScores.length > 0
-          ? Math.round(validScores.reduce((a, b) => a + b, 0))
+        motherAreaAverages.length > 0
+          ? Math.round(motherAreaAverages.reduce((a, b) => a + b, 0))
           : 0;
 
-      const failedCoursesCount = validScores.filter((score) => score < 10.5).length;
+      const failedCoursesCount = motherAreaAverages.filter((score) => score < 10.5).length;
 
       const attendanceRecord = attendanceMap.get(enr.id) || {
         lateUnjustified: 0,
@@ -148,7 +172,7 @@ export class AcademicReportService {
         average: generalAverage,
         points: totalPoints,
         failedCoursesCount,
-        hasNoGrades: validScores.length === 0,
+        hasNoGrades: motherAreaAverages.length === 0,
         attendance: attendanceRecord,
       };
     });
@@ -393,9 +417,16 @@ export class AcademicReportService {
     detailedGrades.forEach((g) => {
       const key = `${g.enrollmentId}_${g.courseAssignmentId}_${g.competenceId}`;
       if (!gradesMap.has(key)) gradesMap.set(key, []);
+      let score = g.numericScore;
+      if (score === null || score === undefined) {
+        if (g.literalScore === 'AD') score = 18;
+        else if (g.literalScore === 'A') score = 15;
+        else if (g.literalScore === 'B') score = 12;
+        else if (g.literalScore === 'C') score = 9;
+      }
       gradesMap.get(key)!.push({
         criterionId: g.criterionId,
-        numericScore: g.numericScore,
+        numericScore: score,
         shortName: g.criterion?.shortName,
       });
     });
@@ -417,11 +448,14 @@ export class AcademicReportService {
       classroom.enrollments.forEach((enr) => {
         const student = enr.student;
         const fullName = `${student.lastNamePaternal} ${student.lastNameMaternal || ''}, ${student.firstNames}`.trim();
-        const validScores: number[] = [];
+        const motherAreaScoresMap = new Map<string, { totalScore: number; count: number; name: string }>();
         let conductScore: number | null = null;
 
         classroom.assignments.forEach((assignment) => {
           const compScores: number[] = [];
+          const motherAreaId = assignment.area.parentAreaId || assignment.area.id;
+          const motherAreaName = assignment.area.parentArea?.name || assignment.area.name;
+
           assignment.area.competences.forEach((comp) => {
             const items = gradesMap.get(`${enr.id}_${assignment.id}_${comp.id}`) || [];
             const numericItems = items.filter((it): it is typeof it & { numericScore: number } => it.numericScore !== null && it.numericScore !== undefined);
@@ -442,17 +476,33 @@ export class AcademicReportService {
             compScores.length > 0
               ? Math.round((compScores.reduce((a, b) => a + b, 0) / compScores.length) * 10) / 10
               : null;
-          if (periodCourseScore !== null) validScores.push(periodCourseScore);
+
+          if (periodCourseScore !== null) {
+            if (!motherAreaScoresMap.has(motherAreaId)) {
+              motherAreaScoresMap.set(motherAreaId, { totalScore: 0, count: 0, name: motherAreaName });
+            }
+            const entry = motherAreaScoresMap.get(motherAreaId)!;
+            entry.totalScore += periodCourseScore;
+            entry.count++;
+          }
+        });
+
+        const motherAreaAverages: number[] = [];
+        motherAreaScoresMap.forEach((entry) => {
+          if (entry.count > 0) {
+            const areaAvg = Math.round((entry.totalScore / entry.count) * 10) / 10;
+            motherAreaAverages.push(areaAvg);
+          }
         });
 
         const average =
-          validScores.length > 0
-            ? Math.round((validScores.reduce((a, b) => a + b, 0) / validScores.length) * 100) / 100
+          motherAreaAverages.length > 0
+            ? Math.round((motherAreaAverages.reduce((a, b) => a + b, 0) / motherAreaAverages.length) * 100) / 100
             : null;
 
-        const points = validScores.length > 0 ? Math.round(validScores.reduce((a, b) => a + b, 0)) : 0;
-        const failedCoursesCount = validScores.filter((sc) => sc < 10.5).length;
-        const approvedCoursesCount = validScores.filter((sc) => sc >= 10.5).length;
+        const points = motherAreaAverages.length > 0 ? Math.round(motherAreaAverages.reduce((a, b) => a + b, 0)) : 0;
+        const failedCoursesCount = motherAreaAverages.filter((sc) => sc < 10.5).length;
+        const approvedCoursesCount = motherAreaAverages.filter((sc) => sc >= 10.5).length;
 
         allStudents.push({
           enrollmentId: enr.id,
@@ -463,7 +513,7 @@ export class AcademicReportService {
           points,
           approvedCoursesCount,
           failedCoursesCount,
-          hasNoGrades: validScores.length === 0,
+          hasNoGrades: motherAreaAverages.length === 0,
           conduct: conductScore !== null ? Math.round(conductScore) : 20,
         });
       });

@@ -1,6 +1,6 @@
 # SaaSchool Backend — Documentación Técnica Integral de Arquitectura y Funcionalidades
 
-> **Versión:** 1.2.0 (Jerarquía Curricular CNEB, Motor SIAGIE Oficial y Conexiones Transversales)  
+> **Versión:** 1.3.0 (Corrección de Flujos por Rol, Reseteo de Claves, Reportes de Mérito y Pulido Total)  
 > **Plataforma:** SaaSchool — SaaS B2B Multi-Tenant para Gestión Escolar (Perú / MINEDU / SIAGIE / CNEB)  
 > **Entorno de Ejecución:** Node.js 18+ | Express 4.x | TypeScript 5.x (Strict Mode)  
 > **Base de Datos y ORM:** PostgreSQL 16+ con Prisma ORM 5.22  
@@ -195,6 +195,8 @@ erDiagram
         string schoolId FK
         int year
         string periodType "BIMESTER (4) o TRIMESTER (3)"
+        json periodsConfig "Fechas por bimestre o trimestre"
+        string annualCalculationMode "LAST_PERIOD (RVM 094) o AVERAGE"
     }
 
     Enrollment {
@@ -211,6 +213,8 @@ erDiagram
         string schoolId FK
         string officialAreaCode "MAT, COM, CYT, TRANS, etc."
         boolean isTransversal "True para áreas transversales"
+        string parentAreaId FK "Jerarquía oficial madre vs sub-curso"
+        stringArray evaluatedCompetenceIds "UUIDs de competencias evaluadas"
     }
 
     Competence {
@@ -386,7 +390,12 @@ erDiagram
 ##### 3. `GET /api/users/:id`, `PATCH /api/users/:id`, `DELETE /api/users/:id`, `PATCH /api/users/:id/reactivate`
 * **Qué hace:** Operaciones CRUD con soft delete (`isActive: false`) y reactivación (`isActive: true`).
 
-##### 4. `GET /api/users/:userId/students`
+##### 4. `POST /api/users/:id/reset-password`
+* **Permisos:** `SUPER_ADMIN`, `SCHOOL_ADMIN`, `ADMINISTRATIVE`.
+* **Servicio:** `UserService.resetPassword(userId, schoolId, newPassword?)`
+* **Qué hace:** Restablece en 1 clic la contraseña del usuario (docente, apoderado o administrativo) a su propio número de documento (`documentId`) hasheado con bcrypt (o a la clave provista en `newPassword`).
+
+##### 5. `GET /api/users/:userId/students`
 * **Qué hace:** Devuelve todos los hijos vinculados al apoderado especificado vía `familyRelationshipController.getByParent`.
 
 ---
@@ -422,11 +431,16 @@ erDiagram
   * **Retorna:** `200 OK` con cabecera de la IE y lista de alumnos formateada para exportar a Excel.
 
 ##### 4. `GET /api/students/my-children`
-* **Permisos:** `PARENT`.
-* **Servicio:** `StudentService.getMyChildren(schoolId, parentUserId)`
-  * **Qué hace:** Consulta los estudiantes vinculados al apoderado autenticado, incluyendo su matrícula activa, aula, grado, nivel y pensiones pendientes.
+* **Permisos:** `PARENT`, `STUDENT`.
+* **Servicio:** `StudentService.getMyChildren(schoolId, userContext)`
+  * **Qué hace:** Si el solicitante es `PARENT`, consulta los estudiantes vinculados al apoderado autenticado, incluyendo matrícula activa, aula, grado, nivel y pensiones pendientes. Si el solicitante es `STUDENT`, busca su propio registro estudiantil en `StudentRepository.findStudentSelf`, retornándolo como un array de 1 elemento con su aula, notas y asistencias, **omitiendo deudas financieras por privacidad**.
 
-##### 5. `GET /api/students/:id/certificates/enrollment` (Constancia Oficial de Matrícula)
+##### 5. `POST /api/students/:id/reset-password`
+* **Permisos:** `SUPER_ADMIN`, `SCHOOL_ADMIN`, `ADMINISTRATIVE`.
+* **Servicio:** `StudentService.resetPassword(studentId, schoolId, newPassword?)`
+* **Qué hace:** Restablece la contraseña de acceso directo del estudiante (`passwordHash`) a su número de documento (`documentId`) hasheado con bcrypt y marca `mustChangePassword: true`.
+
+##### 6. `GET /api/students/:id/certificates/enrollment` (Constancia Oficial de Matrícula)
 * **Permisos:** `SUPER_ADMIN`, `SCHOOL_ADMIN`, `ADMINISTRATIVE`, `TEACHER`, `PARENT`, `STUDENT`.
 * **Servicio:** `StudentService.getEnrollmentCertificate(schoolId, studentId, requester)`
   * **Qué hace:** Emite la constancia oficial de matrícula para el año lectivo activo. Incluye validación de seguridad contra IDOR (si el solicitante es `PARENT`, comprueba filiación legal; si es `STUDENT`, valida que coincida con su identidad).
@@ -699,7 +713,7 @@ erDiagram
 
 ##### 2. `POST /api/payments/obligations` (Creación de Obligación Individual)
 * **Permisos:** `SUPER_ADMIN`, `SCHOOL_ADMIN`, `ADMINISTRATIVE`.
-* **Esquema:** `createObligationSchema` (`title`, `concept`: `'PENSION' | 'MATRICULA' | 'OTHER'`, `amountDue`, `dueDate`, `enrollmentId` o `studentId`, `academicYearId`, `notes`).
+* **Esquema:** `createObligationSchema` (`title`, `concept`: `'PENSION' | 'MATRICULA' | 'LIBROS_MATERIALES' | 'UNIFORME' | 'CARNET_AGENDA' | 'EXCURSION_EVENTO' | 'OTROS'`, `amountDue`, `dueDate`, `enrollmentId` o `studentId`, `academicYearId`, `notes`).
 * **Servicio:** `PaymentService.createObligation(schoolId, dto)`
   * **Qué hace:** Permite emitir una cuota individual para un alumno específico (por matrícula o por estudiante en su matrícula activa).
   * **Retorna:** `201 Created` con la obligación generada.

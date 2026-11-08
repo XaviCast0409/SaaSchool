@@ -28,6 +28,13 @@ userRouter.patch(
   userController.reactivate,
 );
 
+// Restablecimiento de contraseña por Dirección / Secretaría (a DNI)
+userRouter.post(
+  '/:id/reset-password',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
+  userController.resetPassword,
+);
+
 // Ruta anidada: alumnos/hijos de un apoderado
 // GET /api/users/:userId/students
 userRouter.get(

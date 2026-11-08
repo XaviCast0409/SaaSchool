@@ -7,8 +7,10 @@ import {
   flexRender,
   type ColumnDef,
 } from '@tanstack/react-table';
-import { Search, UserX, UserCheck, Pencil } from 'lucide-react';
+import { Search, UserX, UserCheck, Pencil, KeyRound } from 'lucide-react';
+import { toast } from 'sonner';
 import { useDeactivateUser, useReactivateUser } from '../api/useUserMutations';
+import { useResetUserPassword } from '../api/useUsers';
 import { EditUserModal } from './EditUserModal';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -63,6 +65,7 @@ export const UserTable: React.FC<UserTableProps> = ({
 
   const { mutate: deactivate, isPending: isDeactivating } = useDeactivateUser();
   const { mutate: reactivate, isPending: isReactivating } = useReactivateUser();
+  const { mutateAsync: resetPassword, isPending: isResetting } = useResetUserPassword();
 
   const columns: ColumnDef<DirectoryUser>[] = [
     {
@@ -150,6 +153,30 @@ export const UserTable: React.FC<UserTableProps> = ({
               >
                 <Pencil className="w-3.5 h-3.5 mr-1" />
                 Editar
+              </Button>
+            )}
+
+            {/* Restablecer Clave a DNI */}
+            {isAdmin && user.documentId && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs text-amber-600 hover:bg-amber-500/10 hover:text-amber-600"
+                onClick={async () => {
+                  if (window.confirm(`¿Restablecer la contraseña de "${user.firstName} ${user.lastNamePaternal}" a su DNI (${user.documentId})?`)) {
+                    try {
+                      await resetPassword({ userId: user.id });
+                      toast.success('Contraseña restablecida al número de documento');
+                    } catch (err: any) {
+                      toast.error(err?.response?.data?.message || 'Error al restablecer contraseña');
+                    }
+                  }
+                }}
+                disabled={isResetting}
+                title="Restablecer clave al DNI"
+              >
+                <KeyRound className="w-3.5 h-3.5 mr-1" />
+                Restablecer Clave (a DNI)
               </Button>
             )}
 

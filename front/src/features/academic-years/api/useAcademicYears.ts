@@ -1,6 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
 
+export interface PeriodDateConfig {
+  periodNumber: number;
+  name: string;
+  startDate: string;
+  endDate: string;
+}
+
 export interface AcademicYear {
   id: string;
   schoolId: string;
@@ -10,6 +17,8 @@ export interface AcademicYear {
   endDate: string;
   isActive: boolean;
   periodType?: 'BIMESTER' | 'TRIMESTER';
+  periodsConfig?: PeriodDateConfig[] | null;
+  annualCalculationMode?: 'LAST_PERIOD' | 'AVERAGE';
 }
 
 export interface CreateAcademicYearPayload {
@@ -18,6 +27,9 @@ export interface CreateAcademicYearPayload {
   startDate: string;
   endDate: string;
   isActive?: boolean;
+  periodType?: 'BIMESTER' | 'TRIMESTER';
+  periodsConfig?: PeriodDateConfig[] | null;
+  annualCalculationMode?: 'LAST_PERIOD' | 'AVERAGE';
 }
 
 interface ApiResponse<T> {

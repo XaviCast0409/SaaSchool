@@ -1,4 +1,4 @@
-# SaaSchool Frontend — Diccionario de Funciones, Custom Hooks y Componentes 100% Exhaustivo (v1.2.0)
+# SaaSchool Frontend — Diccionario de Funciones, Custom Hooks y Componentes 100% Exhaustivo (v1.3.0)
 
 Este documento contiene la especificación quirúrgica de **cada Custom Hook (React Query), Store (Zustand), Componente, Modal, Esquema Zod y Utilidad** existente en el frontend de **SaaSchool**.
 
@@ -159,6 +159,9 @@ Este documento contiene la especificación quirúrgica de **cada Custom Hook (Re
   * **Mutation:** `PATCH /users/:id`
 * **`useDeactivateUser()` / `useReactivateUser()`:**
   * **Mutation:** `DELETE /users/:id` / `PATCH /users/:id/reactivate` (Soft-delete y restauración).
+* **`useResetUserPassword()`:**
+  * **Mutation:** `POST /users/:id/reset-password`
+  * **Qué hace:** Restablece en 1 clic la contraseña del usuario (docente, apoderado, administrativo) a su propio número de documento (DNI) hasheado con bcrypt. Muestra toast de confirmación.
 
 ### `src/features/users/family-relationships/api/useFamilyRelationships.ts`
 
@@ -199,7 +202,10 @@ Este documento contiene la especificación quirúrgica de **cada Custom Hook (Re
 * **`useGetMyChildren()`:**
   * **Query:** `GET /students/my-children`
   * **QueryKey:** `['my-children']`
-  * **Qué hace:** Carga los hijos del apoderado autenticado con su aula actual y pensiones pendientes.
+  * **Qué hace:** Carga los hijos del apoderado autenticado (`PARENT`), o el propio perfil académico del estudiante (`STUDENT`) omitiendo deudas por privacidad, con su aula actual y materias vigentes.
+* **`useResetStudentPassword()`:**
+  * **Mutation:** `POST /students/:id/reset-password`
+  * **Qué hace:** Restablece en 1 clic la contraseña del estudiante a su propio número de documento (`documentId`) y marca `mustChangePassword: true`. Muestra toast de éxito.
 * **`useEnrollmentCertificate(studentId: string)`:**
   * **Query:** `GET /students/:studentId/certificates/enrollment`
   * **QueryKey:** `['student-certificate-enrollment', studentId]`
@@ -231,8 +237,8 @@ Este documento contiene la especificación quirúrgica de **cada Custom Hook (Re
   * **Qué hace:** Hook selector reactivo que consulta `useAcademicYears()` y localiza el año lectivo que tenga `status === 'ACTIVE'` o `isActive: true`.
   * **Retorna:** `{ activeYear, isTrimester: activeYear?.periodType === 'TRIMESTER', maxPeriods: activeYear?.periodType === 'TRIMESTER' ? 3 : 4, isLoading }`.
   * **Uso:** Utilizado en todos los filtros académicos y vistas de notas para conmutar de forma transparente entre bimestres (1..4) y trimestres (1..3).
-* **`useCreateAcademicYear()`:** `POST /academic-years` (soporta `periodType`: `'BIMESTER'` | `'TRIMESTER'`).
-* **`useUpdateAcademicYear()`:** `PATCH /academic-years/:id`.
+* **`useCreateAcademicYear()`:** `POST /academic-years` (soporta `periodType`: `'BIMESTER'` | `'TRIMESTER'`, `annualCalculationMode`: `'LAST_PERIOD'` | `'AVERAGE'`, y `periodsConfig` con fechas por periodo).
+* **`useUpdateAcademicYear()`:** `PATCH /academic-years/:id` (actualiza estado, vigencias, `periodsConfig` y `annualCalculationMode`).
 * **`useDeleteAcademicYear()`:** `DELETE /academic-years/:id` (falla si existen matrículas activas).
 
 ---
@@ -310,8 +316,8 @@ Este documento contiene la especificación quirúrgica de **cada Custom Hook (Re
   * **Invalidación:** Invalida matriz, conclusiones descriptivas y libretas de notas.
 * **`useSyncHomeworkToMatrix()`:**
   * **Mutation:** `POST /grades/matrix/sync-homework`
-  * **Payload:** `{ courseAssignmentId: string, periodNumber: number, criterionId: string, homeworkId?: string }`
-  * **Qué hace:** Sincroniza y vuelca masivamente las calificaciones de tareas calificadas del LMS hacia la columna del criterio evaluativo seleccionado en la matriz de notas.
+  * **Payload:** `{ courseAssignmentId: string, periodNumber: number, criterionId?: string, targetCriterionId?: string, competenceId?: string, targetCompetenceId?: string, homeworkId?: string }`
+  * **Qué hace:** Sincroniza y vuelca masivamente las calificaciones de tareas calificadas del LMS hacia la columna del criterio evaluativo y competencias correspondientes en la matriz de notas.
   * **Invalidación:** Invalida `['grade-matrix', courseAssignmentId, periodNumber]`.
 * **`useEvaluationCriteria(level?)` / `useCreateCriterion` / `useUpdateCriterion` / `useDeleteCriterion`:** Gestión de rúbricas y criterios institucionales (PC, COND, EB, RC).
 * **`useCompetenceConclusions(courseAssignmentId, periodNumber)` / `useSaveCompetenceConclusions()`:** Lectura y guardado de Conclusiones Descriptivas CNEB.

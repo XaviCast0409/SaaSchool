@@ -120,6 +120,7 @@ export class AcademicReportRepository {
             area: {
               include: {
                 competences: true,
+                parentArea: true,
               },
             },
             teacher: {
@@ -179,6 +180,7 @@ export class AcademicReportRepository {
         competenceId: true,
         criterionId: true,
         numericScore: true,
+        literalScore: true,
         criterion: {
           select: {
             shortName: true,
@@ -265,6 +267,7 @@ export class AcademicReportRepository {
             area: {
               include: {
                 competences: true,
+                parentArea: true,
               },
             },
           },
@@ -311,6 +314,7 @@ export class AcademicReportRepository {
         competenceId: true,
         criterionId: true,
         numericScore: true,
+        literalScore: true,
         criterion: {
           select: {
             shortName: true,

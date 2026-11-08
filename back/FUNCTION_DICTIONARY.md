@@ -1,4 +1,4 @@
-# SaaSchool Backend — Diccionario de Funciones y Referencia Técnica 100% Exhaustiva
+# SaaSchool Backend — Diccionario de Funciones y Referencia Técnica 100% Exhaustiva (v1.3.0)
 
 Este documento contiene la especificación quirúrgica y detallada de **cada función, método de controlador, método de servicio, método de repositorio y utilidad** existente en el backend de **SaaSchool**.
 
@@ -263,6 +263,10 @@ Este documento contiene la especificación quirúrgica y detallada de **cada fun
 * **`update(req, res)`**: Valida `updateUserSchema` y ejecuta `UserService.updateUser`. Retorna `200 OK`.
 * **`deactivate(req, res)`**: Ejecuta soft delete (`isActive: false`). Retorna `200 OK`.
 * **`reactivate(req, res)`**: Ejecuta reactivación (`isActive: true`). Retorna `200 OK`.
+* **`resetPassword(req, res)`**:
+  * **Endpoint:** `POST /api/users/:id/reset-password`
+  * **Permisos:** `SUPER_ADMIN`, `SCHOOL_ADMIN`, `ADMINISTRATIVE`.
+  * **Qué hace:** Restablece la contraseña del usuario a su número de documento (`documentId`) hasheado con bcrypt (o `newPassword` opcional). Retorna `200 OK`.
 
 ---
 
@@ -289,16 +293,21 @@ Este documento contiene la especificación quirúrgica y detallada de **cada fun
 #### `reactivateUser(userId: string, schoolId: string): Promise<Omit<User, 'passwordHash'>>`
 * **Qué hace:** Pone `isActive: true`.
 
+#### `resetPassword(userId: string, schoolId: string, newPassword?: string): Promise<{ message: string }>`
+* **Qué hace:** Busca al usuario, extrae `newPassword` o su `documentId`, lo hashea con bcrypt y actualiza su `passwordHash`.
+
 ---
 
 ### Repositorio: `UserRepository` (`src/modules/users/user.repository.ts`)
 
 * **`findAllBySchool(schoolId, filters)`**: Realiza consulta paginada con `skip`, `take`, cláusulas `OR` en búsquedas e incluye conteo total.
 * **`findById(id, schoolId)`**: Busca registro por ID y colegio.
+* **`findByIdRaw(id, schoolId)`**: Busca registro por ID y colegio incluyendo campos internos como `documentId`.
 * **`findByEmail(email)`**: Busca por email global.
 * **`findByDocumentId(schoolId, documentId)`**: Busca por DNI dentro del colegio.
 * **`create(schoolId, data)`**: Inserta usuario en la BD.
 * **`update(id, schoolId, data)`**: Actualiza usuario.
+* **`updatePassword(userId, schoolId, passwordHash)`**: Actualiza directamente el `passwordHash` del usuario.
 * **`softDelete(id, schoolId)`**: Cambia `isActive: false`.
 * **`reactivate(id, schoolId)`**: Cambia `isActive: true`.
 
@@ -311,7 +320,11 @@ Este documento contiene la especificación quirúrgica y detallada de **cada fun
 * **`getCatalogs(req, res)`**: Retorna catálogos oficiales SIAGIE (Ubigeos, lenguas, etc.).
 * **`registerFicha(req, res)`**: Valida `registerFichaMatriculaSchema` y ejecuta la matrícula atómica en `StudentService.registerFichaMatricula`. Retorna `201 Created`.
 * **`getNominaMatricula(req, res)`**: Extrae `classroomId` y genera la nómina oficial SIAGIE para Excel con `StudentService.getNominaMatricula`.
-* **`getMyChildren(req, res)`**: Endpoint de apoderados (`PARENT`). Devuelve los hijos asociados al usuario autenticado.
+* **`getMyChildren(req, res)`**: Endpoint para apoderados (`PARENT`) y estudiantes (`STUDENT`). Si quien llama es estudiante, devuelve su propio perfil académico (sin deudas financieras). Si es apoderado, devuelve los alumnos vinculados legalmente.
+* **`resetPassword(req, res)`**:
+  * **Endpoint:** `POST /api/students/:id/reset-password`
+  * **Permisos:** `SUPER_ADMIN`, `SCHOOL_ADMIN`, `ADMINISTRATIVE`.
+  * **Qué hace:** Restablece la contraseña del estudiante a su propio número de documento (`documentId`) hasheado con bcrypt y marca `mustChangePassword: true`. Retorna `200 OK`.
 * **`getEnrollmentCertificate(req, res)`**:
   * **Endpoint:** `GET /api/students/:id/certificates/enrollment`
   * **Permisos:** `SUPER_ADMIN`, `SCHOOL_ADMIN`, `ADMINISTRATIVE`, `PARENT`, `STUDENT`.
@@ -354,8 +367,13 @@ Este documento contiene la especificación quirúrgica y detallada de **cada fun
   5. Extrae al apoderado legal con su parentesco y teléfono.
 * **Retorna:** Estructura completa formateada para renderizado visual o descarga a Excel de la Nómina Oficial de Matrícula.
 
-#### `getMyChildren(schoolId: string, parentUserId: string)`
-* **Qué hace:** Busca en `FamilyRelationship` todos los estudiantes vinculados al apoderado en el colegio, incluyendo el aula y grado actual, así como las pensiones pendientes de pago.
+#### `getMyChildren(schoolId: string, userContext: { userId: string; role: string; studentId?: string })`
+* **Qué hace:**
+  * Si `userContext.role === 'STUDENT'`, delega en `studentRepository.findStudentSelf` para obtener el registro del estudiante (aula, grado, nivel y cursos vigentes), omitiendo obligaciones financieras por privacidad, retornando un array de un elemento `[student]`.
+  * Si `userContext.role === 'PARENT'`, busca en `FamilyRelationship` todos los estudiantes vinculados al apoderado en el colegio, incluyendo el aula y grado actual, así como las pensiones pendientes de pago.
+
+#### `resetPassword(studentId: string, schoolId: string)`
+* **Qué hace:** Busca el estudiante por ID en el colegio, obtiene su `documentId`, lo hashea con bcrypt (10 rounds) y actualiza `passwordHash` marcando `mustChangePassword: true`. Retorna mensaje de confirmación.
 
 #### `getEnrollmentCertificate(schoolId: string, studentId: string, userContext?: UserContext)`
 * **Qué hace:**
@@ -381,6 +399,8 @@ Este documento contiene la especificación quirúrgica y detallada de **cada fun
 * **`findByDocument(schoolId, documentType, documentId)`**: Búsqueda por documento único.
 * **`findByStudentCode(schoolId, studentCode)`**: Búsqueda por código modular SIAGIE (14 dígitos).
 * **`findStudentForCertificate(studentId, schoolId)`**: Consulta el alumno con su colegio, vínculos familiares y matrícula activa en el año lectivo vigente.
+* **`findStudentSelf(schoolId, studentId)`**: Consulta individual del estudiante para el portal de alumno con matrícula activa y materias, omitiendo deudas financieras.
+* **`resetPassword(studentId, schoolId, passwordHash)`**: Actualiza el hash de contraseña del estudiante y marca `mustChangePassword: true`.
 * **`countStudentPendingObligations(studentId, schoolId)`**: Cuenta las obligaciones pendientes o parciales del estudiante a nivel de colegio.
 * **`registerFichaMatriculaTransaction(...)`**: Implementación de la transacción ACID con `prisma.$transaction`.
 
@@ -420,7 +440,8 @@ Este documento contiene la especificación quirúrgica y detallada de **cada fun
 * **`getClassroomById(classroomId, schoolId)`**: Detalle del aula con su tutor o `404`.
 * **`createClassroom(schoolId, dto)`**: Crea un aula (`educationLevel`, `grade`, `section`, `shift`, `capacity`, `tutorTeacherId`).
   * **Validación de Tutor:** Si se pasa `tutorTeacherId`, verifica que el usuario exista en el colegio, esté activo y posea rol `TEACHER`.
-* **`updateClassroom(classroomId, schoolId, dto)`**: Actualiza capacidad, turno o reasigna el docente tutor.
+  * **Asignación Automática Transversal:** Si se asigna tutor, busca automáticamente el área de Competencias Transversales (`officialAreaCode: 'TRANS'` o `isTransversal: true`) del nivel educativo y la asigna al tutor en `CourseAssignment`.
+* **`updateClassroom(classroomId, schoolId, dto)`**: Actualiza capacidad, turno o reasigna el docente tutor (sincronizando automáticamente el área transversal con el tutor activo).
 * **`deleteClassroom(classroomId, schoolId)`**: Elimina el aula previa comprobación de integridad referencial.
 
 ---
@@ -578,12 +599,12 @@ Este documento contiene la especificación quirúrgica y detallada de **cada fun
 * **`getMatrixData(schoolId, courseAssignmentId, periodNumber)`**:
   * Devuelve la grilla completa tipo Cubicol/Excel del aula para el bimestre especificado.
   * **Herencia de Sub-cursos:** Si el curso es un sub-curso (`parentAreaId !== null`), carga las competencias activas de su Área Madre filtrando por `evaluatedCompetenceIds`.
-  * **Conexión 4 — Inyección de Incidencias:** Cada alumno incluye `incidentsSummary` (`total`, `topics`, `convivencia`, `acoso`) computado dentro del rango de fechas del periodo evaluado.
+  * **Conexión 4 — Inyección de Incidencias:** Cada alumno incluye `incidentsSummary` (`total`, `behavioralCount`, `academicCount`, `nursingCount`, `citationsCount`, y retrocompatibilidad con `convivencia`, `topics`) computado dentro del rango de fechas del periodo evaluado.
 * **`saveBatchGrades(schoolId, courseAssignmentId, periodNumber, grades)`**:
   * **Verificación de Bloqueo:** Comprueba si el periodo está cerrado en `GradingPeriodLock`. Si está bloqueado, arroja `AppError(403)`.
   * **Guardado Atómico:** Realiza upserts de calificaciones detalladas (`DetailedGrade`) admitiendo escala literal (`'AD'`, `'A'`, `'B'`, `'C'`, `'EXO'`, `'-'`). Tanto `'EXO'` como `'-'` se excluyen del denominador al promediar.
-* **`syncHomeworkToMatrix(schoolId, courseAssignmentId, periodNumber)` (Conexión 1 — LMS -> Matriz):**
-  * Sincroniza y promedia automáticamente las calificaciones de las entregas de tareas del módulo LMS Tareas hacia el criterio `'TAREAS'` de la matriz de notas.
+* **`syncHomeworkToMatrix(schoolId, courseAssignmentId, periodNumber, body?)` (Conexión 1 — LMS -> Matriz):**
+  * Sincroniza y promedia automáticamente las calificaciones de las entregas de tareas del módulo LMS Tareas hacia la matriz de notas. Acepta `criterionId` / `targetCriterionId` (por defecto `'TAREAS'`), `competenceId` / `targetCompetenceId` (o todas las competencias evaluadas del curso si se omite) y `homeworkId` opcional para sincronizar una tarea específica.
 * **`getConclusions(schoolId, courseAssignmentId, periodNumber)`** y **`saveBatchConclusions`**: Gestión de conclusiones descriptivas por competencia según la RVM N° 094-2020-MINEDU.
 * **`getReportCard(schoolId, enrollmentId, userContext?)`**:
   * Libreta oficial de notas del estudiante. Consolida todas las asignaturas por periodos dinámicos, promedios ponderados, traducción a letras (`AD`, `A`, `B`, `C`), conclusiones descriptivas.
@@ -694,7 +715,7 @@ Este documento contiene la especificación quirúrgica y detallada de **cada fun
   * Actualiza `amountDue`, `dueDate`, `title`, `notes` o `status` en `paymentRepository.updateObligation`.
 * **`registerTransaction(schoolId: string, dto: CreatePaymentTransactionDto)`**:
   * Valida que la obligación no esté `PAID` ni `CANCELLED`.
-  * **Recibo Interno Autonumerado:** Si `dto.receiptNumber` no se especifica o está vacío, genera automáticamente la serie correlativa `REC-` concatenando 6 dígitos (`REC-000001`, `REC-000002`...) contando las transacciones del colegio.
+  * **Recibo Interno Autonumerado:** Si `dto.receiptNumber` no se especifica o está vacío, incrementa atómicamente el contador institucional `school.receiptCounter` y genera la serie correlativa `REC-` concatenando 6 dígitos (`REC-000001`, `REC-000002`...).
   * Suma pagos previos más el pago actual para actualizar la obligación a `PAID` o `PARTIAL`.
   * Registra la transacción con método de pago manual (`CASH`, `BANK_TRANSFER`, `CREDIT_CARD`), boleta/factura y notas.
 * **`deleteTransaction(transactionId: string, schoolId: string)`**:

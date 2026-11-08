@@ -16,6 +16,7 @@ import {
   useUpdateAcademicYear,
   useDeleteAcademicYear,
   type AcademicYear,
+  type PeriodDateConfig,
 } from '../api/useAcademicYears';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -48,6 +49,22 @@ function formatDateInput(dateString: string): string {
   }
 }
 
+function getDefaultPeriods(periodType: 'BIMESTER' | 'TRIMESTER', year: number): PeriodDateConfig[] {
+  if (periodType === 'TRIMESTER') {
+    return [
+      { periodNumber: 1, name: '1° Trimestre', startDate: `${year}-03-01`, endDate: `${year}-05-31` },
+      { periodNumber: 2, name: '2° Trimestre', startDate: `${year}-06-01`, endDate: `${year}-08-31` },
+      { periodNumber: 3, name: '3° Trimestre', startDate: `${year}-09-01`, endDate: `${year}-12-20` },
+    ];
+  }
+  return [
+    { periodNumber: 1, name: '1° Bimestre', startDate: `${year}-03-01`, endDate: `${year}-05-15` },
+    { periodNumber: 2, name: '2° Bimestre', startDate: `${year}-05-16`, endDate: `${year}-07-25` },
+    { periodNumber: 3, name: '3° Bimestre', startDate: `${year}-08-10`, endDate: `${year}-10-15` },
+    { periodNumber: 4, name: '4° Bimestre', startDate: `${year}-10-16`, endDate: `${year}-12-20` },
+  ];
+}
+
 export const AcademicYearsPage: React.FC = () => {
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN';
@@ -63,6 +80,9 @@ export const AcademicYearsPage: React.FC = () => {
     startDate: `${currentYearNum}-03-01`,
     endDate: `${currentYearNum}-12-20`,
     isActive: true,
+    periodType: 'BIMESTER' as 'BIMESTER' | 'TRIMESTER',
+    annualCalculationMode: 'LAST_PERIOD' as 'LAST_PERIOD' | 'AVERAGE',
+    periodsConfig: getDefaultPeriods('BIMESTER', currentYearNum),
   });
 
   // Queries & Mutations
@@ -82,11 +102,24 @@ export const AcademicYearsPage: React.FC = () => {
       startDate: `${nextYear}-03-01`,
       endDate: `${nextYear}-12-20`,
       isActive: true,
+      periodType: 'BIMESTER',
+      annualCalculationMode: 'LAST_PERIOD',
+      periodsConfig: getDefaultPeriods('BIMESTER', nextYear),
     });
     setIsModalOpen(true);
   };
 
   const handleOpenEditModal = (ay: AcademicYear) => {
+    const pType = ay.periodType || 'BIMESTER';
+    const periods = (ay.periodsConfig && ay.periodsConfig.length > 0)
+      ? ay.periodsConfig.map((p) => ({
+          periodNumber: p.periodNumber,
+          name: p.name,
+          startDate: formatDateInput(p.startDate),
+          endDate: formatDateInput(p.endDate),
+        }))
+      : getDefaultPeriods(pType, ay.year);
+
     setEditingYear(ay);
     setFormData({
       year: ay.year,
@@ -94,6 +127,9 @@ export const AcademicYearsPage: React.FC = () => {
       startDate: formatDateInput(ay.startDate),
       endDate: formatDateInput(ay.endDate),
       isActive: ay.isActive,
+      periodType: pType,
+      annualCalculationMode: ay.annualCalculationMode || 'LAST_PERIOD',
+      periodsConfig: periods,
     });
     setIsModalOpen(true);
   };
@@ -110,6 +146,9 @@ export const AcademicYearsPage: React.FC = () => {
             startDate: formData.startDate,
             endDate: formData.endDate,
             isActive: formData.isActive,
+            periodType: formData.periodType,
+            annualCalculationMode: formData.annualCalculationMode,
+            periodsConfig: formData.periodsConfig,
           },
         });
         toast.success('Año Lectivo actualizado con éxito.');
@@ -120,6 +159,9 @@ export const AcademicYearsPage: React.FC = () => {
           startDate: formData.startDate,
           endDate: formData.endDate,
           isActive: formData.isActive,
+          periodType: formData.periodType,
+          annualCalculationMode: formData.annualCalculationMode,
+          periodsConfig: formData.periodsConfig,
         });
         toast.success('✨ Nuevo Año Lectivo registrado con éxito.');
       }
@@ -402,6 +444,91 @@ export const AcademicYearsPage: React.FC = () => {
                     onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                     className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   />
+                </div>
+              </div>
+
+              {/* Régimen de Periodos y Modo de Cálculo Anual */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">
+                    Régimen de Periodos
+                  </label>
+                  <select
+                    value={formData.periodType}
+                    onChange={(e) => {
+                      const newType = e.target.value as 'BIMESTER' | 'TRIMESTER';
+                      setFormData({
+                        ...formData,
+                        periodType: newType,
+                        periodsConfig: getDefaultPeriods(newType, formData.year),
+                      });
+                    }}
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="BIMESTER">Bimestral (4 Periodos)</option>
+                    <option value="TRIMESTER">Trimestral (3 Periodos)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">
+                    Cálculo Anual SIAGIE
+                  </label>
+                  <select
+                    value={formData.annualCalculationMode}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        annualCalculationMode: e.target.value as 'LAST_PERIOD' | 'AVERAGE',
+                      })
+                    }
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="LAST_PERIOD">Último Periodo Conclusivo (RVM 094)</option>
+                    <option value="AVERAGE">Promedio Anual Ponderado</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Configuración de Fechas por Bimestre/Trimestre */}
+              <div className="p-3 rounded-xl border border-border bg-muted/20 space-y-2.5">
+                <p className="text-xs font-bold text-foreground">
+                  Calendario de {formData.periodType === 'TRIMESTER' ? 'Trimestres' : 'Bimestres'} (Fechas Oficiales):
+                </p>
+                <div className="space-y-2">
+                  {formData.periodsConfig.map((period, idx) => (
+                    <div key={period.periodNumber} className="grid grid-cols-5 gap-2 items-center">
+                      <span className="col-span-1 text-[11px] font-bold text-muted-foreground truncate">
+                        {period.name}
+                      </span>
+                      <div className="col-span-2">
+                        <input
+                          type="date"
+                          value={period.startDate}
+                          onChange={(e) => {
+                            const updated = [...formData.periodsConfig];
+                            updated[idx] = { ...updated[idx], startDate: e.target.value };
+                            setFormData({ ...formData, periodsConfig: updated });
+                          }}
+                          className="w-full rounded-lg border border-border bg-background px-2 py-1 text-[11px] text-foreground"
+                          title="Fecha de Inicio del Periodo"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <input
+                          type="date"
+                          value={period.endDate}
+                          onChange={(e) => {
+                            const updated = [...formData.periodsConfig];
+                            updated[idx] = { ...updated[idx], endDate: e.target.value };
+                            setFormData({ ...formData, periodsConfig: updated });
+                          }}
+                          className="w-full rounded-lg border border-border bg-background px-2 py-1 text-[11px] text-foreground"
+                          title="Fecha de Fin del Periodo"
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 

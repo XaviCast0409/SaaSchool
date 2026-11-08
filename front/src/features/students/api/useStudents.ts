@@ -306,3 +306,20 @@ export const useNoDebtCertificate = (studentId?: string, enabled = true) => {
     retry: false,
   });
 };
+
+export const useResetStudentPassword = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ studentId, newPassword }: { studentId: string; newPassword?: string }) => {
+      const response = await api.post<{ status: string; data: { message: string } }>(
+        `/students/${studentId}/reset-password`,
+        { newPassword },
+      );
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+    },
+  });
+};

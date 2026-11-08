@@ -46,8 +46,11 @@ export const batchSaveGradesSchema = z.object({
 export const syncHomeworkToMatrixSchema = z.object({
   courseAssignmentId: z.string().uuid(),
   periodNumber: z.number().int().min(1).max(4),
-  targetCriterionId: z.string().uuid(),
+  criterionId: z.string().uuid().optional(),
+  targetCriterionId: z.string().uuid().optional(),
+  competenceId: z.string().uuid().optional(),
   targetCompetenceId: z.string().uuid().optional(),
+  homeworkId: z.string().uuid().optional(),
 });
 
 export type GetMatrixQueryDto = z.infer<typeof getMatrixQuerySchema>;

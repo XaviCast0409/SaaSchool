@@ -38,10 +38,12 @@ export class ClassroomService {
     const transversalArea = await prisma.curricularArea.findFirst({
       where: {
         schoolId,
-        isTransversal: true,
+        parentAreaId: null,
         OR: [
+          { isTransversal: true },
           { officialAreaCode: 'TRANS' },
           { officialCode: { contains: 'TRANS' } },
+          { name: { contains: 'Transversal', mode: 'insensitive' } },
         ],
       },
     });

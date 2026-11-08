@@ -5,12 +5,14 @@ import {
   flexRender,
   type ColumnDef,
 } from '@tanstack/react-table';
-import { Search, UserCheck, ChevronDown, ChevronUp, Users, Filter, Accessibility, BookOpen, Pencil, FileText, QrCode, FileSpreadsheet, FileCheck2 } from 'lucide-react';
+import { Search, UserCheck, ChevronDown, ChevronUp, Users, Filter, Accessibility, BookOpen, Pencil, FileText, QrCode, FileSpreadsheet, FileCheck2, KeyRound } from 'lucide-react';
+import { toast } from 'sonner';
 import { Student } from '../types';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useUsers } from '@/features/users/api/useUsers';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
 import { useGetActiveSchool } from '@/features/schools/api/useSchool';
+import { useResetStudentPassword } from '../api/useStudents';
 import { StudentParentsPanel } from '@/features/users/family-relationships/components/StudentParentsPanel';
 import { EditStudentModal } from './EditStudentModal';
 import { StudentFichaModal } from './StudentFichaModal';
@@ -76,6 +78,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({
   const { data: allParents = [] } = useUsers('PARENT');
   const { data: classrooms = [] } = useClassrooms();
   const { data: school } = useGetActiveSchool();
+  const { mutateAsync: resetStudentPassword, isPending: isResettingStudent } = useResetStudentPassword();
 
   const columns: ColumnDef<Student>[] = [
     {
@@ -351,6 +354,29 @@ export const StudentTable: React.FC<StudentTableProps> = ({
                               >
                                 <Pencil className="w-3.5 h-3.5" />
                                 <span>Editar</span>
+                              </Button>
+                            )}
+
+                            {canManageStudents && student.documentId && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2 gap-1 text-xs text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 font-bold"
+                                onClick={async () => {
+                                  if (window.confirm(`¿Restablecer la contraseña del estudiante "${student.firstNames} ${student.lastNamePaternal}" a su DNI (${student.documentId})?`)) {
+                                    try {
+                                      await resetStudentPassword({ studentId: student.id });
+                                      toast.success('Contraseña restablecida al número de documento');
+                                    } catch (err: any) {
+                                      toast.error(err?.response?.data?.message || 'Error al restablecer contraseña');
+                                    }
+                                  }
+                                }}
+                                disabled={isResettingStudent}
+                                title="Restablecer clave al DNI"
+                              >
+                                <KeyRound className="w-3.5 h-3.5" />
+                                <span>Restablecer Clave</span>
                               </Button>
                             )}
 

@@ -71,3 +71,20 @@ export const useCreateUser = () => {
     },
   });
 };
+
+export const useResetUserPassword = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ userId, newPassword }: { userId: string; newPassword?: string }) => {
+      const response = await api.post<{ status: string; data: { message: string } }>(
+        `/users/${userId}/reset-password`,
+        { newPassword },
+      );
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+};

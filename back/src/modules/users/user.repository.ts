@@ -145,4 +145,17 @@ export class UserRepository {
       select: USER_PUBLIC_SELECT,
     });
   }
+
+  async findByIdRaw(userId: string, schoolId: string): Promise<User | null> {
+    return prisma.user.findFirst({
+      where: { id: userId, schoolId },
+    });
+  }
+
+  async updatePassword(userId: string, schoolId: string, passwordHash: string): Promise<void> {
+    await prisma.user.update({
+      where: { id: userId, schoolId },
+      data: { passwordHash },
+    });
+  }
 }

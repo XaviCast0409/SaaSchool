@@ -286,13 +286,21 @@ export class GradeRepository {
 
     const enrichedEnrollments = assignment.classroom.enrollments.map((enr) => {
       const stIncidents = incidents.filter((i) => i.enrollmentId === enr.id);
+      const behavioralCount = stIncidents.filter((i) => i.type === 'DEMERITO' || i.type === 'BEHAVIORAL').length;
+      const academicCount = stIncidents.filter((i) => i.type === 'MERITO' || i.type === 'ACADEMIC').length;
+      const nursingCount = stIncidents.filter((i) => i.type === 'ATENCION_TOPICO' || i.type === 'NURSING').length;
+      const citationsCount = stIncidents.filter((i) => i.type === 'CITACION_PADRES' || i.type === 'CITATION').length;
+
       return {
         ...enr,
         incidentsSummary: {
-          behavioralCount: stIncidents.filter((i) => i.type === 'DEMERITO').length,
-          academicCount: stIncidents.filter((i) => i.type === 'MERITO').length,
-          nursingCount: stIncidents.filter((i) => i.type === 'ATENCION_TOPICO').length,
-          citationsCount: stIncidents.filter((i) => i.type === 'CITACION_PADRES').length,
+          total: stIncidents.length,
+          behavioralCount,
+          academicCount,
+          nursingCount,
+          citationsCount,
+          convivencia: behavioralCount,
+          topics: nursingCount,
           totalHighSeverity: stIncidents.filter((i) => i.severity === 'HIGH').length,
         },
       };
@@ -1440,8 +1448,33 @@ export class GradeRepository {
       }
     }
 
-    let targetCompId = dto.targetCompetenceId;
-    if (!targetCompId) {
+    let effectiveCriterionId = dto.criterionId || dto.targetCriterionId;
+    if (!effectiveCriterionId) {
+      const defaultCrit = await prisma.evaluationCriterion.findFirst({
+        where: {
+          schoolId,
+          educationLevel: assignment.classroom.educationLevel,
+          isActive: true,
+          OR: [
+            { shortName: 'TAREAS' },
+            { name: { contains: 'Tarea', mode: 'insensitive' } },
+            { shortName: 'PC' },
+          ],
+        },
+      });
+      effectiveCriterionId = defaultCrit?.id;
+    }
+
+    if (!effectiveCriterionId) {
+      throw new AppError('No se encontró un criterio de evaluación para asociar las tareas.', 400);
+    }
+
+    const requestedCompId = dto.competenceId || dto.targetCompetenceId;
+    let targetCompIds: string[] = [];
+
+    if (requestedCompId) {
+      targetCompIds = [requestedCompId];
+    } else {
       if (assignment.area.parentAreaId && assignment.area.parentArea?.competences) {
         const comps =
           assignment.area.evaluatedCompetenceIds && assignment.area.evaluatedCompetenceIds.length > 0
@@ -1449,23 +1482,32 @@ export class GradeRepository {
                 assignment.area.evaluatedCompetenceIds.includes(c.id),
               )
             : assignment.area.parentArea.competences;
-        targetCompId = comps[0]?.id;
+        targetCompIds = comps.map((c) => c.id);
       } else {
-        targetCompId = assignment.area.competences[0]?.id;
+        targetCompIds = assignment.area.competences.map((c) => c.id);
       }
     }
 
-    if (!targetCompId) {
+    if (targetCompIds.length === 0) {
       throw new AppError('El curso no tiene competencias configuradas para asociar la nota.', 400);
     }
 
-    const homeworkContents = await prisma.courseContent.findMany({
-      where: {
+    let homeworkWhere: any = {
+      schoolId,
+      courseAssignmentId: dto.courseAssignmentId,
+      contentType: 'HOMEWORK',
+      bimester: dto.periodNumber,
+    };
+    if (dto.homeworkId) {
+      homeworkWhere = {
         schoolId,
+        id: dto.homeworkId,
         courseAssignmentId: dto.courseAssignmentId,
-        contentType: 'HOMEWORK',
-        bimester: dto.periodNumber,
-      },
+      };
+    }
+
+    const homeworkContents = await prisma.courseContent.findMany({
+      where: homeworkWhere,
       select: { id: true },
     });
 
@@ -1511,35 +1553,37 @@ export class GradeRepository {
         const avg = Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10;
         const literal = scoreToLetter(avg);
 
-        upsertPromises.push(
-          prisma.detailedGrade.upsert({
-            where: {
-              enrollmentId_courseAssignmentId_competenceId_criterionId_periodNumber: {
+        for (const compId of targetCompIds) {
+          upsertPromises.push(
+            prisma.detailedGrade.upsert({
+              where: {
+                enrollmentId_courseAssignmentId_competenceId_criterionId_periodNumber: {
+                  enrollmentId,
+                  courseAssignmentId: dto.courseAssignmentId,
+                  competenceId: compId,
+                  criterionId: effectiveCriterionId!,
+                  periodNumber: dto.periodNumber,
+                },
+              },
+              update: {
+                numericScore: avg,
+                literalScore: literal,
+                comment: `Sincronizado de ${scores.length} tarea(s) del Aula Virtual`,
+              },
+              create: {
+                schoolId,
                 enrollmentId,
                 courseAssignmentId: dto.courseAssignmentId,
-                competenceId: targetCompId!,
-                criterionId: dto.targetCriterionId,
+                competenceId: compId,
+                criterionId: effectiveCriterionId!,
                 periodNumber: dto.periodNumber,
+                numericScore: avg,
+                literalScore: literal,
+                comment: `Sincronizado de ${scores.length} tarea(s) del Aula Virtual`,
               },
-            },
-            update: {
-              numericScore: avg,
-              literalScore: literal,
-              comment: `Sincronizado de ${scores.length} tarea(s) del Aula Virtual`,
-            },
-            create: {
-              schoolId,
-              enrollmentId,
-              courseAssignmentId: dto.courseAssignmentId,
-              competenceId: targetCompId!,
-              criterionId: dto.targetCriterionId,
-              periodNumber: dto.periodNumber,
-              numericScore: avg,
-              literalScore: literal,
-              comment: `Sincronizado de ${scores.length} tarea(s) del Aula Virtual`,
-            },
-          }),
-        );
+            }),
+          );
+        }
         updatedStudentsCount++;
       }
     });

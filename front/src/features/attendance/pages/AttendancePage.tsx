@@ -52,8 +52,8 @@ const STATUS_OPTIONS: Array<{ value: AttendanceStatus; label: string; color: str
 export const AttendancePage: React.FC = () => {
   const user = useAuthStore((state) => state.user);
 
-  // Si el usuario es PADRE / APODERADO, mostrar la vista especializada de su hijo
-  if (user?.role === 'PARENT') {
+  // Si el usuario es PADRE / APODERADO o ESTUDIANTE, mostrar la vista especializada de su hijo
+  if (user?.role === 'PARENT' || user?.role === 'STUDENT') {
     return <ParentAttendanceView />;
   }
 

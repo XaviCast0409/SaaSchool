@@ -71,11 +71,23 @@ export class StudentController {
     response.status(204).send();
   };
 
-  /** GET /api/students/my-children — hijos vinculados al apoderado autenticado */
+  resetPassword = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const id = request.params.id as string;
+    const { newPassword } = request.body || {};
+    const result = await this.studentService.resetPassword(id, schoolId, newPassword);
+    response.status(200).json({ status: 'success', data: result });
+  };
+
+  /** GET /api/students/my-children — hijos vinculados al apoderado o perfil propio del alumno */
   getMyChildren = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
-    const userId = request.user!.userId;
-    const children = await this.studentService.getMyChildren(schoolId, userId);
+    const userContext = {
+      userId: request.user!.userId,
+      role: request.user!.role,
+      studentId: request.user!.studentId,
+    };
+    const children = await this.studentService.getMyChildren(schoolId, userContext);
     response.status(200).json({ status: 'success', data: children });
   };
 

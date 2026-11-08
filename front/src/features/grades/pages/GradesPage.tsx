@@ -31,8 +31,8 @@ export const GradesPage: React.FC = () => {
     );
   }
 
-  // 2. Si el usuario es PADRE / APODERADO, mostrar su libreta de notas familiar
-  if (user?.role === 'PARENT') {
+  // 2. Si el usuario es PADRE / APODERADO o ESTUDIANTE, mostrar su libreta de notas familiar
+  if (user?.role === 'PARENT' || user?.role === 'STUDENT') {
     return <ParentGradesView />;
   }
 

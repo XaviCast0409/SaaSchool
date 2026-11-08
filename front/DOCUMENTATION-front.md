@@ -1,6 +1,6 @@
 # SaaSchool Frontend — Documentación Técnica Integral de Arquitectura y Funcionalidades
 
-> **Versión:** 1.2.0 (Jerarquía Curricular CNEB, Matriz con Pegado Excel y Conexiones Transversales)  
+> **Versión:** 1.3.0 (Flujo de Rol Estudiante, Reseteo de Claves a DNI, Asignación Automática Transversal, Cálculo de Mérito con Sub-cursos y Sincronización LMS)  
 > **Plataforma:** SaaSchool — Frontend Web & Móvil B2B Multi-Rol (Administrador, Docente, Apoderado, Estudiante, SuperAdmin)  
 > **Stack Tecnológico:** React 18.2 | TypeScript 5.3 (Strict Mode) | Vite 5.0 | Tailwind CSS 3.3  
 > **Gestión de Estado:** TanStack Query v5 (Server State) | Zustand 4.4 (Client State con Persist)  
@@ -90,11 +90,12 @@ El `DashboardLayout` estructura toda la experiencia visual post-autenticación:
    * **Gestión Académica:** Matrícula SIAGIE / Alumnos (`/students`), Aula Virtual / Supervisión Pedagógica (`/virtual-classroom`), Calificaciones y Actas (`/grades`), Reportes Oficiales MINEDU (`/academic-reports`).
    * **Tesorería y Caja:** Cobranzas y Pensiones (`/payments`).
    * **Configuración Escolar:** Años Lectivos (`/academic-years`), Aulas y Secciones (`/classrooms`), Malla CNEB / Áreas (`/curricular-areas`), Carga Horaria Docente (`/teacher-assignments`), Rúbricas y Criterios (`/evaluation-criteria`).
-3. **Navegación Aislada de Docentes (`TEACHER`):** Dashboard Docente, Asistencia Escolar, Matriz de Notas con Rúbricas, Asignaciones, Aula Virtual y Comunicados.
+3. **Navegación Aislada de Docentes (`TEACHER`):** Dashboard Docente, Asistencia Escolar, Matriz de Notas con Rúbricas, Asignaciones, Aula Virtual, Agenda e Incidencias (`/incidents`) y Comunicados.
 4. **Aislamiento Estricto del Rol Alumno (`STUDENT`):**
    * Vista fija y forzada en `viewMode = 'STUDENT'`.
    * Switch de modo familiar oculto, conmutador de hijos (`ChildSwitcher`) oculto y tarjeta financiera (`ChildFinancialCard`) oculta.
    * Acceso denegado a rutas financieras (`/payments`), permitiendo únicamente acceso autónomo a sus materias, tareas y foros (`/virtual-classroom`, `/grades`, `/announcements`, `/attendance`).
+   * **Ruteo Transparente:** En `/dashboard` renderiza `ParentPortalPage.tsx`, en `/grades` renderiza `ParentGradesView.tsx` y en `/attendance` renderiza `ParentAttendanceView.tsx` sin requerir interfaces docentes/administrativas.
 5. **Portal Familiar (`PARENT`):** Acceso integral al resumen multi-hijo, estado de pensiones, boletas, libreta de notas y aula virtual del menor.
 6. **Campanita de Notificaciones (`NotificationBell`):** Componente interactivo con polling automático cada 45 segundos, contador badge de no leídas y panel desplegable.
 7. **Banner Web Push Móvil (`MobilePushBanner`):** Detecta si el usuario navega desde un dispositivo móvil o navegador compatible y le solicita permisos para recibir alertas instantáneas de pagos y asistencia mediante el protocolo VAPID.
@@ -187,9 +188,10 @@ graph LR
 * **Página:** `DirectoryPage.tsx`
 * **Componentes:** `UserTable.tsx`, `UserFormModal.tsx`, `EditUserModal.tsx`.
 * **Submódulo `family-relationships`:** `StudentParentsPanel.tsx`, `LinkParentModal.tsx`.
-* **Hooks API:** `useUsers`, `useCreateUser`, `useUpdateUser`, `useDeactivateUser`, `useReactivateUser`, `useStudentParents`, `useParentStudents`, `useLinkParent`, `useDeleteRelationship`.
+* **Hooks API:** `useUsers`, `useCreateUser`, `useUpdateUser`, `useDeactivateUser`, `useReactivateUser`, `useResetUserPassword`, `useStudentParents`, `useParentStudents`, `useLinkParent`, `useDeleteRelationship`.
 * **Capacidades:**
   * Directorio unificado de administradores, profesores y apoderados con filtros por rol y búsqueda.
+  * **Restablecimiento de Contraseña en 1 Clic (a DNI):** Botón de acción directa con confirmación en `UserTable.tsx` que ejecuta `POST /api/users/:id/reset-password`, notificando con toast de éxito al operador.
   * Vinculación de apoderados con estudiantes indicando parentesco, representación legal y responsabilidad económica.
 
 ---
@@ -198,11 +200,12 @@ graph LR
 * **Página:** `StudentsPage.tsx`
 * **Componentes:** `StudentTable.tsx`, `StudentFichaModal.tsx`, `EnrollStudentModal.tsx`, `EditStudentModal.tsx`, `NominaSiagieModal.tsx`, `StudentQrCardModal.tsx`, `SectionQrCardsModal.tsx`, `StudentCertificateModal.tsx`.
 * **Utilidad:** `exportNominaExcel.ts` (Generador de archivos Excel oficiales MINEDU).
-* **Hooks API:** `useStudents`, `useStudent`, `useSiagieCatalogs`, `useRegisterFichaMatricula`, `useCreateStudent`, `useUpdateStudent`, `useDeleteStudent`, `useGetNominaMatricula`, `useGetMyChildren`, `useEnrollmentCertificate`, `useNoDebtCertificate`.
+* **Hooks API:** `useStudents`, `useStudent`, `useSiagieCatalogs`, `useRegisterFichaMatricula`, `useCreateStudent`, `useUpdateStudent`, `useDeleteStudent`, `useResetStudentPassword`, `useGetNominaMatricula`, `useGetMyChildren`, `useEnrollmentCertificate`, `useNoDebtCertificate`.
 * **Capacidades:**
   * Ficha Única de Matrícula transaccional (Estudiante + Matrícula + Apoderado nuevo/existente) con validación de cuotas de alumnos por plan, soporte para documentos extranjeros (`PTP`, `BIRTH_CERTIFICATE`), becas (`customPensionAmount`, `discountReason`) y situación final SIAGIE (`finalSituation`).
   * Emisión e impresión oficial de **Constancias de Matrícula** y **Constancias de No Adeudo** (`StudentCertificateModal.tsx`) con código de verificación institucional y validación en tiempo real de solvencia económica.
   * Gestión de credenciales independientes de estudiantes (`passwordHash`, `mustChangePassword`) para acceso estudiantil autónomo a su aula virtual sin privilegios financieros.
+  * **Restablecimiento de Contraseña Estudiantil en 1 Clic (a DNI):** Botón en `StudentTable.tsx` conectado a `POST /api/students/:id/reset-password` (`useResetStudentPassword`).
   * Exportación de la Nómina Oficial de Matrícula SIAGIE en formato Excel con edad al 31 de marzo.
   * Generación e impresión de credenciales QR individuales y masivas por aula para el control de asistencia.
 
@@ -213,7 +216,7 @@ graph LR
 * **Hooks API:** `useClassrooms`, `useCreateClassroom`, `useUpdateClassroom`, `useDeleteClassroom`.
 * **Capacidades:**
   * Creación y administración de salones organizados por nivel (`INITIAL`, `PRIMARY`, `SECONDARY`), grado, sección (`A`, `B`, `Única`), turno y capacidad.
-  * Asignación y cambio del docente tutor del aula.
+  * Asignación y cambio del docente tutor del aula (con vinculación automática del área de Competencias Transversales `TRANS` al tutor).
 
 ---
 
@@ -222,6 +225,8 @@ graph LR
 * **Hooks API:** `useAcademicYears`, `useActiveAcademicYear`, `useCreateAcademicYear`, `useUpdateAcademicYear`, `useDeleteAcademicYear`.
 * **Capacidades:**
   * Apertura de periodos anuales con fechas de inicio y fin, soportando tanto estructura bimestral (4 bimestres) como trimestral (3 trimestres) mediante `periodType`.
+  * **Configuración Visual de Fechas por Periodo (`periodsConfig`):** Selector dinámico de fechas de inicio y fin para cada bimestre (1..4) o trimestre (1..3).
+  * **Modo de Cálculo Anual SIAGIE (`annualCalculationMode`):** Selector configurable entre "Último Periodo Conclusivo (Oficial MINEDU RVM 094)" (`LAST_PERIOD`) y "Promedio Anual Ponderado" (`AVERAGE`).
   * Detección reactiva del año lectivo activo (`useActiveAcademicYear`) que sincroniza automáticamente la cantidad máxima de periodos (3 o 4) en todos los selectores de notas, reportes y aulas virtuales del sistema.
   * Protección contra eliminación si el año cuenta con matrículas activas.
 
@@ -269,6 +274,8 @@ graph LR
 * **Capacidades:**
   * Matriz interactiva de calificaciones tipo Excel con rúbricas y criterios ponderados, con selector dinámico de modo: Vigesimal (0-20) vs Literal (AD, A, B, C), defaulted según nivel educativo (Inicial/Primaria -> Literal; Secundaria -> Vigesimal).
   * Adaptabilidad completa al régimen periódico del colegio: conmuta dinámicamente entre Bimestres (1..4) y Trimestres (1..3) según el año lectivo.
+  * Sincronización unificada de tareas LMS a matriz (`POST /api/grades/matrix/sync-homework`) admitiendo criterios específicos (`criterionId` / `targetCriterionId`), competencias individuales o evaluadas en el área y tareas puntuales (`homeworkId`).
+  * Inyección contextual de incidencias con desglose unificado en `incidentsSummary` (`total`, `behavioralCount`, `academicCount`, `nursingCount`, `citationsCount`, `convivencia`, `topics`).
   * Autoguardado local anti-cortes de energía (`saaschool_grades_draft_${courseAssignmentId}_${periodNumber}`) con banner reactivo de recuperación y botón para descartar borrador local.
   * Soporte para exoneración normativa (`EXO`) por estudiante o celda, pintando la fila con badge semántico "EXONERADO" y excluyéndola de promedios ponderados y KPIs del salón.
   * Guardado masivo atómico con comprobación de cierre de actas bimestrales y purga del borrador local en éxito.
@@ -336,6 +343,7 @@ graph LR
 * **Hooks API:** `useReportCatalogClassrooms`, `useConsolidatedGradesReport`, `useDraftRegisterReport`, `useMeritClassroomReport`, `useMeritGradeReport`, `useConductCommentsReport`, `useClassroomRosterReport`, `useFamiliesByStateReport`, `useFamiliesWithChildrenReport`, `useFamiliesRelativesReport`, `useStudentBirthdaysReport`.
 * **Capacidades:**
   * Visualización y exportación a Excel de los 10 reportes oficiales del sistema: Consolidado de notas (0021), Registro auxiliar borrador (0041), Orden de mérito de salón con Tercio Superior (0048), Orden de mérito por grado con Quinto Superior (0049), apreciaciones de conducta (0030), padrón de aula (0011), familias por convivencia (0001), hermanos en la institución (0002), parientes (0003) y cumpleaños (0019).
+  * **Precisión Matemática Oficial (Jerarquía Curricular y Escala Literal):** En los reportes 0021, 0048 y 0049, los sub-cursos se agrupan bajo su Área Madre oficial antes de calcular el promedio general del estudiante. Las calificaciones literales se homologan para rankings (`AD=18, A=15, B=12, C=9`) ignorando estados exonerados (`EXO`) o sin evaluación (`-`).
   * Protegido por `PlanGuard` (requiere plan `PRO` o `ENTERPRISE`).
 
 ---

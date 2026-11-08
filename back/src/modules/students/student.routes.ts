@@ -47,10 +47,10 @@ studentRouter.post(
   authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
   studentController.create,
 );
-// Listado de hijos del apoderado autenticado (Multi-Hijo)
+// Listado de hijos del apoderado autenticado (Multi-Hijo) o perfil del propio alumno
 studentRouter.get(
   '/my-children',
-  authorizeRoles('PARENT'),
+  authorizeRoles('PARENT', 'STUDENT'),
   studentController.getMyChildren,
 );
 
@@ -80,6 +80,13 @@ studentRouter.delete(
   '/:id',
   authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
   studentController.delete,
+);
+
+// Restablecimiento de contraseña de alumno por Dirección / Secretaría (a DNI)
+studentRouter.post(
+  '/:id/reset-password',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
+  studentController.resetPassword,
 );
 
 // Ruta anidada: apoderados/padres de un alumno específico
