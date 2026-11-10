@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { GraduationCap, ShieldCheck, Sparkles } from 'lucide-react';
@@ -139,6 +140,18 @@ export const LoginPage: React.FC = () => {
             >
               Iniciar Sesión
             </Button>
+
+            <p className="text-center text-[11px] text-muted-foreground pt-1">
+              Al ingresar aceptas nuestros{' '}
+              <Link to="/terminos" target="_blank" className="text-primary hover:underline font-medium">
+                Términos
+              </Link>{' '}
+              y la{' '}
+              <Link to="/privacidad" target="_blank" className="text-primary hover:underline font-medium">
+                Política de Privacidad
+              </Link>
+              .
+            </p>
           </form>
 
           {/* Quick Demo Accesses from Seed Data */}

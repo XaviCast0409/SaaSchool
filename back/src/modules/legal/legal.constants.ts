@@ -1,0 +1,16 @@
+export const LEGAL_VERSIONS = {
+  PRIVACY_POLICY: '2026-11-01',
+  TERMS: '2026-11-01',
+  MINOR_DATA_CONSENT: '2026-11-01',
+} as const;
+
+export type LegalDocumentType = keyof typeof LEGAL_VERSIONS;
+
+export const REQUIRED_DOCUMENTS_BY_ROLE: Record<string, LegalDocumentType[]> = {
+  SUPER_ADMIN: [],
+  SCHOOL_ADMIN: ['PRIVACY_POLICY', 'TERMS'],
+  ADMINISTRATIVE: ['PRIVACY_POLICY', 'TERMS'],
+  TEACHER: ['PRIVACY_POLICY', 'TERMS'],
+  PARENT: ['PRIVACY_POLICY', 'TERMS', 'MINOR_DATA_CONSENT'],
+  STUDENT: ['TERMS'],
+};

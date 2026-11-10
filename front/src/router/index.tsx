@@ -21,6 +21,8 @@ import { VirtualClassroomSupervisionPage } from '@/features/course-contents/page
 import { AcademicReportsPage } from '@/features/academic-reports/pages/AcademicReportsPage';
 import { IncidentsPage } from '@/features/incidents/pages/IncidentsPage';
 import { AuditLogsPage } from '@/features/audit-logs/pages/AuditLogsPage';
+import { PrivacyPolicyPage } from '@/features/legal/pages/PrivacyPolicyPage';
+import { TermsPage } from '@/features/legal/pages/TermsPage';
 import { PlanGuard } from '@/components/ui/PlanGuard';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -81,6 +83,10 @@ export const AppRouter: React.FC = () => {
             </PublicRoute>
           }
         />
+
+        {/* Rutas Públicas Legales (Ley 29733) */}
+        <Route path="/privacidad" element={<PrivacyPolicyPage />} />
+        <Route path="/terminos" element={<TermsPage />} />
 
         {/* Protected Dashboard Layout */}
         <Route

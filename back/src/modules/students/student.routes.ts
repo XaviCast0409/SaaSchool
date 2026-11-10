@@ -73,6 +73,12 @@ studentRouter.post(
 );
 
 studentRouter.get(
+  '/:id/data-export',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
+  studentController.exportStudentData,
+);
+
+studentRouter.get(
   '/:id',
   authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),
   studentController.getById,

@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import {
   X,
   Printer,
@@ -8,11 +9,16 @@ import {
   CreditCard,
   Home,
   BookOpen,
+  Download,
+  Loader2,
 } from 'lucide-react';
 import { useStudent } from '../api/useStudents';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuthStore } from '@/store/useAuthStore';
+import { api } from '@/lib/axios';
+import { toast } from 'sonner';
 
 interface StudentFichaModalProps {
   studentId: string | null;
@@ -41,12 +47,39 @@ export const StudentFichaModal: React.FC<StudentFichaModalProps> = ({
   isOpen,
   onClose,
 }) => {
+  const user = useAuthStore((state) => state.user);
+  const canExportArco = user?.role === 'SUPER_ADMIN' || user?.role === 'SCHOOL_ADMIN';
   const { data: student, isLoading } = useStudent(studentId || undefined);
+  const [isExporting, setIsExporting] = useState(false);
 
   if (!isOpen || !studentId) return null;
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleExportArco = async () => {
+    if (!studentId) return;
+    setIsExporting(true);
+    try {
+      const response = await api.get(`/students/${studentId}/data-export`, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `datos-alumno-${studentId}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success('Datos del estudiante exportados correctamente (ARCO).');
+    } catch {
+      toast.error('Error al exportar los datos del estudiante.');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -66,6 +99,22 @@ export const StudentFichaModal: React.FC<StudentFichaModalProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {canExportArco && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportArco}
+                disabled={isExporting}
+                className="gap-1.5 text-xs shadow-sm"
+              >
+                {isExporting ? (
+                  <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4 text-primary" />
+                )}
+                <span>Exportar datos (ARCO)</span>
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"

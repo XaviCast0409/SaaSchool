@@ -31,6 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import { useGetActiveSchool } from '@/features/schools/api/useSchool';
 import { SchoolSettingsModal } from '@/features/schools/components/SchoolSettingsModal';
 import { ChangePasswordModal } from '@/features/auth/components/ChangePasswordModal';
+import { ConsentGate } from '@/features/legal/components/ConsentGate';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
 import { MobilePushBanner } from '@/features/notifications/components/MobilePushBanner';
 import { Toaster } from 'sonner';
@@ -575,6 +576,9 @@ export const DashboardLayout: React.FC = () => {
 
       {/* Modal Obligatorio de Cambio de Contraseña en Primer Ingreso */}
       <ChangePasswordModal />
+
+      {/* Modal Obligatorio de Consentimiento Legal */}
+      {!user?.mustChangePassword && <ConsentGate />}
 
       {/* Componente Global de Notificaciones Toast */}
       <Toaster position="top-right" richColors closeButton />

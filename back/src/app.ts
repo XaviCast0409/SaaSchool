@@ -35,7 +35,7 @@ import { academicReportRouter } from './modules/academic-reports/academic-report
 import { incidentRouter } from './modules/incidents/incident.routes';
 import { fileRouter } from './modules/files/file.routes';
 import { auditLogRouter } from './modules/audit-logs/audit-log.routes';
-// TODO bloque 10: import { legalRouter } from './modules/legal/legal.routes';
+import { legalRouter } from './modules/legal/legal.routes';
 
 const app = express();
 
@@ -110,7 +110,7 @@ app.use(`${API_PREFIX}/course-contents`, courseContentRouter);
 app.use(`${API_PREFIX}/academic-reports`, academicReportRouter);
 app.use(`${API_PREFIX}/incidents`, incidentRouter);
 app.use(`${API_PREFIX}/audit-logs`, auditLogRouter);
-// TODO bloque 10: app.use(`${API_PREFIX}/legal`, legalRouter);
+app.use(`${API_PREFIX}/legal`, legalRouter);
 
 app.use((_req, res) => {
   res.status(404).json({ status: 'fail', message: 'Ruta no encontrada' });

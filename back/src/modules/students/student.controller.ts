@@ -1,4 +1,6 @@
 import { Request, Response } from 'express';
+import { prisma } from '../../config/prisma';
+import { AppError } from '../../core/errors/app-error';
 import { recordAudit } from '../../utils/audit.util';
 import {
   createStudentSchema,
@@ -162,5 +164,47 @@ export class StudentController {
       after: { target: dto.target, count: Array.isArray(data) ? data.length : 0 },
     });
     response.status(200).json({ status: 'success', data });
+  };
+
+  exportStudentData = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const id = String(request.params.id);
+    const student = await prisma.student.findFirst({
+      where: { id, schoolId },
+      include: {
+        familyRelations: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastNamePaternal: true,
+                lastNameMaternal: true,
+                documentType: true,
+                documentId: true,
+                cellphone: true,
+                educationLevel: true,
+              },
+            },
+          },
+        },
+        enrollments: {
+          include: {
+            attendances: true,
+            detailedGrades: true,
+            competenceConclusions: true,
+            obligations: { include: { transactions: true } },
+            incidents: true,
+            homeworkSubmissions: true,
+          },
+        },
+      },
+    });
+    if (!student) throw new AppError('Estudiante no encontrado', 404);
+    const { passwordHash: _omit, ...safeStudent } = student;
+    recordAudit(request, { action: 'STUDENT_DATA_EXPORTED', entity: 'Student', entityId: id });
+    response.setHeader('Content-Disposition', `attachment; filename="datos-alumno-${id}.json"`);
+    response.status(200).json({ exportedAt: new Date().toISOString(), student: safeStudent });
   };
 }
