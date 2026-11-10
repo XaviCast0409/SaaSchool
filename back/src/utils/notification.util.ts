@@ -1,9 +1,16 @@
 import nodemailer, { type Transporter } from 'nodemailer';
 import { env } from '../config/env';
 
+const escapeHtml = (value: string): string =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
 /**
  * Utilidad de notificación para envío de recordatorios de pago y comunicados vía Email con Nodemailer.
- * Utiliza las credenciales SMTP configuradas en variables de entorno (USER_EMAIL y PASS_EMAIL).
  */
 
 export interface EmailOptions {
@@ -37,17 +44,21 @@ let transporterInstance: Transporter | null = null;
 export const getMailTransporter = (): Transporter | null => {
   if (transporterInstance) return transporterInstance;
 
-  if (!env.USER_EMAIL || !env.PASS_EMAIL) {
-    console.warn('[EMAIL WARNING] USER_EMAIL o PASS_EMAIL no están configurados en el entorno.');
+  const smtpUser = env.SMTP_USER || env.USER_EMAIL;
+  const smtpPass = env.SMTP_PASS || env.PASS_EMAIL;
+  if (!smtpUser || !smtpPass) {
+    console.warn('[EMAIL WARNING] Credenciales SMTP no configuradas (SMTP_USER/SMTP_PASS).');
     return null;
   }
 
   transporterInstance = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: env.USER_EMAIL,
-      pass: env.PASS_EMAIL,
-    },
+    host: env.SMTP_HOST,
+    port: env.SMTP_PORT,
+    secure: env.SMTP_SECURE,
+    auth: { user: smtpUser, pass: smtpPass },
+    pool: true,
+    maxConnections: 2,
+    maxMessages: 50,
   });
 
   return transporterInstance;
@@ -65,7 +76,7 @@ export const sendEmail = async (options: EmailOptions): Promise<boolean> => {
 
   try {
     const info = await transporter.sendMail({
-      from: `"SaaSchool - Notificaciones" <${env.USER_EMAIL}>`,
+      from: env.MAIL_FROM || `"SaaSchool - Notificaciones" <${env.SMTP_USER || env.USER_EMAIL}>`,
       to: options.to,
       subject: options.subject,
       text: options.text,
@@ -91,6 +102,12 @@ export const sendReminderNotification = async (
   const formattedAmount = `S/ ${params.amountDue.toFixed(2)}`;
   const formattedDate = new Date(params.dueDate).toLocaleDateString('es-PE');
 
+  const safe = {
+    recipientName: escapeHtml(params.recipientName),
+    studentName: escapeHtml(params.studentName),
+    obligationTitle: escapeHtml(params.obligationTitle),
+  };
+
   const email = params.recipientEmail || 'Sin correo registrado';
   const emailSubject = `Recordatorio de Pago: ${params.obligationTitle} - SaaSchool`;
   const emailBody = `Estimado(a) ${params.recipientName},\n\nLe recordamos la obligación de pago registrada a nombre de su hijo(a) ${params.studentName}:\n\n- Concepto: ${params.obligationTitle}\n- Monto a Pagar: ${formattedAmount}\n- Fecha de Vencimiento: ${formattedDate}\n\nPor favor realice el pago a través de los medios autorizados.\n\nAtentamente,\nAdministración Escolar`;
@@ -102,17 +119,17 @@ export const sendReminderNotification = async (
         <p style="color: #64748b; font-size: 13px; margin-top: 4px;">Comunicado oficial para apoderados</p>
       </div>
 
-      <p style="color: #334155; font-size: 15px;">Estimado(a) <strong>${params.recipientName}</strong>,</p>
+      <p style="color: #334155; font-size: 15px;">Estimado(a) <strong>${safe.recipientName}</strong>,</p>
       
       <p style="color: #334155; font-size: 14px; line-height: 1.5;">
-        Le informamos que se encuentra registrada la siguiente obligación de pensión/pago a nombre de su hijo(a) <strong>${params.studentName}</strong>:
+        Le informamos que se encuentra registrada la siguiente obligación de pensión/pago a nombre de su hijo(a) <strong>${safe.studentName}</strong>:
       </p>
 
       <div style="background-color: #f8fafc; border-left: 4px solid #2563eb; padding: 16px; margin: 20px 0; border-radius: 6px;">
         <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
           <tr>
             <td style="padding: 6px 0; color: #64748b; width: 40%;">Concepto:</td>
-            <td style="padding: 6px 0; color: #0f172a; font-weight: bold;">${params.obligationTitle}</td>
+            <td style="padding: 6px 0; color: #0f172a; font-weight: bold;">${safe.obligationTitle}</td>
           </tr>
           <tr>
             <td style="padding: 6px 0; color: #64748b;">Monto Pendiente:</td>

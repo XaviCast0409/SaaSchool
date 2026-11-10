@@ -506,26 +506,38 @@ export class PaymentService {
   async sendBulkOverdueReminders(
     schoolId: string,
     channel: 'EMAIL' = 'EMAIL',
-  ): Promise<{ message: string; totalQueued: number }> {
+  ): Promise<{ message: string; totalQueued: number; sent: number; failed: number; skipped: number }> {
     const { data: obligations } = await this.getAllObligations(schoolId, { status: 'PENDING', page: 1, limit: 1000 });
     const now = new Date();
     const overdueObligations = obligations.filter((o) => new Date(o.dueDate) < now);
 
-    // Encolar y procesar envíos secuenciales en segundo plano (2000ms delay para evitar bloqueo SMTP)
-    void (async () => {
-      for (const ob of overdueObligations) {
-        try {
-          await this.sendObligationReminder(ob.id, schoolId, channel);
-        } catch (err) {
-          console.error(`[OverdueReminderError] Error al enviar recordatorio de obligación ${ob.id}:`, err);
+    const MAX_SENDS = 300;
+    const toSend = overdueObligations.slice(0, MAX_SENDS);
+    const skipped = Math.max(0, overdueObligations.length - MAX_SENDS);
+    let sent = 0;
+    let failed = 0;
+
+    for (const ob of toSend) {
+      try {
+        const result = await this.sendObligationReminder(ob.id, schoolId, channel);
+        if (result?.notifications?.some((r) => r.success)) {
+          sent++;
+        } else {
+          failed++;
         }
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+      } catch (err) {
+        failed++;
+        console.error(`[OverdueReminderError] Error al enviar recordatorio de obligación ${ob.id}:`, err);
       }
-    })();
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    }
 
     return {
-      message: 'Envío de recordatorios iniciado en segundo plano',
+      message: 'Envío de recordatorios procesado',
       totalQueued: overdueObligations.length,
+      sent,
+      failed,
+      skipped,
     };
   }
 
