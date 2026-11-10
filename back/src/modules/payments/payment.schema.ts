@@ -24,7 +24,7 @@ export const createObligationSchema = z
     paidNow: z.boolean().optional(),
     paymentMethod: z.enum(['CASH', 'BANK_TRANSFER', 'CREDIT_CARD']).optional(),
     operationNumber: z.string().optional().nullable(),
-    receiptType: z.string().optional().nullable(),
+    receiptType: z.literal('RECIBO_INTERNO').optional(),
     receiptNumber: z.string().optional().nullable(),
   })
   .refine((data) => Boolean(data.enrollmentId || data.studentId), {
@@ -62,7 +62,7 @@ export const createTransactionSchema = z.object({
   amountPaid: z.number().positive('El monto pagado debe ser positivo'),
   paymentMethod: z.enum(['CASH', 'BANK_TRANSFER', 'CREDIT_CARD']),
   operationNumber: z.string().optional(),
-  receiptType: z.string().optional(),
+  receiptType: z.literal('RECIBO_INTERNO').optional(),
   receiptNumber: z.string().optional(),
   notes: z.string().optional(),
 });

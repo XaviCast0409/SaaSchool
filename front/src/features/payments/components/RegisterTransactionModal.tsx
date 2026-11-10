@@ -34,7 +34,7 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
       obligationId: obligation.id,
       amountPaid: remainingBalance,
       paymentMethod: 'CASH',
-      receiptType: 'BOLETA DE VENTA',
+      receiptType: 'RECIBO_INTERNO',
     },
   });
 
@@ -138,28 +138,12 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
             </select>
           </div>
 
-          {/* N° Operación & Comprobante */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase tracking-wide text-foreground">
-                Tipo Comprobante
-              </label>
-              <select
-                {...register('receiptType')}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              >
-                <option value="BOLETA DE VENTA">Boleta de Venta</option>
-                <option value="FACTURA">Factura</option>
-                <option value="RECIBO DE CAJA">Recibo Simple</option>
-              </select>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase tracking-wide text-foreground">
-                N° Operación / Transacción
-              </label>
-              <Input placeholder="Ej: 09812345" {...register('operationNumber')} className="h-9 text-xs" />
-            </div>
+          {/* N° Operación */}
+          <div className="space-y-1">
+            <label className="text-xs font-semibold uppercase tracking-wide text-foreground">
+              N° Operación / Transacción (Opcional)
+            </label>
+            <Input placeholder="Ej: 09812345" {...register('operationNumber')} className="h-9 text-xs" />
           </div>
 
           {/* Observaciones */}

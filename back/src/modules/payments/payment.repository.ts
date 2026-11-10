@@ -61,6 +61,7 @@ const TRANSACTION_INCLUDE = {
               lastNamePaternal: true,
               lastNameMaternal: true,
               documentId: true,
+              familyRelations: { select: { userId: true } },
             },
           },
           classroom: {
@@ -280,7 +281,7 @@ export class PaymentRepository {
         amountPaid: data.amountPaid,
         paymentMethod: data.paymentMethod,
         operationNumber: data.operationNumber,
-        receiptType: data.receiptType || 'RECIBO_INTERNO',
+        receiptType: 'RECIBO_INTERNO',
         receiptNumber,
         notes: data.notes,
       },

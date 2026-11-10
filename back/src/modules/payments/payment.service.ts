@@ -34,11 +34,20 @@ export class PaymentService {
   async getObligationById(
     obligationId: string,
     schoolId: string,
+    userContext?: { userId: string; role: string },
   ): Promise<PaymentObligation> {
     const obligation = await this.paymentRepository.findObligationById(obligationId, schoolId);
 
     if (!obligation) {
       throw new AppError(`Obligación de pago con id ${obligationId} no encontrada`, 404);
+    }
+
+    if (userContext?.role === 'PARENT') {
+      const relations = (obligation as unknown as {
+        enrollment: { student: { familyRelations: Array<{ userId?: string; user?: { id: string } }> } };
+      }).enrollment.student.familyRelations;
+      const isGuardian = relations.some((r) => (r.userId ?? r.user?.id) === userContext.userId);
+      if (!isGuardian) throw new AppError('No tienes permisos para ver este registro.', 403);
     }
 
     return obligation;
@@ -134,7 +143,7 @@ export class PaymentService {
             amountPaid: createObligationDto.amountDue,
             paymentMethod: createObligationDto.paymentMethod || 'CASH',
             operationNumber: createObligationDto.operationNumber,
-            receiptType: createObligationDto.receiptType || 'RECIBO_INTERNO',
+            receiptType: 'RECIBO_INTERNO',
             receiptNumber,
             notes: createObligationDto.notes,
             paymentDate: new Date(),
@@ -343,11 +352,23 @@ export class PaymentService {
     return deleted;
   }
 
-  async getTransactionReceipt(transactionId: string, schoolId: string) {
+  async getTransactionReceipt(
+    transactionId: string,
+    schoolId: string,
+    userContext?: { userId: string; role: string },
+  ) {
     const transaction = await this.paymentRepository.findTransactionById(transactionId, schoolId);
 
     if (!transaction) {
       throw new AppError(`Transacción con id ${transactionId} no encontrada`, 404);
+    }
+
+    if (userContext?.role === 'PARENT') {
+      const relations = (transaction as unknown as {
+        obligation: { enrollment: { student: { familyRelations: Array<{ userId?: string; user?: { id: string } }> } } };
+      }).obligation.enrollment.student.familyRelations;
+      const isGuardian = relations?.some((r) => (r.userId ?? r.user?.id) === userContext.userId);
+      if (!isGuardian) throw new AppError('No tienes permisos para ver este registro.', 403);
     }
 
     const txWithDetails = transaction as unknown as {
@@ -383,7 +404,7 @@ export class PaymentService {
 
     return {
       receiptHeader: {
-        receiptType: txWithDetails.receiptType || 'BOLETA DE VENTA SIMPLE',
+        receiptType: txWithDetails.receiptType || 'RECIBO_INTERNO',
         receiptNumber: txWithDetails.receiptNumber || `REC-${txWithDetails.id.substring(0, 8).toUpperCase()}`,
         paymentDate: txWithDetails.paymentDate,
       },
@@ -400,6 +421,7 @@ export class PaymentService {
         amountPaid: txWithDetails.amountPaid,
         notes: txWithDetails.notes,
       },
+      legalNotice: 'Documento interno de control de pagos. No es un comprobante de pago electrónico válido ante SUNAT.',
     };
   }
 

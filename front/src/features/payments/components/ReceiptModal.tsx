@@ -24,7 +24,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ transactionId, onClo
           <div className="flex items-center gap-2">
             <FileCheck2 className="w-5 h-5 text-emerald-500" />
             <h2 className="font-bold text-base text-foreground leading-none">
-              Comprobante de Pago
+              Recibo Interno de Pago
             </h2>
           </div>
           <button
@@ -43,7 +43,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ transactionId, onClo
           </div>
         ) : isError || !receipt ? (
           <div className="p-6 text-center text-sm text-destructive font-medium">
-            Error al cargar la boleta/recibo.
+            Error al cargar el recibo.
           </div>
         ) : (
           <div className="p-6 space-y-4 print:p-0">
@@ -54,7 +54,9 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ transactionId, onClo
                 <span>INSTITUCIÓN EDUCATIVA</span>
               </div>
               <p className="text-xs text-muted-foreground uppercase font-semibold">
-                {receipt.receiptHeader.receiptType}
+                {receipt.receiptHeader.receiptType === 'RECIBO_INTERNO'
+                  ? 'Recibo interno de pago'
+                  : receipt.receiptHeader.receiptType}
               </p>
               <p className="text-sm font-mono font-bold text-primary">
                 {receipt.receiptHeader.receiptNumber}
@@ -103,6 +105,10 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ transactionId, onClo
                 </span>
               </div>
             </div>
+
+            <p className="mt-4 text-center text-[10px] leading-snug text-muted-foreground">
+              Documento interno de control de pagos. No es un comprobante de pago electrónico válido ante SUNAT.
+            </p>
           </div>
         )}
 

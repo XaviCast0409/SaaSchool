@@ -23,7 +23,7 @@ export const registerTransactionSchema = z.object({
     errorMap: () => ({ message: 'Selecciona el método de pago' }),
   }),
   operationNumber: z.string().optional(),
-  receiptType: z.string().default('BOLETA DE VENTA'),
+  receiptType: z.literal('RECIBO_INTERNO').default('RECIBO_INTERNO'),
   receiptNumber: z.string().optional(),
   notes: z.string().optional(),
 });

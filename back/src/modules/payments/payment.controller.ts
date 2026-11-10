@@ -34,7 +34,8 @@ export class PaymentController {
   getObligationById = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
     const id = String(request.params.id);
-    const obligation = await this.paymentService.getObligationById(id, schoolId);
+    const userContext = { userId: request.user!.userId, role: request.user!.role };
+    const obligation = await this.paymentService.getObligationById(id, schoolId, userContext);
     response.status(200).json({ status: 'success', data: obligation });
   };
 
@@ -102,7 +103,8 @@ export class PaymentController {
   getTransactionReceipt = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
     const id = String(request.params.id);
-    const receipt = await this.paymentService.getTransactionReceipt(id, schoolId);
+    const userContext = { userId: request.user!.userId, role: request.user!.role };
+    const receipt = await this.paymentService.getTransactionReceipt(id, schoolId, userContext);
     response.status(200).json({ status: 'success', data: receipt });
   };
 

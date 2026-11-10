@@ -26,7 +26,7 @@ const createIndividualSchema = z.object({
   notes: z.string().optional(),
   paidNow: z.boolean().default(true),
   paymentMethod: z.enum(['CASH', 'BANK_TRANSFER', 'CREDIT_CARD']).default('CASH'),
-  receiptType: z.string().default('RECIBO_INTERNO'),
+  receiptType: z.literal('RECIBO_INTERNO').default('RECIBO_INTERNO'),
   operationNumber: z.string().optional(),
 });
 
@@ -306,32 +306,20 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
                     </select>
                   </div>
 
-                  {/* Tipo Comprobante */}
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-foreground">Tipo de Comprobante:</label>
-                    <select
-                      {...register('receiptType')}
-                      className="w-full h-8 rounded-lg border border-border bg-background px-2.5 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
-                    >
-                      <option value="RECIBO_INTERNO">Recibo Interno (REC-XXXXXX)</option>
-                      <option value="BOLETA DE VENTA">Boleta de Venta</option>
-                    </select>
-                  </div>
+                  {/* N° Operación (si no es efectivo) */}
+                  {paymentMethod !== 'CASH' ? (
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-muted-foreground">
+                        N° de Operación / Voucher (Opcional):
+                      </label>
+                      <Input
+                        {...register('operationNumber')}
+                        placeholder="Ej: 94827104"
+                        className="h-8 text-xs font-mono"
+                      />
+                    </div>
+                  ) : <div />}
                 </div>
-
-                {/* N° Operación (si no es efectivo) */}
-                {paymentMethod !== 'CASH' && (
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-muted-foreground">
-                      N° de Operación / Voucher (Opcional):
-                    </label>
-                    <Input
-                      {...register('operationNumber')}
-                      placeholder="Ej: 94827104"
-                      className="h-8 text-xs font-mono"
-                    />
-                  </div>
-                )}
 
                 <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 shrink-0" />
