@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
+import * as Sentry from '@sentry/node';
 import { AppError } from '../errors/app-error';
 import { env } from '../../config/env';
 
@@ -72,7 +73,6 @@ export const globalErrorHandler = (
       response.status(409).json({
         status: 'fail',
         message: customMessage,
-        errors: prismaError.meta,
       } satisfies ErrorResponse);
       return;
     }
@@ -87,6 +87,10 @@ export const globalErrorHandler = (
   }
 
   // Error no controlado
+  if (env.SENTRY_DSN) {
+    Sentry.captureException(error);
+  }
+
   console.error('💥 ERROR NO CONTROLADO:', error);
 
   const errorResponse: ErrorResponse = {

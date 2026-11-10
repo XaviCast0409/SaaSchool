@@ -3,10 +3,16 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 
+import { env } from './config/env';
+import { AppError } from './core/errors/app-error';
 import { globalErrorHandler } from './core/middlewares/error-handler.middleware';
-import { authRateLimiter, apiRateLimiter } from './core/middlewares/rate-limiter.middleware';
+import {
+  authIpRateLimiter,
+  apiRateLimiter,
+  ipFloodRateLimiter,
+  // TODO bloque 5: fileContentRateLimiter,
+} from './core/middlewares/rate-limiter.middleware';
 
-// Importar todos los routers de los módulos
 import { authRouter } from './modules/auth/auth.routes';
 import { schoolRouter } from './modules/schools/school.routes';
 import { userRouter } from './modules/users/user.routes';
@@ -27,43 +33,61 @@ import { notificationRouter } from './modules/notifications/notification.routes'
 import { uploadRouter } from './modules/uploads/upload.routes';
 import { academicReportRouter } from './modules/academic-reports/academic-report.routes';
 import { incidentRouter } from './modules/incidents/incident.routes';
-import path from 'path';
+// TODO bloque 5: import { fileRouter } from './modules/files/file.routes';
+// TODO bloque 9: import { auditLogRouter } from './modules/audit-logs/audit-log.routes';
+// TODO bloque 10: import { legalRouter } from './modules/legal/legal.routes';
 
 const app = express();
 
+// Render (y cualquier PaaS) entrega las peticiones a través de un proxy: confiar en el primer salto
+app.set('trust proxy', 1);
+app.disable('x-powered-by');
+
 // ============================================================================
-// MIDDLEWARES GLOBALES Y SEGURIDAD
+// SEGURIDAD
 // ============================================================================
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+
+const allowedOrigins = env.CORS_ORIGINS.split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 app.use(
-  helmet({
-    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new AppError('Origen no permitido', 403));
+    },
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-school-id'],
+    maxAge: 86400,
   }),
 );
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// Servir archivos estáticos subidos (/uploads/materials/...)
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+app.use(ipFloodRateLimiter);
 
 // ============================================================================
 // HEALTH CHECK
 // ============================================================================
 app.get('/health', (_req, res) => {
-  res.status(200).json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    service: 'SaaSchool API',
-  });
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString(), service: 'SaaSchool API' });
 });
 
 // ============================================================================
-// RUTAS DE LA API
+// RUTAS
 // ============================================================================
 const API_PREFIX = '/api';
 
-// Aplicar Rate Limiters
-app.use(`${API_PREFIX}/auth`, authRateLimiter, authRouter);
+app.use(`${API_PREFIX}/auth`, authIpRateLimiter, authRouter);
+
+// Archivos: la descarga firmada no lleva token, por eso tiene su propio limitador
+// TODO bloque 5: app.use(`${API_PREFIX}/files`, fileContentRateLimiter, fileRouter);
+
 app.use(API_PREFIX, apiRateLimiter);
 
 app.use(`${API_PREFIX}/schools`, schoolRouter);
@@ -78,8 +102,6 @@ app.use(`${API_PREFIX}/grades`, gradeRouter);
 app.use(`${API_PREFIX}/attendance`, attendanceRouter);
 app.use(`${API_PREFIX}/family-relationships`, familyRelationshipRouter);
 app.use(`${API_PREFIX}/announcements`, announcementRouter);
-
-// Catálogos MINEDU — sin autenticación (datos de referencia del sistema)
 app.use(`${API_PREFIX}/catalog`, catalogRouter);
 app.use(`${API_PREFIX}/course-assignments`, courseAssignmentRouter);
 app.use(`${API_PREFIX}/notifications`, notificationRouter);
@@ -87,20 +109,13 @@ app.use(`${API_PREFIX}/uploads`, uploadRouter);
 app.use(`${API_PREFIX}/course-contents`, courseContentRouter);
 app.use(`${API_PREFIX}/academic-reports`, academicReportRouter);
 app.use(`${API_PREFIX}/incidents`, incidentRouter);
+// TODO bloque 9: app.use(`${API_PREFIX}/audit-logs`, auditLogRouter);
+// TODO bloque 10: app.use(`${API_PREFIX}/legal`, legalRouter);
 
-// ============================================================================
-// RUTA NO ENCONTRADA (404)
-// ============================================================================
 app.use((_req, res) => {
-  res.status(404).json({
-    status: 'fail',
-    message: 'Ruta no encontrada',
-  });
+  res.status(404).json({ status: 'fail', message: 'Ruta no encontrada' });
 });
 
-// ============================================================================
-// GLOBAL ERROR HANDLER (SIEMPRE ÚLTIMO)
-// ============================================================================
 app.use(globalErrorHandler);
 
 export { app };

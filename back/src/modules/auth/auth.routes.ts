@@ -3,6 +3,7 @@ import { AuthRepository } from './auth.repository';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { authMiddleware } from '../../core/middlewares/auth.middleware';
+import { loginRateLimiter } from '../../core/middlewares/rate-limiter.middleware';
 
 const authRepository = new AuthRepository();
 const authService = new AuthService(authRepository);
@@ -15,7 +16,7 @@ export const authRouter = Router();
  * @desc    Iniciar sesión con DNI / email y contraseña
  * @access  Public
  */
-authRouter.post('/login', authController.login);
+authRouter.post('/login', loginRateLimiter, authController.login);
 
 /**
  * @route   POST /api/auth/change-password
