@@ -43,7 +43,7 @@ export const ChangePasswordModal: React.FC = () => {
             Primer Ingreso: Cambio de Contraseña
           </h2>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Hola <strong className="text-foreground">{user.firstName}</strong>. Por seguridad de tu familia, al ser tu primer ingreso con tu número de DNI, debes definir una nueva contraseña personal.
+            Hola <strong className="text-foreground">{user.firstName}</strong>. Usa la contraseña temporal que te entregó tu colegio. Por seguridad, debes definir una nueva contraseña personal.
           </p>
         </div>
 
@@ -57,7 +57,7 @@ export const ChangePasswordModal: React.FC = () => {
               <KeyRound className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="password"
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Mínimo 8 caracteres (letras y números)"
                 {...register('newPassword')}
                 className="pl-9 h-10 text-sm"
               />

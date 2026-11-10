@@ -8,19 +8,25 @@ export interface ChangePasswordPayload {
   newPassword: string;
 }
 
-export const useChangePassword = () => {
-  const updateUser = useAuthStore((state) => state.updateUser);
+export interface ChangePasswordResponse {
+  message: string;
+  token: string;
+}
 
+export const useChangePassword = () => {
   return useMutation({
-    mutationFn: async (payload: ChangePasswordPayload) => {
-      const response = await api.post<{ status: string; data: { message: string } }>(
+    mutationFn: async (payload: ChangePasswordPayload): Promise<ChangePasswordResponse> => {
+      const response = await api.post<{ status: string; data: ChangePasswordResponse }>(
         '/auth/change-password',
         payload
       );
       return response.data.data;
     },
     onSuccess: (data) => {
-      updateUser({ mustChangePassword: false });
+      const { user, setAuth } = useAuthStore.getState();
+      if (user) {
+        setAuth(data.token, { ...user, mustChangePassword: false });
+      }
       toast.success(data.message || 'Contraseña actualizada con éxito');
     },
     onError: (err: unknown) => {

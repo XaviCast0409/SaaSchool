@@ -104,11 +104,11 @@ export const LoginPage: React.FC = () => {
 
             <div className="space-y-1">
               <label className="text-xs font-semibold text-foreground tracking-wide uppercase">
-                Usuario (DNI o Correo Institucional)
+                Usuario (Correo, DNI o código de estudiante)
               </label>
               <Input
                 type="text"
-                placeholder="Ingresa tu correo o DNI"
+                placeholder="Correo, DNI o código de estudiante"
                 {...register('email')}
                 className="h-9.5 text-sm"
               />

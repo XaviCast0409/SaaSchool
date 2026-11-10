@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { X, Save } from 'lucide-react';
@@ -6,6 +6,10 @@ import { createUserSchema, type CreateUserFormData } from '../schemas/user.schem
 import { useCreateUser } from '../api/useCreateUser';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  TemporaryCredentialsDialog,
+  type TemporaryCredential,
+} from '@/components/ui/TemporaryCredentialsDialog';
 
 interface UserFormModalProps {
   defaultRole?: 'TEACHER' | 'PARENT' | 'SCHOOL_ADMIN' | 'ADMINISTRATIVE';
@@ -21,6 +25,7 @@ const ROLE_LABELS: Record<string, string> = {
 
 export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PARENT', onClose }) => {
   const { mutate: createUser, isPending, error } = useCreateUser();
+  const [tempCredentials, setTempCredentials] = useState<TemporaryCredential[] | null>(null);
 
   const {
     register,
@@ -38,8 +43,39 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PAR
   const selectedRole = watch('role');
 
   const onSubmit = (data: CreateUserFormData) => {
-    createUser(data, { onSuccess: () => onClose() });
+    createUser(data, {
+      onSuccess: (createdUser) => {
+        if (createdUser.temporaryPassword) {
+          setTempCredentials([
+            {
+              name: `${createdUser.firstName} ${createdUser.lastNamePaternal}`,
+              login: createdUser.email || createdUser.documentId || '',
+              password: createdUser.temporaryPassword,
+            },
+          ]);
+        } else {
+          onClose();
+        }
+      },
+    });
   };
+
+  if (tempCredentials) {
+    return (
+      <TemporaryCredentialsDialog
+        open={true}
+        onOpenChange={(open) => {
+          if (!open) {
+            setTempCredentials(null);
+            onClose();
+          }
+        }}
+        title="Usuario registrado — Credenciales temporales"
+        description="Comparta estas credenciales de forma segura. El usuario deberá cambiar su contraseña en el primer inicio de sesión."
+        credentials={tempCredentials}
+      />
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">

@@ -66,6 +66,12 @@ studentRouter.get(
   studentController.getNoDebtCertificate,
 );
 
+studentRouter.post(
+  '/credentials/bulk',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
+  studentController.generateBulkCredentials,
+);
+
 studentRouter.get(
   '/:id',
   authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),

@@ -7,7 +7,12 @@ export const loginSchema = z.object({
 
 export const changePasswordSchema = z
   .object({
-    newPassword: z.string().min(6, 'La nueva contraseña debe tener al menos 6 caracteres'),
+    newPassword: z
+      .string()
+      .regex(
+        /^(?=.*[A-Za-z])(?=.*\d).{8,}$/,
+        'La contraseña debe tener al menos 8 caracteres e incluir letras y números.'
+      ),
     confirmPassword: z.string().min(1, 'Confirma tu nueva contraseña'),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {

@@ -58,12 +58,10 @@ export const useCreateUser = () => {
 
   return useMutation({
     mutationFn: async (payload: CreateUserPayload) => {
-      // Auto-generate password if not provided
-      const defaultPassword = payload.password || `Parent${payload.documentId || '123456'}`;
-      const response = await api.post<{ status: string; data: DirectoryUser }>('/users', {
-        ...payload,
-        password: defaultPassword,
-      });
+      const response = await api.post<{ status: string; data: DirectoryUser & { temporaryPassword?: string | null } }>(
+        '/users',
+        payload
+      );
       return response.data.data;
     },
     onSuccess: () => {
@@ -77,7 +75,7 @@ export const useResetUserPassword = () => {
 
   return useMutation({
     mutationFn: async ({ userId, newPassword }: { userId: string; newPassword?: string }) => {
-      const response = await api.post<{ status: string; data: { message: string } }>(
+      const response = await api.post<{ status: string; data: { message: string; temporaryPassword: string } }>(
         `/users/${userId}/reset-password`,
         { newPassword },
       );

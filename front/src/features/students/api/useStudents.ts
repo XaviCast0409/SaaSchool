@@ -124,7 +124,15 @@ export const useRegisterFichaMatricula = () => {
 
   return useMutation({
     mutationFn: async (payload: RegisterFichaMatriculaPayload) => {
-      const response = await api.post<{ status: string; data: Student }>('/students/ficha-matricula', payload);
+      const response = await api.post<{
+        status: string;
+        data: Student & {
+          temporaryCredentials?: {
+            student: { login: string; password: string };
+            guardian: { login: string; password: string } | null;
+          };
+        };
+      }>('/students/ficha-matricula', payload);
       return response.data.data;
     },
     onSuccess: () => {
@@ -312,7 +320,7 @@ export const useResetStudentPassword = () => {
 
   return useMutation({
     mutationFn: async ({ studentId, newPassword }: { studentId: string; newPassword?: string }) => {
-      const response = await api.post<{ status: string; data: { message: string } }>(
+      const response = await api.post<{ status: string; data: { message: string; temporaryPassword: string } }>(
         `/students/${studentId}/reset-password`,
         { newPassword },
       );
@@ -320,6 +328,24 @@ export const useResetStudentPassword = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['students'] });
+    },
+  });
+};
+
+export interface BulkCredentialsPayload {
+  classroomId: string;
+  target: 'STUDENTS' | 'GUARDIANS';
+  onlyPending?: boolean;
+}
+
+export const useBulkCredentials = () => {
+  return useMutation({
+    mutationFn: async (payload: BulkCredentialsPayload) => {
+      const response = await api.post<{
+        status: string;
+        data: Array<{ id: string; fullName: string; login: string; temporaryPassword: string }>;
+      }>('/students/credentials/bulk', payload);
+      return response.data.data;
     },
   });
 };

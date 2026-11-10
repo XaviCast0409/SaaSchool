@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { useDeactivateUser, useReactivateUser } from '../api/useUserMutations';
 import { useResetUserPassword } from '../api/useUsers';
 import { EditUserModal } from './EditUserModal';
+import { TemporaryCredentialsDialog, type TemporaryCredential } from '@/components/ui/TemporaryCredentialsDialog';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -66,6 +67,7 @@ export const UserTable: React.FC<UserTableProps> = ({
   const { mutate: deactivate, isPending: isDeactivating } = useDeactivateUser();
   const { mutate: reactivate, isPending: isReactivating } = useReactivateUser();
   const { mutateAsync: resetPassword, isPending: isResetting } = useResetUserPassword();
+  const [tempCredentials, setTempCredentials] = useState<TemporaryCredential[] | null>(null);
 
   const columns: ColumnDef<DirectoryUser>[] = [
     {
@@ -156,27 +158,38 @@ export const UserTable: React.FC<UserTableProps> = ({
               </Button>
             )}
 
-            {/* Restablecer Clave a DNI */}
+            {/* Restablecer Clave Temporal */}
             {isAdmin && user.documentId && (
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 px-2 text-xs text-amber-600 hover:bg-amber-500/10 hover:text-amber-600"
+                className="h-7 px-2 text-xs text-amber-600 hover:bg-amber-500/10 hover:text-amber-600 font-semibold"
                 onClick={async () => {
-                  if (window.confirm(`¿Restablecer la contraseña de "${user.firstName} ${user.lastNamePaternal}" a su DNI (${user.documentId})?`)) {
+                  if (
+                    window.confirm(
+                      `¿Restablecer la contraseña de "${user.firstName} ${user.lastNamePaternal}"? Se generará una contraseña temporal.`
+                    )
+                  ) {
                     try {
-                      await resetPassword({ userId: user.id });
-                      toast.success('Contraseña restablecida al número de documento');
+                      const data = await resetPassword({ userId: user.id });
+                      setTempCredentials([
+                        {
+                          name: `${user.firstName} ${user.lastNamePaternal}`,
+                          login: user.email || user.documentId || '',
+                          password: data.temporaryPassword,
+                        },
+                      ]);
+                      toast.success('Contraseña temporal generada con éxito');
                     } catch (err: any) {
                       toast.error(err?.response?.data?.message || 'Error al restablecer contraseña');
                     }
                   }
                 }}
                 disabled={isResetting}
-                title="Restablecer clave al DNI"
+                title="Restablecer clave temporal"
               >
                 <KeyRound className="w-3.5 h-3.5 mr-1" />
-                Restablecer Clave (a DNI)
+                Restablecer Clave
               </Button>
             )}
 
@@ -310,6 +323,16 @@ export const UserTable: React.FC<UserTableProps> = ({
         isOpen={!!selectedUserForEdit}
         onClose={() => setSelectedUserForEdit(null)}
       />
+
+      {tempCredentials && (
+        <TemporaryCredentialsDialog
+          open={!!tempCredentials}
+          onOpenChange={(open) => !open && setTempCredentials(null)}
+          title="Credenciales temporales del personal"
+          description="Comparta estas credenciales de forma segura. El usuario deberá cambiar su contraseña en el primer inicio de sesión."
+          credentials={tempCredentials}
+        />
+      )}
     </div>
   );
 };

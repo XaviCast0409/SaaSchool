@@ -1,8 +1,17 @@
+import bcrypt from 'bcryptjs';
 import { AppError } from '../../core/errors/app-error';
 import { hashPassword, comparePassword } from '../../utils/hash.util';
 import { signToken } from '../../utils/jwt.util';
+import { invalidatePrincipalCache } from '../../core/security/principal-status';
 import type { AuthRepository } from './auth.repository';
-import type { LoginDto, RegisterDto, ChangePasswordDto } from './auth.schema';
+import type { LoginDto, ChangePasswordDto } from './auth.schema';
+import type { User, Student } from '@prisma/client';
+import type { AuthenticatedUser } from '../../core/interfaces/global.interfaces';
+
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCK_MINUTES = 15;
+// Hash ficticio para igualar el tiempo de respuesta cuando el usuario no existe (evita enumeración).
+const DUMMY_HASH = bcrypt.hashSync('saaschool-dummy-password', 12);
 
 interface AuthResponse {
   token: string;
@@ -15,44 +24,145 @@ interface AuthResponse {
     schoolId: string;
     documentId?: string | null;
     mustChangePassword?: boolean;
+    studentId?: string;
   };
 }
 
-/**
- * AuthService: Lógica de negocio para autenticación.
- * Recibe su repositorio por inyección de dependencias en el constructor.
- */
+const assertNotLocked = (lockedUntil: Date | null): void => {
+  if (lockedUntil && lockedUntil.getTime() > Date.now()) {
+    const minutes = Math.ceil((lockedUntil.getTime() - Date.now()) / 60_000);
+    throw new AppError(
+      `Cuenta bloqueada temporalmente por intentos fallidos. Intenta nuevamente en ${minutes} minuto(s).`,
+      423,
+    );
+  }
+};
+
 export class AuthService {
   constructor(private readonly authRepository: AuthRepository) {}
 
   async login(loginDto: LoginDto): Promise<AuthResponse> {
-    const existingUser = await this.authRepository.findUserByIdentifier(loginDto.email);
+    const identifier = loginDto.email.trim();
 
-    if (!existingUser) {
-      // Login Dual: Buscar en el catálogo de estudiantes (por documentId o studentCode SIAGIE)
-      const student = await this.authRepository.findStudentByIdentifier(loginDto.email);
-      if (!student) {
-        throw new AppError('Credenciales inválidas', 401);
+    const users = await this.authRepository.findUsersByIdentifier(identifier);
+    if (users.length > 1) {
+      throw new AppError('Este documento está asociado a más de una cuenta. Ingresa con tu correo electrónico.', 409);
+    }
+    if (users[0]) {
+      return this.loginUser(users[0], loginDto.password);
+    }
+
+    const students = await this.authRepository.findStudentsByIdentifier(identifier);
+    if (students.length > 1) {
+      throw new AppError(
+        'Este documento está registrado en más de un colegio. Ingresa con tu código de estudiante SIAGIE (14 dígitos).',
+        409,
+      );
+    }
+    if (!students[0]) {
+      await comparePassword(loginDto.password, DUMMY_HASH);
+      throw new AppError('Credenciales inválidas', 401);
+    }
+    return this.loginStudent(students[0], loginDto.password);
+  }
+
+  private async loginUser(user: User, password: string): Promise<AuthResponse> {
+    if (!user.isActive) {
+      throw new AppError('Tu cuenta está desactivada. Contacta al administrador.', 403);
+    }
+    assertNotLocked(user.lockedUntil);
+
+    const isPasswordValid = await comparePassword(password, user.passwordHash);
+    if (!isPasswordValid) {
+      await this.authRepository.registerFailedUserLogin(user.id, MAX_FAILED_ATTEMPTS, LOCK_MINUTES);
+      throw new AppError('Credenciales inválidas', 401);
+    }
+    if (user.failedLoginAttempts > 0 || user.lockedUntil) {
+      await this.authRepository.resetUserLoginCounters(user.id);
+    }
+
+    const token = signToken({ userId: user.id, schoolId: user.schoolId, role: user.role, email: user.email });
+
+    return {
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        firstName: user.firstName,
+        lastNamePaternal: user.lastNamePaternal,
+        schoolId: user.schoolId,
+        documentId: user.documentId,
+        mustChangePassword: user.mustChangePassword,
+      },
+    };
+  }
+
+  private async loginStudent(student: Student, password: string): Promise<AuthResponse> {
+    if (!student.passwordHash) {
+      throw new AppError(
+        'Tu cuenta de estudiante aún no tiene contraseña. Solicita tus credenciales de acceso en Secretaría.',
+        403,
+      );
+    }
+    assertNotLocked(student.lockedUntil);
+
+    const isPasswordValid = await comparePassword(password, student.passwordHash);
+    if (!isPasswordValid) {
+      await this.authRepository.registerFailedStudentLogin(student.id, MAX_FAILED_ATTEMPTS, LOCK_MINUTES);
+      throw new AppError('Credenciales inválidas', 401);
+    }
+    if (student.failedLoginAttempts > 0 || student.lockedUntil) {
+      await this.authRepository.resetStudentLoginCounters(student.id);
+    }
+
+    const login = student.studentCode || student.documentId;
+    const token = signToken({
+      userId: student.id,
+      studentId: student.id,
+      schoolId: student.schoolId,
+      role: 'STUDENT',
+      email: login,
+    });
+
+    return {
+      token,
+      user: {
+        id: student.id,
+        studentId: student.id,
+        email: login,
+        role: 'STUDENT',
+        firstName: student.firstNames,
+        lastNamePaternal: student.lastNamePaternal,
+        schoolId: student.schoolId,
+        documentId: student.documentId,
+        mustChangePassword: student.mustChangePassword,
+      },
+    };
+  }
+
+  /** Cambia la contraseña y devuelve un token nuevo (el anterior queda invalidado). */
+  async changePassword(
+    principal: AuthenticatedUser,
+    dto: ChangePasswordDto,
+  ): Promise<{ message: string; token: string }> {
+    if (principal.role === 'STUDENT') {
+      const studentId = principal.studentId ?? principal.userId;
+      const student = await this.authRepository.findStudentById(studentId);
+      if (!student) throw new AppError('Estudiante no encontrado', 404);
+
+      if (!student.mustChangePassword) {
+        if (!dto.currentPassword) throw new AppError('Ingresa tu contraseña actual.', 400);
+        const ok = student.passwordHash ? await comparePassword(dto.currentPassword, student.passwordHash) : false;
+        if (!ok) throw new AppError('La contraseña actual ingresada es incorrecta', 400);
+      }
+      if (student.documentId && dto.newPassword.trim() === student.documentId.trim()) {
+        throw new AppError('La nueva contraseña no puede ser igual a tu número de documento.', 400);
       }
 
-      let isPasswordValid = false;
-      let mustChangePassword = student.mustChangePassword;
-
-      if (!student.passwordHash) {
-        // Primer acceso del estudiante: la contraseña temporal por defecto es su propio DNI / documento
-        if (loginDto.password.trim() === student.documentId.trim()) {
-          isPasswordValid = true;
-          const initialHash = await hashPassword(loginDto.password.trim());
-          await this.authRepository.updateStudentPassword(student.id, initialHash, true);
-          mustChangePassword = true;
-        }
-      } else {
-        isPasswordValid = await comparePassword(loginDto.password, student.passwordHash);
-      }
-
-      if (!isPasswordValid) {
-        throw new AppError('Credenciales inválidas', 401);
-      }
+      const hash = await hashPassword(dto.newPassword);
+      await this.authRepository.updateStudentPassword(student.id, hash, false);
+      invalidatePrincipalCache('student', student.id);
 
       const token = signToken({
         userId: student.id,
@@ -61,151 +171,26 @@ export class AuthService {
         role: 'STUDENT',
         email: student.studentCode || student.documentId,
       });
-
-      return {
-        token,
-        user: {
-          id: student.id,
-          email: student.studentCode || student.documentId,
-          role: 'STUDENT',
-          firstName: student.firstNames,
-          lastNamePaternal: student.lastNamePaternal,
-          schoolId: student.schoolId,
-          documentId: student.documentId,
-          mustChangePassword,
-        },
-      };
+      return { message: 'Contraseña actualizada exitosamente', token };
     }
 
-    if (!existingUser.isActive) {
-      throw new AppError('Tu cuenta está desactivada. Contacta al administrador.', 403);
+    const user = await this.authRepository.findUserById(principal.userId);
+    if (!user) throw new AppError('Usuario no encontrado', 404);
+
+    if (!user.mustChangePassword) {
+      if (!dto.currentPassword) throw new AppError('Ingresa tu contraseña actual.', 400);
+      const ok = await comparePassword(dto.currentPassword, user.passwordHash);
+      if (!ok) throw new AppError('La contraseña actual ingresada es incorrecta', 400);
+    }
+    if (user.documentId && dto.newPassword.trim() === user.documentId.trim()) {
+      throw new AppError('La nueva contraseña no puede ser igual a tu número de DNI.', 400);
     }
 
-    const isPasswordValid = await comparePassword(loginDto.password, existingUser.passwordHash);
+    const hash = await hashPassword(dto.newPassword);
+    await this.authRepository.updateUserPassword(user.id, hash, false);
+    invalidatePrincipalCache('user', user.id);
 
-    if (!isPasswordValid) {
-      throw new AppError('Credenciales inválidas', 401);
-    }
-
-    // Detectar si el usuario es un apoderado usando su DNI como contraseña inicial temporal
-    let mustChangePassword = false;
-    if (existingUser.role === 'PARENT' && existingUser.documentId) {
-      const isInitialDniPassword = await comparePassword(existingUser.documentId, existingUser.passwordHash);
-      if (isInitialDniPassword) {
-        mustChangePassword = true;
-      }
-    }
-
-    const token = signToken({
-      userId: existingUser.id,
-      schoolId: existingUser.schoolId,
-      role: existingUser.role,
-      email: existingUser.email,
-    });
-
-    return {
-      token,
-      user: {
-        id: existingUser.id,
-        email: existingUser.email,
-        role: existingUser.role,
-        firstName: existingUser.firstName,
-        lastNamePaternal: existingUser.lastNamePaternal,
-        schoolId: existingUser.schoolId,
-        documentId: existingUser.documentId,
-        mustChangePassword,
-      },
-    };
-  }
-
-  async changePassword(
-    userId: string,
-    changePasswordDto: ChangePasswordDto,
-    role?: string,
-  ): Promise<{ message: string }> {
-    if (role === 'STUDENT') {
-      const student = await this.authRepository.findStudentById(userId);
-      if (!student) {
-        throw new AppError('Estudiante no encontrado', 404);
-      }
-
-      if (changePasswordDto.currentPassword) {
-        if (!student.passwordHash) {
-          if (changePasswordDto.currentPassword.trim() !== student.documentId.trim()) {
-            throw new AppError('La contraseña actual ingresada es incorrecta', 400);
-          }
-        } else {
-          const isCurrentValid = await comparePassword(changePasswordDto.currentPassword, student.passwordHash);
-          if (!isCurrentValid) {
-            throw new AppError('La contraseña actual ingresada es incorrecta', 400);
-          }
-        }
-      }
-
-      if (student.documentId && changePasswordDto.newPassword.trim() === student.documentId.trim()) {
-        throw new AppError('La nueva contraseña no puede ser idéntica a tu número de documento por motivos de seguridad.', 400);
-      }
-
-      const newPasswordHash = await hashPassword(changePasswordDto.newPassword);
-      await this.authRepository.updateStudentPassword(student.id, newPasswordHash, false);
-
-      return { message: 'Contraseña de estudiante actualizada exitosamente' };
-    }
-
-    const user = await this.authRepository.findUserById(userId);
-    if (!user) {
-      throw new AppError('Usuario no encontrado', 404);
-    }
-
-    if (changePasswordDto.currentPassword) {
-      const isCurrentValid = await comparePassword(changePasswordDto.currentPassword, user.passwordHash);
-      if (!isCurrentValid) {
-        throw new AppError('La contraseña actual ingresada es incorrecta', 400);
-      }
-    }
-
-    // Seguridad: la nueva contraseña no puede ser idéntica al número de DNI
-    if (user.documentId && changePasswordDto.newPassword.trim() === user.documentId.trim()) {
-      throw new AppError('La nueva contraseña no puede ser idéntica a tu número de DNI por motivos de seguridad.', 400);
-    }
-
-    const newPasswordHash = await hashPassword(changePasswordDto.newPassword);
-    await this.authRepository.updatePassword(userId, newPasswordHash);
-
-    return { message: 'Contraseña actualizada exitosamente' };
-  }
-
-  async register(registerDto: RegisterDto): Promise<AuthResponse> {
-    const existingUser = await this.authRepository.findUserByEmail(registerDto.email);
-
-    if (existingUser) {
-      throw new AppError('Ya existe un usuario con ese email', 409);
-    }
-
-    const passwordHash = await hashPassword(registerDto.password);
-
-    const newUser = await this.authRepository.createUser({
-      ...registerDto,
-      passwordHash,
-    });
-
-    const token = signToken({
-      userId: newUser.id,
-      schoolId: newUser.schoolId,
-      role: newUser.role,
-      email: newUser.email,
-    });
-
-    return {
-      token,
-      user: {
-        id: newUser.id,
-        email: newUser.email,
-        role: newUser.role,
-        firstName: newUser.firstName,
-        lastNamePaternal: newUser.lastNamePaternal,
-        schoolId: newUser.schoolId,
-      },
-    };
+    const token = signToken({ userId: user.id, schoolId: user.schoolId, role: user.role, email: user.email });
+    return { message: 'Contraseña actualizada exitosamente', token };
   }
 }

@@ -224,7 +224,13 @@ export class StudentRepository {
   async updatePassword(studentId: string, schoolId: string, passwordHash: string): Promise<void> {
     await prisma.student.update({
       where: { id: studentId, schoolId },
-      data: { passwordHash, mustChangePassword: true },
+      data: {
+        passwordHash,
+        mustChangePassword: true,
+        passwordChangedAt: new Date(),
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+      },
     });
   }
 
@@ -235,7 +241,8 @@ export class StudentRepository {
   async registerFichaMatricula(
     schoolId: string,
     data: RegisterFichaMatriculaDto,
-    passwordHash: string,
+    guardianPasswordHash: string,
+    studentPasswordHash: string,
   ): Promise<{ student: Student; enrollmentId: string }> {
     return prisma.$transaction(async (tx) => {
       // 1. Verificar si ya existe estudiante con ese documento en el colegio
@@ -252,6 +259,8 @@ export class StudentRepository {
             ...data.student,
             schoolId,
             birthDate: new Date(data.student.birthDate),
+            passwordHash: studentPasswordHash,
+            mustChangePassword: true,
           },
         });
       } else {
@@ -310,7 +319,8 @@ export class StudentRepository {
             data: {
               schoolId,
               email: data.guardian.newGuardian.email!,
-              passwordHash,
+              passwordHash: guardianPasswordHash,
+              mustChangePassword: true,
               firstName: data.guardian.newGuardian.firstName!,
               lastNamePaternal: data.guardian.newGuardian.lastNamePaternal!,
               lastNameMaternal: data.guardian.newGuardian.lastNameMaternal || '',

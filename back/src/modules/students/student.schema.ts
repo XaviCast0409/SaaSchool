@@ -246,8 +246,15 @@ export const nominaClassroomParamSchema = z.object({
   classroomId: z.string().uuid('ID de aula inválido'),
 });
 
+export const bulkCredentialsSchema = z.object({
+  classroomId: z.string().uuid(),
+  target: z.enum(['STUDENTS', 'GUARDIANS']),
+  onlyPending: z.boolean().default(true),
+});
+
 export type CreateStudentDto = z.infer<typeof createStudentSchema>;
 export type UpdateStudentDto = z.infer<typeof updateStudentSchema>;
 export type StudentFilterDto = z.infer<typeof studentFilterSchema>;
 export type RegisterFichaMatriculaDto = z.infer<typeof registerFichaMatriculaSchema>;
 export type NominaClassroomParamDto = z.infer<typeof nominaClassroomParamSchema>;
+export type BulkCredentialsDto = z.infer<typeof bulkCredentialsSchema>;

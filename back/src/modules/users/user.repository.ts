@@ -1,5 +1,4 @@
 import { prisma } from '../../config/prisma';
-import { hashPassword } from '../../utils/hash.util';
 import type { User, Prisma, Role } from '@prisma/client';
 import type { CreateUserDto, UpdateUserDto, UserFilterDto } from './user.schema';
 import type { PaginatedResult } from '../../core/interfaces/global.interfaces';
@@ -102,14 +101,18 @@ export class UserRepository {
     });
   }
 
-  async create(schoolId: string, data: CreateUserDto): Promise<PublicUser> {
-    const passwordHash = await hashPassword(data.password);
-
+  async create(
+    schoolId: string,
+    data: CreateUserDto,
+    passwordHash: string,
+    mustChangePassword = true,
+  ): Promise<PublicUser> {
     return prisma.user.create({
       data: {
         schoolId,
         email: data.email,
         passwordHash,
+        mustChangePassword,
         firstName: data.firstName,
         lastNamePaternal: data.lastNamePaternal,
         lastNameMaternal: data.lastNameMaternal || '',
@@ -156,10 +159,21 @@ export class UserRepository {
     });
   }
 
-  async updatePassword(userId: string, schoolId: string, passwordHash: string): Promise<void> {
+  async updatePassword(
+    userId: string,
+    schoolId: string,
+    passwordHash: string,
+    mustChangePassword = true,
+  ): Promise<void> {
     await prisma.user.update({
       where: { id: userId, schoolId },
-      data: { passwordHash },
+      data: {
+        passwordHash,
+        mustChangePassword,
+        passwordChangedAt: new Date(),
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+      },
     });
   }
 }

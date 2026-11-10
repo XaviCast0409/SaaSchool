@@ -1,53 +1,48 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../../utils/jwt.util';
 import { AppError } from '../errors/app-error';
+import { assertPrincipalIsActive } from '../security/principal-status';
 import type { AuthenticatedUser } from '../interfaces/global.interfaces';
 
 /**
- * Middleware de Autenticación.
- * Verifica el JWT del header Authorization y adjunta el payload a req.user.
- * Debe aplicarse ANTES del tenant.middleware en las rutas protegidas.
+ * Middleware de autenticación: verifica el JWT, que la cuenta siga activa
+ * y que el token sea posterior al último cambio de contraseña.
  */
-export const authMiddleware = (
-  request: Request,
-  _response: Response,
-  next: NextFunction,
-): void => {
+export const authMiddleware = async (request: Request, _response: Response, next: NextFunction): Promise<void> => {
   const authorizationHeader = request.headers.authorization;
 
   if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
     throw new AppError('Token de acceso requerido', 401);
   }
 
-  const token = authorizationHeader.split(' ')[1];
-
+  const token = authorizationHeader.slice(7).trim();
   if (!token) {
     throw new AppError('Token de acceso inválido', 401);
   }
 
-  const decodedPayload = verifyToken(token);
-  request.user = decodedPayload as AuthenticatedUser;
+  const decoded = verifyToken(token) as AuthenticatedUser & { iat?: number };
+  await assertPrincipalIsActive(decoded);
+
+  request.user = {
+    userId: decoded.userId,
+    studentId: decoded.studentId,
+    schoolId: decoded.schoolId,
+    role: decoded.role,
+    email: decoded.email,
+  };
 
   next();
 };
 
-/**
- * Middleware de autorización por rol.
- * Verifica que el usuario autenticado tenga uno de los roles permitidos.
- */
+/** Autorización por rol. */
 export const authorizeRoles = (...allowedRoles: string[]) => {
   return (request: Request, _response: Response, next: NextFunction): void => {
     if (!request.user) {
       throw new AppError('No autenticado', 401);
     }
-
     if (!allowedRoles.includes(request.user.role)) {
-      throw new AppError(
-        `Acceso denegado. Se requiere uno de los roles: ${allowedRoles.join(', ')}`,
-        403,
-      );
+      throw new AppError('No tienes permisos para realizar esta acción.', 403);
     }
-
     next();
   };
 };

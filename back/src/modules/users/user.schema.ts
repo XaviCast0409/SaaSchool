@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { Role } from '@prisma/client';
+import { PASSWORD_POLICY_REGEX, PASSWORD_POLICY_MESSAGE } from '../../utils/password.util';
 
 const emptyToUndefined = z.literal('').transform(() => undefined);
 
@@ -10,7 +11,7 @@ const baseUserSchema = z.object({
     .optional()
     .nullable()
     .or(z.literal('')),
-  password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
+  password: z.string().regex(PASSWORD_POLICY_REGEX, PASSWORD_POLICY_MESSAGE).optional(),
   firstName: z.string().min(2, 'Nombre requerido'),
   lastNamePaternal: z.string().min(2, 'Apellido paterno requerido'),
   lastNameMaternal: z.string().optional().nullable().or(z.literal('')),

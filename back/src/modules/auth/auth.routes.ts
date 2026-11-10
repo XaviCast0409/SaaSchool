@@ -23,10 +23,3 @@ authRouter.post('/login', authController.login);
  * @access  Private (requiere token JWT)
  */
 authRouter.post('/change-password', authMiddleware, authController.changePassword);
-
-/**
- * @route   POST /api/auth/register
- * @desc    Registrar un nuevo usuario en un colegio existente
- * @access  Public (proteger con SUPER_ADMIN en producción)
- */
-authRouter.post('/register', authController.register);

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { loginSchema, registerSchema, changePasswordSchema } from './auth.schema';
+import { loginSchema, changePasswordSchema } from './auth.schema';
 import type { AuthService } from './auth.service';
 
 /**
@@ -21,24 +21,8 @@ export class AuthController {
   };
 
   changePassword = async (request: Request, response: Response): Promise<void> => {
-    const userId = request.user!.userId;
-    const role = request.user?.role;
     const dto = changePasswordSchema.parse(request.body);
-    const result = await this.authService.changePassword(userId, dto, role);
-
-    response.status(200).json({
-      status: 'success',
-      data: result,
-    });
-  };
-
-  register = async (request: Request, response: Response): Promise<void> => {
-    const registerDto = registerSchema.parse(request.body);
-    const authResponse = await this.authService.register(registerDto);
-
-    response.status(201).json({
-      status: 'success',
-      data: authResponse,
-    });
+    const result = await this.authService.changePassword(request.user!, dto);
+    response.status(200).json({ status: 'success', data: result });
   };
 }

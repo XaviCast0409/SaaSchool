@@ -1,8 +1,10 @@
 import { prisma } from '../../config/prisma';
-import bcrypt from 'bcryptjs';
 import type { School } from '@prisma/client';
 import type { CreateSchoolDto, UpdateSchoolDto } from './school.schema';
 import { AppError } from '../../core/errors/app-error';
+import { hashPassword } from '../../utils/hash.util';
+import { generateTemporaryPassword, PASSWORD_POLICY_REGEX } from '../../utils/password.util';
+import { invalidatePrincipalCache } from '../../core/security/principal-status';
 
 /**
  * SchoolRepository: Acceso a datos del modelo School.
@@ -59,17 +61,22 @@ export class SchoolRepository {
       });
 
       // 2. Si se pasaron credenciales para el Administrador Inicial, crear el usuario
-      if (adminEmail && adminPassword) {
-        const passwordHash = await bcrypt.hash(adminPassword, 10);
+      if (adminEmail) {
+        const passwordToSet =
+          adminPassword && PASSWORD_POLICY_REGEX.test(adminPassword.trim())
+            ? adminPassword.trim()
+            : generateTemporaryPassword(12);
+        const passwordHash = await hashPassword(passwordToSet);
         await tx.user.create({
           data: {
             schoolId: school.id,
             email: adminEmail.toLowerCase().trim(),
             passwordHash,
-            role: 'SCHOOL_ADMIN',
+            mustChangePassword: true,
             firstName: adminFirstName || 'Director(a)',
             lastNamePaternal: adminLastNamePaternal || school.name,
             lastNameMaternal: adminLastNameMaternal || '',
+            role: 'SCHOOL_ADMIN',
             documentType: 'DNI',
             documentId: adminDocumentId || school.documentId,
             cellphone: adminCellphone || school.phone || '',
@@ -122,16 +129,25 @@ export class SchoolRepository {
       throw new AppError('No se encontró un usuario Administrador activo para este colegio', 404);
     }
 
-    const passwordToSet = newPassword && newPassword.trim().length >= 6
-      ? newPassword.trim()
-      : `Colegio${Math.floor(1000 + Math.random() * 9000)}!`;
+    const passwordToSet =
+      newPassword && PASSWORD_POLICY_REGEX.test(newPassword.trim())
+        ? newPassword.trim()
+        : generateTemporaryPassword(12);
 
-    const passwordHash = await bcrypt.hash(passwordToSet, 10);
+    const passwordHash = await hashPassword(passwordToSet);
 
     await prisma.user.update({
       where: { id: adminUser.id },
-      data: { passwordHash },
+      data: {
+        passwordHash,
+        mustChangePassword: true,
+        passwordChangedAt: new Date(),
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+      },
     });
+
+    invalidatePrincipalCache('user', adminUser.id);
 
     return {
       adminEmail: adminUser.email ?? '',

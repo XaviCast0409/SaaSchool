@@ -11,9 +11,11 @@ import {
   Loader2,
   Search,
   BookOpen,
-  Copy,
-  Check,
 } from 'lucide-react';
+import {
+  TemporaryCredentialsDialog,
+  type TemporaryCredential,
+} from '@/components/ui/TemporaryCredentialsDialog';
 import { useRegisterFichaMatricula, useSiagieCatalogs } from '../api/useStudents';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
 import { useAcademicYears } from '@/features/academic-years/api/useAcademicYears';
@@ -213,12 +215,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [parentSearch, setParentSearch] = useState('');
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [createdGuardianCredentials, setCreatedGuardianCredentials] = useState<{
-    dni: string;
-    fullName: string;
-    studentName: string;
-  } | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [tempCredentials, setTempCredentials] = useState<TemporaryCredential[] | null>(null);
 
   const { data: catalogs } = useSiagieCatalogs();
   const { data: classrooms = [] } = useClassrooms();
@@ -304,7 +301,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
   const onSubmit = async (data: EnrollWizardFormData) => {
     setSubmitError(null);
     try {
-      await registerFichaMatricula({
+      const result = await registerFichaMatricula({
         student: {
           firstNames: data.firstNames.trim(),
           lastNamePaternal: data.lastNamePaternal.trim(),
@@ -354,12 +351,25 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
         },
       });
 
-      if (data.parentMode === 'NEW' && data.newParentDocumentId) {
-        setCreatedGuardianCredentials({
-          dni: data.newParentDocumentId.trim(),
-          fullName: `${data.newParentFirstName} ${data.newParentLastNamePaternal}`,
-          studentName: `${data.firstNames} ${data.lastNamePaternal}`,
+      const creds: TemporaryCredential[] = [];
+      if (result?.temporaryCredentials?.student) {
+        creds.push({
+          name: `Estudiante: ${data.firstNames} ${data.lastNamePaternal}`,
+          login: result.temporaryCredentials.student.login,
+          password: result.temporaryCredentials.student.password,
         });
+      }
+      if (result?.temporaryCredentials?.guardian) {
+        const guardianName = `${data.newParentFirstName || ''} ${data.newParentLastNamePaternal || ''}`.trim() || 'Apoderado';
+        creds.push({
+          name: `Apoderado: ${guardianName}`,
+          login: result.temporaryCredentials.guardian.login,
+          password: result.temporaryCredentials.guardian.password,
+        });
+      }
+
+      if (creds.length > 0) {
+        setTempCredentials(creds);
         toast.success(
           `✨ Ficha de matrícula de ${data.firstNames} ${data.lastNamePaternal} registrada con éxito.`,
         );
@@ -379,74 +389,22 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
     }
   };
 
-  // Pantalla de confirmación y entrega de credenciales si se creó nuevo apoderado
-  if (createdGuardianCredentials) {
+  if (tempCredentials) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-        <div className="relative w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-5">
-          <div className="text-center space-y-2">
-            <div className="mx-auto w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20">
-              <CheckCircle2 className="w-6 h-6" />
-            </div>
-            <h2 className="text-lg font-bold text-foreground">
-              ¡Matrícula y Cuenta de Apoderado Creadas!
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Se ha creado el acceso para la familia de <strong>{createdGuardianCredentials.studentName}</strong>.
-            </p>
-          </div>
-
-          <div className="p-4 rounded-xl border border-border bg-muted/30 space-y-3">
-            <div className="text-xs font-semibold text-foreground flex items-center justify-between">
-              <span>Credenciales de Acceso para el Apoderado:</span>
-              <span className="text-[11px] font-normal text-muted-foreground">Rol: Apoderado</span>
-            </div>
-
-            <div className="space-y-2 text-xs">
-              <div className="flex justify-between items-center p-2 rounded-lg bg-background border border-border">
-                <span className="text-muted-foreground">Usuario (DNI):</span>
-                <span className="font-mono font-bold text-primary">{createdGuardianCredentials.dni}</span>
-              </div>
-              <div className="flex justify-between items-center p-2 rounded-lg bg-background border border-border">
-                <span className="text-muted-foreground">Contraseña Inicial:</span>
-                <span className="font-mono font-bold text-primary">{createdGuardianCredentials.dni}</span>
-              </div>
-            </div>
-
-            <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-[11px] leading-relaxed">
-              ⚠️ <strong>Seguridad:</strong> El apoderado usará su número de DNI como usuario y clave. Al ingresar por primera vez, el sistema le solicitará cambiar su contraseña de manera obligatoria.
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-2 pt-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                const text = `SaaSchool - Acceso Familiar\nEstudiante: ${createdGuardianCredentials.studentName}\nApoderado: ${createdGuardianCredentials.fullName}\nUsuario (DNI): ${createdGuardianCredentials.dni}\nContraseña Inicial: ${createdGuardianCredentials.dni}\n(Al ingresar por primera vez deberás cambiar tu contraseña por una nueva personal).`;
-                navigator.clipboard.writeText(text);
-                setCopied(true);
-                toast.success('Credenciales copiadas al portapapeles');
-                setTimeout(() => setCopied(false), 2500);
-              }}
-              className="flex-1 gap-2 text-xs"
-            >
-              {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
-              <span>{copied ? '¡Copiado!' : 'Copiar Credenciales'}</span>
-            </Button>
-            <Button
-              onClick={() => {
-                setCreatedGuardianCredentials(null);
-                reset();
-                setStep(1);
-                onClose();
-              }}
-              className="flex-1 text-xs"
-            >
-              Finalizar y Cerrar
-            </Button>
-          </div>
-        </div>
-      </div>
+      <TemporaryCredentialsDialog
+        open={true}
+        onOpenChange={(open) => {
+          if (!open) {
+            setTempCredentials(null);
+            reset();
+            setStep(1);
+            onClose();
+          }
+        }}
+        title="Matrícula registrada — Credenciales temporales"
+        description="Comparta estas credenciales de acceso con el estudiante y apoderado. Deberán cambiar su contraseña en el primer inicio de sesión."
+        credentials={tempCredentials}
+      />
     );
   }
 

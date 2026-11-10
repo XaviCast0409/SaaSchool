@@ -5,6 +5,7 @@ import {
   studentFilterSchema,
   registerFichaMatriculaSchema,
   nominaClassroomParamSchema,
+  bulkCredentialsSchema,
 } from './student.schema';
 import type { StudentService } from './student.service';
 
@@ -115,5 +116,12 @@ export class StudentController {
     };
     const certificate = await this.studentService.getNoDebtCertificate(schoolId, studentId, userContext);
     response.status(200).json({ status: 'success', data: certificate });
+  };
+
+  generateBulkCredentials = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const dto = bulkCredentialsSchema.parse(request.body);
+    const data = await this.studentService.generateBulkCredentials(schoolId, dto);
+    response.status(200).json({ status: 'success', data });
   };
 }

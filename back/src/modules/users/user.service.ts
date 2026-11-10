@@ -1,5 +1,7 @@
 import { AppError } from '../../core/errors/app-error';
 import { hashPassword } from '../../utils/hash.util';
+import { generateTemporaryPassword } from '../../utils/password.util';
+import { invalidatePrincipalCache } from '../../core/security/principal-status';
 import type { UserRepository } from './user.repository';
 import type { CreateUserDto, UpdateUserDto, UserFilterDto } from './user.schema';
 import type { User } from '@prisma/client';
@@ -28,7 +30,7 @@ export class UserService {
   async createUser(
     schoolId: string,
     createUserDto: CreateUserDto,
-  ): Promise<Omit<User, 'passwordHash'>> {
+  ): Promise<Omit<User, 'passwordHash'> & { temporaryPassword: string | null }> {
     if (createUserDto.email) {
       const existingEmail = await this.userRepository.findByEmail(createUserDto.email);
       if (existingEmail) {
@@ -49,7 +51,12 @@ export class UserService {
       }
     }
 
-    return this.userRepository.create(schoolId, createUserDto);
+    const temporaryPassword = createUserDto.password ? null : generateTemporaryPassword();
+    const passwordToHash = createUserDto.password ?? temporaryPassword!;
+    const passwordHash = await hashPassword(passwordToHash);
+    const user = await this.userRepository.create(schoolId, createUserDto, passwordHash, true);
+
+    return { ...user, temporaryPassword };
   }
 
   async updateUser(
@@ -58,7 +65,11 @@ export class UserService {
     updateUserDto: UpdateUserDto,
   ): Promise<Omit<User, 'passwordHash'>> {
     await this.getUserById(userId, schoolId);
-    return this.userRepository.update(userId, schoolId, updateUserDto);
+    const user = await this.userRepository.update(userId, schoolId, updateUserDto);
+    if (updateUserDto.role !== undefined) {
+      invalidatePrincipalCache('user', userId);
+    }
+    return user;
   }
 
   async deactivateUser(
@@ -66,7 +77,9 @@ export class UserService {
     schoolId: string,
   ): Promise<Omit<User, 'passwordHash'>> {
     await this.getUserById(userId, schoolId);
-    return this.userRepository.deactivate(userId, schoolId);
+    const user = await this.userRepository.deactivate(userId, schoolId);
+    invalidatePrincipalCache('user', userId);
+    return user;
   }
 
   async reactivateUser(
@@ -74,30 +87,29 @@ export class UserService {
     schoolId: string,
   ): Promise<Omit<User, 'passwordHash'>> {
     await this.getUserById(userId, schoolId);
-    return this.userRepository.reactivate(userId, schoolId);
+    const user = await this.userRepository.reactivate(userId, schoolId);
+    invalidatePrincipalCache('user', userId);
+    return user;
   }
 
   async resetPassword(
     userId: string,
     schoolId: string,
     newPassword?: string,
-  ): Promise<{ message: string }> {
+  ): Promise<{ message: string; temporaryPassword: string }> {
     const user = await this.userRepository.findByIdRaw(userId, schoolId);
     if (!user) {
       throw new AppError(`Usuario con id ${userId} no encontrado`, 404);
     }
 
-    const targetPassword = newPassword?.trim() || user.documentId?.trim();
-    if (!targetPassword) {
-      throw new AppError(
-        'El usuario no cuenta con número de documento registrado para usar como contraseña.',
-        400,
-      );
-    }
+    const temporaryPassword = newPassword?.trim() || generateTemporaryPassword();
+    const passwordHash = await hashPassword(temporaryPassword);
+    await this.userRepository.updatePassword(userId, schoolId, passwordHash, true);
+    invalidatePrincipalCache('user', userId);
 
-    const passwordHash = await hashPassword(targetPassword);
-    await this.userRepository.updatePassword(userId, schoolId, passwordHash);
-
-    return { message: 'Contraseña restablecida correctamente al número de documento' };
+    return {
+      message: 'Contraseña restablecida. Entrega la contraseña temporal al usuario.',
+      temporaryPassword,
+    };
   }
 }

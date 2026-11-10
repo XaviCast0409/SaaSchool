@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Users, UserPlus, QrCode, FileSpreadsheet } from 'lucide-react';
+import { Users, UserPlus, QrCode, FileSpreadsheet, KeyRound } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useStudents } from '../api/useStudents';
 import { StudentTable } from '../components/StudentTable';
 import { EnrollStudentModal } from '../components/EnrollStudentModal';
 import { SectionQrCardsModal } from '../components/SectionQrCardsModal';
 import { NominaSiagieModal } from '../components/NominaSiagieModal';
+import { BulkCredentialsModal } from '../components/BulkCredentialsModal';
 import { useGetActiveSchool } from '@/features/schools/api/useSchool';
 import { Button } from '@/components/ui/button';
 
@@ -20,6 +21,7 @@ export const StudentsPage: React.FC = () => {
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
   const [isSectionQrModalOpen, setIsSectionQrModalOpen] = useState(false);
   const [isNominaModalOpen, setIsNominaModalOpen] = useState(false);
+  const [isBulkCredentialsModalOpen, setIsBulkCredentialsModalOpen] = useState(false);
   const { data: school } = useGetActiveSchool();
 
   // Estados de paginación y filtros jerárquicos
@@ -57,6 +59,18 @@ export const StudentsPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2 self-start md:self-auto flex-wrap">
+          {canManageStudents && (
+            <Button
+              variant="outline"
+              onClick={() => setIsBulkCredentialsModalOpen(true)}
+              className="gap-2 shadow-sm border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
+              title="Generar credenciales de acceso masivas por aula"
+            >
+              <KeyRound className="w-4 h-4" />
+              <span>Credenciales de acceso</span>
+            </Button>
+          )}
+
           {canManageStudents && (
             <Button
               variant="outline"
@@ -158,6 +172,12 @@ export const StudentsPage: React.FC = () => {
           onClose={() => setIsNominaModalOpen(false)}
         />
       )}
+
+      {/* Modal de Credenciales de Acceso Masivas */}
+      <BulkCredentialsModal
+        isOpen={isBulkCredentialsModalOpen}
+        onClose={() => setIsBulkCredentialsModalOpen(false)}
+      />
     </div>
   );
 };

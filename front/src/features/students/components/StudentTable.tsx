@@ -18,6 +18,7 @@ import { EditStudentModal } from './EditStudentModal';
 import { StudentFichaModal } from './StudentFichaModal';
 import { StudentQrCardModal } from './StudentQrCardModal';
 import { StudentCertificateModal } from './StudentCertificateModal';
+import { TemporaryCredentialsDialog, type TemporaryCredential } from '@/components/ui/TemporaryCredentialsDialog';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -79,6 +80,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({
   const { data: classrooms = [] } = useClassrooms();
   const { data: school } = useGetActiveSchool();
   const { mutateAsync: resetStudentPassword, isPending: isResettingStudent } = useResetStudentPassword();
+  const [tempCredentials, setTempCredentials] = useState<TemporaryCredential[] | null>(null);
 
   const columns: ColumnDef<Student>[] = [
     {
@@ -363,17 +365,28 @@ export const StudentTable: React.FC<StudentTableProps> = ({
                                 size="sm"
                                 className="h-8 px-2 gap-1 text-xs text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 font-bold"
                                 onClick={async () => {
-                                  if (window.confirm(`¿Restablecer la contraseña del estudiante "${student.firstNames} ${student.lastNamePaternal}" a su DNI (${student.documentId})?`)) {
+                                  if (
+                                    window.confirm(
+                                      `¿Restablecer la contraseña del estudiante "${student.firstNames} ${student.lastNamePaternal}"? Se generará una contraseña temporal.`
+                                    )
+                                  ) {
                                     try {
-                                      await resetStudentPassword({ studentId: student.id });
-                                      toast.success('Contraseña restablecida al número de documento');
+                                      const data = await resetStudentPassword({ studentId: student.id });
+                                      setTempCredentials([
+                                        {
+                                          name: `${student.firstNames} ${student.lastNamePaternal}`,
+                                          login: student.studentCode || student.documentId,
+                                          password: data.temporaryPassword,
+                                        },
+                                      ]);
+                                      toast.success('Contraseña temporal generada con éxito');
                                     } catch (err: any) {
                                       toast.error(err?.response?.data?.message || 'Error al restablecer contraseña');
                                     }
                                   }
                                 }}
                                 disabled={isResettingStudent}
-                                title="Restablecer clave al DNI"
+                                title="Restablecer clave temporal"
                               >
                                 <KeyRound className="w-3.5 h-3.5" />
                                 <span>Restablecer Clave</span>
@@ -507,6 +520,16 @@ export const StudentTable: React.FC<StudentTableProps> = ({
           studentId={selectedStudentForCertificates.id}
           studentName={`${selectedStudentForCertificates.lastNamePaternal} ${selectedStudentForCertificates.lastNameMaternal || ''}, ${selectedStudentForCertificates.firstNames}`.trim()}
           onClose={() => setSelectedStudentForCertificates(null)}
+        />
+      )}
+
+      {/* Diálogo de Credenciales Temporales */}
+      {tempCredentials && (
+        <TemporaryCredentialsDialog
+          open={Boolean(tempCredentials)}
+          onClose={() => setTempCredentials(null)}
+          title="Contraseña Restablecida"
+          credentials={tempCredentials}
         />
       )}
     </div>

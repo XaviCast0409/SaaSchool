@@ -1,7 +1,16 @@
 import { AppError } from '../../core/errors/app-error';
+import { prisma } from '../../config/prisma';
 import { hashPassword } from '../../utils/hash.util';
+import { generateTemporaryPassword } from '../../utils/password.util';
+import { invalidatePrincipalCache } from '../../core/security/principal-status';
 import type { StudentRepository } from './student.repository';
-import type { CreateStudentDto, UpdateStudentDto, StudentFilterDto, RegisterFichaMatriculaDto } from './student.schema';
+import type {
+  CreateStudentDto,
+  UpdateStudentDto,
+  StudentFilterDto,
+  RegisterFichaMatriculaDto,
+  BulkCredentialsDto,
+} from './student.schema';
 import type { Student } from '@prisma/client';
 import type { PaginatedResult } from '../../core/interfaces/global.interfaces';
 import { SIAGIE_CATALOGS } from './student.catalogs';
@@ -104,19 +113,34 @@ export class StudentService {
       }
     }
 
-    // Contraseña inicial para nuevo apoderado: número de DNI para máxima practicidad
-    const parentDni = dto.guardian.newGuardian?.documentId?.trim();
-    const defaultPassword = parentDni || ('Familia' + new Date().getFullYear() + '!');
-    const passwordHash = await hashPassword(defaultPassword);
+    // Contraseñas iniciales temporales criptográficamente seguras
+    const guardianTemporaryPassword = generateTemporaryPassword();
+    const guardianPasswordHash = await hashPassword(guardianTemporaryPassword);
+
+    const studentTemporaryPassword = generateTemporaryPassword();
+    const studentPasswordHash = await hashPassword(studentTemporaryPassword);
 
     const result = await this.studentRepository.registerFichaMatricula(
       schoolId,
       dto,
-      passwordHash,
+      guardianPasswordHash,
+      studentPasswordHash,
     );
 
-    // Retornar detalle completo del estudiante con su matrícula y familia
-    return this.getStudentById(result.student.id, schoolId);
+    // Retornar detalle completo del estudiante con credenciales temporales
+    const student = await this.getStudentById(result.student.id, schoolId);
+    return {
+      ...student,
+      temporaryCredentials: {
+        student: { login: student.studentCode || student.documentId, password: studentTemporaryPassword },
+        guardian: dto.guardian.newGuardian
+          ? {
+              login: dto.guardian.newGuardian.email || dto.guardian.newGuardian.documentId || '',
+              password: guardianTemporaryPassword,
+            }
+          : null,
+      },
+    } as any;
   }
 
   async updateStudent(
@@ -148,18 +172,16 @@ export class StudentService {
     studentId: string,
     schoolId: string,
     newPassword?: string,
-  ): Promise<{ message: string }> {
-    const student = await this.getStudentById(studentId, schoolId);
-    const targetPassword = newPassword?.trim() || student.documentId?.trim();
-    if (!targetPassword) {
-      throw new AppError(
-        'El estudiante no cuenta con número de documento registrado para usar como contraseña.',
-        400,
-      );
-    }
-    const passwordHash = await hashPassword(targetPassword);
+  ): Promise<{ message: string; temporaryPassword: string }> {
+    await this.getStudentById(studentId, schoolId);
+    const temporaryPassword = newPassword?.trim() || generateTemporaryPassword();
+    const passwordHash = await hashPassword(temporaryPassword);
     await this.studentRepository.updatePassword(studentId, schoolId, passwordHash);
-    return { message: 'Contraseña restablecida correctamente al número de documento' };
+    invalidatePrincipalCache('student', studentId);
+    return {
+      message: 'Contraseña restablecida. Entrega la contraseña temporal al usuario.',
+      temporaryPassword,
+    };
   }
 
   async getNominaMatricula(schoolId: string, classroomId: string) {
@@ -378,5 +400,87 @@ export class StudentService {
       academicYear: activeEnrollment.academicYear.year,
       status: 'CLEARED',
     };
+  }
+
+  async generateBulkCredentials(
+    schoolId: string,
+    dto: BulkCredentialsDto,
+  ): Promise<Array<{ id: string; fullName: string; login: string; temporaryPassword: string }>> {
+    const enrollments = await prisma.enrollment.findMany({
+      where: {
+        schoolId,
+        classroomId: dto.classroomId,
+        isActive: true,
+        academicYear: { isActive: true },
+      },
+      include: {
+        student: {
+          include: {
+            familyRelations: {
+              include: { user: true },
+            },
+          },
+        },
+      },
+    });
+
+    const results: Array<{ id: string; fullName: string; login: string; temporaryPassword: string }> = [];
+
+    if (dto.target === 'STUDENTS') {
+      for (const enr of enrollments) {
+        const student = enr.student;
+        if (dto.onlyPending && student.passwordHash && student.mustChangePassword === false) {
+          continue;
+        }
+        const temporaryPassword = generateTemporaryPassword();
+        const passwordHash = await hashPassword(temporaryPassword);
+        await prisma.student.update({
+          where: { id: student.id },
+          data: {
+            passwordHash,
+            mustChangePassword: true,
+            passwordChangedAt: new Date(),
+            failedLoginAttempts: 0,
+            lockedUntil: null,
+          },
+        });
+        invalidatePrincipalCache('student', student.id);
+        const fullName = `${student.lastNamePaternal} ${student.lastNameMaternal || ''}, ${student.firstNames}`.trim();
+        const login = student.studentCode || student.documentId;
+        results.push({ id: student.id, fullName, login, temporaryPassword });
+      }
+    } else {
+      const processedUsers = new Set<string>();
+      for (const enr of enrollments) {
+        for (const rel of enr.student.familyRelations) {
+          if (rel.isLegalGuardian && !processedUsers.has(rel.userId)) {
+            processedUsers.add(rel.userId);
+            const user = rel.user;
+            if (dto.onlyPending && user.passwordHash && user.mustChangePassword === false) {
+              continue;
+            }
+            const temporaryPassword = generateTemporaryPassword();
+            const passwordHash = await hashPassword(temporaryPassword);
+            await prisma.user.update({
+              where: { id: user.id },
+              data: {
+                passwordHash,
+                mustChangePassword: true,
+                passwordChangedAt: new Date(),
+                failedLoginAttempts: 0,
+                lockedUntil: null,
+              },
+            });
+            invalidatePrincipalCache('user', user.id);
+            const fullName = `${user.lastNamePaternal} ${user.lastNameMaternal || ''}, ${user.firstName}`.trim();
+            const login = user.email || user.documentId || '';
+            results.push({ id: user.id, fullName, login, temporaryPassword });
+          }
+        }
+      }
+    }
+
+    results.sort((a, b) => a.fullName.localeCompare(b.fullName, 'es'));
+    return results;
   }
 }

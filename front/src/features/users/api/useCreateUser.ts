@@ -3,9 +3,13 @@ import { api } from '@/lib/axios';
 import type { DirectoryUser } from '../types';
 import type { CreateUserFormData } from '../schemas/user.schema';
 
+export interface CreatedUserResult extends DirectoryUser {
+  temporaryPassword?: string | null;
+}
+
 interface CreateUserResponse {
   status: string;
-  data: DirectoryUser;
+  data: CreatedUserResult;
 }
 
 export const useCreateUser = () => {
