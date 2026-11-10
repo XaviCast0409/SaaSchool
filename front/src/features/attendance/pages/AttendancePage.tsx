@@ -18,6 +18,7 @@ import {
   Search,
   X,
   Sliders,
+  CalendarOff,
 } from 'lucide-react';
 import { useAttendance, useUpdateAttendance } from '../api/useAttendance';
 import { AttendanceStatusBadge } from '../components/AttendanceStatusBadge';
@@ -28,6 +29,7 @@ import { EditNotesModal } from '../components/EditNotesModal';
 import { QrScannerModal } from '../components/QrScannerModal';
 import { AttendanceSheetView } from '../components/AttendanceSheetView';
 import { AttendanceScheduleModal } from '../components/AttendanceScheduleModal';
+import { HolidaysModal } from '../components/HolidaysModal';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
 import { useAuthStore } from '@/store/useAuthStore';
 import { getPeruToday, getPeruCurrentMonth, formatPeruTime, formatPeruDate } from '@/lib/dateUtils';
@@ -66,6 +68,7 @@ export const AttendancePage: React.FC = () => {
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [isHolidaysModalOpen, setIsHolidaysModalOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ABSENT' | 'LATE' | 'PRESENT'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [notesModalRecord, setNotesModalRecord] = useState<AttendanceRecord | null>(null);
@@ -171,15 +174,27 @@ export const AttendancePage: React.FC = () => {
 
           {/* Configuración de Horarios & Auto-Cierre */}
           {canConfigureSchedule && (
-            <Button
-              variant="outline"
-              onClick={() => setIsScheduleModalOpen(true)}
-              className="gap-2 shadow-sm rounded-xl h-10 px-4 font-bold border-border hover:bg-accent"
-              title="Configurar horarios de entrada, tardanza y auto-cierre"
-            >
-              <Sliders className="w-4 h-4 text-primary" />
-              <span>Horarios y Cierre</span>
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                onClick={() => setIsScheduleModalOpen(true)}
+                className="gap-2 shadow-sm rounded-xl h-10 px-4 font-bold border-border hover:bg-accent"
+                title="Configurar horarios de entrada, tardanza y auto-cierre"
+              >
+                <Sliders className="w-4 h-4 text-primary" />
+                <span>Horarios y Cierre</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => setIsHolidaysModalOpen(true)}
+                className="gap-2 shadow-sm rounded-xl h-10 px-4 font-bold border-border hover:bg-accent"
+                title="Gestionar feriados y días no laborables"
+              >
+                <CalendarOff className="w-4 h-4 text-primary" />
+                <span>Feriados</span>
+              </Button>
+            </>
           )}
 
           {/* Tomar Asistencia Masiva Button */}
@@ -777,6 +792,14 @@ export const AttendancePage: React.FC = () => {
       {/* Modal de Configuración de Horarios & Auto-Cierre */}
       {isScheduleModalOpen && (
         <AttendanceScheduleModal onClose={() => setIsScheduleModalOpen(false)} />
+      )}
+
+      {/* Modal de Feriados y Días No Laborables */}
+      {isHolidaysModalOpen && (
+        <HolidaysModal
+          isOpen={isHolidaysModalOpen}
+          onClose={() => setIsHolidaysModalOpen(false)}
+        />
       )}
     </div>
   );

@@ -13,6 +13,23 @@ export const attendanceRouter = Router();
 
 attendanceRouter.use(authMiddleware, tenantMiddleware);
 
+// Feriados escolares y días no laborables
+attendanceRouter.get(
+  '/holidays',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),
+  attendanceController.getHolidays,
+);
+attendanceRouter.post(
+  '/holidays',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
+  attendanceController.createHoliday,
+);
+attendanceRouter.delete(
+  '/holidays/:holidayId',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
+  attendanceController.deleteHoliday,
+);
+
 // Reporte / Resumen mensual de asistencia
 attendanceRouter.get(
   '/summary',

@@ -25,19 +25,44 @@ export function initAttendanceAutoCloseCron(attendanceRepository: AttendanceRepo
 
       const currentTimeStr = `${String(schoolNow.hour).padStart(2, '0')}:${String(schoolNow.minute).padStart(2, '0')}`;
 
-      // Buscar configuraciones de colegios con auto-cierre activado que coincidan con el minuto actual
-      const activeConfigs = await prisma.attendanceScheduleConfig.findMany({
+      const todayStr = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Lima',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(new Date());
+      const todayDate = new Date(`${todayStr}T00:00:00.000Z`);
+
+      const candidateConfigs = await prisma.attendanceScheduleConfig.findMany({
         where: {
           autoCloseEnabled: true,
-          autoCloseTime: currentTimeStr,
+          OR: [{ lastAutoClosedOn: null }, { lastAutoClosedOn: { lt: todayDate } }],
         },
-        select: {
-          schoolId: true,
-          scope: true,
-          autoCloseTime: true,
-        },
+        select: { id: true, schoolId: true, scope: true, autoCloseTime: true },
       });
 
+      // Ejecutar a partir de la hora configurada (no solo en el minuto exacto) y nunca después de las 18:00
+      const dueConfigs = candidateConfigs.filter(
+        (config) => currentTimeStr >= config.autoCloseTime && currentTimeStr < '18:00',
+      );
+
+      if (dueConfigs.length === 0) return;
+
+      const holidays = await prisma.schoolHoliday.findMany({
+        where: { date: todayDate, schoolId: { in: dueConfigs.map((c) => c.schoolId) } },
+        select: { schoolId: true },
+      });
+      const holidaySchoolIds = new Set(holidays.map((h) => h.schoolId));
+
+      // Marcar feriados para no reevaluarlos en todo el día
+      const holidayConfigs = dueConfigs.filter((config) => holidaySchoolIds.has(config.schoolId));
+      for (const config of holidayConfigs) {
+        await prisma.attendanceScheduleConfig
+          .update({ where: { id: config.id }, data: { lastAutoClosedOn: todayDate } })
+          .catch((err) => console.error('[Cron Auto-Cierre Holiday Update Error]:', err));
+      }
+
+      const activeConfigs = dueConfigs.filter((config) => !holidaySchoolIds.has(config.schoolId));
       if (activeConfigs.length === 0) return;
 
       for (const config of activeConfigs) {
@@ -45,6 +70,11 @@ export function initAttendanceAutoCloseCron(attendanceRepository: AttendanceRepo
           const result = await attendanceRepository.closeAttendance({
             schoolId: config.schoolId,
             dateStr: schoolNow.dateStr,
+          });
+
+          await prisma.attendanceScheduleConfig.update({
+            where: { id: config.id },
+            data: { lastAutoClosedOn: todayDate },
           });
 
           if (result.closedCount > 0) {

@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { z } from 'zod';
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
 import {
@@ -229,5 +230,53 @@ export class AttendanceController {
     const dto = closeClassroomAttendanceSchema.parse(request.body || {});
     const result = await this.attendanceService.closeAttendance(schoolId, dto, userContext);
     response.status(200).json({ status: 'success', data: result });
+  };
+
+  /** GET /api/attendance/holidays?year=YYYY */
+  getHolidays = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const year = request.query.year ? Number(request.query.year) : new Date().getFullYear();
+    const holidays = await prisma.schoolHoliday.findMany({
+      where: {
+        schoolId,
+        date: {
+          gte: new Date(`${year}-01-01T00:00:00.000Z`),
+          lte: new Date(`${year}-12-31T00:00:00.000Z`),
+        },
+      },
+      orderBy: { date: 'asc' },
+    });
+    response.status(200).json({ status: 'success', data: holidays });
+  };
+
+  /** POST /api/attendance/holidays */
+  createHoliday = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const holidaySchema = z.object({
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido (YYYY-MM-DD)'),
+      name: z.string().trim().min(2, 'El nombre debe tener al menos 2 caracteres').max(80),
+    });
+    const { date, name } = holidaySchema.parse(request.body);
+    const holiday = await prisma.schoolHoliday.create({
+      data: {
+        schoolId,
+        date: new Date(`${date}T00:00:00.000Z`),
+        name,
+      },
+    });
+    response.status(201).json({ status: 'success', data: holiday });
+  };
+
+  /** DELETE /api/attendance/holidays/:holidayId */
+  deleteHoliday = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const holidayId = request.params.holidayId as string;
+    const result = await prisma.schoolHoliday.deleteMany({
+      where: { id: holidayId, schoolId },
+    });
+    if (result.count === 0) {
+      throw new AppError('Feriado no encontrado.', 404);
+    }
+    response.status(200).json({ status: 'success', message: 'Feriado eliminado correctamente.' });
   };
 }
