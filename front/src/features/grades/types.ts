@@ -363,6 +363,9 @@ export interface SiagieMatrixStudent {
   >;
   generalScore: number | null;
   generalLetter: 'AD' | 'A' | 'B' | 'C' | null;
+  finalSituation?: 'PROMOTED' | 'RECOVERY' | 'RETAINED' | 'TRANSFERRED' | 'WITHDRAWN' | null;
+  failedAreasCount?: number;
+  finalSituationIsProvisional?: boolean;
 }
 
 export interface SiagieMatrixData {

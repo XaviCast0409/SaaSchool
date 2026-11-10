@@ -21,12 +21,9 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PlanGuard } from '@/components/ui/PlanGuard';
-import {
-  useEvaluationCriteria,
-  useCreateCriterion,
-  useUpdateCriterion,
-  useDeleteCriterion,
-} from '../api/useGrades';
+import { useEvaluationCriteria, useCreateCriterion, useUpdateCriterion, useDeleteCriterion } from '../api/useGrades';
+import { GradingScaleCard } from '../components/GradingScaleCard';
+import { useAuthStore } from '@/store/useAuthStore';
 import type { EvaluationCriterion } from '../types';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -40,6 +37,8 @@ interface CriterionFormValues {
 }
 
 export const EvaluationCriteriaPage: React.FC = () => {
+  const user = useAuthStore((state) => state.user);
+  const canConfigureScale = user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN';
   const { data: criteria = [], isLoading, isError } = useEvaluationCriteria();
   const createMutation = useCreateCriterion();
   const updateMutation = useUpdateCriterion();
@@ -566,6 +565,9 @@ export const EvaluationCriteriaPage: React.FC = () => {
             </div>
           )}
         </Card>
+
+        {/* Escala de Conversión Numérica a Literal CNEB */}
+        {canConfigureScale && <GradingScaleCard />}
       </div>
 
       <ConfirmDialog

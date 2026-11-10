@@ -10,7 +10,6 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
-  Lock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -53,8 +52,7 @@ export const ReportCardModal: React.FC<ReportCardModalProps> = ({
     }
   }, [enrollmentId]);
 
-  const { data: reportCard, isLoading, isError, error } = useReportCard(activeEnrollmentId || '');
-  const is402Blocked = (error as any)?.response?.status === 402;
+  const { data: reportCard, isLoading, isError } = useReportCard(activeEnrollmentId || '');
 
   if (!isOpen || !activeEnrollmentId || typeof document === 'undefined') return null;
 
@@ -313,21 +311,6 @@ export const ReportCardModal: React.FC<ReportCardModalProps> = ({
               <Skeleton className="h-28 w-full rounded-xl" />
               <Skeleton className="h-64 w-full rounded-xl" />
               <Skeleton className="h-24 w-full rounded-xl" />
-            </div>
-          ) : is402Blocked ? (
-            <div className="p-8 sm:p-12 text-center bg-card border-2 border-dashed border-amber-500/30 rounded-2xl space-y-3 my-4">
-              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
-                <Lock className="w-7 h-7" />
-              </div>
-              <h3 className="text-base font-black text-foreground">
-                Acceso Restringido por Morosidad
-              </h3>
-              <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
-                La emisión y descarga de esta libreta de calificaciones se encuentra temporalmente restringida debido a pensiones pendientes de pago.
-              </p>
-              <p className="text-[11px] text-muted-foreground">
-                Por favor, acérquese a Administración o Tesorería para regularizar su situación.
-              </p>
             </div>
           ) : isError || !reportCard ? (
             <div className="p-12 text-center text-muted-foreground space-y-2">

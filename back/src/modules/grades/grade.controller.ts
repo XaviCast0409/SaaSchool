@@ -12,6 +12,8 @@ import {
   syncHomeworkToMatrixSchema,
   createGradeSchema,
   createGradeEntrySchema,
+  gradingScaleSchema,
+  gradingScaleQuerySchema,
 } from './grade.schema';
 import type { GradeService } from './grade.service';
 import type { EducationLevel } from '@prisma/client';
@@ -230,5 +232,19 @@ export class GradeController {
     const createGradeDto = createGradeSchema.parse(request.body);
     const grade = await this.gradeService.createGrade(createGradeDto, userContext);
     response.status(201).json({ status: 'success', data: grade });
+  };
+
+  getGradingScale = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const { level } = gradingScaleQuerySchema.parse(request.query);
+    const data = await this.gradeService.getGradingScale(schoolId, level as EducationLevel);
+    response.status(200).json({ status: 'success', data });
+  };
+
+  updateGradingScale = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const { level, AD, A, B } = gradingScaleSchema.parse(request.body);
+    const data = await this.gradeService.updateGradingScale(schoolId, level as EducationLevel, { AD, A, B });
+    response.status(200).json({ status: 'success', data });
   };
 }

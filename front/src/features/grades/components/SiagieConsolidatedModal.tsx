@@ -887,6 +887,14 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
                 </div>
               )}
 
+              {/* Aviso de Situación Final Sugerida */}
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>
+                  La situación final es una sugerencia calculada con las reglas configuradas del colegio. La Dirección debe validarla antes de registrar el acta oficial en SIAGIE.
+                </span>
+              </div>
+
               {/* Matriz Scrollable de Calificaciones */}
               <div className="rounded-xl border border-border overflow-x-auto bg-card">
                 <table className="w-full text-left border-collapse text-xs min-w-[700px]">
@@ -1005,6 +1013,9 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
                       </th>
                       <th className="p-2 text-center w-16 bg-primary/10 text-primary font-extrabold">
                         Logro
+                      </th>
+                      <th className="p-2 text-center w-36 bg-primary/10 text-primary font-extrabold">
+                        Situación final (sugerida)
                       </th>
                     </tr>
                   </thead>
@@ -1132,13 +1143,41 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
                           </td>
 
                           {/* Logro SIAGIE */}
-                          <td className="p-2 text-center font-black">
+                          <td className="p-2 border-r border-border text-center font-black">
                             {st.generalLetter ? (
                               <Badge
                                 variant={genSiagie?.variant || 'outline'}
                                 className={`text-[10px] px-1.5 py-0 border font-extrabold ${genSiagie?.badgeClass || ''}`}
                               >
                                 {st.generalLetter}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </td>
+
+                          {/* Situación Final (sugerida) */}
+                          <td className="p-2 text-center font-bold">
+                            {st.finalSituation ? (
+                              <Badge
+                                variant="outline"
+                                className={`text-[10px] px-1.5 py-0 border font-extrabold ${
+                                  st.finalSituation === 'PROMOTED'
+                                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
+                                    : st.finalSituation === 'RECOVERY'
+                                    ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30'
+                                    : st.finalSituation === 'RETAINED'
+                                    ? 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30'
+                                    : 'bg-muted text-muted-foreground'
+                                }`}
+                              >
+                                {st.finalSituation === 'PROMOTED'
+                                  ? 'PROMOVIDO'
+                                  : st.finalSituation === 'RECOVERY'
+                                  ? 'RECUPERACIÓN'
+                                  : st.finalSituation === 'RETAINED'
+                                  ? 'PERMANECE'
+                                  : st.finalSituation}
                               </Badge>
                             ) : (
                               <span className="text-muted-foreground">—</span>

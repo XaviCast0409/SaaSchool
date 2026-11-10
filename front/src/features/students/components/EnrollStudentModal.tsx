@@ -123,7 +123,7 @@ const enrollWizardSchema = z
       if (!/^\d{14}$/.test(cleanCode)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: 'El código SIAGIE consta de 14 dígitos numéricos (ej: 20261234567890)',
+          message: 'El código de estudiante SIAGIE debe tener exactamente 14 dígitos',
           path: ['studentCode'],
         });
       }

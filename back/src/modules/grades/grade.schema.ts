@@ -157,3 +157,20 @@ export const createGradeSchema = z.object({
 
 export type CreateGradeEntryDto = z.infer<typeof createGradeEntrySchema>;
 export type CreateGradeDto = z.infer<typeof createGradeSchema>;
+
+// ==========================================
+// Escala de Calificaciones Configurable
+// ==========================================
+export const gradingScaleSchema = z
+  .object({
+    level: z.enum(['INITIAL', 'PRIMARY', 'SECONDARY']),
+    AD: z.number().min(0).max(20),
+    A: z.number().min(0).max(20),
+    B: z.number().min(0).max(20),
+  })
+  .refine((v) => v.B > 0 && v.B < v.A && v.A < v.AD, { message: 'Los umbrales deben cumplir 0 < B < A < AD ≤ 20' });
+
+export const gradingScaleQuerySchema = z.object({ level: z.enum(['INITIAL', 'PRIMARY', 'SECONDARY']) });
+
+export type GradingScaleDto = z.infer<typeof gradingScaleSchema>;
+export type GradingScaleQueryDto = z.infer<typeof gradingScaleQuerySchema>;

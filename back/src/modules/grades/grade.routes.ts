@@ -15,6 +15,20 @@ export const gradeRouter = Router();
 gradeRouter.use(authMiddleware, tenantMiddleware, requirePlan('PRO', 'ENTERPRISE'));
 
 // ==========================================
+// Escala de Conversión Configurable (GradingScale)
+// ==========================================
+gradeRouter.get(
+  '/grading-scale',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),
+  gradeController.getGradingScale,
+);
+gradeRouter.put(
+  '/grading-scale',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
+  gradeController.updateGradingScale,
+);
+
+// ==========================================
 // Criterios / Rubros Evaluativos (Admin)
 // ==========================================
 gradeRouter.get(

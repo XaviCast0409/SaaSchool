@@ -170,23 +170,6 @@ export class GradeService {
       }
     }
 
-    // Bloqueo de libreta por morosidad si está habilitado por Dirección
-    if (
-      rawData.student.school.blockCertificatesOnOverdue &&
-      (userContext?.role === 'PARENT' || userContext?.role === 'STUDENT')
-    ) {
-      const overdueCount = await this.gradeRepository.countOverdueObligations(
-        schoolId,
-        rawData.studentId,
-      );
-      if (overdueCount > 0) {
-        throw new AppError(
-          'Acceso restringido por pensiones o conceptos educativos pendientes de pago. Por favor, acérquese a Administración.',
-          402,
-        );
-      }
-    }
-
     // Calcular estadísticas de asistencia
     const attendances = rawData.attendances || [];
     const attendanceStats = {
@@ -459,5 +442,14 @@ export class GradeService {
       isTeacher ? userContext.userId : undefined,
       isTeacher ? userContext.schoolId : undefined,
     );
+  }
+
+  async getGradingScale(schoolId: string, level: EducationLevel) {
+    return this.gradeRepository.getLetterThresholds(schoolId, level);
+  }
+
+  async updateGradingScale(schoolId: string, level: EducationLevel, thresholds: { AD: number; A: number; B: number }) {
+    await this.gradeRepository.upsertGradingScale(schoolId, level, thresholds);
+    return this.gradeRepository.getLetterThresholds(schoolId, level);
   }
 }

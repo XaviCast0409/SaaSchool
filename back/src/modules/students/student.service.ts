@@ -294,6 +294,26 @@ export class StudentService {
       }
     }
 
+    if (userContext?.role === 'PARENT' || userContext?.role === 'STUDENT') {
+      const school = await prisma.school.findUnique({ where: { id: schoolId }, select: { blockCertificatesOnOverdue: true } });
+      if (school?.blockCertificatesOnOverdue) {
+        const overdue = await prisma.paymentObligation.count({
+          where: {
+            schoolId,
+            enrollment: { studentId },
+            status: { in: ['PENDING', 'PARTIAL'] },
+            dueDate: { lt: new Date() },
+          },
+        });
+        if (overdue > 0) {
+          throw new AppError(
+            'La constancia oficial no puede emitirse mientras existan pensiones vencidas. Las notas, la libreta y la asistencia siguen disponibles. Acércate a Administración.',
+            402,
+          );
+        }
+      }
+    }
+
     const activeEnrollment = student.enrollments[0];
     if (!activeEnrollment) {
       throw new AppError('El estudiante no cuenta con una matrícula activa registrada.', 400);
@@ -356,6 +376,26 @@ export class StudentService {
       const isParent = (student.familyRelations || []).some((rel) => rel.userId === userContext.userId);
       if (!isParent) {
         throw new AppError('No tienes permisos para ver esta constancia.', 403);
+      }
+    }
+
+    if (userContext?.role === 'PARENT' || userContext?.role === 'STUDENT') {
+      const school = await prisma.school.findUnique({ where: { id: schoolId }, select: { blockCertificatesOnOverdue: true } });
+      if (school?.blockCertificatesOnOverdue) {
+        const overdue = await prisma.paymentObligation.count({
+          where: {
+            schoolId,
+            enrollment: { studentId },
+            status: { in: ['PENDING', 'PARTIAL'] },
+            dueDate: { lt: new Date() },
+          },
+        });
+        if (overdue > 0) {
+          throw new AppError(
+            'La constancia oficial no puede emitirse mientras existan pensiones vencidas. Las notas, la libreta y la asistencia siguen disponibles. Acércate a Administración.',
+            402,
+          );
+        }
       }
     }
 

@@ -54,6 +54,15 @@ const editStudentSchema = z
         });
       }
     }
+    if (data.studentCode && data.studentCode.trim().length > 0) {
+      if (!/^\d{14}$/.test(data.studentCode.trim())) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'El código de estudiante SIAGIE debe tener exactamente 14 dígitos',
+          path: ['studentCode'],
+        });
+      }
+    }
   });
 
 type EditStudentFormData = z.infer<typeof editStudentSchema>;

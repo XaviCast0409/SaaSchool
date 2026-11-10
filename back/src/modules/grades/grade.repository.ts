@@ -11,7 +11,8 @@ import type {
 } from './grade.schema';
 import { AppError } from '../../core/errors/app-error';
 import { SiagieConsolidatorService, letterToScore, scoreToLetter } from './siagie-consolidator.service';
-import { getSchoolNow } from '../../utils/timezone.util';
+import { thresholdsFromGradingScale, type LetterScaleThresholds } from './letter-scale';
+import { type PromotionRuleOverrides } from './promotion-rules';
 import { getPeriodDateRange } from '../../utils/period-dates.util';
 
 export type ReportCardEnrollment = Prisma.EnrollmentGetPayload<{
@@ -56,6 +57,42 @@ export type ReportCardEnrollment = Prisma.EnrollmentGetPayload<{
 }>;
 
 export class GradeRepository {
+  private letterThresholdCache = new Map<string, { value: LetterScaleThresholds; expiresAt: number }>();
+
+  async getLetterThresholds(schoolId: string, level: EducationLevel): Promise<LetterScaleThresholds> {
+    const key = `${schoolId}:${level}`;
+    const cached = this.letterThresholdCache.get(key);
+    if (cached && cached.expiresAt > Date.now()) return cached.value;
+    const rows = await prisma.gradingScale.findMany({ where: { schoolId, level }, select: { letterGrade: true, minNumeric: true } });
+    const value = thresholdsFromGradingScale(rows);
+    this.letterThresholdCache.set(key, { value, expiresAt: Date.now() + 5 * 60 * 1000 });
+    return value;
+  }
+
+  clearLetterThresholds(schoolId: string): void {
+    for (const key of this.letterThresholdCache.keys()) {
+      if (key.startsWith(`${schoolId}:`)) this.letterThresholdCache.delete(key);
+    }
+  }
+
+  async upsertGradingScale(schoolId: string, level: EducationLevel, t: LetterScaleThresholds): Promise<void> {
+    const rows = [
+      { letterGrade: 'AD', minNumeric: t.AD, maxNumeric: 20 },
+      { letterGrade: 'A', minNumeric: t.A, maxNumeric: t.AD - 0.01 },
+      { letterGrade: 'B', minNumeric: t.B, maxNumeric: t.A - 0.01 },
+      { letterGrade: 'C', minNumeric: 0, maxNumeric: t.B - 0.01 },
+    ];
+    await prisma.$transaction(
+      rows.map((r) =>
+        prisma.gradingScale.upsert({
+          where: { schoolId_level_letterGrade: { schoolId, level, letterGrade: r.letterGrade } },
+          update: { minNumeric: r.minNumeric, maxNumeric: r.maxNumeric },
+          create: { schoolId, level, ...r },
+        }),
+      ),
+    );
+    this.clearLetterThresholds(schoolId);
+  }
   // ============================================================================
   // 1. CRITERIOS / RUBROS EVALUATIVOS (Configuración del Colegio)
   // ============================================================================
@@ -900,23 +937,6 @@ export class GradeRepository {
   }
 
   /**
-   * Cuenta las obligaciones vencidas de un estudiante para bloqueo de libretas.
-   */
-  async countOverdueObligations(schoolId: string, studentId: string): Promise<number> {
-    const { dateObj } = getSchoolNow();
-    return prisma.paymentObligation.count({
-      where: {
-        schoolId,
-        enrollment: {
-          studentId,
-        },
-        status: { in: ['PENDING', 'PARTIAL'] },
-        dueDate: { lt: dateObj },
-      },
-    });
-  }
-
-  /**
    * Auditoría de avance de llenado de notas por aula para la validación SIAGIE.
    */
   async findSiagieSummary(
@@ -1369,13 +1389,21 @@ export class GradeRepository {
       };
     });
 
+    const thresholds = await this.getLetterThresholds(schoolId, classroom.educationLevel);
+
     const { consolidatedAreas, consolidatedStudents, unmappedCompetences } =
-      SiagieConsolidatorService.consolidateClassroom(coursesInfo, students, {
-        educationLevel: classroom.educationLevel,
-        grade: classroom.grade,
-        annualCalculationMode: effectiveCalculationMode,
-        periodNumber,
-      });
+      SiagieConsolidatorService.consolidateClassroom(
+        coursesInfo,
+        students,
+        {
+          educationLevel: classroom.educationLevel,
+          grade: classroom.grade,
+          annualCalculationMode: effectiveCalculationMode,
+          periodNumber,
+        },
+        thresholds,
+        academicYear?.promotionRulesConfig as PromotionRuleOverrides | null,
+      );
 
     return {
       school: {

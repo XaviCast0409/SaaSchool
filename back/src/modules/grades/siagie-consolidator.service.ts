@@ -262,16 +262,20 @@ export function sanitizeSiagieConclusion(text?: string | null): string {
     .slice(0, 300);
 }
 
-/**
- * Convierte un puntaje numérico (00-20) a la escala literal oficial CNEB
- */
-export function scoreToLetter(score: number | null): 'AD' | 'A' | 'B' | 'C' | null {
-  if (score === null || isNaN(score)) return null;
-  if (score >= 17.5) return 'AD';
-  if (score >= 13.5) return 'A';
-  if (score >= 10.5) return 'B';
-  return 'C';
-}
+import {
+  scoreToLetter,
+  thresholdsFromGradingScale,
+  DEFAULT_LETTER_THRESHOLDS,
+  type LetterScaleThresholds,
+} from './letter-scale';
+import { evaluateFinalSituation, type PromotionRuleOverrides } from './promotion-rules';
+
+export {
+  scoreToLetter,
+  thresholdsFromGradingScale,
+  DEFAULT_LETTER_THRESHOLDS,
+  type LetterScaleThresholds,
+};
 
 export function letterToScore(letter?: string | null): number | null {
   if (!letter) return null;
@@ -502,12 +506,16 @@ export class SiagieConsolidatorService {
       annualCalculationMode?: 'LAST_PERIOD' | 'AVERAGE';
       periodNumber?: number;
     },
+    thresholds?: LetterScaleThresholds,
+    promotionRules?: PromotionRuleOverrides | null,
   ): {
     consolidatedAreas: ConsolidatedArea[];
     consolidatedStudents: Array<
       InternalStudentGradeData & {
         consolidatedGrades: Record<string, ConsolidatedStudentGrade>;
         finalSituation?: 'PROMOTED' | 'RECOVERY' | 'RETAINED' | 'TRANSFERRED' | 'WITHDRAWN' | null;
+        failedAreasCount?: number;
+        finalSituationIsProvisional?: boolean;
       }
     >;
     unmappedCompetences: UnmappedCompetenceAlert[];
@@ -662,7 +670,7 @@ export class SiagieConsolidatorService {
               Math.round(
                 (contributingScores.reduce((acc, val) => acc + val, 0) / contributingScores.length) * 10,
               ) / 10;
-            const letter = scoreToLetter(avg);
+            const letter = scoreToLetter(avg, thresholds);
 
             let rawConc = contributingConclusions.join('. ');
             if (letter === 'C' && !rawConc.trim()) {
@@ -703,7 +711,7 @@ export class SiagieConsolidatorService {
           !isInactive && validCompScores.length > 0
             ? Math.round((validCompScores.reduce((a, b) => a + b, 0) / validCompScores.length) * 10) / 10
             : null;
-        const letter = scoreToLetter(periodScore);
+        const letter = scoreToLetter(periodScore, thresholds);
 
         consolidatedGrades[mother.code] = {
           periodScore,
@@ -712,55 +720,30 @@ export class SiagieConsolidatorService {
         };
       });
 
-      // 4. Regla Oficial de Situación Final SIAGIE
-      let finalSituation: 'PROMOTED' | 'RECOVERY' | 'RETAINED' | 'TRANSFERRED' | 'WITHDRAWN' | null = null;
-      if (st.enrollmentState === 'WITHDRAWN') {
-        finalSituation = 'WITHDRAWN';
-      } else if (st.enrollmentState === 'TRANSFERRED') {
-        finalSituation = 'TRANSFERRED';
-      } else {
-        const edLevel = (classroomInfo?.educationLevel || '').toUpperCase();
-        const gradeStr = String(classroomInfo?.grade ?? '').trim().toLowerCase();
-        const isAutomaticPromotion =
-          edLevel === 'INITIAL' ||
-          (edLevel === 'PRIMARY' && ['1', '1°', '1ro', 'primero'].includes(gradeStr));
-
-        if (isAutomaticPromotion) {
-          finalSituation = 'PROMOTED';
-        } else {
-          // Evaluar áreas desaprobadas según regla oficial: cCount > totalComp / 2
-          let failedAreasCount = 0;
-          let totalCCompetences = 0;
-
-          Object.values(consolidatedGrades).forEach((areaGrade) => {
-            const compList = Object.values(areaGrade.competences).filter(
-              (c): c is typeof c & { letter: 'AD' | 'A' | 'B' | 'C' } =>
-                c.letter === 'AD' || c.letter === 'A' || c.letter === 'B' || c.letter === 'C',
-            );
-            const totalComp = compList.length;
-            if (totalComp > 0) {
-              const cCount = compList.filter((c) => c.letter === 'C').length;
-              totalCCompetences += cCount;
-              if (cCount > totalComp / 2) {
-                failedAreasCount++;
-              }
-            }
-          });
-
-          if (failedAreasCount >= 4) {
-            finalSituation = 'RETAINED';
-          } else if (failedAreasCount < 4 && totalCCompetences >= 1) {
-            finalSituation = 'RECOVERY';
-          } else {
-            finalSituation = 'PROMOTED';
-          }
-        }
-      }
+      // 4. Situación final SUGERIDA (requiere confirmación de Dirección)
+      const areasForRules = Object.entries(consolidatedGrades).map(([areaCode, areaGrade]) => ({
+        areaCode,
+        letters: Object.values(areaGrade.competences)
+          .map((c) => c.letter)
+          .filter((l): l is 'AD' | 'A' | 'B' | 'C' => l === 'AD' || l === 'A' || l === 'B' || l === 'C'),
+      }));
+      const evaluation = evaluateFinalSituation(
+        {
+          educationLevel: String(classroomInfo?.educationLevel ?? ''),
+          grade: Number(classroomInfo?.grade ?? 0),
+          enrollmentState: st.enrollmentState ?? 'REGISTERED',
+          areas: areasForRules,
+        },
+        promotionRules,
+      );
+      const finalSituation = evaluation.situation;
 
       return {
         ...st,
         orderIndex: idx + 1,
         finalSituation,
+        failedAreasCount: evaluation.failedAreasCount,
+        finalSituationIsProvisional: true,
         consolidatedGrades,
       };
     });

@@ -18,7 +18,7 @@ interface SchoolFormValues {
   department: string;
   province: string;
   district: string;
-  blockGradesOnOverdue: boolean;
+  blockCertificatesOnOverdue: boolean;
 }
 
 export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
@@ -42,7 +42,7 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
         department: school.department || '',
         province: school.province || '',
         district: school.district || '',
-        blockGradesOnOverdue: school.blockGradesOnOverdue ?? false,
+        blockCertificatesOnOverdue: school.blockCertificatesOnOverdue ?? false,
       });
     }
   }, [school, reset]);
@@ -212,21 +212,21 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
               </div>
             </div>
 
-            {/* Control de Morosidad y Bloqueo de Libretas */}
+            {/* Retener constancias oficiales por deuda vencida (Ley 27665) */}
             <div className="p-4 rounded-xl bg-card border border-border space-y-2">
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-0.5">
                   <label className="text-xs font-bold text-foreground flex items-center gap-1.5 cursor-pointer">
                     <ShieldAlert className="w-4 h-4 text-amber-500" />
-                    <span>Bloqueo de Libretas por Morosidad</span>
+                    <span>Retener constancias oficiales por deuda vencida</span>
                   </label>
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Restringe automáticamente la consulta de notas y la descarga de libretas a estudiantes y familias con pensiones o cuotas vencidas. Los directores y profesores siempre podrán ver las notas.
+                    Conforme a la Ley 27665, solo se pueden retener constancias y certificados de periodos no pagados. Las notas, la libreta y la asistencia SIEMPRE permanecen visibles para las familias.
                   </p>
                 </div>
                 <input
                   type="checkbox"
-                  {...register('blockGradesOnOverdue')}
+                  {...register('blockCertificatesOnOverdue')}
                   className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary cursor-pointer mt-0.5"
                 />
               </div>

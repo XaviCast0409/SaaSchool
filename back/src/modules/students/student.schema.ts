@@ -60,7 +60,7 @@ export const createStudentSchema = z
     studentCode: z
       .string()
       .trim()
-      .regex(/^\d{8,14}$/, 'El código SIAGIE debe constar de entre 8 y 14 dígitos numéricos')
+      .regex(/^\d{14}$/, 'El código de estudiante SIAGIE debe tener exactamente 14 dígitos')
       .optional()
       .nullable()
       .or(z.literal('')),
@@ -107,7 +107,7 @@ export const updateStudentSchema = z
     hasDisability: z.boolean().optional(),
     disabilityType: z.string().trim().optional().nullable().or(z.literal('')),
     address: z.string().trim().optional().nullable().or(z.literal('')),
-    studentCode: z.string().trim().regex(/^\d{8,14}$/, 'El código SIAGIE debe constar de entre 8 y 14 dígitos numéricos').optional().nullable().or(z.literal('')),
+    studentCode: z.string().trim().regex(/^\d{14}$/, 'El código de estudiante SIAGIE debe tener exactamente 14 dígitos').optional().nullable().or(z.literal('')),
   })
   .superRefine((data, ctx) => {
     if (data.documentId && data.documentId.trim().length > 0) {
