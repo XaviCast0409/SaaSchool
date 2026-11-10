@@ -1,0 +1,22 @@
+# Archivos comprimidos (pueden contener .env y credenciales)
+*.rar
+*.zip
+*.7z
+
+# Variables de entorno
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Archivos subidos y almacenamiento local de desarrollo
+back/uploads/
+back/storage-local/
+
+# Credenciales
+**/google-credentials*.json
+**/credentials*.json
+**/*.pem
+
+# Respaldos
+back/backups/
+*.dump

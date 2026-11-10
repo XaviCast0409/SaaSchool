@@ -31,8 +31,8 @@ services:
       - key: PASS_EMAIL
         sync: false
       - key: VAPID_PUBLIC_KEY
-        value: BDycXn1jX1LXpQl2Adj-7gSn6FmG5pk5doNB_YYR3lKCDHBMv-0OpacqwUoXByoXxdfsG1GpcIgYxgVeenz9sFc
+        sync: false
       - key: VAPID_PRIVATE_KEY
-        value: lGd3yRSQ4Dt0txdXBLZ_jD83Fldw0rIN40nvds8jad4
+        sync: false
       - key: VAPID_SUBJECT
-        value: mailto:soporte@saaschool.com
+        sync: false
