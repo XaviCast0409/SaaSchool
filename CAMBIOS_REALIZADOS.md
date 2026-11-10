@@ -109,3 +109,4 @@ Entre ellos destacan:
 4. Crear la base de datos y backend en Render usando `render.yaml`.
 5. Desplegar el frontend en Cloudflare Pages conectando el repositorio GitHub.
 6. Revisar con asesoría legal y la dirección del colegio piloto los términos, políticas de privacidad y reglas de promoción académica de la RVM 094-2020-MINEDU.
+

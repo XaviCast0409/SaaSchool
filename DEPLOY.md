@@ -72,3 +72,4 @@ Hazlos en este orden. Los marcados con 🔴 van **antes** de conectar el primer 
     - El colegio debe inscribir su banco de datos (alumnos y familias) ante la ANPD, declarando la transferencia internacional (Render y Google, EE. UU.).
 11. 🔴 **Validación académica:** reúnete con el director del colegio piloto y revisen juntos las reglas por defecto de `promotion-rules.ts` frente al texto vigente de la RVM 094-2020-MINEDU y sus modificatorias. Si deben cambiar, se ajustan por año académico en `AcademicYear.promotionRulesConfig` (por ejemplo `{"SECONDARY":{"areaFailedWhen":"MORE_THAN_HALF_C"}}`). Pídele también las **plantillas Excel oficiales de SIAGIE** y compara columna por columna con lo que exporta el sistema.
 12. **Revisión del trabajo del agente:** lee `CAMBIOS_REALIZADOS.md`, prueba la rama `auditoria/fase-0-1` en local y, si todo está bien, haz merge a `main` y push.
+

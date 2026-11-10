@@ -49,3 +49,4 @@ export function applyBrandColor(hex?: string | null): void {
   root.style.setProperty('--primary', value);
   root.style.setProperty('--ring', value);
 }
+
