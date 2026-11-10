@@ -1024,6 +1024,7 @@ export class AttendanceRepository {
           lateToleranceTime: '08:15',
           autoCloseTime: '08:30',
           autoCloseEnabled: false,
+          lastAutoClosedOn: null,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -1071,6 +1072,7 @@ export class AttendanceRepository {
       lateToleranceTime: '08:15',
       autoCloseTime: '08:30',
       autoCloseEnabled: false,
+      lastAutoClosedOn: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

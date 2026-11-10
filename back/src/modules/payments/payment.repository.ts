@@ -357,11 +357,11 @@ export class PaymentRepository {
     const now = new Date();
 
     for (const ob of obligations) {
-      totalExpected += ob.amountDue;
-      const obPaid = ob.transactions.reduce((sum, tx) => sum + tx.amountPaid, 0);
+      totalExpected += Number(ob.amountDue);
+      const obPaid = ob.transactions.reduce((sum, tx) => sum + Number(tx.amountPaid), 0);
       totalCollected += obPaid;
 
-      const remaining = ob.amountDue - obPaid;
+      const remaining = Number(ob.amountDue) - obPaid;
       if (remaining > 0) {
         totalPending += remaining;
         if (new Date(ob.dueDate) < now && ob.status !== 'PAID') {
@@ -408,9 +408,10 @@ export class PaymentRepository {
     };
 
     for (const tx of transactions) {
-      totalCollected += tx.amountPaid;
+      const amountPaid = Number(tx.amountPaid);
+      totalCollected += amountPaid;
       if (tx.paymentMethod in byMethod) {
-        byMethod[tx.paymentMethod] += tx.amountPaid;
+        byMethod[tx.paymentMethod] += amountPaid;
       }
     }
 

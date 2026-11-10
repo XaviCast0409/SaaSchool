@@ -17,6 +17,10 @@ const USER_PUBLIC_SELECT = {
   cellphone: true,
   educationLevel: true,
   isActive: true,
+  mustChangePassword: true,
+  passwordChangedAt: true,
+  failedLoginAttempts: true,
+  lockedUntil: true,
   createdAt: true,
   updatedAt: true,
 } satisfies Prisma.UserSelect;

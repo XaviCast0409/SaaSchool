@@ -146,7 +146,8 @@ model School {
   plan            SubscriptionPlan @default(BASIC) // Plan contratado (BASIC, PRO, ENTERPRISE)
   planExpiresAt   DateTime?        // Fecha límite de vigencia del plan
   offeredLevels   EducationLevel[] @default([PRIMARY, SECONDARY]) // Niveles que opera el colegio
-  blockGradesOnOverdue Boolean         @default(false) // Bloqueo de libretas a familias morosas
+  blockCertificatesOnOverdue Boolean @default(false) @map("blockGradesOnOverdue") // Retención SOLO de constancias/certificados por deuda vencida (Ley 27665)
+  brandColor                 String? // Color primario de marca del colegio en HEX (#RRGGBB)
   receiptCounter       Int             @default(0)     // Correlativo oficial de recibos (REC-XXXXXX)
   isActive             Boolean         @default(true)
   createdAt       DateTime         @default(now())
@@ -174,6 +175,10 @@ model School {
   forumComments       ForumComment[]
   attendanceScheduleConfigs AttendanceScheduleConfig[]
   incidents           StudentIncident[]
+  storedFiles         StoredFile[]
+  auditLogs           AuditLog[]
+  legalAcceptances    LegalAcceptance[]
+  holidays            SchoolHoliday[]
 }
 
 model User {
@@ -193,6 +198,10 @@ model User {
   cellphone        String?
   educationLevel   String?      // Grado de instrucción MINEDU/SIAGIE
   isActive         Boolean      @default(true)
+  mustChangePassword  Boolean   @default(false)
+  passwordChangedAt   DateTime?
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
@@ -211,6 +220,7 @@ model User {
   incidentsAuthored StudentIncident[]   @relation("IncidentAuthor")
 
   @@index([schoolId, role])
+  @@unique([schoolId, documentId])
 }
 
 // ============================================================================
@@ -241,6 +251,9 @@ model Student {
   address            String?
   passwordHash       String?
   mustChangePassword Boolean      @default(true)
+  passwordChangedAt   DateTime?
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
 
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
@@ -282,6 +295,7 @@ model AcademicYear {
   periodType            String       @default("BIMESTER") // BIMESTER (4 periodos) o TRIMESTER (3 periodos)
   periodsConfig         Json?        // Array<{ periodNumber: number, name: string, startDate: string, endDate: string }>
   annualCalculationMode String       @default("LAST_PERIOD") // 'LAST_PERIOD' (RVM 094-2020) o 'AVERAGE'
+  promotionRulesConfig  Json?        // Overrides de reglas de situación final por nivel (ver promotion-rules.ts)
   startDate             DateTime
   endDate               DateTime
   isActive    Boolean      @default(true)
@@ -353,7 +367,7 @@ model PaymentObligation {
   enrollmentId String
   title        String           // Ej: "Pensión Marzo 2026"
   concept      String           // Ej: "PENSION", "MATRICULA"
-  amountDue    Float
+  amountDue    Decimal          @db.Decimal(10, 2)
   dueDate      DateTime
   status       ObligationStatus @default(PENDING)
   createdAt    DateTime         @default(now())
@@ -371,11 +385,11 @@ model PaymentTransaction {
   id               String        @id @default(uuid())
   schoolId         String
   obligationId     String
-  amountPaid       Float
+  amountPaid       Decimal       @db.Decimal(10, 2)
   paymentDate      DateTime      @default(now())
   paymentMethod    PaymentMethod
   operationNumber  String?
-  receiptType      String?       // BOLETA, FACTURA
+  receiptType      String?       @default("RECIBO_INTERNO") // Solo RECIBO_INTERNO hasta integrar facturación electrónica
   receiptNumber    String?
   notes            String?
 
@@ -484,6 +498,8 @@ model GradingScale {
   description    String?
 
   school         School         @relation(fields: [schoolId], references: [id])
+
+  @@unique([schoolId, level, letterGrade])
 }
 
 model EvaluationCriterion {
@@ -587,6 +603,7 @@ model AttendanceScheduleConfig {
   lateToleranceTime String                  @default("08:15")
   autoCloseTime     String                  @default("08:30")
   autoCloseEnabled  Boolean                 @default(false)
+  lastAutoClosedOn  DateTime?               @db.Date
   createdAt         DateTime                @default(now())
   updatedAt         DateTime                @updatedAt
 
@@ -780,6 +797,9 @@ model StudentIncident {
   citationDate         DateTime?  // Fecha y hora si es CITACION_PADRES
   acknowledgedAt       DateTime?  // Fecha y hora exacta en que el padre presionó "Enterado"
   acknowledgedByUserId String?
+  isViolenceCase       Boolean    @default(false) // Caso de violencia escolar (Ley 29719): debe reportarse en SíseVe
+  siseveCode           String?    // Código de caso asignado por el portal SíseVe
+  siseveReportedAt     DateTime?
   createdAt            DateTime   @default(now())
 
   school               School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
@@ -788,6 +808,94 @@ model StudentIncident {
 
   @@index([schoolId, enrollmentId])
 }
+
+// ============================================================================
+// 14. ARCHIVOS PRIVADOS
+// ============================================================================
+enum FileStorage {
+  GOOGLE_DRIVE
+  LOCAL
+}
+
+model StoredFile {
+  id           String      @id @default(uuid())
+  schoolId     String
+  uploadedById String      // userId o studentId
+  uploaderRole String
+  purpose      String      // COURSE_MATERIAL | HOMEWORK_SUBMISSION | OTHER
+  storage      FileStorage
+  driveFileId  String?     @unique
+  localPath    String?
+  fileName     String
+  mimeType     String
+  size         Int
+  createdAt    DateTime    @default(now())
+  deletedAt    DateTime?
+
+  school       School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, uploadedById, createdAt])
+}
+
+// ============================================================================
+// 15. BITÁCORA DE AUDITORÍA
+// ============================================================================
+model AuditLog {
+  id         String   @id @default(uuid())
+  schoolId   String
+  actorId    String
+  actorRole  String
+  actorEmail String?
+  action     String
+  entity     String
+  entityId   String?
+  before     Json?
+  after      Json?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  school     School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, createdAt])
+  @@index([schoolId, entity, entityId])
+}
+
+// ============================================================================
+// 16. CONSENTIMIENTOS LEGALES (Ley 29733)
+// ============================================================================
+model LegalAcceptance {
+  id           String   @id @default(uuid())
+  schoolId     String
+  userId       String?
+  studentId    String?
+  documentType String   // PRIVACY_POLICY | TERMS | MINOR_DATA_CONSENT
+  version      String
+  acceptedAt   DateTime @default(now())
+  ip           String?
+  userAgent    String?
+
+  school       School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, userId])
+  @@index([schoolId, studentId])
+}
+
+// ============================================================================
+// 17. FERIADOS / DÍAS NO LECTIVOS
+// ============================================================================
+model SchoolHoliday {
+  id        String   @id @default(uuid())
+  schoolId  String
+  date      DateTime @db.Date
+  name      String
+  createdAt DateTime @default(now())
+
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, date])
+}
+
 
 
 

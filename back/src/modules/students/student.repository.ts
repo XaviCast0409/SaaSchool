@@ -524,10 +524,9 @@ export class StudentRepository {
           : 100;
 
       const pendingObligations = activeEnrollment?.obligations || [];
-      const totalPendingAmount = pendingObligations.reduce(
-        (sum, ob) => sum + ob.amountDue,
-        0,
-      );
+      const totalPendingAmount = Math.round(
+        pendingObligations.reduce((sum, ob) => sum + Number(ob.amountDue), 0) * 100
+      ) / 100;
       const nextPendingObligation = pendingObligations[0] || null;
 
       return {

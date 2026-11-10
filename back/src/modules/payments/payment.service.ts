@@ -284,10 +284,10 @@ export class PaymentService {
     const updatedObligation = await this.getObligationById(obligation.id, schoolId);
     const totalPaid = (
       updatedObligation as PaymentObligation & { transactions: PaymentTransaction[] }
-    ).transactions.reduce((sum, tx) => sum + tx.amountPaid, 0);
+    ).transactions.reduce((sum, tx) => sum + Number(tx.amountPaid), 0);
 
     const newStatus =
-      totalPaid >= updatedObligation.amountDue
+      totalPaid >= Number(updatedObligation.amountDue)
         ? 'PAID'
         : totalPaid > 0
         ? 'PARTIAL'
@@ -325,10 +325,10 @@ export class PaymentService {
     const obligation = await this.getObligationById(transaction.obligationId, schoolId);
     const totalPaid = (
       obligation as PaymentObligation & { transactions: PaymentTransaction[] }
-    ).transactions.reduce((sum, tx) => sum + tx.amountPaid, 0);
+    ).transactions.reduce((sum, tx) => sum + Number(tx.amountPaid), 0);
 
     const newStatus =
-      totalPaid >= obligation.amountDue
+      totalPaid >= Number(obligation.amountDue)
         ? 'PAID'
         : totalPaid > 0
         ? 'PARTIAL'

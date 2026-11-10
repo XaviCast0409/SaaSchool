@@ -172,7 +172,7 @@ export class GradeService {
 
     // Bloqueo de libreta por morosidad si está habilitado por Dirección
     if (
-      rawData.student.school.blockGradesOnOverdue &&
+      rawData.student.school.blockCertificatesOnOverdue &&
       (userContext?.role === 'PARENT' || userContext?.role === 'STUDENT')
     ) {
       const overdueCount = await this.gradeRepository.countOverdueObligations(
