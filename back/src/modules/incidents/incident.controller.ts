@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { recordAudit } from '../../utils/audit.util';
 import { createIncidentSchema, incidentFilterSchema } from './incident.schema';
 import type { IncidentService } from './incident.service';
 
@@ -10,6 +11,12 @@ export class IncidentController {
     const authorId = request.user!.userId;
     const dto = createIncidentSchema.parse(request.body);
     const incident = await this.incidentService.createIncident(schoolId, authorId, dto);
+    recordAudit(request, {
+      action: 'INCIDENT_CREATED',
+      entity: 'StudentIncident',
+      entityId: incident.id,
+      after: incident,
+    });
     response.status(201).json({ status: 'success', data: incident });
   };
 

@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { recordAudit } from '../../utils/audit.util';
 import {
   bulkCreateObligationsSchema,
   createObligationSchema,
@@ -44,6 +45,12 @@ export class PaymentController {
     const schoolId = request.user!.schoolId;
     const createObligationDto = createObligationSchema.parse(request.body);
     const obligation = await this.paymentService.createObligation(schoolId, createObligationDto);
+    recordAudit(request, {
+      action: 'PAYMENT_OBLIGATION_CREATED',
+      entity: 'PaymentObligation',
+      entityId: obligation.id,
+      after: obligation,
+    });
     response.status(201).json({ status: 'success', data: obligation });
   };
 
@@ -52,6 +59,12 @@ export class PaymentController {
     const schoolId = request.user!.schoolId;
     const bulkDto = bulkCreateObligationsSchema.parse(request.body);
     const result = await this.paymentService.bulkCreateObligations(schoolId, bulkDto);
+    recordAudit(request, {
+      action: 'PAYMENT_OBLIGATIONS_BULK_CREATED',
+      entity: 'PaymentObligation',
+      entityId: null,
+      after: request.body,
+    });
     response.status(201).json({ status: 'success', data: result });
   };
 
@@ -61,6 +74,12 @@ export class PaymentController {
     const id = String(request.params.id);
     const updateDto = updateObligationSchema.parse(request.body);
     const obligation = await this.paymentService.updateObligation(id, schoolId, updateDto);
+    recordAudit(request, {
+      action: 'PAYMENT_OBLIGATION_UPDATED',
+      entity: 'PaymentObligation',
+      entityId: id,
+      after: obligation,
+    });
     response.status(200).json({ status: 'success', data: obligation });
   };
 
@@ -69,6 +88,12 @@ export class PaymentController {
     const schoolId = request.user!.schoolId;
     const id = String(request.params.id);
     const obligation = await this.paymentService.cancelObligation(id, schoolId);
+    recordAudit(request, {
+      action: 'PAYMENT_OBLIGATION_CANCELLED',
+      entity: 'PaymentObligation',
+      entityId: id,
+      after: obligation,
+    });
     response.status(200).json({ status: 'success', data: obligation });
   };
 
@@ -80,6 +105,12 @@ export class PaymentController {
       schoolId,
       createTransactionDto,
     );
+    recordAudit(request, {
+      action: 'PAYMENT_TRANSACTION_CREATED',
+      entity: 'PaymentTransaction',
+      entityId: transaction.id,
+      after: transaction,
+    });
     response.status(201).json({ status: 'success', data: transaction });
   };
 
@@ -96,6 +127,12 @@ export class PaymentController {
     const schoolId = request.user!.schoolId;
     const id = String(request.params.id);
     const transaction = await this.paymentService.deleteTransaction(id, schoolId);
+    recordAudit(request, {
+      action: 'PAYMENT_TRANSACTION_DELETED',
+      entity: 'PaymentTransaction',
+      entityId: id,
+      after: transaction,
+    });
     response.status(200).json({ status: 'success', data: transaction });
   };
 

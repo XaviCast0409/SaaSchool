@@ -20,6 +20,7 @@ import { StudentCoursesPage } from '@/features/course-contents/pages/StudentCour
 import { VirtualClassroomSupervisionPage } from '@/features/course-contents/pages/VirtualClassroomSupervisionPage';
 import { AcademicReportsPage } from '@/features/academic-reports/pages/AcademicReportsPage';
 import { IncidentsPage } from '@/features/incidents/pages/IncidentsPage';
+import { AuditLogsPage } from '@/features/audit-logs/pages/AuditLogsPage';
 import { PlanGuard } from '@/components/ui/PlanGuard';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -214,6 +215,14 @@ export const AppRouter: React.FC = () => {
             element={
               <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
                 <EvaluationCriteriaPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="/audit-logs"
+            element={
+              <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
+                <AuditLogsPage />
               </RoleGuard>
             }
           />

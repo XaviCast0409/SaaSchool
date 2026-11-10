@@ -34,7 +34,7 @@ import { uploadRouter } from './modules/uploads/upload.routes';
 import { academicReportRouter } from './modules/academic-reports/academic-report.routes';
 import { incidentRouter } from './modules/incidents/incident.routes';
 import { fileRouter } from './modules/files/file.routes';
-// TODO bloque 9: import { auditLogRouter } from './modules/audit-logs/audit-log.routes';
+import { auditLogRouter } from './modules/audit-logs/audit-log.routes';
 // TODO bloque 10: import { legalRouter } from './modules/legal/legal.routes';
 
 const app = express();
@@ -109,7 +109,7 @@ app.use(`${API_PREFIX}/uploads`, uploadRouter);
 app.use(`${API_PREFIX}/course-contents`, courseContentRouter);
 app.use(`${API_PREFIX}/academic-reports`, academicReportRouter);
 app.use(`${API_PREFIX}/incidents`, incidentRouter);
-// TODO bloque 9: app.use(`${API_PREFIX}/audit-logs`, auditLogRouter);
+app.use(`${API_PREFIX}/audit-logs`, auditLogRouter);
 // TODO bloque 10: app.use(`${API_PREFIX}/legal`, legalRouter);
 
 app.use((_req, res) => {

@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { recordAudit } from '../../utils/audit.util';
 import { createUserSchema, updateUserSchema, userFilterSchema } from './user.schema';
 import type { UserService } from './user.service';
 
@@ -29,6 +30,12 @@ export class UserController {
     const schoolId = request.user!.schoolId;
     const createUserDto = createUserSchema.parse(request.body);
     const user = await this.userService.createUser(schoolId, createUserDto);
+    recordAudit(request, {
+      action: 'USER_CREATED',
+      entity: 'User',
+      entityId: user.id,
+      after: user,
+    });
     response.status(201).json({ status: 'success', data: user });
   };
 
@@ -37,6 +44,12 @@ export class UserController {
     const id = request.params.id as string;
     const updateUserDto = updateUserSchema.parse(request.body);
     const user = await this.userService.updateUser(id, schoolId, updateUserDto);
+    recordAudit(request, {
+      action: 'USER_UPDATED',
+      entity: 'User',
+      entityId: id,
+      after: user,
+    });
     response.status(200).json({ status: 'success', data: user });
   };
 
@@ -45,6 +58,12 @@ export class UserController {
     const schoolId = request.user!.schoolId;
     const id = request.params.id as string;
     const user = await this.userService.deactivateUser(id, schoolId);
+    recordAudit(request, {
+      action: 'USER_DEACTIVATED',
+      entity: 'User',
+      entityId: id,
+      after: null,
+    });
     response.status(200).json({ status: 'success', data: user });
   };
 
@@ -61,6 +80,12 @@ export class UserController {
     const id = request.params.id as string;
     const { newPassword } = request.body || {};
     const result = await this.userService.resetPassword(id, schoolId, newPassword);
+    recordAudit(request, {
+      action: 'USER_PASSWORD_RESET',
+      entity: 'User',
+      entityId: id,
+      after: null,
+    });
     response.status(200).json({ status: 'success', data: result });
   };
 }

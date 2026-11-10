@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { recordAudit } from '../../utils/audit.util';
 import { createEnrollmentSchema, updateEnrollmentSchema } from './enrollment.schema';
 import type { EnrollmentService } from './enrollment.service';
 
@@ -25,6 +26,12 @@ export class EnrollmentController {
       schoolId,
       createEnrollmentDto,
     );
+    recordAudit(request, {
+      action: 'ENROLLMENT_CREATED',
+      entity: 'Enrollment',
+      entityId: enrollment.id,
+      after: enrollment,
+    });
     response.status(201).json({ status: 'success', data: enrollment });
   };
 
@@ -33,6 +40,12 @@ export class EnrollmentController {
     const id = request.params.id as string;
     const updateEnrollmentDto = updateEnrollmentSchema.parse(request.body);
     const enrollment = await this.enrollmentService.updateEnrollment(id, schoolId, updateEnrollmentDto);
+    recordAudit(request, {
+      action: 'ENROLLMENT_UPDATED',
+      entity: 'Enrollment',
+      entityId: id,
+      after: enrollment,
+    });
     response.status(200).json({ status: 'success', data: enrollment });
   };
 }

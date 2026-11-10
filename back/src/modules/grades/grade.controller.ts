@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { recordAudit } from '../../utils/audit.util';
 import {
   createCriterionSchema,
   updateCriterionSchema,
@@ -37,6 +38,12 @@ export class GradeController {
     const schoolId = request.user!.schoolId;
     const dto = createCriterionSchema.parse(request.body);
     const criterion = await this.gradeService.createCriterion(schoolId, dto);
+    recordAudit(request, {
+      action: 'GRADES_CREATE_CRITERION',
+      entity: 'Grades',
+      entityId: criterion.id,
+      after: request.body,
+    });
     response.status(201).json({ status: 'success', data: criterion });
   };
 
@@ -45,6 +52,12 @@ export class GradeController {
     const id = request.params.id as string;
     const dto = updateCriterionSchema.parse(request.body);
     const updated = await this.gradeService.updateCriterion(schoolId, id, dto);
+    recordAudit(request, {
+      action: 'GRADES_UPDATE_CRITERION',
+      entity: 'Grades',
+      entityId: id,
+      after: request.body,
+    });
     response.status(200).json({ status: 'success', data: updated });
   };
 
@@ -52,6 +65,12 @@ export class GradeController {
     const schoolId = request.user!.schoolId;
     const id = request.params.id as string;
     await this.gradeService.deleteCriterion(schoolId, id);
+    recordAudit(request, {
+      action: 'GRADES_DELETE_CRITERION',
+      entity: 'Grades',
+      entityId: id,
+      after: null,
+    });
     response.status(200).json({ status: 'success', message: 'Criterio desactivado correctamente.' });
   };
 
@@ -85,6 +104,12 @@ export class GradeController {
     };
     const dto = batchSaveGradesSchema.parse(request.body);
     const result = await this.gradeService.saveBatchGrades(schoolId, dto, userContext);
+    recordAudit(request, {
+      action: 'GRADES_SAVE_BATCH_GRADES',
+      entity: 'Grades',
+      entityId: dto.courseAssignmentId ?? null,
+      after: request.body,
+    });
     response.status(200).json({ status: 'success', data: result });
   };
 
@@ -113,6 +138,12 @@ export class GradeController {
     };
     const dto = batchSaveConclusionsSchema.parse(request.body);
     const result = await this.gradeService.saveBatchConclusions(schoolId, dto, userContext);
+    recordAudit(request, {
+      action: 'GRADES_SAVE_BATCH_CONCLUSIONS',
+      entity: 'Grades',
+      entityId: dto.courseAssignmentId ?? null,
+      after: request.body,
+    });
     response.status(200).json({ status: 'success', data: result });
   };
 
@@ -160,6 +191,12 @@ export class GradeController {
       role: request.user!.role,
     };
     const result = await this.gradeService.syncHomeworkToMatrix(schoolId, userContext, dto);
+    recordAudit(request, {
+      action: 'GRADES_SYNC_HOMEWORK_TO_MATRIX',
+      entity: 'Grades',
+      entityId: dto.courseAssignmentId ?? null,
+      after: request.body,
+    });
     response.status(200).json({
       status: 'success',
       data: result,
@@ -187,6 +224,12 @@ export class GradeController {
     };
     const dto = togglePeriodLockSchema.parse(request.body);
     const lock = await this.gradeService.togglePeriodLock(schoolId, dto, userContext);
+    recordAudit(request, {
+      action: 'GRADING_PERIOD_LOCK_TOGGLED',
+      entity: 'GradingPeriodLock',
+      entityId: null,
+      after: request.body,
+    });
     response.status(200).json({
       status: 'success',
       data: lock,
@@ -220,6 +263,12 @@ export class GradeController {
     };
     const createGradeEntryDto = createGradeEntrySchema.parse(request.body);
     const entry = await this.gradeService.createGradeEntry(createGradeEntryDto, userContext);
+    recordAudit(request, {
+      action: 'GRADES_CREATE_ENTRY',
+      entity: 'Grades',
+      entityId: (createGradeEntryDto as any)?.courseAssignmentId ?? null,
+      after: request.body,
+    });
     response.status(201).json({ status: 'success', data: entry });
   };
 
@@ -231,6 +280,12 @@ export class GradeController {
     };
     const createGradeDto = createGradeSchema.parse(request.body);
     const grade = await this.gradeService.createGrade(createGradeDto, userContext);
+    recordAudit(request, {
+      action: 'GRADES_CREATE_GRADE',
+      entity: 'Grades',
+      entityId: (createGradeDto as any)?.courseAssignmentId ?? null,
+      after: request.body,
+    });
     response.status(201).json({ status: 'success', data: grade });
   };
 
@@ -245,6 +300,12 @@ export class GradeController {
     const schoolId = request.user!.schoolId;
     const { level, AD, A, B } = gradingScaleSchema.parse(request.body);
     const data = await this.gradeService.updateGradingScale(schoolId, level as EducationLevel, { AD, A, B });
+    recordAudit(request, {
+      action: 'GRADING_SCALE_UPDATED',
+      entity: 'GradingScale',
+      entityId: null,
+      after: request.body,
+    });
     response.status(200).json({ status: 'success', data });
   };
 }

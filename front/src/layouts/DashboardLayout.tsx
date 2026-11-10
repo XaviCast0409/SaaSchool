@@ -23,6 +23,7 @@ import {
   SlidersHorizontal,
   Laptop,
   FileSpreadsheet,
+  History,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/button';
@@ -157,6 +158,13 @@ export const DashboardLayout: React.FC = () => {
           icon: FileSpreadsheet,
           roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
           minPlan: 'PRO',
+        },
+        {
+          label: 'Bitácora',
+          path: '/audit-logs',
+          icon: History,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
+          minPlan: 'BASIC',
         },
       ],
     },

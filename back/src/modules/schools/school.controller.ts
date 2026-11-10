@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { recordAudit } from '../../utils/audit.util';
 import { createSchoolSchema, updateSchoolSchema } from './school.schema';
 import type { SchoolService } from './school.service';
 import { AppError } from '../../core/errors/app-error';
@@ -46,6 +47,12 @@ export class SchoolController {
     }
 
     const school = await this.schoolService.updateSchool(id, updateSchoolDto);
+    recordAudit(request, {
+      action: 'SCHOOL_UPDATED',
+      entity: 'School',
+      entityId: id,
+      after: school,
+    });
     response.status(200).json({ status: 'success', data: school });
   };
 

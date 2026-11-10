@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { recordAudit } from '../../utils/audit.util';
 import {
   createStudentSchema,
   updateStudentSchema,
@@ -47,6 +48,13 @@ export class StudentController {
     const schoolId = request.user!.schoolId;
     const createStudentDto = createStudentSchema.parse(request.body);
     const student = await this.studentService.createStudent(schoolId, createStudentDto);
+    const { temporaryCredentials, ...after } = (student as any) || {};
+    recordAudit(request, {
+      action: 'STUDENT_CREATED',
+      entity: 'Student',
+      entityId: student.id,
+      after,
+    });
     response.status(201).json({ status: 'success', data: student });
   };
 
@@ -54,6 +62,13 @@ export class StudentController {
     const schoolId = request.user!.schoolId;
     const dto = registerFichaMatriculaSchema.parse(request.body);
     const student = await this.studentService.registerFichaMatricula(schoolId, dto);
+    const { temporaryCredentials, ...after } = (student as any) || {};
+    recordAudit(request, {
+      action: 'STUDENT_ENROLLED_FICHA',
+      entity: 'Student',
+      entityId: student.id,
+      after,
+    });
     response.status(201).json({ status: 'success', data: student });
   };
 
@@ -62,6 +77,12 @@ export class StudentController {
     const id = request.params.id as string;
     const updateStudentDto = updateStudentSchema.parse(request.body);
     const student = await this.studentService.updateStudent(id, schoolId, updateStudentDto);
+    recordAudit(request, {
+      action: 'STUDENT_UPDATED',
+      entity: 'Student',
+      entityId: id,
+      after: student,
+    });
     response.status(200).json({ status: 'success', data: student });
   };
 
@@ -69,6 +90,12 @@ export class StudentController {
     const schoolId = request.user!.schoolId;
     const id = request.params.id as string;
     await this.studentService.deleteStudent(id, schoolId);
+    recordAudit(request, {
+      action: 'STUDENT_DELETED',
+      entity: 'Student',
+      entityId: id,
+      after: null,
+    });
     response.status(204).send();
   };
 
@@ -77,6 +104,12 @@ export class StudentController {
     const id = request.params.id as string;
     const { newPassword } = request.body || {};
     const result = await this.studentService.resetPassword(id, schoolId, newPassword);
+    recordAudit(request, {
+      action: 'STUDENT_PASSWORD_RESET',
+      entity: 'Student',
+      entityId: id,
+      after: null,
+    });
     response.status(200).json({ status: 'success', data: result });
   };
 
@@ -122,6 +155,12 @@ export class StudentController {
     const schoolId = request.user!.schoolId;
     const dto = bulkCredentialsSchema.parse(request.body);
     const data = await this.studentService.generateBulkCredentials(schoolId, dto);
+    recordAudit(request, {
+      action: 'CREDENTIALS_BULK_GENERATED',
+      entity: 'Classroom',
+      entityId: dto.classroomId,
+      after: { target: dto.target, count: Array.isArray(data) ? data.length : 0 },
+    });
     response.status(200).json({ status: 'success', data });
   };
 }
