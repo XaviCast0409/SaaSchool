@@ -2,22 +2,34 @@ services:
   - type: web
     name: saaschool-backend
     runtime: node
-    plan: free
+    plan: starter
+    region: oregon
     rootDir: back
-    buildCommand: pnpm install && pnpm run render-build
+    buildCommand: pnpm install --prod=false && pnpm run render-build
     startCommand: pnpm start
     healthCheckPath: /health
+    autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: "22"
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: saaschool-db
+          property: connectionString
       - key: JWT_SECRET
         generateValue: true
+      - key: FILES_SIGNING_SECRET
+        generateValue: true
       - key: JWT_EXPIRES_IN
-        value: 7d
+        value: 12h
       - key: BCRYPT_ROUNDS
-        value: 12
+        value: "12"
+      - key: CORS_ORIGINS
+        sync: false
+      - key: PUBLIC_API_URL
+        sync: false
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET
@@ -26,9 +38,17 @@ services:
         sync: false
       - key: GOOGLE_DRIVE_FOLDER_ID
         sync: false
-      - key: USER_EMAIL
+      - key: SMTP_HOST
         sync: false
-      - key: PASS_EMAIL
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_SECURE
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
         sync: false
       - key: VAPID_PUBLIC_KEY
         sync: false
@@ -36,3 +56,13 @@ services:
         sync: false
       - key: VAPID_SUBJECT
         sync: false
+      - key: SENTRY_DSN
+        sync: false
+
+databases:
+  - name: saaschool-db
+    plan: basic-256mb
+    region: oregon
+    databaseName: saaschool
+    user: saaschool
+    postgresMajorVersion: "16"
