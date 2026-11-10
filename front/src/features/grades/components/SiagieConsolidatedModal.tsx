@@ -739,12 +739,12 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="bg-muted border-b border-border font-bold">
-                      <th className="p-3">Área Curricular / Asignatura</th>
-                      <th className="p-3">Docente Responsable</th>
-                      <th className="p-3 text-center">Competencias</th>
-                      <th className="p-3 text-center">Notas Registradas</th>
-                      <th className="p-3 text-center w-36">Progreso</th>
-                      <th className="p-3 text-center w-28">Estado</th>
+                      <th scope="col" className="p-3">Área Curricular / Asignatura</th>
+                      <th scope="col" className="p-3">Docente Responsable</th>
+                      <th scope="col" className="p-3 text-center">Competencias</th>
+                      <th scope="col" className="p-3 text-center">Notas Registradas</th>
+                      <th scope="col" className="p-3 text-center w-36">Progreso</th>
+                      <th scope="col" className="p-3 text-center w-28">Estado</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -900,9 +900,9 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
                 <table className="w-full text-left border-collapse text-xs min-w-[700px]">
                   <thead>
                     <tr className="bg-muted border-b border-border font-bold">
-                      <th className="p-2 border-r border-border text-center w-10">N°</th>
-                      <th className="p-2 border-r border-border w-28">DNI</th>
-                      <th className="p-2 border-r border-border min-w-[180px]">Apellidos y Nombres</th>
+                      <th scope="col" className="p-2 border-r border-border text-center w-10">N°</th>
+                      <th scope="col" className="p-2 border-r border-border w-28">DNI</th>
+                      <th scope="col" className="p-2 border-r border-border min-w-[180px]">Apellidos y Nombres</th>
                       {(matrixView === 'consolidated' &&
                       matrix?.consolidatedAreas &&
                       matrix.consolidatedAreas.length > 0
@@ -914,7 +914,7 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
                           return (
                             <React.Fragment key={col.id}>
                               {col.competences.map((comp: any, cIdx: number) => (
-                                <th
+                                <th scope="col"
                                   key={comp.id}
                                   className="p-1.5 border-r border-border text-center min-w-[70px] font-mono text-[10px]"
                                   title={`${col.name} - ${comp.name}`}
@@ -943,7 +943,7 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
                                   </div>
                                 </th>
                               ))}
-                              <th className="p-1.5 border-r border-border text-center min-w-[65px] bg-secondary/50 font-bold">
+                              <th scope="col" className="p-1.5 border-r border-border text-center min-w-[65px] bg-secondary/50 font-bold">
                                 <div className="flex items-center justify-center gap-1">
                                   <span>Prom</span>
                                   <button
@@ -972,7 +972,7 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
                         }
 
                         return (
-                          <th
+                          <th scope="col"
                             key={col.id}
                             className="p-2 border-r border-border text-center min-w-[85px]"
                             title={
@@ -1008,13 +1008,13 @@ export const SiagieConsolidatedModal: React.FC<SiagieConsolidatedModalProps> = (
                           </th>
                         );
                       })}
-                      <th className="p-2 text-center w-20 bg-primary/10 text-primary font-extrabold">
+                      <th scope="col" className="p-2 text-center w-20 bg-primary/10 text-primary font-extrabold">
                         Promedio
                       </th>
-                      <th className="p-2 text-center w-16 bg-primary/10 text-primary font-extrabold">
+                      <th scope="col" className="p-2 text-center w-16 bg-primary/10 text-primary font-extrabold">
                         Logro
                       </th>
-                      <th className="p-2 text-center w-36 bg-primary/10 text-primary font-extrabold">
+                      <th scope="col" className="p-2 text-center w-36 bg-primary/10 text-primary font-extrabold">
                         Situación final (sugerida)
                       </th>
                     </tr>

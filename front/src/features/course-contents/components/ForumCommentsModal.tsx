@@ -57,7 +57,7 @@ export const ForumCommentsModal: React.FC<ForumCommentsModalProps> = ({
               <p className="text-[11px] text-muted-foreground">{content.bimester}° Bimestre • Foro de Debate</p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
+          <Button variant="ghost" size="icon" aria-label="Cerrar modal" onClick={onClose} className="rounded-full">
             <X className="w-4 h-4" />
           </Button>
         </div>

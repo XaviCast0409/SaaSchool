@@ -60,6 +60,11 @@ export const updateSchoolSchema = createSchoolSchema
       .min(1, 'El colegio debe operar al menos un nivel educativo')
       .optional(),
     blockCertificatesOnOverdue: z.boolean().optional(),
+    brandColor: z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/, 'Color inválido (formato #RRGGBB)')
+      .nullable()
+      .optional(),
   })
   .partial();
 

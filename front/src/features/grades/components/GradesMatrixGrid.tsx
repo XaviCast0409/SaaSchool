@@ -924,19 +924,19 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
             <thead className="sticky top-0 z-30 bg-muted/95 backdrop-blur-sm shadow-sm border-b border-border">
               {/* Fila 1: Competencias Generales */}
               <tr>
-                <th
+                <th scope="col"
                   rowSpan={2}
                   className="sticky left-0 z-40 bg-muted border-r border-border px-1.5 py-2 text-center font-bold text-foreground w-[44px] min-w-[44px] max-w-[44px]"
                 >
                   N°
                 </th>
-                <th
+                <th scope="col"
                   rowSpan={2}
                   className="sticky left-[44px] z-40 bg-muted border-r border-border px-3 py-2 font-bold text-foreground w-[240px] min-w-[240px] max-w-[240px]"
                 >
                   Estudiante SIAGIE
                 </th>
-                <th
+                <th scope="col"
                   rowSpan={2}
                   className="sticky left-[284px] z-40 bg-secondary border-r-2 border-border shadow-[4px_0_8px_-2px_rgba(0,0,0,0.12)] px-2 py-2 text-center font-extrabold text-foreground w-[76px] min-w-[76px] max-w-[76px]"
                 >
@@ -950,7 +950,7 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
                   const isActive = (comp as any).isActive !== false;
                   const colSpanCount = criteria.length + 1; // criterios + promedio de competencia
                   return (
-                    <th
+                    <th scope="col"
                       key={comp.id}
                       colSpan={colSpanCount}
                       className={`text-center font-bold text-xs py-2 px-3 border-r border-border transition-all ${
@@ -1020,7 +1020,7 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
                   return (
                     <React.Fragment key={comp.id}>
                       {criteria.map((crit) => (
-                        <th
+                        <th scope="col"
                           key={crit.id}
                           className={`py-1.5 px-2 text-center font-bold text-[11px] border-r border-border/40 min-w-[58px] ${
                             isActive
@@ -1036,7 +1036,7 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
                           <div className="truncate">{crit.shortName}</div>
                         </th>
                       ))}
-                      <th
+                      <th scope="col"
                         className={`py-1.5 px-2 text-center font-extrabold text-[11px] border-r border-border min-w-[55px] ${
                           isActive
                             ? 'text-foreground bg-muted/80'

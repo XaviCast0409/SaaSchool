@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useParentStore } from '@/store/useParentStore';
 import { useGetMyChildren } from '@/features/students/api/useStudents';
 import { ChildSwitcher } from '../components/ChildSwitcher';
+import { FamilySnapshotCard } from '../components/FamilySnapshotCard';
 import { ChildOverviewCard } from '../components/ChildOverviewCard';
 import { ChildAttendanceCard } from '../components/ChildAttendanceCard';
 import { ChildFinancialCard } from '../components/ChildFinancialCard';
@@ -152,6 +153,11 @@ export const ParentPortalPage: React.FC = () => {
           <span>Ver Mochila del Alumno</span>
         </Button>
       </div>
+
+      {/* Resumen familiar multi-hijo */}
+      {user?.role === 'PARENT' && children.length > 0 && (
+        <FamilySnapshotCard childrenList={children} />
+      )}
 
       {/* Selector Multi-Hijo (si tiene 2 o más alumnos) */}
       <ChildSwitcher

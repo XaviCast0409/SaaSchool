@@ -17,6 +17,7 @@ export interface School {
   planExpiresAt?: string | null;
   isActive: boolean;
   blockCertificatesOnOverdue?: boolean;
+  brandColor?: string | null;
 }
 
 export interface UpdateSchoolPayload {
@@ -31,4 +32,5 @@ export interface UpdateSchoolPayload {
   plan?: SubscriptionPlan;
   planExpiresAt?: string;
   blockCertificatesOnOverdue?: boolean;
+  brandColor?: string | null;
 }

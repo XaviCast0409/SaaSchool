@@ -361,19 +361,19 @@ export const AttendanceMatrixGrid: React.FC<AttendanceMatrixGridProps> = ({
               <thead>
                 {/* Header Row 1: Days of Week */}
                 <tr className="bg-muted/80 border-b border-border text-muted-foreground font-bold uppercase text-[10px]">
-                  <th className="p-1.5 w-10 text-center sticky left-0 bg-muted/90 backdrop-blur z-10 border-r border-border">
+                  <th scope="col" className="p-1.5 w-10 text-center sticky left-0 bg-muted/90 backdrop-blur z-10 border-r border-border">
                     #
                   </th>
-                  <th className="p-1.5 min-w-[200px] sticky left-10 bg-muted/90 backdrop-blur z-10 border-r border-border">
+                  <th scope="col" className="p-1.5 min-w-[200px] sticky left-10 bg-muted/90 backdrop-blur z-10 border-r border-border">
                     Estudiante
                   </th>
-                  <th className="p-1.5 w-14 text-center border-r border-border">Sec.</th>
+                  <th scope="col" className="p-1.5 w-14 text-center border-r border-border">Sec.</th>
 
                   {daysArray.map((day) => {
                     const dayName = getDayOfWeekShort(yearNum, monthNum, day);
                     const weekend = isWeekend(yearNum, monthNum, day);
                     return (
-                      <th
+                      <th scope="col"
                         key={`dayname-${day}`}
                         className={`p-1 w-7 text-center border-r border-border text-[9px] font-bold ${
                           weekend ? 'bg-muted/90 text-muted-foreground/60' : 'text-primary'
@@ -384,26 +384,26 @@ export const AttendanceMatrixGrid: React.FC<AttendanceMatrixGridProps> = ({
                     );
                   })}
 
-                  <th colSpan={4} className="p-1 text-center bg-muted/90 border-r border-border">
+                  <th scope="col" colSpan={4} className="p-1 text-center bg-muted/90 border-r border-border">
                     Totales Mes
                   </th>
-                  <th className="p-1 text-center bg-muted/90">Exp.</th>
+                  <th scope="col" className="p-1 text-center bg-muted/90">Exp.</th>
                 </tr>
 
                 {/* Header Row 2: Date Numbers */}
                 <tr className="bg-muted/40 border-b border-border text-muted-foreground font-bold text-[10px]">
-                  <th className="p-1.5 text-center sticky left-0 bg-muted/70 backdrop-blur z-10 border-r border-border">
+                  <th scope="col" className="p-1.5 text-center sticky left-0 bg-muted/70 backdrop-blur z-10 border-r border-border">
                     N°
                   </th>
-                  <th className="p-1.5 sticky left-10 bg-muted/70 backdrop-blur z-10 border-r border-border">
+                  <th scope="col" className="p-1.5 sticky left-10 bg-muted/70 backdrop-blur z-10 border-r border-border">
                     Apellidos y Nombres
                   </th>
-                  <th className="p-1.5 text-center border-r border-border">Aula</th>
+                  <th scope="col" className="p-1.5 text-center border-r border-border">Aula</th>
 
                   {daysArray.map((day) => {
                     const weekend = isWeekend(yearNum, monthNum, day);
                     return (
-                      <th
+                      <th scope="col"
                         key={`daynum-${day}`}
                         className={`p-1 w-7 text-center border-r border-border text-[10px] font-mono ${
                           weekend ? 'bg-muted/60 text-muted-foreground/50' : 'text-foreground'
@@ -414,11 +414,11 @@ export const AttendanceMatrixGrid: React.FC<AttendanceMatrixGridProps> = ({
                     );
                   })}
 
-                  <th className="p-1.5 w-10 text-center text-emerald-600 dark:text-emerald-400">P</th>
-                  <th className="p-1.5 w-10 text-center text-destructive">FI</th>
-                  <th className="p-1.5 w-10 text-center text-amber-600">FJ</th>
-                  <th className="p-1.5 w-14 text-center font-bold">% Asist</th>
-                  <th className="p-1.5 w-10 text-center">Ver</th>
+                  <th scope="col" className="p-1.5 w-10 text-center text-emerald-600 dark:text-emerald-400">P</th>
+                  <th scope="col" className="p-1.5 w-10 text-center text-destructive">FI</th>
+                  <th scope="col" className="p-1.5 w-10 text-center text-amber-600">FJ</th>
+                  <th scope="col" className="p-1.5 w-14 text-center font-bold">% Asist</th>
+                  <th scope="col" className="p-1.5 w-10 text-center">Ver</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">

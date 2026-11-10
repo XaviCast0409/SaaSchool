@@ -84,7 +84,7 @@ export const AnnouncementCard: React.FC<AnnouncementCardProps> = ({
             size="icon"
             onClick={() => onDelete(announcement.id)}
             className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl"
-            title="Eliminar comunicado"
+            title="Eliminar comunicado" aria-label="Eliminar comunicado"
           >
             <Trash2 className="w-4 h-4" />
           </Button>

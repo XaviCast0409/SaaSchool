@@ -138,7 +138,7 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
               size="icon"
               onClick={() => onDelete(content.id)}
               className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
-              title="Eliminar publicación"
+              title="Eliminar publicación" aria-label="Eliminar publicación"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </Button>

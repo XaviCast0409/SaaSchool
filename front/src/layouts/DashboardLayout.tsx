@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   GraduationCap,
@@ -34,6 +34,7 @@ import { ChangePasswordModal } from '@/features/auth/components/ChangePasswordMo
 import { ConsentGate } from '@/features/legal/components/ConsentGate';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
 import { MobilePushBanner } from '@/features/notifications/components/MobilePushBanner';
+import { applyBrandColor } from '@/lib/brandColor';
 import { Toaster } from 'sonner';
 
 export const DashboardLayout: React.FC = () => {
@@ -45,6 +46,11 @@ export const DashboardLayout: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const { data: school } = useGetActiveSchool();
+
+  useEffect(() => {
+    applyBrandColor(school?.brandColor ?? null);
+    return () => applyBrandColor(null);
+  }, [school?.brandColor]);
 
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const isImpersonating = !!impersonatedSchool;
@@ -355,7 +361,7 @@ export const DashboardLayout: React.FC = () => {
           ) : (isImpersonating ? impersonatedSchool.logoUrl : school?.logoUrl) ? (
             <img
               src={(isImpersonating ? impersonatedSchool.logoUrl : school?.logoUrl)!}
-              alt="Logo"
+              alt={isImpersonating ? impersonatedSchool.name : (school?.name || 'Logo institucional')}
               className="w-7 h-7 object-contain rounded-md"
             />
           ) : (
@@ -371,7 +377,12 @@ export const DashboardLayout: React.FC = () => {
         </div>
         <div className="flex items-center gap-1.5">
           <NotificationBell />
-          <Button variant="ghost" size="icon" onClick={() => setIsMobileOpen(!isMobileOpen)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={isMobileOpen ? 'Cerrar menú lateral' : 'Abrir menú lateral'}
+            onClick={() => setIsMobileOpen(!isMobileOpen)}
+          >
             {isMobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </Button>
         </div>

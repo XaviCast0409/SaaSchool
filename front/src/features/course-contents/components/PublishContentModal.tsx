@@ -151,7 +151,7 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
             <h2 className="text-lg font-bold text-foreground">Publicar en Aula Virtual</h2>
             <p className="text-xs text-muted-foreground">{courseTitle}</p>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
+          <Button variant="ghost" size="icon" aria-label="Cerrar modal" onClick={onClose} className="rounded-full">
             <X className="w-4 h-4" />
           </Button>
         </div>

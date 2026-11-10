@@ -63,7 +63,7 @@ export const CourseTimelineModal: React.FC<CourseTimelineModalProps> = ({
               </div>
             </div>
 
-            <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
+            <Button variant="ghost" size="icon" aria-label="Cerrar modal" onClick={onClose} className="rounded-full">
               <X className="w-4 h-4" />
             </Button>
           </div>

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { X, School as SchoolIcon, Save, Loader2, Lock, ShieldAlert } from 'lucide-react';
+import { X, School as SchoolIcon, Save, Loader2, Lock, ShieldAlert, Palette, RotateCcw } from 'lucide-react';
 import { useGetActiveSchool, useUpdateSchool } from '../api/useSchool';
 import { toast } from 'sonner';
 
@@ -19,6 +19,7 @@ interface SchoolFormValues {
   province: string;
   district: string;
   blockCertificatesOnOverdue: boolean;
+  brandColor?: string | null;
 }
 
 export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
@@ -28,8 +29,9 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
   const { data: school, isLoading } = useGetActiveSchool();
   const { mutateAsync: updateSchool, isPending } = useUpdateSchool();
 
-  const { register, handleSubmit, reset, watch } = useForm<SchoolFormValues>();
+  const { register, handleSubmit, reset, watch, setValue } = useForm<SchoolFormValues>();
   const logoUrlValue = watch('logoUrl');
+  const brandColorValue = watch('brandColor');
 
   useEffect(() => {
     if (school) {
@@ -43,6 +45,7 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
         province: school.province || '',
         district: school.district || '',
         blockCertificatesOnOverdue: school.blockCertificatesOnOverdue ?? false,
+        brandColor: school.brandColor || null,
       });
     }
   }, [school, reset]);
@@ -54,9 +57,18 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
       const sanitizedPayload = Object.fromEntries(
         Object.entries(values).map(([key, val]) => [
           key,
-          typeof val === 'string' ? (val.trim() === '' ? undefined : val) : val,
-        ])
+          typeof val === 'string'
+            ? val.trim() === ''
+              ? key === 'brandColor'
+                ? null
+                : undefined
+              : val
+            : val,
+        ]),
       );
+      if (values.brandColor === null) {
+        sanitizedPayload.brandColor = null;
+      }
       await updateSchool(sanitizedPayload);
       toast.success('🏫 Datos y configuración de la institución guardados correctamente.');
       onClose();
@@ -67,15 +79,21 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="school-settings-title"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200"
+    >
       <div className="relative w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
         <div className="flex items-center justify-between pb-4 border-b border-border">
-          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+          <h2 id="school-settings-title" className="text-xl font-bold text-foreground flex items-center gap-2">
             <SchoolIcon className="w-5 h-5 text-primary" />
             Ajustes de la Institución Educativa
           </h2>
           <button
             onClick={onClose}
+            aria-label="Cerrar ajustes de la institución"
             className="rounded-lg p-1 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
           >
             <X className="w-5 h-5" />
@@ -98,7 +116,7 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
                 {logoUrlValue ? (
                   <img
                     src={logoUrlValue}
-                    alt="Logo del colegio"
+                    alt="Logo institucional del colegio"
                     className="w-full h-full object-contain p-1"
                     onError={(e) => {
                       (e.target as HTMLElement).style.display = 'none';
@@ -110,11 +128,12 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
               </div>
 
               <div className="w-full">
-                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                <label htmlFor="school-logo-url" className="block text-xs font-medium text-muted-foreground mb-1">
                   URL del Logo (Cloudinary / HTTPS)
                 </label>
                 <div className="flex gap-2">
                   <input
+                    id="school-logo-url"
                     type="url"
                     placeholder="https://res.cloudinary.com/..."
                     {...register('logoUrl')}
@@ -127,11 +146,66 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
               </div>
             </div>
 
+            {/* Color Institucional */}
+            <div className="p-4 rounded-xl bg-secondary/30 border border-border space-y-3">
+              <div className="flex items-center justify-between">
+                <label htmlFor="school-brand-color" className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
+                  <Palette className="w-4 h-4 text-primary" />
+                  Color institucional
+                </label>
+                {brandColorValue && (
+                  <button
+                    type="button"
+                    onClick={() => setValue('brandColor', null, { shouldDirty: true })}
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    Restablecer
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <input
+                  id="school-brand-color"
+                  type="color"
+                  aria-label="Selector de color institucional"
+                  value={brandColorValue || '#5046e5'}
+                  onChange={(e) => setValue('brandColor', e.target.value, { shouldDirty: true })}
+                  className="w-10 h-10 rounded-lg cursor-pointer border border-border bg-transparent p-0.5"
+                />
+                <input
+                  type="text"
+                  placeholder="#5046e5 (por defecto)"
+                  aria-label="Código hexadecimal del color institucional"
+                  value={brandColorValue || ''}
+                  onChange={(e) => setValue('brandColor', e.target.value || null, { shouldDirty: true })}
+                  className="w-36 rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <div className="flex-1 flex justify-end">
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    style={{
+                      backgroundColor: brandColorValue || '#5046e5',
+                      color: '#ffffff',
+                    }}
+                    className="px-4 py-1.5 rounded-lg text-xs font-semibold shadow-sm pointer-events-none transition-colors"
+                  >
+                    Vista previa
+                  </button>
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Personaliza el color primario de los botones, bordes y acentos visuales de la plataforma para tu colegio.
+              </p>
+            </div>
+
             <div>
-              <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
+              <label htmlFor="school-name-input" className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
                 Nombre de la Institución Educativa *
               </label>
               <input
+                id="school-name-input"
                 type="text"
                 {...register('name', { required: true })}
                 className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
@@ -140,10 +214,11 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
+                <label htmlFor="school-phone-input" className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
                   Teléfono / Celular de Contacto
                 </label>
                 <input
+                  id="school-phone-input"
                   type="text"
                   placeholder="912345678"
                   {...register('phone')}
@@ -152,10 +227,11 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
+                <label htmlFor="school-email-input" className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
                   Email Institucional
                 </label>
                 <input
+                  id="school-email-input"
                   type="email"
                   placeholder="contacto@colegio.edu.pe"
                   {...register('email')}
@@ -165,10 +241,11 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
+              <label htmlFor="school-address-input" className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
                 Dirección del Colegio
               </label>
               <input
+                id="school-address-input"
                 type="text"
                 placeholder="Av. Los Educadores 123"
                 {...register('address')}
@@ -178,10 +255,11 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
 
             <div className="grid grid-cols-3 gap-2">
               <div>
-                <label className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">
+                <label htmlFor="school-dep-input" className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">
                   Departamento
                 </label>
                 <input
+                  id="school-dep-input"
                   type="text"
                   placeholder="LIMA"
                   {...register('department')}
@@ -189,10 +267,11 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">
+                <label htmlFor="school-prov-input" className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">
                   Provincia
                 </label>
                 <input
+                  id="school-prov-input"
                   type="text"
                   placeholder="LIMA"
                   {...register('province')}
@@ -200,10 +279,11 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">
+                <label htmlFor="school-dist-input" className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">
                   Distrito
                 </label>
                 <input
+                  id="school-dist-input"
                   type="text"
                   placeholder="MIRAFLORES"
                   {...register('district')}
@@ -216,7 +296,7 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
             <div className="p-4 rounded-xl bg-card border border-border space-y-2">
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-0.5">
-                  <label className="text-xs font-bold text-foreground flex items-center gap-1.5 cursor-pointer">
+                  <label htmlFor="school-block-cert" className="text-xs font-bold text-foreground flex items-center gap-1.5 cursor-pointer">
                     <ShieldAlert className="w-4 h-4 text-amber-500" />
                     <span>Retener constancias oficiales por deuda vencida</span>
                   </label>
@@ -225,6 +305,7 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
                   </p>
                 </div>
                 <input
+                  id="school-block-cert"
                   type="checkbox"
                   {...register('blockCertificatesOnOverdue')}
                   className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary cursor-pointer mt-0.5"

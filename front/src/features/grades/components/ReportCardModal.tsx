@@ -469,13 +469,13 @@ export const ReportCardModal: React.FC<ReportCardModalProps> = ({
                   <thead>
                     {/* Fila 1 de Encabezado */}
                     <tr className="bg-muted border-b border-border text-center font-bold print:bg-gray-100 print:border-black">
-                      <th
+                      <th scope="col"
                         rowSpan={2}
                         className="p-1.5 text-left font-bold border-r border-border min-w-[130px] w-36 print:border-black"
                       >
                         Área curricular
                       </th>
-                      <th
+                      <th scope="col"
                         rowSpan={2}
                         className="p-1.5 text-left font-bold border-r border-border min-w-[170px] print:border-black"
                       >
@@ -483,27 +483,27 @@ export const ReportCardModal: React.FC<ReportCardModalProps> = ({
                       </th>
 
                       {/* 1° Bimestre */}
-                      <th colSpan={showConclusionsFormat ? 2 : 1} className="p-1 border-r border-border print:border-black">
+                      <th scope="col" colSpan={showConclusionsFormat ? 2 : 1} className="p-1 border-r border-border print:border-black">
                         PRIMER BIMESTRE
                       </th>
 
                       {/* 2° Bimestre */}
-                      <th colSpan={showConclusionsFormat ? 2 : 1} className="p-1 border-r border-border print:border-black">
+                      <th scope="col" colSpan={showConclusionsFormat ? 2 : 1} className="p-1 border-r border-border print:border-black">
                         SEGUNDO BIMESTRE
                       </th>
 
                       {/* 3° Bimestre */}
-                      <th colSpan={showConclusionsFormat ? 2 : 1} className="p-1 border-r border-border print:border-black">
+                      <th scope="col" colSpan={showConclusionsFormat ? 2 : 1} className="p-1 border-r border-border print:border-black">
                         TERCER BIMESTRE
                       </th>
 
                       {/* 4° Bimestre */}
-                      <th colSpan={showConclusionsFormat ? 2 : 1} className="p-1 border-r border-border print:border-black">
+                      <th scope="col" colSpan={showConclusionsFormat ? 2 : 1} className="p-1 border-r border-border print:border-black">
                         CUARTO BIMESTRE
                       </th>
 
                       {/* Logro Final */}
-                      <th
+                      <th scope="col"
                         rowSpan={2}
                         className="p-1.5 text-center font-black border-l border-border w-16 bg-primary/10 text-primary print:border-black print:text-black"
                       >
@@ -514,33 +514,33 @@ export const ReportCardModal: React.FC<ReportCardModalProps> = ({
                     {/* Fila 2 de Sub-encabezados */}
                     <tr className="bg-muted/70 border-b border-border text-center font-bold print:bg-gray-50 print:border-black text-[10px] print:text-[8px]">
                       {/* 1° Bimestre */}
-                      <th className="p-1 border-r border-border w-8 print:border-black">NL</th>
+                      <th scope="col" className="p-1 border-r border-border w-8 print:border-black">NL</th>
                       {showConclusionsFormat && (
-                        <th className="p-1 border-r border-border min-w-[110px] print:border-black">
+                        <th scope="col" className="p-1 border-r border-border min-w-[110px] print:border-black">
                           Conclusión descriptiva
                         </th>
                       )}
 
                       {/* 2° Bimestre */}
-                      <th className="p-1 border-r border-border w-8 print:border-black">NL</th>
+                      <th scope="col" className="p-1 border-r border-border w-8 print:border-black">NL</th>
                       {showConclusionsFormat && (
-                        <th className="p-1 border-r border-border min-w-[110px] print:border-black">
+                        <th scope="col" className="p-1 border-r border-border min-w-[110px] print:border-black">
                           Conclusión descriptiva
                         </th>
                       )}
 
                       {/* 3° Bimestre */}
-                      <th className="p-1 border-r border-border w-8 print:border-black">NL</th>
+                      <th scope="col" className="p-1 border-r border-border w-8 print:border-black">NL</th>
                       {showConclusionsFormat && (
-                        <th className="p-1 border-r border-border min-w-[110px] print:border-black">
+                        <th scope="col" className="p-1 border-r border-border min-w-[110px] print:border-black">
                           Conclusión descriptiva
                         </th>
                       )}
 
                       {/* 4° Bimestre */}
-                      <th className="p-1 border-r border-border w-8 print:border-black">NL</th>
+                      <th scope="col" className="p-1 border-r border-border w-8 print:border-black">NL</th>
                       {showConclusionsFormat && (
-                        <th className="p-1 border-r border-border min-w-[110px] print:border-black">
+                        <th scope="col" className="p-1 border-r border-border min-w-[110px] print:border-black">
                           Conclusión descriptiva
                         </th>
                       )}
@@ -745,12 +745,12 @@ export const ReportCardModal: React.FC<ReportCardModalProps> = ({
                       <table className="w-full text-center text-[10px] print:text-[8px] font-mono border-collapse">
                         <thead>
                           <tr className="bg-muted/50 border-b border-border print:border-black font-bold">
-                            <th className="p-1 text-left font-sans">Periodo</th>
-                            <th className="p-1">Asist.</th>
-                            <th className="p-1" title="Inasistencia Justificada">IJ</th>
-                            <th className="p-1" title="Inasistencia Injustificada">II</th>
-                            <th className="p-1" title="Tardanza Justificada">TJ</th>
-                            <th className="p-1" title="Tardanza Injustificada">TI</th>
+                            <th scope="col" className="p-1 text-left font-sans">Periodo</th>
+                            <th scope="col" className="p-1">Asist.</th>
+                            <th scope="col" className="p-1" title="Inasistencia Justificada">IJ</th>
+                            <th scope="col" className="p-1" title="Inasistencia Injustificada">II</th>
+                            <th scope="col" className="p-1" title="Tardanza Justificada">TJ</th>
+                            <th scope="col" className="p-1" title="Tardanza Injustificada">TI</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-border/60 print:divide-black">

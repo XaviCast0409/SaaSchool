@@ -465,12 +465,12 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
           <table className="w-full text-xs text-left border-collapse min-w-[700px]">
             <thead>
               <tr className="bg-muted/50 border-b border-border text-muted-foreground font-bold uppercase text-[11px]">
-                <th className="p-3 w-12 text-center">#</th>
-                <th className="p-3">Apellidos y Nombres</th>
-                <th className="p-3 w-40 text-center">Portería / QR</th>
-                <th className="p-3 text-center min-w-[280px]">Pase de Lista (1 Clic)</th>
-                <th className="p-3 w-24 text-center">Obs.</th>
-                <th className="p-3 w-28 text-center">Incidencia</th>
+                <th scope="col" className="p-3 w-12 text-center">#</th>
+                <th scope="col" className="p-3">Apellidos y Nombres</th>
+                <th scope="col" className="p-3 w-40 text-center">Portería / QR</th>
+                <th scope="col" className="p-3 text-center min-w-[280px]">Pase de Lista (1 Clic)</th>
+                <th scope="col" className="p-3 w-24 text-center">Obs.</th>
+                <th scope="col" className="p-3 w-28 text-center">Incidencia</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">

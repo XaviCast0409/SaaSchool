@@ -272,12 +272,12 @@ export const ParentGradesView: React.FC = () => {
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-border bg-muted/40 text-muted-foreground font-bold">
-                  <th className="p-3.5 text-left min-w-[200px]">Área Curricular / Asignatura</th>
-                  <th className="p-3.5 text-center w-16">1° Bim</th>
-                  <th className="p-3.5 text-center w-16">2° Bim</th>
-                  <th className="p-3.5 text-center w-16">3° Bim</th>
-                  <th className="p-3.5 text-center w-16">4° Bim</th>
-                  <th className="p-3.5 text-center w-24">Promedio Anual</th>
+                  <th scope="col" className="p-3.5 text-left min-w-[200px]">Área Curricular / Asignatura</th>
+                  <th scope="col" className="p-3.5 text-center w-16">1° Bim</th>
+                  <th scope="col" className="p-3.5 text-center w-16">2° Bim</th>
+                  <th scope="col" className="p-3.5 text-center w-16">3° Bim</th>
+                  <th scope="col" className="p-3.5 text-center w-16">4° Bim</th>
+                  <th scope="col" className="p-3.5 text-center w-24">Promedio Anual</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
