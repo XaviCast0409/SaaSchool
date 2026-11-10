@@ -26,7 +26,7 @@ function findPgDump(): string {
 }
 
 // 2. Subir a Google Drive
-async function uploadToGoogleDrive(filePath: string, fileName: string): Promise<{ fileId: string; folderName: string }> {
+async function uploadToGoogleDrive(filePath: string, fileName: string): Promise<{ fileId: string; folderName: string; folderId: string }> {
   const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
   const refreshToken = process.env.GOOGLE_REFRESH_TOKEN?.trim();
@@ -85,7 +85,27 @@ async function uploadToGoogleDrive(filePath: string, fileName: string): Promise<
   return {
     fileId: uploadRes.data.id || 'OK',
     folderName,
+    folderId: targetFolderId || '',
   };
+}
+
+async function pruneOldBackups(folderId: string, retentionDays: number): Promise<number> {
+  const oauth2Client = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
+  oauth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
+  const drive = google.drive({ version: 'v3', auth: oauth2Client });
+  const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000).toISOString();
+  const list = await drive.files.list({
+    q: `'${folderId}' in parents and name contains 'saaschool_backup_' and createdTime < '${cutoff}' and trashed = false`,
+    fields: 'files(id, name)',
+  });
+  let removed = 0;
+  for (const file of list.data.files ?? []) {
+    if (file.id) {
+      await drive.files.update({ fileId: file.id, requestBody: { trashed: true } });
+      removed++;
+    }
+  }
+  return removed;
 }
 
 async function main() {
@@ -149,9 +169,17 @@ async function main() {
       console.log(`✅ Respaldo subido a la nube correctamente:`);
       console.log(`   📁 Carpeta Drive: ${driveResult.folderName}`);
       console.log(`   🆔 ID de archivo: ${driveResult.fileId}\n`);
+
+      if (process.env.BACKUP_RETENTION_DAYS && driveResult.folderId) {
+        const removed = await pruneOldBackups(driveResult.folderId, Number(process.env.BACKUP_RETENTION_DAYS));
+        console.log(`🧹 Depuración de respaldos antiguos (> ${process.env.BACKUP_RETENTION_DAYS} días): ${removed} archivo(s) enviados a la papelera.\n`);
+      }
     } catch (cloudError: any) {
       console.warn(`⚠️  Advertencia: No se pudo subir a la nube: ${cloudError.message}`);
       console.log(`💡 Nota: Tu copia local en la PC sigue 100% segura en: ${outputPath}`);
+      if (process.env.BACKUP_STRICT === '1') {
+        process.exit(1);
+      }
     }
 
     console.log('======================================================');

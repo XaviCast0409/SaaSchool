@@ -1,0 +1,50 @@
+name: Respaldo semanal de base de datos
+
+on:
+  schedule:
+    - cron: '0 8 * * 0' # Domingos 03:00 hora de Lima (UTC-5)
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: back
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar cliente PostgreSQL 16
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client-16
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: back/pnpm-lock.yaml
+
+      - name: Instalar dependencias
+        run: pnpm install --prod=false
+
+      - name: Ejecutar respaldo
+        run: pnpm run db:backup
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_EXTERNAL }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
+          BACKUP_STRICT: '1'
+          BACKUP_RETENTION_DAYS: '90'
+
+      - name: Copia secundaria como artefacto (30 días)
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-${{ github.run_id }}
+          path: back/backups/*.dump
+          retention-days: 30
