@@ -37,7 +37,10 @@ export type SupervisionFilterDto = z.infer<typeof supervisionFilterSchema>;
 export const submitHomeworkSchema = z.object({
   studentId: z.string().uuid('studentId debe ser un UUID válido').optional().nullable(),
   enrollmentId: z.string().uuid('enrollmentId debe ser un UUID válido').optional().nullable(),
-  fileUrl: z.string().url('fileUrl debe ser una URL válida'),
+  fileUrl: z
+    .string()
+    .trim()
+    .refine((value) => value.startsWith('/api/files/') || /^https:\/\//.test(value), 'fileUrl inválido'),
   fileName: z.string().trim().min(1, 'El nombre de archivo es requerido'),
   fileSize: z.number().int().positive().optional().nullable(),
   studentComment: z.string().trim().max(1000).optional().nullable(),

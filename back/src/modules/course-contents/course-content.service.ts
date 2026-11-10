@@ -7,6 +7,7 @@ import type {
 } from './course-content.schema';
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
+import { fileStorageService } from '../files/file-storage.service';
 
 export class CourseContentService {
   constructor(private readonly repository: CourseContentRepository) {}
@@ -63,7 +64,11 @@ export class CourseContentService {
       throw new AppError('No tienes permisos para eliminar esta publicación.', 403);
     }
 
+    const submissions = await prisma.homeworkSubmission.findMany({ where: { courseContentId: id }, select: { fileUrl: true } });
+    const urlsToDelete = [content.fileUrl, ...submissions.map((s) => s.fileUrl)];
+
     await this.repository.delete(schoolId, id);
+    await Promise.all(urlsToDelete.map((u) => fileStorageService.softDeleteByUrl(u)));
     return { success: true, message: 'Publicación eliminada correctamente.' };
   }
 
@@ -210,7 +215,17 @@ export class CourseContentService {
     const now = new Date();
     const isLate = content.dueDate ? now > new Date(content.dueDate) : false;
 
-    return this.repository.upsertSubmission({
+    const existingSubmission = await prisma.homeworkSubmission.findUnique({
+      where: {
+        courseContentId_enrollmentId: {
+          courseContentId,
+          enrollmentId,
+        },
+      },
+      select: { fileUrl: true },
+    });
+
+    const result = await this.repository.upsertSubmission({
       schoolId,
       courseContentId,
       enrollmentId,
@@ -220,6 +235,12 @@ export class CourseContentService {
       studentComment: data.studentComment,
       isLate,
     });
+
+    if (existingSubmission && existingSubmission.fileUrl !== data.fileUrl) {
+      await fileStorageService.softDeleteByUrl(existingSubmission.fileUrl);
+    }
+
+    return result;
   }
 
   async getSubmissions(

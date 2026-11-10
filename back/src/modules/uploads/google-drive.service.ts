@@ -6,17 +6,10 @@ import fs from 'fs';
 import dotenv from 'dotenv';
 import { AppError } from '../../core/errors/app-error';
 
-export interface UploadResult {
-  fileId: string;
-  downloadUrl: string;
-  viewUrl: string;
-  webViewLink?: string;
-  storage: 'GOOGLE_DRIVE' | 'LOCAL';
-}
-
 export class GoogleDriveService {
   private driveClient: drive_v3.Drive | null = null;
   private folderId: string | null = null;
+  private folderCache = new Map<string, string>();
 
   constructor() {
     this.initialize();
@@ -106,75 +99,108 @@ export class GoogleDriveService {
     return Boolean(this.driveClient);
   }
 
-  /**
-   * Sube un archivo mediante stream desde disco a Google Drive sin saturar la RAM de Node.js.
-   * Envuelto en try/finally para garantizar la eliminación del archivo temporal en disco.
-   */
-  public async uploadFile(
-    filePath: string,
-    originalName: string,
-    mimeType: string
-  ): Promise<UploadResult> {
-    const targetFolderId = await this.getFolderId();
+  private async ensureFolder(parentId: string, name: string): Promise<string> {
+    const cacheKey = `${parentId}/${name}`;
+    const cached = this.folderCache.get(cacheKey);
+    if (cached) return cached;
+    if (!this.driveClient) throw new AppError('Google Drive no está configurado.', 503);
 
-    if (!this.driveClient || !targetFolderId) {
-      await fs.promises.unlink(filePath).catch(() => { });
-      throw new AppError(
-        'Google Drive no está configurado. Asegúrate de tener las credenciales y la carpeta SaaSchool compartida.',
-        500
-      );
-    }
-
-    try {
-      const stream = fs.createReadStream(filePath);
-
-      // 1. Crear el archivo en la carpeta compartida de Google Drive
-      const response = await this.driveClient.files.create({
-        requestBody: {
-          name: originalName,
-          parents: [targetFolderId],
-        },
-        media: {
-          mimeType,
-          body: stream,
-        },
-        fields: 'id, name, webViewLink, webContentLink',
+    const safeName = name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    const existing = await this.driveClient.files.list({
+      q: `'${parentId}' in parents and name = '${safeName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
+      fields: 'files(id)',
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
+    });
+    let folderId = existing.data.files?.[0]?.id ?? null;
+    if (!folderId) {
+      const created = await this.driveClient.files.create({
+        requestBody: { name, mimeType: 'application/vnd.google-apps.folder', parents: [parentId] },
+        fields: 'id',
         supportsAllDrives: true,
       });
-
-      const fileId = response.data.id;
-      if (!fileId) {
-        throw new AppError('Error al subir el archivo a Google Drive (ID no generado).', 500);
-      }
-
-      // 2. Asignar permiso público de lectura ('anyone - reader')
-      try {
-        await this.driveClient.permissions.create({
-          fileId,
-          requestBody: {
-            role: 'reader',
-            type: 'anyone',
-          },
-          supportsAllDrives: true,
-        });
-      } catch (permError) {
-        console.warn('Advertencia al asignar permisos públicos en Drive:', permError);
-      }
-
-      // 3. Generar URLs: descarga directa y visor embebido anti-bloqueo
-      const directDownloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
-      const viewUrl = `https://drive.google.com/file/d/${fileId}/view?usp=sharing`;
-
-      return {
-        fileId,
-        downloadUrl: directDownloadUrl,
-        viewUrl,
-        webViewLink: response.data.webViewLink || viewUrl,
-        storage: 'GOOGLE_DRIVE',
-      };
-    } finally {
-      await fs.promises.unlink(filePath).catch(() => { });
+      folderId = created.data.id ?? null;
     }
+    if (!folderId) throw new AppError('No se pudo crear la carpeta en Google Drive.', 500);
+    this.folderCache.set(cacheKey, folderId);
+    return folderId;
+  }
+
+  /** Sube un archivo PRIVADO (sin permisos públicos) dentro de /<raíz>/<segmentos...>. Devuelve el fileId de Drive. */
+  public async uploadPrivateFile(input: {
+    tempPath: string;
+    fileName: string;
+    mimeType: string;
+    folderPath: string[];
+  }): Promise<string> {
+    const rootId = await this.getFolderId();
+    if (!this.driveClient || !rootId) throw new AppError('Google Drive no está configurado.', 503);
+
+    let parentId = rootId;
+    for (const segment of input.folderPath) {
+      parentId = await this.ensureFolder(parentId, segment);
+    }
+
+    const response = await this.driveClient.files.create({
+      requestBody: { name: input.fileName, parents: [parentId] },
+      media: { mimeType: input.mimeType, body: fs.createReadStream(input.tempPath) },
+      fields: 'id',
+      supportsAllDrives: true,
+    });
+    if (!response.data.id) throw new AppError('Error al subir el archivo a Google Drive.', 502);
+    return response.data.id;
+  }
+
+  public async getFileStream(fileId: string): Promise<NodeJS.ReadableStream> {
+    if (!this.driveClient) throw new AppError('Google Drive no está configurado.', 503);
+    const response = await this.driveClient.files.get(
+      { fileId, alt: 'media', supportsAllDrives: true },
+      { responseType: 'stream' },
+    );
+    return response.data as unknown as NodeJS.ReadableStream;
+  }
+
+  /** Envía el archivo a la papelera de Drive (recuperable durante 30 días). */
+  public async trashFile(fileId: string): Promise<void> {
+    if (!this.driveClient) return;
+    await this.driveClient.files.update({ fileId, requestBody: { trashed: true }, supportsAllDrives: true });
+  }
+
+  public async getFileMetadata(fileId: string): Promise<{ name: string; mimeType: string; size: number; ownedByMe: boolean } | null> {
+    if (!this.driveClient) return null;
+    try {
+      const response = await this.driveClient.files.get({
+        fileId,
+        fields: 'name, mimeType, size, ownedByMe',
+        supportsAllDrives: true,
+      });
+      return {
+        name: response.data.name ?? 'archivo',
+        mimeType: response.data.mimeType ?? 'application/octet-stream',
+        size: Number(response.data.size ?? 0),
+        ownedByMe: Boolean(response.data.ownedByMe),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /** Elimina cualquier permiso público ("anyone") del archivo. */
+  public async revokePublicAccess(fileId: string): Promise<number> {
+    if (!this.driveClient) return 0;
+    const permissions = await this.driveClient.permissions.list({
+      fileId,
+      fields: 'permissions(id,type)',
+      supportsAllDrives: true,
+    });
+    let revoked = 0;
+    for (const permission of permissions.data.permissions ?? []) {
+      if (permission.type === 'anyone' && permission.id) {
+        await this.driveClient.permissions.delete({ fileId, permissionId: permission.id, supportsAllDrives: true });
+        revoked++;
+      }
+    }
+    return revoked;
   }
 }
 

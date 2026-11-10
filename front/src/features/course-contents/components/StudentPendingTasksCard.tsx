@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useGetStudentTasks } from '../api/useCourseContents';
-import { getDirectDownloadUrl } from '../utils/fileUrls';
+import { openFile } from '../utils/fileUrls';
 
 interface StudentPendingTasksCardProps {
   studentId?: string | null;
@@ -128,16 +128,14 @@ export const StudentPendingTasksCard: React.FC<StudentPendingTasksCardProps> = (
 
                     <div className="flex items-center gap-2">
                       {hw.fileUrl && (
-                        <a
-                          href={getDirectDownloadUrl(hw.fileUrl)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          download
+                        <button
+                          type="button"
+                          onClick={() => hw.fileUrl && void openFile(hw.fileUrl, { download: true })}
                           className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
                         >
                           <Download className="w-3 h-3" />
                           <span>Guía Adjunta</span>
-                        </a>
+                        </button>
                       )}
                       <Button
                         size="sm"

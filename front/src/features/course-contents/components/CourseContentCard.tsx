@@ -18,7 +18,7 @@ import {
 import type { CourseContent } from '../types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { getDirectDownloadUrl, isGoogleDriveUrl } from '../utils/fileUrls';
+import { openFile, isGoogleDriveUrl } from '../utils/fileUrls';
 import { getFileMetadata, getDueDateStatus, formatFileSize } from '../utils/fileHelpers';
 import { DocumentPreviewModal } from './DocumentPreviewModal';
 import { HomeworkSubmissionsModal } from './HomeworkSubmissionsModal';
@@ -63,7 +63,6 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
     isHomework ? content.id : null,
   );
 
-  const downloadUrl = getDirectDownloadUrl(content.fileUrl);
   const isDrive = isGoogleDriveUrl(content.fileUrl);
   const fileMeta = getFileMetadata(content.fileName, content.fileType);
   const FileIcon = fileMeta.icon;
@@ -287,17 +286,15 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
             </Button>
 
             {/* Opción Descarga: Descargar archivo directamente */}
-            <a
-              href={downloadUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              download
+            <button
+              type="button"
+              onClick={() => content.fileUrl && void openFile(content.fileUrl, { download: true })}
               className="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-xl border border-input bg-card hover:bg-muted text-foreground font-bold transition-all text-xs shrink-0"
               title="Descargar archivo a tu dispositivo"
             >
               <Download className="w-3.5 h-3.5 text-muted-foreground" />
               <span className="hidden sm:inline">Descargar</span>
-            </a>
+            </button>
           </div>
         </div>
       )}

@@ -1,3 +1,6 @@
+import { api } from '@/lib/axios';
+import { toast } from 'sonner';
+
 /**
  * Utilidades para procesamiento y transformación de enlaces de descarga
  * Soporta Google Drive (conversión automática a descarga directa en 1 clic), Dropbox, OneDrive y archivos locales.
@@ -95,4 +98,37 @@ export const isImageUrl = (url?: string | null, fileName?: string | null): boole
     target.endsWith('.svg')
   );
 };
+
+export const getInternalFileId = (url?: string | null): string | null =>
+  url?.match(/^\/api\/files\/([0-9a-f-]{36})$/i)?.[1] ?? null;
+
+export const isInternalFileUrl = (url?: string | null): boolean => Boolean(getInternalFileId(url));
+
+/** Devuelve una URL utilizable: firmada (archivos internos) o la transformada actual (enlaces externos). */
+export async function resolveFileUrl(url: string, options: { download?: boolean } = {}): Promise<string> {
+  const id = getInternalFileId(url);
+  if (!id) {
+    return options.download ? getDirectDownloadUrl(url) : getPreviewUrl(url) || url;
+  }
+  const response = await api.get<{ status: string; data: { url: string; downloadUrl: string } }>(`/files/${id}/link`);
+  return options.download ? response.data.data.downloadUrl : response.data.data.url;
+}
+
+/** Abre un archivo en una pestaña nueva (la abre antes del await para evitar el bloqueo de ventanas emergentes). */
+export async function openFile(url: string, options: { download?: boolean } = {}): Promise<void> {
+  const newWindow = window.open('', '_blank');
+  try {
+    const resolved = await resolveFileUrl(url, options);
+    if (newWindow) {
+      newWindow.opener = null;
+      newWindow.location.href = resolved;
+    } else {
+      window.location.href = resolved;
+    }
+  } catch {
+    newWindow?.close();
+    toast.error('No se pudo abrir el archivo. Intenta nuevamente.');
+  }
+}
+
 

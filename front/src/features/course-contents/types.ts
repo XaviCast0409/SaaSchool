@@ -62,6 +62,7 @@ export interface CreateCommentPayload {
 }
 
 export interface UploadFileResponse {
+  fileId: string;
   url: string;
   fileName: string;
   fileType: string;

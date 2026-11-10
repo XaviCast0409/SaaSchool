@@ -10,7 +10,7 @@ import {
   authIpRateLimiter,
   apiRateLimiter,
   ipFloodRateLimiter,
-  // TODO bloque 5: fileContentRateLimiter,
+  fileContentRateLimiter,
 } from './core/middlewares/rate-limiter.middleware';
 
 import { authRouter } from './modules/auth/auth.routes';
@@ -33,7 +33,7 @@ import { notificationRouter } from './modules/notifications/notification.routes'
 import { uploadRouter } from './modules/uploads/upload.routes';
 import { academicReportRouter } from './modules/academic-reports/academic-report.routes';
 import { incidentRouter } from './modules/incidents/incident.routes';
-// TODO bloque 5: import { fileRouter } from './modules/files/file.routes';
+import { fileRouter } from './modules/files/file.routes';
 // TODO bloque 9: import { auditLogRouter } from './modules/audit-logs/audit-log.routes';
 // TODO bloque 10: import { legalRouter } from './modules/legal/legal.routes';
 
@@ -86,7 +86,7 @@ const API_PREFIX = '/api';
 app.use(`${API_PREFIX}/auth`, authIpRateLimiter, authRouter);
 
 // Archivos: la descarga firmada no lleva token, por eso tiene su propio limitador
-// TODO bloque 5: app.use(`${API_PREFIX}/files`, fileContentRateLimiter, fileRouter);
+app.use(`${API_PREFIX}/files`, fileContentRateLimiter, fileRouter);
 
 app.use(API_PREFIX, apiRateLimiter);
 
