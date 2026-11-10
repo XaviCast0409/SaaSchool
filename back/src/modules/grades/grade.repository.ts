@@ -1575,11 +1575,13 @@ export class GradeRepository {
 
     let updatedStudentsCount = 0;
     const upsertPromises: any[] = [];
+    // Escala de conversión configurada por el colegio para el nivel del aula
+    const letterThresholds = await this.getLetterThresholds(schoolId, assignment.classroom.educationLevel);
 
     studentGradesMap.forEach((scores, enrollmentId) => {
       if (scores.length > 0) {
         const avg = Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10;
-        const literal = scoreToLetter(avg);
+        const literal = scoreToLetter(avg, letterThresholds);
 
         for (const compId of targetCompIds) {
           upsertPromises.push(

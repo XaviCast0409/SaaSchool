@@ -12,7 +12,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getSubjectTheme } from '../../utils/subjectThemes';
-import { getDirectDownloadUrl } from '../../utils/fileUrls';
+import { openFile } from '../../utils/fileUrls';
 import { DocumentPreviewModal } from '../DocumentPreviewModal';
 import type { SupervisedContentItem } from '../../types';
 
@@ -37,7 +37,6 @@ export const SupervisedContentCard: React.FC<SupervisedContentCardProps> = ({
 }) => {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const theme = getSubjectTheme(item.courseAssignment.area.name);
-  const downloadUrl = getDirectDownloadUrl(item.fileUrl);
 
   const typeConfig = {
     LESSON_MATERIAL: {
@@ -112,16 +111,15 @@ export const SupervisedContentCard: React.FC<SupervisedContentCardProps> = ({
                 <Eye className="w-3 h-3" />
                 <span>Ver Archivo</span>
               </button>
-              <a
-                href={downloadUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                download
+              <button
+                type="button"
+                onClick={() => item.fileUrl && void openFile(item.fileUrl, { download: true })}
                 className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                 title="Descargar archivo a tu dispositivo"
+                aria-label="Descargar archivo"
               >
                 <Download className="w-3.5 h-3.5" />
-              </a>
+              </button>
             </div>
           </div>
         )}
