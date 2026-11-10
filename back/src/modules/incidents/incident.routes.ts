@@ -37,3 +37,9 @@ incidentRouter.patch(
   incidentController.acknowledge,
 );
 
+incidentRouter.patch(
+  '/:id/siseve',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
+  incidentController.registerSiseve,
+);
+

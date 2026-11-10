@@ -36,6 +36,7 @@ const incidentSchema = z.object({
   description: z.string().min(5, 'La descripción debe tener al menos 5 caracteres'),
   actionTaken: z.string().optional(),
   citationDate: z.string().optional(),
+  isViolenceCase: z.boolean().default(false),
 });
 
 type FormData = z.infer<typeof incidentSchema>;
@@ -82,10 +83,12 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
       description: '',
       actionTaken: '',
       citationDate: '',
+      isViolenceCase: false,
     },
   });
 
   const selectedType = watch('type');
+  const isViolenceCase = watch('isViolenceCase');
 
   if (!isOpen) return null;
 
@@ -101,6 +104,7 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
         description: data.description,
         actionTaken: data.actionTaken || undefined,
         citationDate: data.citationDate || undefined,
+        isViolenceCase: Boolean(data.isViolenceCase),
       });
 
       toast.success('Incidencia registrada y notificada a los apoderados.');
@@ -270,6 +274,29 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
               placeholder="Ej. Se aplicó compresa fría, se llamó al padre, etc."
               className="h-9 text-xs"
             />
+          </div>
+
+          {/* Convivencia Escolar / SíseVe */}
+          <div className="space-y-2 pt-1 border-t border-border/60">
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                {...register('isViolenceCase')}
+                className="mt-0.5 h-4 w-4 rounded border-border text-primary focus:ring-primary accent-primary"
+              />
+              <span className="text-xs font-bold text-foreground leading-snug select-none">
+                Caso de violencia escolar (debe reportarse en el portal SíseVe del MINEDU)
+              </span>
+            </label>
+
+            {isViolenceCase && (
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>
+                  Recuerda registrar el caso en <strong>siseve.minedu.gob.pe</strong> y luego anotar aquí el código asignado.
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Footer */}

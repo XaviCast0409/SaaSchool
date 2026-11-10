@@ -68,6 +68,7 @@ export class IncidentRepository {
         description: data.description,
         actionTaken: data.actionTaken || null,
         citationDate: data.citationDate ? new Date(data.citationDate) : null,
+        isViolenceCase: data.isViolenceCase ?? false,
       },
       include: INCIDENT_INCLUDE,
     });
@@ -150,6 +151,17 @@ export class IncidentRepository {
       data: {
         acknowledgedAt: new Date(),
         acknowledgedByUserId: userId,
+      },
+      include: INCIDENT_INCLUDE,
+    });
+  }
+
+  async updateSiseve(schoolId: string, id: string, siseveCode: string): Promise<StudentIncident> {
+    return prisma.studentIncident.update({
+      where: { id, schoolId },
+      data: {
+        siseveCode,
+        siseveReportedAt: new Date(),
       },
       include: INCIDENT_INCLUDE,
     });

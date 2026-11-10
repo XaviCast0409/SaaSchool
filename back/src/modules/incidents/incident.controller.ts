@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { recordAudit } from '../../utils/audit.util';
-import { createIncidentSchema, incidentFilterSchema } from './incident.schema';
+import { createIncidentSchema, incidentFilterSchema, siseveUpdateSchema } from './incident.schema';
 import type { IncidentService } from './incident.service';
 
 export class IncidentController {
@@ -50,6 +50,20 @@ export class IncidentController {
     const userId = request.user!.userId;
     const role = request.user!.role;
     const incident = await this.incidentService.acknowledgeIncident(schoolId, id, userId, role);
+    response.status(200).json({ status: 'success', data: incident });
+  };
+
+  registerSiseve = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const id = request.params.id as string;
+    const { siseveCode } = siseveUpdateSchema.parse(request.body);
+    const incident = await this.incidentService.registerSiseve(schoolId, id, siseveCode);
+    recordAudit(request, {
+      action: 'INCIDENT_SISEVE_REGISTERED',
+      entity: 'StudentIncident',
+      entityId: id,
+      after: { siseveCode, siseveReportedAt: incident.siseveReportedAt },
+    });
     response.status(200).json({ status: 'success', data: incident });
   };
 }

@@ -63,3 +63,20 @@ export const useAcknowledgeIncident = () => {
   });
 };
 
+export const useRegisterSiseve = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, siseveCode }: { id: string; siseveCode: string }) => {
+      const response = await api.patch<{ status: string; data: StudentIncident }>(
+        `/incidents/${id}/siseve`,
+        { siseveCode },
+      );
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['incidents'] });
+    },
+  });
+};
+

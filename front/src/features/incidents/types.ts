@@ -24,6 +24,9 @@ export interface StudentIncident {
   citationDate?: string | null;
   acknowledgedAt?: string | null;
   acknowledgedByUserId?: string | null;
+  isViolenceCase?: boolean;
+  siseveCode?: string | null;
+  siseveReportedAt?: string | null;
   createdAt: string;
   author?: {
     id: string;
@@ -64,6 +67,7 @@ export interface CreateIncidentPayload {
   description: string;
   actionTaken?: string;
   citationDate?: string;
+  isViolenceCase?: boolean;
 }
 
 export interface IncidentFilterParams {

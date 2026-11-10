@@ -194,5 +194,17 @@ export class IncidentService {
 
     return this.incidentRepository.acknowledge(schoolId, id, userId);
   }
+
+  async registerSiseve(schoolId: string, id: string, siseveCode: string) {
+    const incident = await this.incidentRepository.findById(schoolId, id);
+    if (!incident) {
+      throw new AppError('Incidencia no encontrada.', 404);
+    }
+    if (!incident.isViolenceCase) {
+      throw new AppError('La incidencia no está tipificada como caso de violencia escolar.', 400);
+    }
+
+    return this.incidentRepository.updateSiseve(schoolId, id, siseveCode);
+  }
 }
 

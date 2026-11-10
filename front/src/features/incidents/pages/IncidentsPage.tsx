@@ -14,13 +14,15 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Pagination } from '@/components/ui/Pagination';
 import { useAuthStore } from '@/store/useAuthStore';
-import { useIncidents } from '../api/useIncidents';
+import { useIncidents, useRegisterSiseve } from '../api/useIncidents';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
 import { CreateIncidentModal } from '../components/CreateIncidentModal';
 import type { IncidentType, IncidentSeverity } from '../types';
+import { toast } from 'sonner';
 
 const TYPE_CONFIG: Record<
   IncidentType,
@@ -52,12 +54,36 @@ export const IncidentsPage: React.FC = () => {
     user?.role === 'ADMINISTRATIVE' ||
     user?.role === 'TEACHER';
 
+  const canManageSiseve =
+    user?.role === 'SUPER_ADMIN' ||
+    user?.role === 'SCHOOL_ADMIN' ||
+    user?.role === 'ADMINISTRATIVE';
+
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [selectedType, setSelectedType] = useState<string>('ALL');
   const [selectedSeverity, setSelectedSeverity] = useState<string>('ALL');
   const [selectedClassroomId, setSelectedClassroomId] = useState<string>('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [siseveModalIncidentId, setSiseveModalIncidentId] = useState<string | null>(null);
+  const [siseveInputCode, setSiseveInputCode] = useState('');
+
+  const registerSiseveMutation = useRegisterSiseve();
+
+  const handleSaveSiseve = async () => {
+    if (!siseveModalIncidentId || !siseveInputCode.trim()) return;
+    try {
+      await registerSiseveMutation.mutateAsync({
+        id: siseveModalIncidentId,
+        siseveCode: siseveInputCode.trim(),
+      });
+      toast.success('Código SíseVe registrado correctamente.');
+      setSiseveModalIncidentId(null);
+      setSiseveInputCode('');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Error al registrar el código SíseVe.');
+    }
+  };
 
   const { data: classrooms = [] } = useClassrooms();
 
@@ -204,6 +230,36 @@ export const IncidentsPage: React.FC = () => {
                     <Badge variant="outline" className={`text-[10px] ${severityInfo.badgeClass}`}>
                       Severidad: {severityInfo.label}
                     </Badge>
+
+                    {inc.isViolenceCase && (
+                      inc.siseveCode ? (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 font-bold"
+                        >
+                          SíseVe: {inc.siseveCode}
+                        </Badge>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <Badge variant="destructive" className="text-[10px] font-bold">
+                            Pendiente SíseVe
+                          </Badge>
+                          {canManageSiseve && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSiseveModalIncidentId(inc.id);
+                                setSiseveInputCode('');
+                              }}
+                              className="h-6 text-[10px] px-2 font-bold text-destructive hover:bg-destructive/10 border-destructive/30"
+                            >
+                              Registrar código SíseVe
+                            </Button>
+                          )}
+                        </div>
+                      )
+                    )}
                   </div>
 
                   <span className="text-xs text-muted-foreground flex items-center gap-1 font-medium">
@@ -298,6 +354,45 @@ export const IncidentsPage: React.FC = () => {
           isOpen={isCreateModalOpen}
           onClose={() => setIsCreateModalOpen(false)}
         />
+      )}
+
+      {/* Modal para Registrar Código SíseVe */}
+      {siseveModalIncidentId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-card w-full max-w-sm rounded-2xl border border-border p-6 shadow-2xl space-y-4">
+            <h3 className="text-base font-bold text-foreground">
+              Registrar Código SíseVe
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Ingresa el código asignado por el portal del MINEDU (siseve.minedu.gob.pe).
+            </p>
+            <Input
+              value={siseveInputCode}
+              onChange={(e) => setSiseveInputCode(e.target.value)}
+              placeholder="Ej: SIS-2026-00123"
+              className="text-xs h-9 font-mono"
+              autoFocus
+            />
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSiseveModalIncidentId(null)}
+                className="text-xs font-semibold"
+              >
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSaveSiseve}
+                disabled={siseveInputCode.trim().length < 3 || registerSiseveMutation.isPending}
+                className="text-xs font-bold"
+              >
+                {registerSiseveMutation.isPending ? 'Guardando...' : 'Guardar Código'}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
