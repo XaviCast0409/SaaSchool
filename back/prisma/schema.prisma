@@ -148,6 +148,11 @@ model School {
   offeredLevels   EducationLevel[] @default([PRIMARY, SECONDARY]) // Niveles que opera el colegio
   blockCertificatesOnOverdue Boolean @default(false) @map("blockGradesOnOverdue") // Retención SOLO de constancias/certificados por deuda vencida (Ley 27665)
   brandColor                 String? // Color primario de marca del colegio en HEX (#RRGGBB)
+  notifyAbsencesToFamilies   Boolean   @default(true) // Avisar a las familias cuando el alumno no registra ingreso
+  absenceAlertConsecutive    Int       @default(3)    // Faltas injustificadas seguidas para alerta temprana
+  absenceAlertMonthlyPercent Int       @default(10)   // % de faltas injustificadas en los últimos 30 días
+  lateAlertMonthlyCount      Int       @default(5)    // Tardanzas injustificadas en los últimos 30 días
+  lastRiskEvaluationOn       DateTime? @db.Date
   receiptCounter       Int             @default(0)     // Correlativo oficial de recibos (REC-XXXXXX)
   isActive             Boolean         @default(true)
   createdAt       DateTime         @default(now())
@@ -179,6 +184,10 @@ model School {
   auditLogs           AuditLog[]
   legalAcceptances    LegalAcceptance[]
   holidays            SchoolHoliday[]
+  attendanceJustifications AttendanceJustification[]
+  attendanceAlerts         AttendanceAlert[]
+  authorizedPickups        AuthorizedPickup[]
+  courseAttendanceSessions CourseAttendanceSession[]
 }
 
 model User {
@@ -263,6 +272,7 @@ model Student {
   enrollments        Enrollment[]
   notifications      Notification[]
   pushSubscriptions  PushSubscription[]
+  authorizedPickups  AuthorizedPickup[]
 
   @@unique([schoolId, documentType, documentId])
   @@index([schoolId, documentId])
@@ -352,6 +362,9 @@ model Enrollment {
   competenceConclusions     CompetenceConclusion[]
   homeworkSubmissions       HomeworkSubmission[]
   incidents                 StudentIncident[]
+  attendanceJustifications  AttendanceJustification[]
+  attendanceAlerts          AttendanceAlert[]
+  courseAttendanceRecords   CourseAttendanceRecord[]
 
   @@unique([studentId, academicYearId])
   @@index([schoolId, academicYearId])
@@ -452,6 +465,7 @@ model CourseAssignment {
   detailedGrades DetailedGrade[]
   competenceConclusions CompetenceConclusion[]
   contents       CourseContent[]
+  courseAttendanceSessions CourseAttendanceSession[]
 
   // Un curso en un aula tiene exactamente un docente asignado
   @@unique([classroomId, areaId])
@@ -580,6 +594,12 @@ model Attendance {
   checkInTime  DateTime?
   origin       AttendanceOrigin @default(MANUAL)
   notes        String?
+  checkOutTime       DateTime?
+  checkOutById       String?
+  pickupPersonId     String?   // AuthorizedPickup.id o User.id del apoderado que recogió
+  pickedUpByName     String?
+  pickedUpByDocument String?
+  earlyLeaveReason   String?
 
   school       School           @relation(fields: [schoolId], references: [id])
   enrollment   Enrollment       @relation(fields: [enrollmentId], references: [id])
@@ -895,6 +915,139 @@ model SchoolHoliday {
 
   @@unique([schoolId, date])
 }
+
+// ============================================================================
+// 18. JUSTIFICACIONES DE ASISTENCIA
+// ============================================================================
+enum JustificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum JustificationReason {
+  MEDICAL
+  FAMILY
+  BEREAVEMENT
+  TRANSPORT
+  OTHER
+}
+
+model AttendanceJustification {
+  id              String              @id @default(uuid())
+  schoolId        String
+  enrollmentId    String
+  dateFrom        DateTime            @db.Date
+  dateTo          DateTime            @db.Date
+  reason          JustificationReason
+  description     String              @db.Text
+  fileUrl         String?
+  fileName        String?
+  status          JustificationStatus @default(PENDING)
+  requestedById   String
+  requestedByRole String
+  reviewedById    String?
+  reviewedAt      DateTime?
+  reviewNote      String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  school          School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  enrollment      Enrollment          @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, status, createdAt])
+  @@index([enrollmentId, dateFrom])
+}
+
+// ============================================================================
+// 19. ALERTA TEMPRANA DE AUSENTISMO
+// ============================================================================
+enum AttendanceAlertReason {
+  CONSECUTIVE_ABSENCES
+  MONTHLY_ABSENCE_RATE
+  REPEATED_LATENESS
+}
+
+model AttendanceAlert {
+  id           String                @id @default(uuid())
+  schoolId     String
+  enrollmentId String
+  reason       AttendanceAlertReason
+  metricValue  Float
+  threshold    Float
+  triggeredOn  DateTime              @db.Date
+  status       String                @default("OPEN") // OPEN | ATTENDED
+  attendedById String?
+  attendedAt   DateTime?
+  attendedNote String?
+  incidentId   String?
+  createdAt    DateTime              @default(now())
+
+  school       School                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  enrollment   Enrollment            @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@unique([enrollmentId, reason, triggeredOn])
+  @@index([schoolId, status])
+}
+
+// ============================================================================
+// 20. PERSONAS AUTORIZADAS A RECOGER
+// ============================================================================
+model AuthorizedPickup {
+  id           String       @id @default(uuid())
+  schoolId     String
+  studentId    String
+  fullName     String
+  documentType DocumentType @default(DNI)
+  documentId   String
+  relationship String       // Ej: Tía, Abuelo, Movilidad escolar
+  cellphone    String?
+  photoFileUrl String?      // /api/files/<id>
+  isActive     Boolean      @default(true)
+  createdById  String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  school       School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student      Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, studentId])
+}
+
+// ============================================================================
+// 21. ASISTENCIA POR CURSO (registro interno del docente)
+// ============================================================================
+model CourseAttendanceSession {
+  id                 String                   @id @default(uuid())
+  schoolId           String
+  courseAssignmentId String
+  date               DateTime                 @db.Date
+  periodLabel        String                   @default("1") // Hora pedagógica: "1".."8"
+  takenById          String
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+
+  school             School                   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  courseAssignment   CourseAssignment         @relation(fields: [courseAssignmentId], references: [id], onDelete: Cascade)
+  records            CourseAttendanceRecord[]
+
+  @@unique([courseAssignmentId, date, periodLabel])
+  @@index([schoolId, date])
+}
+
+model CourseAttendanceRecord {
+  id           String                  @id @default(uuid())
+  sessionId    String
+  enrollmentId String
+  status       AttendanceStatus
+  note         String?
+
+  session      CourseAttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  enrollment   Enrollment              @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, enrollmentId])
+}
+
 
 
 
