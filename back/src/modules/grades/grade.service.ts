@@ -1,5 +1,7 @@
 import type { GradeRepository, ReportCardEnrollment } from './grade.repository';
 import { AppError } from '../../core/errors/app-error';
+import { clearThresholds } from '../academic/academic.context';
+import { ResultsService } from '../academic/results.service';
 import type {
   CreateCriterionDto,
   UpdateCriterionDto,
@@ -450,6 +452,8 @@ export class GradeService {
 
   async updateGradingScale(schoolId: string, level: EducationLevel, thresholds: { AD: number; A: number; B: number }) {
     await this.gradeRepository.upsertGradingScale(schoolId, level, thresholds);
+    clearThresholds(schoolId);
+    await new ResultsService().recomputeSchoolLevel(schoolId, level);
     return this.gradeRepository.getLetterThresholds(schoolId, level);
   }
 }
