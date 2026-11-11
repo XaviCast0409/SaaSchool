@@ -171,6 +171,37 @@ export const closeClassroomAttendanceSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida (YYYY-MM-DD)').optional(),
 });
 
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida (YYYY-MM-DD)');
+
+export const createJustificationSchema = z
+  .object({
+    enrollmentId: z.string().uuid(),
+    dateFrom: isoDate,
+    dateTo: isoDate,
+    reason: z.enum(['MEDICAL', 'FAMILY', 'BEREAVEMENT', 'TRANSPORT', 'OTHER']),
+    description: z.string().trim().min(5, 'Describe brevemente el motivo').max(1000),
+    fileUrl: z
+      .string()
+      .trim()
+      .refine((v) => v.startsWith('/api/files/'), 'Adjunto inválido')
+      .optional()
+      .nullable(),
+    fileName: z.string().trim().max(150).optional().nullable(),
+  })
+  .refine((v) => v.dateFrom <= v.dateTo, { message: 'La fecha inicial no puede ser posterior a la final', path: ['dateTo'] });
+
+export const reviewJustificationSchema = z.object({
+  decision: z.enum(['APPROVED', 'REJECTED']),
+  reviewNote: z.string().trim().max(500).optional().nullable(),
+});
+
+export const justificationFilterSchema = z.object({
+  status: z.enum(['PENDING', 'APPROVED', 'REJECTED']).optional(),
+  enrollmentId: z.string().uuid().optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
 export type CreateAttendanceDto = z.infer<typeof createAttendanceSchema>;
 export type UpdateAttendanceDto = z.infer<typeof updateAttendanceSchema>;
 export type BulkAttendanceDto = z.infer<typeof bulkAttendanceSchema>;
@@ -184,3 +215,6 @@ export type AttendanceSheetQueryDto = z.infer<typeof attendanceSheetQuerySchema>
 export type SaveAttendanceSheetDto = z.infer<typeof saveAttendanceSheetSchema>;
 export type UpsertAttendanceScheduleConfigDto = z.infer<typeof upsertAttendanceScheduleConfigSchema>;
 export type CloseClassroomAttendanceDto = z.infer<typeof closeClassroomAttendanceSchema>;
+export type CreateJustificationDto = z.infer<typeof createJustificationSchema>;
+export type ReviewJustificationDto = z.infer<typeof reviewJustificationSchema>;
+export type JustificationFilterDto = z.infer<typeof justificationFilterSchema>;

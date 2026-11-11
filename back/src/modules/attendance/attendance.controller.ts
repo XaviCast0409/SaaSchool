@@ -17,8 +17,12 @@ import {
   saveAttendanceSheetSchema,
   upsertAttendanceScheduleConfigSchema,
   closeClassroomAttendanceSchema,
+  createJustificationSchema,
+  reviewJustificationSchema,
+  justificationFilterSchema,
 } from './attendance.schema';
 import type { AttendanceService } from './attendance.service';
+import { attendanceJustificationService } from './attendance-justification.service';
 
 export class AttendanceController {
   constructor(private readonly attendanceService: AttendanceService) {}
@@ -285,5 +289,52 @@ export class AttendanceController {
       throw new AppError('Feriado no encontrado.', 404);
     }
     response.status(200).json({ status: 'success', message: 'Feriado eliminado correctamente.' });
+  };
+
+  /** GET /api/attendance/justifications */
+  listJustifications = async (request: Request, response: Response): Promise<void> => {
+    const filters = justificationFilterSchema.parse(request.query);
+    const result = await attendanceJustificationService.list(request.user!, filters);
+    response.status(200).json({ status: 'success', data: result.data, meta: result.meta });
+  };
+
+  /** POST /api/attendance/justifications */
+  createJustification = async (request: Request, response: Response): Promise<void> => {
+    const dto = createJustificationSchema.parse(request.body);
+    const result = await attendanceJustificationService.create(request.user!, dto);
+    recordAudit(request, {
+      action: 'ATTENDANCE_JUSTIFICATION_CREATED',
+      entity: 'AttendanceJustification',
+      entityId: result.id,
+      after: {
+        enrollmentId: result.enrollmentId,
+        reason: result.reason,
+        dateFrom: result.dateFrom,
+        dateTo: result.dateTo,
+        status: result.status,
+      },
+    });
+    response.status(201).json({ status: 'success', data: result });
+  };
+
+  /** PATCH /api/attendance/justifications/:justificationId/review */
+  reviewJustification = async (request: Request, response: Response): Promise<void> => {
+    const justificationId = request.params.justificationId as string;
+    const dto = reviewJustificationSchema.parse(request.body);
+    const result = await attendanceJustificationService.review(request.user!, justificationId, dto);
+    recordAudit(request, {
+      action:
+        dto.decision === 'APPROVED'
+          ? 'ATTENDANCE_JUSTIFICATION_APPROVED'
+          : 'ATTENDANCE_JUSTIFICATION_REJECTED',
+      entity: 'AttendanceJustification',
+      entityId: result.id,
+      after: {
+        decision: dto.decision,
+        reviewNote: dto.reviewNote,
+        status: result.status,
+      },
+    });
+    response.status(200).json({ status: 'success', data: result });
   };
 }

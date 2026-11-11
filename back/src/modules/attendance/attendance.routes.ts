@@ -101,6 +101,23 @@ attendanceRouter.post(
   attendanceController.registerBulk,
 );
 
+// Justificaciones en línea
+attendanceRouter.get(
+  '/justifications',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT'),
+  attendanceController.listJustifications,
+);
+attendanceRouter.post(
+  '/justifications',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT'),
+  attendanceController.createJustification,
+);
+attendanceRouter.patch(
+  '/justifications/:justificationId/review',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),
+  attendanceController.reviewJustification,
+);
+
 // Corregir asistencia ya registrada
 attendanceRouter.patch(
   '/:id',
