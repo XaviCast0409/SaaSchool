@@ -65,6 +65,10 @@ export const updateSchoolSchema = createSchoolSchema
       .regex(/^#[0-9a-fA-F]{6}$/, 'Color inválido (formato #RRGGBB)')
       .nullable()
       .optional(),
+    notifyAbsencesToFamilies: z.boolean().optional(),
+    absenceAlertConsecutive: z.number().int().min(2).max(10).optional(),
+    absenceAlertMonthlyPercent: z.number().int().min(5).max(50).optional(),
+    lateAlertMonthlyCount: z.number().int().min(2).max(20).optional(),
   })
   .partial();
 

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { X, School as SchoolIcon, Save, Loader2, Lock, ShieldAlert, Palette, RotateCcw } from 'lucide-react';
+import { X, School as SchoolIcon, Save, Loader2, Lock, ShieldAlert, Palette, RotateCcw, CalendarCheck } from 'lucide-react';
 import { useGetActiveSchool, useUpdateSchool } from '../api/useSchool';
 import { toast } from 'sonner';
 
@@ -20,6 +20,10 @@ interface SchoolFormValues {
   district: string;
   blockCertificatesOnOverdue: boolean;
   brandColor?: string | null;
+  notifyAbsencesToFamilies: boolean;
+  absenceAlertConsecutive: number;
+  absenceAlertMonthlyPercent: number;
+  lateAlertMonthlyCount: number;
 }
 
 export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
@@ -46,6 +50,10 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
         district: school.district || '',
         blockCertificatesOnOverdue: school.blockCertificatesOnOverdue ?? false,
         brandColor: school.brandColor || null,
+        notifyAbsencesToFamilies: school.notifyAbsencesToFamilies ?? true,
+        absenceAlertConsecutive: school.absenceAlertConsecutive ?? 3,
+        absenceAlertMonthlyPercent: school.absenceAlertMonthlyPercent ?? 15,
+        lateAlertMonthlyCount: school.lateAlertMonthlyCount ?? 5,
       });
     }
   }, [school, reset]);
@@ -68,6 +76,18 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
       );
       if (values.brandColor === null) {
         sanitizedPayload.brandColor = null;
+      }
+      if (values.absenceAlertConsecutive !== undefined) {
+        sanitizedPayload.absenceAlertConsecutive = Number(values.absenceAlertConsecutive);
+      }
+      if (values.absenceAlertMonthlyPercent !== undefined) {
+        sanitizedPayload.absenceAlertMonthlyPercent = Number(values.absenceAlertMonthlyPercent);
+      }
+      if (values.lateAlertMonthlyCount !== undefined) {
+        sanitizedPayload.lateAlertMonthlyCount = Number(values.lateAlertMonthlyCount);
+      }
+      if (values.notifyAbsencesToFamilies !== undefined) {
+        sanitizedPayload.notifyAbsencesToFamilies = Boolean(values.notifyAbsencesToFamilies);
       }
       await updateSchool(sanitizedPayload);
       toast.success('🏫 Datos y configuración de la institución guardados correctamente.');
@@ -310,6 +330,102 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
                   {...register('blockCertificatesOnOverdue')}
                   className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary cursor-pointer mt-0.5"
                 />
+              </div>
+            </div>
+
+            {/* Asistencia */}
+            <div className="p-4 rounded-xl bg-card border border-border space-y-3">
+              <div className="flex items-center gap-2 border-b border-border pb-2">
+                <CalendarCheck className="w-4 h-4 text-primary" />
+                <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
+                  Asistencia
+                </h3>
+              </div>
+
+              {/* Toggle avisar a familias */}
+              <div className="flex items-start justify-between gap-3 pt-1">
+                <div className="space-y-0.5">
+                  <label
+                    htmlFor="notify-absences-families"
+                    className="text-xs font-semibold text-foreground cursor-pointer"
+                  >
+                    Avisar a las familias cuando el estudiante no registra ingreso
+                  </label>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Envía una notificación a los apoderados al cerrarse la asistencia si el alumno no ingresó.
+                  </p>
+                </div>
+                <input
+                  id="notify-absences-families"
+                  type="checkbox"
+                  {...register('notifyAbsencesToFamilies')}
+                  className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary cursor-pointer mt-0.5"
+                />
+              </div>
+
+              {/* Parámetros de alerta */}
+              <div className="pt-2 border-t border-border/60 space-y-2.5">
+                <p className="text-[11px] text-muted-foreground">
+                  Las alertas se calculan cada día lectivo después del cierre automático y se envían al tutor del aula.
+                </p>
+
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+                  <div>
+                    <label
+                      htmlFor="alert-consecutive"
+                      className="block text-[11px] font-medium text-foreground mb-1"
+                    >
+                      Alerta por faltas injustificadas seguidas
+                    </label>
+                    <input
+                      id="alert-consecutive"
+                      type="number"
+                      min={2}
+                      max={10}
+                      {...register('absenceAlertConsecutive', { valueAsNumber: true })}
+                      className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="alert-percent"
+                      className="block text-[11px] font-medium text-foreground mb-1"
+                    >
+                      Alerta por % de faltas injustificadas en 30 días
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="alert-percent"
+                        type="number"
+                        min={5}
+                        max={50}
+                        {...register('absenceAlertMonthlyPercent', { valueAsNumber: true })}
+                        className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 pr-6 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      <span className="absolute right-2.5 top-1.5 text-xs text-muted-foreground pointer-events-none">
+                        %
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="alert-lates"
+                      className="block text-[11px] font-medium text-foreground mb-1"
+                    >
+                      Alerta por tardanzas injustificadas en 30 días
+                    </label>
+                    <input
+                      id="alert-lates"
+                      type="number"
+                      min={2}
+                      max={20}
+                      {...register('lateAlertMonthlyCount', { valueAsNumber: true })}
+                      className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 

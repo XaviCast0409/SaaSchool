@@ -18,6 +18,10 @@ export interface School {
   isActive: boolean;
   blockCertificatesOnOverdue?: boolean;
   brandColor?: string | null;
+  notifyAbsencesToFamilies?: boolean;
+  absenceAlertConsecutive?: number;
+  absenceAlertMonthlyPercent?: number;
+  lateAlertMonthlyCount?: number;
 }
 
 export interface UpdateSchoolPayload {
@@ -33,4 +37,8 @@ export interface UpdateSchoolPayload {
   planExpiresAt?: string;
   blockCertificatesOnOverdue?: boolean;
   brandColor?: string | null;
+  notifyAbsencesToFamilies?: boolean;
+  absenceAlertConsecutive?: number;
+  absenceAlertMonthlyPercent?: number;
+  lateAlertMonthlyCount?: number;
 }
