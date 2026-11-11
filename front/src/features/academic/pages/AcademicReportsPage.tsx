@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Download } from 'lucide-react';
+import { Download, Loader2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Tabs } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
@@ -22,9 +22,20 @@ export const AcademicReportsPage: React.FC = () => {
   const [tab, setTab] = useState<Tab>('consolidated');
   const [classroomId, setClassroomId] = useState<string | null>(null);
   const [period, setPeriod] = useState<number | 'FINAL'>(1);
+  const [downloading, setDownloading] = useState(false);
   useEffect(() => { if (!classroomId && classrooms.length) setClassroomId(classrooms[0].id); }, [classrooms, classroomId]);
   const { data, isLoading } = useConsolidation(tab === 'report-cards' ? null : classroomId, period);
   const sorted = [...classrooms].sort((a, b) => a.educationLevel.localeCompare(b.educationLevel) || a.grade - b.grade || a.section.localeCompare(b.section));
+
+  const handleDownload = async () => {
+    if (!classroomId || !data) return;
+    setDownloading(true);
+    try {
+      await downloadFile('/academic/consolidation/export', { classroomId, period }, `consolidado-${data.classroom.grade}${data.classroom.section}-${period}.xlsx`);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <div>
@@ -61,8 +72,16 @@ export const AcademicReportsPage: React.FC = () => {
             <p className="text-sm text-muted-foreground">
               {data.summary.totalStudents} estudiantes · {data.summary.missingGrades} calificativos y {data.summary.missingConclusions} conclusiones pendientes
             </p>
-            <Button variant="outline" size="sm" onClick={() => downloadFile('/academic/exports/consolidation.xlsx', { classroomId, period }, `consolidado-${data.classroom.grade}${data.classroom.section}-${period}.xlsx`)}>
-              <Download className="mr-1 h-4 w-4" />Excel
+            <Button variant="outline" size="sm" disabled={downloading} onClick={handleDownload}>
+              {downloading ? (
+                <>
+                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />Generando…
+                </>
+              ) : (
+                <>
+                  <Download className="mr-1 h-4 w-4" />Excel
+                </>
+              )}
             </Button>
           </div>
           <Card className="overflow-x-auto">

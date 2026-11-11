@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Download, ListChecks, Upload } from 'lucide-react';
+import { ArrowLeft, Download, ListChecks, Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/ui/page-header';
 import { Tabs } from '@/components/ui/tabs';
@@ -31,6 +31,17 @@ export const GradebookPage: React.FC = () => {
   const [reasonOpen, setReasonOpen] = useState(false);
   const [criteriaOpen, setCriteriaOpen] = useState(false);
   const [status, setStatus] = useState<{ s: 'idle' | 'saving' | 'saved' | 'error'; msg?: string }>({ s: 'idle' });
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    if (!data) return;
+    setDownloading(true);
+    try {
+      await downloadFile('/academic/gradebook/export', { assignmentId: data.assignment.id, periodNumber: period }, `registro-${data.assignment.area.name}-p${period}.xlsx`);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   useEffect(() => {
     if (data && (!competenceId || !data.competences.some((c) => c.id === competenceId))) setCompetenceId(data.competences[0]?.id ?? null);
@@ -62,8 +73,16 @@ export const GradebookPage: React.FC = () => {
               <Upload className="mr-1 h-4 w-4" />Importar tareas
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={() => downloadFile('/academic/exports/gradebook.xlsx', { assignmentId: data.assignment.id, periodNumber: period }, `registro-${data.assignment.area.name}-p${period}.xlsx`)}>
-            <Download className="mr-1 h-4 w-4" />Excel
+          <Button variant="outline" size="sm" disabled={downloading} onClick={handleDownload}>
+            {downloading ? (
+              <>
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />Generando…
+              </>
+            ) : (
+              <>
+                <Download className="mr-1 h-4 w-4" />Excel
+              </>
+            )}
           </Button>
         </>}
       />

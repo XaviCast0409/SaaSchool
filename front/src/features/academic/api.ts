@@ -202,19 +202,27 @@ export const useClassroomReportCards = (classroomId: string | null) =>
     enabled: !!classroomId,
   });
 
-export async function downloadFile(url: string, params: Record<string, unknown>, filename: string): Promise<void> {
+export async function downloadFile(url: string, params: Record<string, unknown>, filename: string): Promise<boolean> {
   try {
     const response = await api.get(url, { params, responseType: 'blob' });
-    const href = URL.createObjectURL(response.data as Blob);
+    const blob = response.data as Blob;
+    const href = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = href;
-    a.download = filename;
+    a.download = filename.replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, '_');
     document.body.appendChild(a);
     a.click();
     a.remove();
-    URL.revokeObjectURL(href);
+    setTimeout(() => URL.revokeObjectURL(href), 1000);
+    return true;
   } catch (e) {
-    toast.error(apiErrorMessage(e, 'No se pudo descargar el archivo.'));
+    let message: string | undefined;
+    const data = (e as { response?: { data?: unknown } })?.response?.data;
+    if (data instanceof Blob) {
+      try { message = JSON.parse(await data.text())?.message; } catch { /* respuesta no JSON */ }
+    }
+    toast.error(message || apiErrorMessage(e, 'No se pudo descargar el archivo.'));
+    return false;
   }
 }
 
