@@ -49,10 +49,10 @@ export class EnrollmentRepository {
         // Conexión 3: Migración automática de notas y conclusiones al cambiar de aula
         if (isClassroomChange && existingEnrollment && data.classroomId) {
           const oldAssignments = await tx.courseAssignment.findMany({
-            where: { schoolId, classroomId: existingEnrollment.classroomId },
+            where: { schoolId, classroomId: existingEnrollment.classroomId, deletedAt: null },
           });
           const newAssignments = await tx.courseAssignment.findMany({
-            where: { schoolId, classroomId: data.classroomId },
+            where: { schoolId, classroomId: data.classroomId, deletedAt: null },
           });
 
           for (const oldAssignment of oldAssignments) {

@@ -102,3 +102,4 @@ export async function loadAssignmentForUser(
   }
   return assignment as typeof assignment & { academicYear: AcademicYear; academicYearId: string };
 }
+

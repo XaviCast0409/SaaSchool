@@ -1,10 +1,19 @@
 import { AppError } from '../../core/errors/app-error';
+import { prisma } from '../../config/prisma';
 import type { AcademicYearRepository } from './academic-year.repository';
 import type { CreateAcademicYearDto, UpdateAcademicYearDto } from './academic-year.schema';
 import type { AcademicYear } from '@prisma/client';
 
 export class AcademicYearService {
   constructor(private readonly academicYearRepository: AcademicYearRepository) {}
+
+  private async activateExclusively(schoolId: string, academicYearId: string): Promise<void> {
+    await prisma.$transaction([
+      prisma.academicYear.updateMany({ where: { schoolId, id: { not: academicYearId } }, data: { isActive: false } }),
+      prisma.academicYear.update({ where: { id: academicYearId }, data: { isActive: true } }),
+      prisma.enrollment.updateMany({ where: { schoolId, academicYearId: { not: academicYearId }, isActive: true }, data: { isActive: false } }),
+    ]);
+  }
 
   async getAllAcademicYears(schoolId: string): Promise<AcademicYear[]> {
     return this.academicYearRepository.findAllBySchool(schoolId);
@@ -32,7 +41,11 @@ export class AcademicYearService {
       );
     }
 
-    return this.academicYearRepository.create(schoolId, createDto);
+    const created = await this.academicYearRepository.create(schoolId, createDto);
+    if (createDto.isActive === true) {
+      await this.activateExclusively(schoolId, created.id);
+    }
+    return created;
   }
 
   async updateAcademicYear(
@@ -52,7 +65,11 @@ export class AcademicYearService {
       }
     }
 
-    return this.academicYearRepository.update(academicYearId, schoolId, updateDto);
+    const updated = await this.academicYearRepository.update(academicYearId, schoolId, updateDto);
+    if (updateDto.isActive === true) {
+      await this.activateExclusively(schoolId, academicYearId);
+    }
+    return updated;
   }
 
   async deleteAcademicYear(academicYearId: string, schoolId: string): Promise<AcademicYear> {

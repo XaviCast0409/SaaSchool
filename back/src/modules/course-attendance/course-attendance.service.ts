@@ -24,6 +24,8 @@ export class CourseAttendanceService {
       where: {
         id: courseAssignmentId,
         schoolId,
+        deletedAt: null,
+        academicYear: { isActive: true },
       },
       include: {
         classroom: true,

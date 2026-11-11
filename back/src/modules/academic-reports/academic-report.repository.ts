@@ -116,6 +116,7 @@ export class AcademicReportRepository {
           },
         },
         assignments: {
+          where: { deletedAt: null, academicYear: { isActive: true } },
           include: {
             area: {
               include: {
@@ -191,6 +192,11 @@ export class AcademicReportRepository {
       },
     });
 
+    const periodResults = await prisma.competencePeriodResult.findMany({
+      where: { courseAssignmentId: { in: assignmentIds }, periodNumber },
+      select: { enrollmentId: true, courseAssignmentId: true, competenceId: true, computedScore: true, finalLetter: true, isOverridden: true },
+    });
+
     const academicYear = await prisma.academicYear.findFirst({
       where: { schoolId, isActive: true },
     });
@@ -224,6 +230,7 @@ export class AcademicReportRepository {
       classroom,
       criteria,
       detailedGrades,
+      periodResults,
       attendances,
     };
   }
@@ -263,6 +270,7 @@ export class AcademicReportRepository {
       },
       include: {
         assignments: {
+          where: { deletedAt: null, academicYear: { isActive: true } },
           include: {
             area: {
               include: {
@@ -325,6 +333,11 @@ export class AcademicReportRepository {
       },
     });
 
+    const periodResults = await prisma.competencePeriodResult.findMany({
+      where: { courseAssignmentId: { in: allAssignmentIds }, periodNumber },
+      select: { enrollmentId: true, courseAssignmentId: true, competenceId: true, computedScore: true, finalLetter: true, isOverridden: true },
+    });
+
     const criteria = await this.findCriteria(schoolId, educationLevel);
 
     return {
@@ -332,6 +345,7 @@ export class AcademicReportRepository {
       classrooms,
       criteria,
       detailedGrades,
+      periodResults,
     };
   }
 

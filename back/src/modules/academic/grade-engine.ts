@@ -111,3 +111,4 @@ export function sanitizeConclusion(text: string | null | undefined): string {
 export function needsConclusion(letter: ResultLetter | null): boolean {
   return isLetter(letter) && LETTERS_REQUIRING_CONCLUSION.includes(letter);
 }
+

@@ -1,5 +1,6 @@
 import { AcademicReportRepository } from './academic-report.repository';
 import { EducationLevel } from '@prisma/client';
+import { LETTER_NUMERIC_VALUE, isLetter } from '../academic/grade-engine';
 
 export class AcademicReportService {
   constructor(private readonly academicReportRepository: AcademicReportRepository) {}
@@ -21,8 +22,16 @@ export class AcademicReportService {
       periodNumber,
     );
 
-    const { classroom, criteria, detailedGrades, attendances } = raw;
+    const { classroom, criteria, detailedGrades, periodResults, attendances } = raw;
     const criteriaWeightMap = new Map(criteria.map((c) => [c.id, c.weight || 1]));
+
+    const resultScore = new Map<string, number>();
+    periodResults.forEach((r) => {
+      const value = !r.isOverridden && r.computedScore !== null
+        ? r.computedScore
+        : isLetter(r.finalLetter) ? LETTER_NUMERIC_VALUE[r.finalLetter] : null;
+      if (value !== null) resultScore.set(`${r.enrollmentId}_${r.courseAssignmentId}_${r.competenceId}`, value);
+    });
 
     // Mapeo en memoria de notas por clave: `${enrollmentId}_${courseAssignmentId}_${competenceId}`
     const gradesMap = new Map<string, Array<{ criterionId: string; numericScore: number | null; shortName?: string }>>();
@@ -31,17 +40,9 @@ export class AcademicReportService {
       if (!gradesMap.has(key)) {
         gradesMap.set(key, []);
       }
-      let score = gradeItem.numericScore;
-      if (score === null || score === undefined) {
-        if (gradeItem.literalScore === 'AD') score = 18;
-        else if (gradeItem.literalScore === 'A') score = 15;
-        else if (gradeItem.literalScore === 'B') score = 12;
-        else if (gradeItem.literalScore === 'C') score = 9;
-        // 'EXO' y '-' se excluyen del promedio
-      }
       gradesMap.get(key)!.push({
         criterionId: gradeItem.criterionId,
-        numericScore: score,
+        numericScore: gradeItem.numericScore,
         shortName: gradeItem.criterion?.shortName,
       });
     });
@@ -79,33 +80,38 @@ export class AcademicReportService {
 
       classroom.assignments.forEach((assignment) => {
         const competenceScores: number[] = [];
-        const motherAreaId = assignment.area.parentAreaId || assignment.area.id;
+        const motherAreaId = assignment.area.officialAreaCode || assignment.area.id;
         const motherAreaName = assignment.area.parentArea?.name || assignment.area.name;
 
         assignment.area.competences.forEach((comp) => {
           const key = `${enr.id}_${assignment.id}_${comp.id}`;
+          const fromResult = resultScore.get(key);
+          if (fromResult !== undefined && fromResult !== null) {
+            competenceScores.push(fromResult);
+          } else {
+            const items = gradesMap.get(key) || [];
+            const numericItems = items.filter((it): it is typeof it & { numericScore: number } => it.numericScore !== null && it.numericScore !== undefined);
+            if (numericItems.length > 0) {
+              const totalWeight = numericItems.reduce(
+                (acc, it) => acc + (criteriaWeightMap.get(it.criterionId) || 1),
+                0,
+              );
+              const weightedSum = numericItems.reduce(
+                (acc, it) => acc + it.numericScore * (criteriaWeightMap.get(it.criterionId) || 1),
+                0,
+              );
+              const compScore = totalWeight > 0 ? weightedSum / totalWeight : null;
+              if (compScore !== null) {
+                competenceScores.push(compScore);
+              }
+            }
+          }
+
+          // Buscar si alguno corresponde al rubro de Conducta (COND)
           const items = gradesMap.get(key) || [];
-
-          const numericItems = items.filter((it): it is typeof it & { numericScore: number } => it.numericScore !== null && it.numericScore !== undefined);
-          if (numericItems.length > 0) {
-            const totalWeight = numericItems.reduce(
-              (acc, it) => acc + (criteriaWeightMap.get(it.criterionId) || 1),
-              0,
-            );
-            const weightedSum = numericItems.reduce(
-              (acc, it) => acc + it.numericScore * (criteriaWeightMap.get(it.criterionId) || 1),
-              0,
-            );
-            const compScore = totalWeight > 0 ? weightedSum / totalWeight : null;
-            if (compScore !== null) {
-              competenceScores.push(compScore);
-            }
-
-            // Buscar si alguno corresponde al rubro de Conducta (COND)
-            const condItem = items.find((it) => it.shortName === 'COND');
-            if (condItem && conductScore === null && condItem.numericScore !== null && condItem.numericScore !== undefined) {
-              conductScore = condItem.numericScore;
-            }
+          const condItem = items.find((it) => it.shortName === 'COND');
+          if (condItem && conductScore === null && condItem.numericScore !== null && condItem.numericScore !== undefined) {
+            conductScore = condItem.numericScore;
           }
         });
 
@@ -118,7 +124,7 @@ export class AcademicReportService {
             : null;
 
         courseScores[assignment.id] = periodScore;
-        if (periodScore !== null) {
+        if (periodScore !== null && (assignment.area as any).kind !== 'WORKSHOP') {
           if (!motherAreaScoresMap.has(motherAreaId)) {
             motherAreaScoresMap.set(motherAreaId, { totalScore: 0, count: 0, name: motherAreaName });
           }
@@ -410,8 +416,16 @@ export class AcademicReportService {
       academicYearId,
     );
 
-    const { school, classrooms, criteria, detailedGrades } = raw;
+    const { school, classrooms, criteria, detailedGrades, periodResults } = raw;
     const criteriaWeightMap = new Map(criteria.map((c) => [c.id, c.weight || 1]));
+
+    const resultScore = new Map<string, number>();
+    periodResults.forEach((r) => {
+      const value = !r.isOverridden && r.computedScore !== null
+        ? r.computedScore
+        : isLetter(r.finalLetter) ? LETTER_NUMERIC_VALUE[r.finalLetter] : null;
+      if (value !== null) resultScore.set(`${r.enrollmentId}_${r.courseAssignmentId}_${r.competenceId}`, value);
+    });
 
     const gradesMap = new Map<string, Array<{ criterionId: string; numericScore: number | null; shortName?: string }>>();
     detailedGrades.forEach((g) => {
@@ -453,22 +467,29 @@ export class AcademicReportService {
 
         classroom.assignments.forEach((assignment) => {
           const compScores: number[] = [];
-          const motherAreaId = assignment.area.parentAreaId || assignment.area.id;
+          const motherAreaId = assignment.area.officialAreaCode || assignment.area.id;
           const motherAreaName = assignment.area.parentArea?.name || assignment.area.name;
 
           assignment.area.competences.forEach((comp) => {
-            const items = gradesMap.get(`${enr.id}_${assignment.id}_${comp.id}`) || [];
-            const numericItems = items.filter((it): it is typeof it & { numericScore: number } => it.numericScore !== null && it.numericScore !== undefined);
-            if (numericItems.length > 0) {
-              const totalW = numericItems.reduce((acc, it) => acc + (criteriaWeightMap.get(it.criterionId) || 1), 0);
-              const weightedSum = numericItems.reduce((acc, it) => acc + it.numericScore * (criteriaWeightMap.get(it.criterionId) || 1), 0);
-              const sc = totalW > 0 ? weightedSum / totalW : null;
-              if (sc !== null) compScores.push(sc);
-
-              const cond = items.find((it) => it.shortName === 'COND');
-              if (cond && conductScore === null && cond.numericScore !== null && cond.numericScore !== undefined) {
-                conductScore = cond.numericScore;
+            const key = `${enr.id}_${assignment.id}_${comp.id}`;
+            const fromResult = resultScore.get(key);
+            if (fromResult !== undefined && fromResult !== null) {
+              compScores.push(fromResult);
+            } else {
+              const items = gradesMap.get(key) || [];
+              const numericItems = items.filter((it): it is typeof it & { numericScore: number } => it.numericScore !== null && it.numericScore !== undefined);
+              if (numericItems.length > 0) {
+                const totalW = numericItems.reduce((acc, it) => acc + (criteriaWeightMap.get(it.criterionId) || 1), 0);
+                const weightedSum = numericItems.reduce((acc, it) => acc + it.numericScore * (criteriaWeightMap.get(it.criterionId) || 1), 0);
+                const sc = totalW > 0 ? weightedSum / totalW : null;
+                if (sc !== null) compScores.push(sc);
               }
+            }
+
+            const items = gradesMap.get(key) || [];
+            const cond = items.find((it) => it.shortName === 'COND');
+            if (cond && conductScore === null && cond.numericScore !== null && cond.numericScore !== undefined) {
+              conductScore = cond.numericScore;
             }
           });
 
@@ -477,7 +498,7 @@ export class AcademicReportService {
               ? Math.round((compScores.reduce((a, b) => a + b, 0) / compScores.length) * 10) / 10
               : null;
 
-          if (periodCourseScore !== null) {
+          if (periodCourseScore !== null && (assignment.area as any).kind !== 'WORKSHOP') {
             if (!motherAreaScoresMap.has(motherAreaId)) {
               motherAreaScoresMap.set(motherAreaId, { totalScore: 0, count: 0, name: motherAreaName });
             }

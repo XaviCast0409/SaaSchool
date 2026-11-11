@@ -15,7 +15,7 @@ export const createAcademicYearSchema = z.object({
   annualCalculationMode: z.enum(['LAST_PERIOD', 'AVERAGE']).optional().default('LAST_PERIOD'),
   startDate: z.string().min(1, 'La fecha de inicio es requerida'),
   endDate: z.string().min(1, 'La fecha de fin es requerida'),
-  isActive: z.boolean().default(true),
+  isActive: z.boolean().default(false),
 });
 
 export const updateAcademicYearSchema = createAcademicYearSchema.partial();

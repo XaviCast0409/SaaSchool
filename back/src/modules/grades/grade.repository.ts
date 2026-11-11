@@ -10,6 +10,8 @@ import type {
   SyncHomeworkToMatrixDto,
 } from './grade.schema';
 import { AppError } from '../../core/errors/app-error';
+import { PeriodService } from '../academic/period.service';
+import { ResultsService } from '../academic/results.service';
 import { SiagieConsolidatorService, letterToScore, scoreToLetter } from './siagie-consolidator.service';
 import { thresholdsFromGradingScale, type LetterScaleThresholds } from './letter-scale';
 import { type PromotionRuleOverrides } from './promotion-rules';
@@ -221,6 +223,7 @@ export class GradeRepository {
       where: {
         id: courseAssignmentId,
         schoolId,
+        deletedAt: null,
         ...(teacherId ? { teacherId } : {}),
       },
       include: {
@@ -388,6 +391,7 @@ export class GradeRepository {
       where: {
         id: courseAssignmentId,
         schoolId,
+        deletedAt: null,
         ...(teacherId ? { teacherId } : {}),
       },
       select: {
@@ -539,6 +543,7 @@ export class GradeRepository {
       where: {
         id: courseAssignmentId,
         schoolId,
+        deletedAt: null,
         ...(teacherId ? { teacherId } : {}),
       },
       include: {
@@ -731,6 +736,7 @@ export class GradeRepository {
       where: {
         id: dto.courseAssignmentId,
         schoolId,
+        deletedAt: null,
         ...(teacherId ? { teacherId } : {}),
       },
       include: {
@@ -1470,24 +1476,16 @@ export class GradeRepository {
       where: {
         id: dto.courseAssignmentId,
         schoolId,
+        deletedAt: null,
         ...(teacherId ? { teacherId } : {}),
       },
       include: {
         area: {
           include: {
             competences: true,
-            parentArea: {
-              include: { competences: true },
-            },
           },
         },
-        classroom: {
-          include: {
-            enrollments: {
-              where: { schoolId, isActive: true },
-            },
-          },
-        },
+        classroom: true,
       },
     });
 
@@ -1495,14 +1493,19 @@ export class GradeRepository {
       throw new AppError('Asignación de curso no encontrada o no tienes permisos.', 404);
     }
 
+    const classroomEnrollments = await prisma.enrollment.findMany({
+      where: {
+        schoolId,
+        classroomId: assignment.classroomId,
+        academicYearId: assignment.academicYearId ?? undefined,
+        isActive: true,
+        enrollmentState: 'REGISTERED',
+      },
+    });
+
     if (teacherId) {
-      const isLocked = await this.isPeriodLocked(schoolId, dto.periodNumber, assignment.classroomId);
-      if (isLocked) {
-        throw new AppError(
-          `El ${dto.periodNumber}° Periodo se encuentra cerrado y auditado por Dirección.`,
-          403,
-        );
-      }
+      const status = await new PeriodService().getEffectiveStatus(assignment.academicYearId!, dto.periodNumber, assignment.classroomId);
+      if (status !== 'OPEN') throw new AppError('El periodo no está abierto para registrar notas.', 403);
     }
 
     let effectiveCriterionId = dto.criterionId || dto.targetCriterionId;
@@ -1527,23 +1530,12 @@ export class GradeRepository {
     }
 
     const requestedCompId = dto.competenceId || dto.targetCompetenceId;
-    let targetCompIds: string[] = [];
-
-    if (requestedCompId) {
-      targetCompIds = [requestedCompId];
-    } else {
-      if (assignment.area.parentAreaId && assignment.area.parentArea?.competences) {
-        const comps =
-          assignment.area.evaluatedCompetenceIds && assignment.area.evaluatedCompetenceIds.length > 0
-            ? assignment.area.parentArea.competences.filter((c) =>
-                assignment.area.evaluatedCompetenceIds.includes(c.id),
-              )
-            : assignment.area.parentArea.competences;
-        targetCompIds = comps.map((c) => c.id);
-      } else {
-        targetCompIds = assignment.area.competences.map((c) => c.id);
-      }
+    if (requestedCompId && !assignment.area.competences.some((c) => c.id === requestedCompId && c.isActive)) {
+      throw new AppError('La competencia no pertenece a este curso.', 400);
     }
+    const targetCompIds: string[] = requestedCompId
+      ? [requestedCompId]
+      : assignment.area.competences.filter((c) => c.isActive).map((c) => c.id);
 
     if (targetCompIds.length === 0) {
       throw new AppError('El curso no tiene competencias configuradas para asociar la nota.', 400);
@@ -1573,7 +1565,7 @@ export class GradeRepository {
       return { updatedStudentsCount: 0, totalHomeworksFound: 0 };
     }
 
-    const activeEnrollmentIds = assignment.classroom.enrollments.map((e) => e.id);
+    const activeEnrollmentIds = classroomEnrollments.map((e) => e.id);
     const submissions = await prisma.homeworkSubmission.findMany({
       where: {
         schoolId,
@@ -1650,6 +1642,8 @@ export class GradeRepository {
     if (upsertPromises.length > 0) {
       await prisma.$transaction(upsertPromises);
     }
+
+    await new ResultsService().recompute(schoolId, assignment.id, dto.periodNumber);
 
     return {
       updatedStudentsCount,
@@ -1816,6 +1810,7 @@ export class GradeRepository {
           id: data.courseAssignmentId,
           teacherId,
           schoolId,
+          deletedAt: null,
         },
       });
 

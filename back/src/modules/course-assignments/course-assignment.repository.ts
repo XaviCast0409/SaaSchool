@@ -11,7 +11,7 @@ export class CourseAssignmentRepository {
    */
   async findAllBySchool(schoolId: string): Promise<CourseAssignment[]> {
     return prisma.courseAssignment.findMany({
-      where: { schoolId },
+      where: { schoolId, deletedAt: null, academicYear: { isActive: true } },
       include: {
         classroom: true,
         area: true,
@@ -41,7 +41,7 @@ export class CourseAssignmentRepository {
    */
   async findByTeacher(teacherId: string, schoolId: string): Promise<CourseAssignment[]> {
     return prisma.courseAssignment.findMany({
-      where: { teacherId, schoolId },
+      where: { teacherId, schoolId, deletedAt: null, academicYear: { isActive: true } },
       include: {
         classroom: true,
         area: { include: { competences: true } },
@@ -74,7 +74,7 @@ export class CourseAssignmentRepository {
     schoolId: string,
   ): Promise<boolean> {
     const assignment = await prisma.courseAssignment.findFirst({
-      where: { id: courseAssignmentId, teacherId, schoolId },
+      where: { id: courseAssignmentId, teacherId, schoolId, deletedAt: null },
     });
     return assignment !== null;
   }
@@ -90,7 +90,7 @@ export class CourseAssignmentRepository {
     schoolId: string,
   ): Promise<CourseAssignment | null> {
     return prisma.courseAssignment.findFirst({
-      where: { teacherId, classroomId, areaId, schoolId },
+      where: { teacherId, classroomId, areaId, schoolId, deletedAt: null, academicYear: { isActive: true } },
     });
   }
 
@@ -185,7 +185,7 @@ export class CourseAssignmentRepository {
    */
   async findTeacherAssignmentIds(teacherId: string, schoolId: string): Promise<string[]> {
     const assignments = await prisma.courseAssignment.findMany({
-      where: { teacherId, schoolId },
+      where: { teacherId, schoolId, deletedAt: null, academicYear: { isActive: true } },
       select: { id: true },
     });
     return assignments.map((a) => a.id);
@@ -203,7 +203,7 @@ export class CourseAssignmentRepository {
     return prisma.$transaction(async (tx) => {
       // 1. Obtener asignaciones actuales de este profesor
       const currentAssignments = await tx.courseAssignment.findMany({
-        where: { schoolId, teacherId },
+        where: { schoolId, teacherId, deletedAt: null },
         select: { id: true, classroomId: true, areaId: true },
       });
 

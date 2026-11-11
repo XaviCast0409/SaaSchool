@@ -8,6 +8,7 @@ export class CourseContentRepository {
       where: {
         id: courseAssignmentId,
         schoolId,
+        deletedAt: null,
       },
       include: {
         classroom: true,
@@ -295,7 +296,7 @@ export class CourseContentRepository {
         _sum: { fileSize: true },
       }),
       prisma.courseAssignment.count({
-        where: { schoolId },
+        where: { schoolId, deletedAt: null, academicYear: { isActive: true } },
       }),
       prisma.courseContent.groupBy({
         by: ['courseAssignmentId'],
