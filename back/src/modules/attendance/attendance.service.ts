@@ -2,6 +2,7 @@ import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
 import { getSchoolNow, parseSchoolDate } from '../../utils/timezone.util';
 import { sendWebPushNotification } from '../../utils/web-push.util';
+import { notificationService } from '../notifications/notification.routes';
 import { levelsForScope, type ScheduleScope } from './attendance.rules';
 import type {
   AttendanceRepository,
@@ -502,7 +503,51 @@ export class AttendanceService {
     };
   }
 
-  private async notifyAbsences(_schoolId: string, _ids: string[]): Promise<void> {}
+  /** Notifica a los apoderados de cada alumno con falta automática (push + campana). */
+  private async notifyAbsences(schoolId: string, attendanceIds: string[]): Promise<void> {
+    const school = await prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { notifyAbsencesToFamilies: true },
+    });
+    if (!school?.notifyAbsencesToFamilies) return;
+
+    const attendances = await prisma.attendance.findMany({
+      where: { id: { in: attendanceIds }, schoolId },
+      select: {
+        date: true,
+        enrollmentId: true,
+        enrollment: {
+          select: {
+            student: {
+              select: {
+                firstNames: true,
+                lastNamePaternal: true,
+                familyRelations: { select: { userId: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    for (const attendance of attendances) {
+      const student = attendance.enrollment.student;
+      const dateStr = attendance.date.toISOString().slice(0, 10);
+      const [y, m, d] = dateStr.split('-');
+      const userIds = Array.from(new Set(student.familyRelations.map((r) => r.userId)));
+      for (const userId of userIds) {
+        await notificationService
+          .createNotification(schoolId, {
+            userId,
+            title: 'Inasistencia registrada',
+            message: `${student.firstNames} ${student.lastNamePaternal} no registró su ingreso hoy (${d}/${m}/${y}). Si es un error o tiene justificación, toca aquí para enviarla.`,
+            type: 'ATTENDANCE',
+            link: `/attendance?justify=${attendance.enrollmentId}&date=${dateStr}`,
+          })
+          .catch((error) => console.error('[AbsenceNotify] Error al notificar', userId, error));
+      }
+    }
+  }
 
   /** Cierre automático de un horario: solo los niveles que gobierna ese horario. */
   async closeAttendanceForScope(schoolId: string, scope: ScheduleScope, dateStr: string): Promise<number> {
