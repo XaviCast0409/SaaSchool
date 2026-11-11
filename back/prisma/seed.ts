@@ -2,6 +2,9 @@
 import 'dotenv/config';
 import { PrismaClient, RelationshipType, AttendanceStatus, SubscriptionPlan, EducationLevel } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { CurriculumService } from '../src/modules/academic/curriculum.service';
+import { TeachingLoadService } from '../src/modules/academic/teaching-load.service';
+import { ResultsService } from '../src/modules/academic/results.service';
 
 const prisma = new PrismaClient();
 
@@ -81,14 +84,15 @@ async function main(): Promise<void> {
   await prisma.courseContent.deleteMany();
   await prisma.notification.deleteMany();
   await prisma.pushSubscription.deleteMany();
-  await prisma.gradingPeriodLock.deleteMany();
   await prisma.competenceConclusion.deleteMany();
   await prisma.detailedGrade.deleteMany();
   await prisma.evaluationCriterion.deleteMany();
   await prisma.announcement.deleteMany();
   await prisma.attendance.deleteMany();
-  await prisma.grade.deleteMany();
-  await prisma.gradeEntry.deleteMany();
+  await prisma.competencePeriodResult.deleteMany();
+  await prisma.courseAssignmentCriterion.deleteMany();
+  await prisma.academicPeriodStatus.deleteMany();
+  await prisma.studyPlanCourse.deleteMany();
   await prisma.courseAssignment.deleteMany();
   await prisma.curricularCompetence.deleteMany();
   await prisma.curricularArea.deleteMany();
@@ -429,132 +433,43 @@ async function main(): Promise<void> {
   });
 
   // ==========================================================================
-  // 6. ÁREAS CURRICULARES Y COMPETENCIAS OFICIALES
+  // 6. PLAN DE ESTUDIOS CNEB Y 7. ASIGNACIÓN DE CURSOS
   // ==========================================================================
-  console.log('📚 Configurando Áreas Curriculares y Competencias MINEDU...');
+  console.log('📚 Configurando plan de estudios CNEB...');
+  const curriculum = new CurriculumService();
+  const teachingLoad = new TeachingLoadService();
+  await curriculum.applyTemplate(schoolPro.id, academicYearPro.id, 'INITIAL', [5]);
+  await curriculum.applyTemplate(schoolPro.id, academicYearPro.id, 'PRIMARY', [1, 3]);
+  await curriculum.applyTemplate(schoolPro.id, academicYearPro.id, 'SECONDARY', [2]);
+  await curriculum.createSubcourses(schoolPro.id, academicYearPro.id, 'SECONDARY', [2], 'MAT', [
+    { name: 'Aritmética y Estadística', cnebNumbers: [23, 26] },
+    { name: 'Álgebra', cnebNumbers: [24] },
+    { name: 'Geometría y Trigonometría', cnebNumbers: [25] },
+  ]);
+  await curriculum.applyTemplate(schoolBasic.id, academicYearBasic.id, 'PRIMARY', [2]);
+  await curriculum.applyTemplate(schoolBasic.id, academicYearBasic.id, 'SECONDARY', [1]);
 
-  const mineduAreas = [
-    {
-      name: 'Matemática',
-      officialCode: 'MAT',
-      competences: [
-        'Resuelve problemas de cantidad',
-        'Resuelve problemas de regularidad, equivalencia y cambio',
-        'Resuelve problemas de forma, movimiento y localización',
-        'Resuelve problemas de gestión de datos e incertidumbre',
-      ],
-    },
-    {
-      name: 'Comunicación',
-      officialCode: 'COM',
-      competences: [
-        'Se comunica oralmente en su lengua materna',
-        'Lee diversos tipos de textos escritos en lengua materna',
-        'Escribe diversos tipos de textos en lengua materna',
-      ],
-    },
-    {
-      name: 'Ciencia y Tecnología',
-      officialCode: 'CYT',
-      competences: [
-        'Indaga mediante métodos científicos para construir conocimientos',
-        'Explica el mundo físico basándose en conocimientos científicos',
-        'Diseña y construye soluciones tecnológicas para resolver problemas',
-      ],
-    },
-    {
-      name: 'Personal Social',
-      officialCode: 'PS',
-      competences: [
-        'Construye su identidad',
-        'Convive y participa democráticamente en la búsqueda del bien común',
-        'Construye interpretaciones históricas',
-      ],
-    },
-    {
-      name: 'Inglés como Lengua Extranjera',
-      officialCode: 'ING',
-      competences: [
-        'Se comunica oralmente en inglés como lengua extranjera',
-        'Lee diversos tipos de textos en inglés como lengua extranjera',
-        'Escribe diversos tipos de textos en inglés como lengua extranjera',
-      ],
-    },
-  ];
+  const findArea = (schoolId: string, educationLevel: 'INITIAL' | 'PRIMARY' | 'SECONDARY', where: { officialAreaCode?: string; kind?: 'OFFICIAL' | 'SUBCOURSE'; name?: string }) =>
+    prisma.curricularArea.findFirstOrThrow({ where: { schoolId, educationLevel, ...where }, include: { competences: true } });
+  const assign = (schoolId: string, academicYearId: string, classroomId: string, areaId: string, teacherId: string) =>
+    prisma.courseAssignment.create({ data: { schoolId, academicYearId, classroomId, areaId, teacherId } });
+  const comp = (area: { competences: Array<{ id: string; cnebNumber: number | null }> }, n: number) => area.competences.find((c) => c.cnebNumber === n)!;
 
-  const setupAreas = async (schoolId: string) => {
-    const areas = [];
-    for (const item of mineduAreas) {
-      const area = await prisma.curricularArea.create({
-        data: { schoolId, name: item.name, officialCode: item.officialCode, isActive: true },
-      });
-      const comps = await Promise.all(
-        item.competences.map((cName) =>
-          prisma.curricularCompetence.create({
-            data: { areaId: area.id, name: cName },
-          }),
-        ),
-      );
-      areas.push({ area, comps });
-    }
-    return areas;
-  };
+  const matPri = await findArea(schoolPro.id, 'PRIMARY', { officialAreaCode: 'MAT', kind: 'OFFICIAL' });
+  const comPri = await findArea(schoolPro.id, 'PRIMARY', { officialAreaCode: 'COM', kind: 'OFFICIAL' });
+  const aritSec = await findArea(schoolPro.id, 'SECONDARY', { name: 'Aritmética y Estadística' });
+  const cytSec = await findArea(schoolPro.id, 'SECONDARY', { officialAreaCode: 'CYT', kind: 'OFFICIAL' });
+  const matPriBasic = await findArea(schoolBasic.id, 'PRIMARY', { officialAreaCode: 'MAT', kind: 'OFFICIAL' });
 
-  const areasBasic = await setupAreas(schoolBasic.id);
-  const areasPro = await setupAreas(schoolPro.id);
-
-  // ==========================================================================
-  // 7. ASIGNACIÓN DE CURSOS A DOCENTES
-  // ==========================================================================
   console.log('📌 Asignando Cursos a Docentes...');
-
-  // En Colegio PRO: DocentePro enseña Matemática y Comunicación en 3° Primaria
-  const asigMatematicaPrimariaPro = await prisma.courseAssignment.create({
-    data: {
-      schoolId: schoolPro.id,
-      classroomId: aulaPrimaria3Pro.id,
-      areaId: areasPro[0].area.id, // Matemática
-      teacherId: docentePro.id,
-    },
-  });
-
-  const asigComunicacionPrimariaPro = await prisma.courseAssignment.create({
-    data: {
-      schoolId: schoolPro.id,
-      classroomId: aulaPrimaria3Pro.id,
-      areaId: areasPro[1].area.id, // Comunicación
-      teacherId: docentePro.id,
-    },
-  });
-
-  // DocentePro2 enseña Matemática y Ciencia en 2° Secundaria
-  const asigMatematicaSecundariaPro = await prisma.courseAssignment.create({
-    data: {
-      schoolId: schoolPro.id,
-      classroomId: aulaSecundaria2Pro.id,
-      areaId: areasPro[0].area.id, // Matemática
-      teacherId: docentePro2.id,
-    },
-  });
-
-  const asigCienciaSecundariaPro = await prisma.courseAssignment.create({
-    data: {
-      schoolId: schoolPro.id,
-      classroomId: aulaSecundaria2Pro.id,
-      areaId: areasPro[2].area.id, // Ciencia
-      teacherId: docentePro2.id,
-    },
-  });
-
-  // En Colegio BASIC: DocenteBasic enseña Matemática en 2° Primaria
-  const asigMatematicaBasic = await prisma.courseAssignment.create({
-    data: {
-      schoolId: schoolBasic.id,
-      classroomId: aulaPrimaria2Basic.id,
-      areaId: areasBasic[0].area.id,
-      teacherId: docenteBasic.id,
-    },
-  });
+  const asigMatematicaPrimariaPro = await assign(schoolPro.id, academicYearPro.id, aulaPrimaria3Pro.id, matPri.id, docentePro.id);
+  const asigComunicacionPrimariaPro = await assign(schoolPro.id, academicYearPro.id, aulaPrimaria3Pro.id, comPri.id, docentePro.id);
+  const asigMatematicaSecundariaPro = await assign(schoolPro.id, academicYearPro.id, aulaSecundaria2Pro.id, aritSec.id, docentePro2.id);
+  const asigCienciaSecundariaPro = await assign(schoolPro.id, academicYearPro.id, aulaSecundaria2Pro.id, cytSec.id, docentePro2.id);
+  const asigMatematicaBasic = await assign(schoolBasic.id, academicYearBasic.id, aulaPrimaria2Basic.id, matPriBasic.id, docenteBasic.id);
+  for (const room of [aulaPrimaria3Pro, aulaSecundaria2Pro, aulaPrimaria2Basic]) {
+    await teachingLoad.syncTutorTransversal(room.schoolId, room.id);
+  }
 
   // ==========================================================================
   // 8. ESTUDIANTES Y RELACIONES FAMILIARES (CASOS DE PRUEBA CLAVE)
@@ -999,8 +914,9 @@ async function main(): Promise<void> {
   console.log('📝 Cargando Notas Detalladas y Conclusiones...');
 
   // Poblar notas para Lucas en Matemática (3° Primaria)
-  const compMatematica1Pro = areasPro[0].comps[0]; // Resuelve problemas de cantidad
-  const compMatematica2Pro = areasPro[0].comps[1]; // Regularidad y cambio
+  const compMatematica1Pro = comp(matPri, 23);
+  const compMatematica2Pro = comp(matPri, 24);
+  const compAritSec = comp(aritSec, 23);
 
   // Notas Bimestre 1 para Lucas y Camila
   for (const crit of criteriaPro) {
@@ -1050,7 +966,7 @@ async function main(): Promise<void> {
         schoolId: schoolPro.id,
         enrollmentId: matValeria.id,
         courseAssignmentId: asigMatematicaSecundariaPro.id,
-        competenceId: compMatematica1Pro.id,
+        competenceId: compAritSec.id,
         criterionId: crit.id,
         periodNumber: 1,
         numericScore: 18.0,
@@ -1063,7 +979,7 @@ async function main(): Promise<void> {
       schoolId: schoolPro.id,
       enrollmentId: matValeria.id,
       courseAssignmentId: asigMatematicaSecundariaPro.id,
-      competenceId: compMatematica1Pro.id,
+      competenceId: compAritSec.id,
       periodNumber: 1,
       conclusion: 'Valeria analiza con solidez modelos algebraicos y funciones, comunicando sus resultados de manera clara y ordenada.',
     },
@@ -1098,7 +1014,7 @@ async function main(): Promise<void> {
         schoolId: schoolPro.id,
         enrollmentId: st.enrollmentId,
         courseAssignmentId: asigComunicacionPrimariaPro.id,
-        competenceId: areasPro[1].comps[0].id,
+        competenceId: comp(comPri, 7).id,
         criterionId: crit.id,
         periodNumber: 1,
         numericScore: randomFloat(13.0, 19.0),
@@ -1112,7 +1028,7 @@ async function main(): Promise<void> {
         schoolId: schoolPro.id,
         enrollmentId: st.enrollmentId,
         courseAssignmentId: asigMatematicaSecundariaPro.id,
-        competenceId: compMatematica1Pro.id,
+        competenceId: compAritSec.id,
         criterionId: crit.id,
         periodNumber: 1,
         numericScore: randomFloat(11.5, 17.5),
@@ -1123,6 +1039,11 @@ async function main(): Promise<void> {
   if (batchGradesData.length > 0) {
     await prisma.detailedGrade.createMany({ data: batchGradesData });
     console.log(`  ✅ ${batchGradesData.length} notas de evaluación bimestral cargadas`);
+  }
+
+  const resultsService = new ResultsService();
+  for (const a of [asigMatematicaPrimariaPro, asigComunicacionPrimariaPro, asigMatematicaSecundariaPro]) {
+    await resultsService.recompute(schoolPro.id, a.id, 1);
   }
 
   // ==========================================================================
