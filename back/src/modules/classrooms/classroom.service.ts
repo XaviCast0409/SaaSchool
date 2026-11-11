@@ -3,6 +3,10 @@ import { prisma } from '../../config/prisma';
 import type { ClassroomRepository, ClassroomWithTutor } from './classroom.repository';
 import type { CreateClassroomDto, UpdateClassroomDto } from './classroom.schema';
 import type { Classroom } from '@prisma/client';
+import { TeachingLoadService } from '../academic/teaching-load.service';
+import { isValidGrade } from '../academic/cneb.catalog';
+
+const teachingLoad = new TeachingLoadService();
 
 export class ClassroomService {
   constructor(private readonly classroomRepository: ClassroomRepository) {}
@@ -47,6 +51,9 @@ export class ClassroomService {
   ): Promise<ClassroomWithTutor> {
     await this.validateTutorTeacher(schoolId, createClassroomDto.tutorTeacherId);
     const result = await this.classroomRepository.create(schoolId, createClassroomDto);
+    if (createClassroomDto.tutorTeacherId) {
+      await teachingLoad.syncTutorTransversal(schoolId, result.id);
+    }
     return result;
   }
 
@@ -55,11 +62,18 @@ export class ClassroomService {
     schoolId: string,
     updateClassroomDto: UpdateClassroomDto,
   ): Promise<ClassroomWithTutor> {
-    await this.getClassroomById(classroomId, schoolId);
+    const current = await this.getClassroomById(classroomId, schoolId);
+    const level = updateClassroomDto.educationLevel ?? current.educationLevel;
+    const grade = updateClassroomDto.grade ?? current.grade;
+    if (!isValidGrade(level, grade)) throw new AppError('El grado no corresponde al nivel.', 400);
+
     if (updateClassroomDto.tutorTeacherId !== undefined) {
       await this.validateTutorTeacher(schoolId, updateClassroomDto.tutorTeacherId);
     }
     const updated = await this.classroomRepository.update(classroomId, schoolId, updateClassroomDto);
+    if (updateClassroomDto.tutorTeacherId) {
+      await teachingLoad.syncTutorTransversal(schoolId, classroomId);
+    }
     return updated;
   }
 
