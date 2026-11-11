@@ -36,31 +36,31 @@ router.patch(
 
 router.patch(
   '/competences/:id/toggle',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
   controller.toggleCompetence,
 );
 
 router.patch(
   '/competences/:id',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
   controller.updateCompetence,
 );
 
 router.delete(
   '/competences/:id',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
   controller.deleteCompetence,
 );
 
 router.post(
   '/competences',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
   controller.createCompetence,
 );
 
 router.post(
   '/:id/load-default-competences',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
   controller.loadDefaultCompetences,
 );
 

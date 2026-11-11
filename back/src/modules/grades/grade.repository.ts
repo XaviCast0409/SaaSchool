@@ -390,7 +390,18 @@ export class GradeRepository {
         schoolId,
         ...(teacherId ? { teacherId } : {}),
       },
-      select: { classroomId: true },
+      select: {
+        classroomId: true,
+        classroom: { select: { educationLevel: true } },
+        area: {
+          select: {
+            parentAreaId: true,
+            evaluatedCompetenceIds: true,
+            competences: { select: { id: true, isActive: true } },
+            parentArea: { select: { competences: { select: { id: true, isActive: true } } } },
+          },
+        },
+      },
     });
 
     if (!assignment) {
@@ -411,10 +422,29 @@ export class GradeRepository {
       return 0;
     }
 
+    const ownIds = assignment.area.competences.filter((c) => c.isActive !== false).map((c) => c.id);
+    const parentIds = (assignment.area.parentArea?.competences ?? []).filter((c) => c.isActive !== false).map((c) => c.id);
+    const effectiveIds = new Set(
+      assignment.area.parentAreaId
+        ? (assignment.area.evaluatedCompetenceIds.length > 0
+            ? parentIds.filter((id) => assignment.area.evaluatedCompetenceIds.includes(id))
+            : parentIds)
+        : ownIds,
+    );
+    if (grades.some((g) => !effectiveIds.has(g.competenceId))) {
+      throw new AppError('Hay notas para competencias que no pertenecen a este curso.', 400);
+    }
+    const criterionIds = [...new Set(grades.map((g) => g.criterionId))];
+    const validCriteria = await prisma.evaluationCriterion.count({ where: { id: { in: criterionIds }, schoolId } });
+    if (validCriteria !== criterionIds.length) {
+      throw new AppError('Hay criterios de evaluación que no pertenecen al colegio.', 400);
+    }
+
     // Regla SIAGIE: Solo registrar calificaciones de estudiantes con matrícula activa y en estado REGISTERED
     const activeEnrollments = await prisma.enrollment.findMany({
       where: {
         id: { in: grades.map((g) => g.enrollmentId) },
+        classroomId: assignment.classroomId,
         schoolId,
         enrollmentState: 'REGISTERED',
         isActive: true,
@@ -427,6 +457,8 @@ export class GradeRepository {
     if (cleanGrades.length === 0) {
       return 0;
     }
+
+    const thresholds = await this.getLetterThresholds(schoolId, assignment.classroom.educationLevel);
 
     // Ejecución transaccional para garantizar consistencia atómica
     await prisma.$transaction(
@@ -451,10 +483,7 @@ export class GradeRepository {
           };
           numericScore = literalToNumeric[literalScore] ?? null;
         } else if (numericScore !== null && numericScore !== undefined && !literalScore) {
-          if (numericScore >= 17.5) literalScore = 'AD';
-          else if (numericScore >= 13.5) literalScore = 'A';
-          else if (numericScore >= 10.5) literalScore = 'B';
-          else literalScore = 'C';
+          literalScore = scoreToLetter(numericScore, thresholds);
         }
 
         return prisma.detailedGrade.upsert({

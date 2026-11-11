@@ -481,7 +481,6 @@ export class SiagieConsolidatorService {
       if (normCompName.includes('disena') || normCompName.includes('diseña') || normCompName.includes('tecnolog') || normCompName.includes('solucion')) {
         return mother.competences[2] || mother.competences[0];
       }
-      return mother.competences[0];
     }
 
     // 3. Mapeo por keywords del curso
@@ -491,7 +490,7 @@ export class SiagieConsolidatorService {
       }
     }
 
-    return mother.competences[0] || null;
+    return null;
   }
 
   /**

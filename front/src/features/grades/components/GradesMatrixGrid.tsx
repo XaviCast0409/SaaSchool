@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useGradeMatrix, useSaveGradeMatrix, usePeriodLock, useSyncHomeworkToMatrix } from '../api/useGrades';
 import { useToggleCompetence } from '@/features/curricular-areas/api/useCurricularAreas';
+import { useAuthStore } from '@/store/useAuthStore';
 import { getSiagieConversion } from '../types';
 
 interface GradesMatrixGridProps {
@@ -41,6 +42,7 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
   onOpenCompetencesModal,
 }) => {
   const { data, isLoading, isError, refetch } = useGradeMatrix(courseAssignmentId, periodNumber);
+  const { user } = useAuthStore();
   const saveMatrixMutation = useSaveGradeMatrix();
   const syncHomeworkMutation = useSyncHomeworkToMatrix();
   const { data: periodLock } = usePeriodLock(data?.assignment?.classroom?.id, periodNumber);
@@ -715,7 +717,7 @@ export const GradesMatrixGrid: React.FC<GradesMatrixGridProps> = ({
         <p className="text-xs text-muted-foreground max-w-md mx-auto">
           El curso "{assignment?.area?.name}" aún no tiene las competencias oficiales del CNEB asociadas. Puedes cargarlas automáticamente para comenzar a evaluar.
         </p>
-        {onOpenCompetencesModal && (
+        {onOpenCompetencesModal && user?.role !== 'TEACHER' && (
           <Button
             type="button"
             onClick={onOpenCompetencesModal}

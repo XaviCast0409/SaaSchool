@@ -213,7 +213,7 @@ export const TeacherAdminGradesView: React.FC = () => {
             </Button>
           )}
 
-          {selectedCourseAssignmentId && (
+          {selectedCourseAssignmentId && user?.role !== 'TEACHER' && (
             <Button
               variant="outline"
               size="sm"

@@ -1,4 +1,5 @@
 import { prisma } from '../../config/prisma';
+import { AppError } from '../../core/errors/app-error';
 import type { CourseAssignment } from '@prisma/client';
 import type { CreateCourseAssignmentDto } from './course-assignment.schema';
 
@@ -136,6 +137,16 @@ export class CourseAssignmentRepository {
    */
   async delete(assignmentId: string, schoolId: string): Promise<CourseAssignment> {
     return prisma.$transaction(async (tx) => {
+      const gradeCount =
+        (await tx.detailedGrade.count({ where: { courseAssignmentId: assignmentId } })) +
+        (await tx.competenceConclusion.count({ where: { courseAssignmentId: assignmentId } }));
+      if (gradeCount > 0) {
+        throw new AppError(
+          'Este curso ya tiene notas registradas. No se puede quitar; cambia el docente en lugar de eliminar la asignación.',
+          409,
+        );
+      }
+
       await tx.grade.deleteMany({
         where: {
           entry: {
@@ -192,6 +203,21 @@ export class CourseAssignmentRepository {
         .map((item) => item.id);
 
       if (toDeleteIds.length > 0) {
+        const withGrades = await tx.detailedGrade.groupBy({
+          by: ['courseAssignmentId'],
+          where: { courseAssignmentId: { in: toDeleteIds } },
+        });
+        const withConclusions = await tx.competenceConclusion.groupBy({
+          by: ['courseAssignmentId'],
+          where: { courseAssignmentId: { in: toDeleteIds } },
+        });
+        if (withGrades.length > 0 || withConclusions.length > 0) {
+          throw new AppError(
+            'Uno o más cursos desmarcados ya tienen notas registradas. No se pueden quitar; asígnalos a otro docente.',
+            409,
+          );
+        }
+
         // Eliminar en cascada notas y entradas de evaluación asociadas a las asignaciones desmarcadas
         await tx.grade.deleteMany({
           where: {
