@@ -19,7 +19,9 @@
     "prisma:seed": "ts-node --transpile-only prisma/seed.ts",
     "seed": "ts-node --transpile-only prisma/seed.ts",
     "db:backup": "ts-node --transpile-only scripts/backup-db.ts",
-    "drive:check": "ts-node --transpile-only scripts/check-drive.ts"
+    "drive:check": "ts-node --transpile-only scripts/check-drive.ts",
+    "academic:normalize": "ts-node --transpile-only scripts/academic-normalize.ts",
+    "academic:recompute": "ts-node --transpile-only scripts/academic-recompute.ts"
   },
   "engines": {
     "node": "22.x"
