@@ -335,12 +335,12 @@ export interface SiagieMatrixStudent {
     string,
     {
       periodScore: number | null;
-      letter: 'AD' | 'A' | 'B' | 'C' | null;
+      letter: 'AD' | 'A' | 'B' | 'C' | 'EXO' | '-' | null;
       competences: Record<
         string,
         {
           score: number | null;
-          letter: 'AD' | 'A' | 'B' | 'C' | null;
+          letter: 'AD' | 'A' | 'B' | 'C' | 'EXO' | '-' | null;
           conclusion?: string;
         }
       >;
@@ -350,12 +350,12 @@ export interface SiagieMatrixStudent {
     string,
     {
       periodScore: number | null;
-      letter: 'AD' | 'A' | 'B' | 'C' | null;
+      letter: 'AD' | 'A' | 'B' | 'C' | 'EXO' | '-' | null;
       competences: Record<
         string,
         {
           score: number | null;
-          letter: 'AD' | 'A' | 'B' | 'C' | null;
+          letter: 'AD' | 'A' | 'B' | 'C' | 'EXO' | '-' | null;
           conclusion: string;
         }
       >;
