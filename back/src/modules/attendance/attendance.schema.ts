@@ -140,6 +140,21 @@ export const scanBatchSchema = z.object({
     .max(200),
 });
 
+export const listAlertsQuerySchema = z.object({
+  status: z.enum(['OPEN', 'ATTENDED']).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+export const attendAlertSchema = z.object({
+  note: z.string().trim().min(3, 'La nota debe tener al menos 3 caracteres').max(500),
+});
+
+export const citeFamilyAlertSchema = z.object({
+  citationDate: z.string().datetime({ offset: true }),
+  note: z.string().trim().max(500).optional(),
+});
+
 // Schema para consultar la hoja completa de asistencia de un aula en una fecha
 export const attendanceSheetQuerySchema = z.object({
   classroomId: z.string().uuid('ID de aula inválido'),
@@ -234,3 +249,6 @@ export type CreateJustificationDto = z.infer<typeof createJustificationSchema>;
 export type ReviewJustificationDto = z.infer<typeof reviewJustificationSchema>;
 export type JustificationFilterDto = z.infer<typeof justificationFilterSchema>;
 export type ScanBatchDto = z.infer<typeof scanBatchSchema>;
+export type ListAlertsQueryDto = z.infer<typeof listAlertsQuerySchema>;
+export type AttendAlertDto = z.infer<typeof attendAlertSchema>;
+export type CiteFamilyAlertDto = z.infer<typeof citeFamilyAlertSchema>;

@@ -118,6 +118,28 @@ attendanceRouter.patch(
   attendanceController.reviewJustification,
 );
 
+// Alertas tempranas de ausentismo y deserción
+attendanceRouter.get(
+  '/alerts',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),
+  attendanceController.listAlerts,
+);
+attendanceRouter.post(
+  '/alerts/evaluate',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
+  attendanceController.evaluateAlertsNow,
+);
+attendanceRouter.patch(
+  '/alerts/:alertId/attend',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),
+  attendanceController.attendAlert,
+);
+attendanceRouter.post(
+  '/alerts/:alertId/cite',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),
+  attendanceController.citeFamilyFromAlert,
+);
+
 // Corregir asistencia ya registrada
 attendanceRouter.patch(
   '/:id',

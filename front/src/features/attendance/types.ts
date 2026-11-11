@@ -307,3 +307,44 @@ export interface ReviewJustificationPayload {
   decision: 'APPROVED' | 'REJECTED';
   reviewNote?: string | null;
 }
+
+export type AttendanceAlertReason =
+  | 'CONSECUTIVE_ABSENCES'
+  | 'MONTHLY_ABSENCE_RATE'
+  | 'REPEATED_LATENESS';
+
+export const RISK_REASON_LABELS: Record<AttendanceAlertReason, string> = {
+  CONSECUTIVE_ABSENCES: 'Faltas injustificadas consecutivas',
+  MONTHLY_ABSENCE_RATE: '% de faltas injustificadas (últimos 30 días)',
+  REPEATED_LATENESS: 'Tardanzas injustificadas repetidas (últimos 30 días)',
+};
+
+export interface AttendanceAlert {
+  id: string;
+  schoolId: string;
+  enrollmentId: string;
+  reason: AttendanceAlertReason;
+  metricValue: number;
+  threshold: number;
+  triggeredOn: string;
+  status: 'OPEN' | 'ATTENDED';
+  attendedById?: string | null;
+  attendedAt?: string | null;
+  attendedNote?: string | null;
+  incidentId?: string | null;
+  createdAt: string;
+  enrollment?: {
+    id: string;
+    student?: {
+      id: string;
+      firstNames: string;
+      lastNamePaternal: string;
+      lastNameMaternal?: string | null;
+    };
+    classroom?: {
+      grade: number;
+      section: string;
+      educationLevel: string;
+    };
+  };
+}

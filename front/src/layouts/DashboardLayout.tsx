@@ -25,6 +25,7 @@ import {
   FileSpreadsheet,
   History,
   FileCheck2,
+  AlertTriangle,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/button';
@@ -117,6 +118,13 @@ export const DashboardLayout: React.FC = () => {
           label: 'Justificaciones',
           path: '/attendance-justifications',
           icon: FileCheck2,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Alertas de asistencia',
+          path: '/attendance-alerts',
+          icon: AlertTriangle,
           roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
           minPlan: 'BASIC',
         },

@@ -3,7 +3,13 @@ import { AppError } from '../../core/errors/app-error';
 import { getSchoolNow, getSchoolTimeParts, parseSchoolDate } from '../../utils/timezone.util';
 import { sendWebPushNotification } from '../../utils/web-push.util';
 import { notificationService } from '../notifications/notification.routes';
-import { levelsForScope, type ScheduleScope } from './attendance.rules';
+import {
+  levelsForScope,
+  type ScheduleScope,
+  computeRiskSignals,
+  RISK_REASON_LABELS,
+  type RiskThresholds,
+} from './attendance.rules';
 import type {
   AttendanceRepository,
   AttendanceMonthlySummary,
@@ -27,6 +33,9 @@ import type {
   SaveAttendanceSheetDto,
   UpsertAttendanceScheduleConfigDto,
   CloseClassroomAttendanceDto,
+  ListAlertsQueryDto,
+  AttendAlertDto,
+  CiteFamilyAlertDto,
 } from './attendance.schema';
 import type { Attendance, AttendanceStatus, AttendanceScheduleConfig } from '@prisma/client';
 
@@ -576,7 +585,265 @@ export class AttendanceService {
     return result.closedCount;
   }
 
-  async evaluateRiskForSchoolOncePerDay(_schoolId: string, _dateStr: string): Promise<void> {}
+  /** Evalúa señales de riesgo una vez al día por colegio y avisa al tutor por cada alerta nueva. */
+  async evaluateRiskForSchoolOncePerDay(schoolId: string, dateStr: string): Promise<void> {
+    const today = parseSchoolDate(dateStr);
+    const school = await prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { lastRiskEvaluationOn: true, absenceAlertConsecutive: true, absenceAlertMonthlyPercent: true, lateAlertMonthlyCount: true },
+    });
+    if (!school) return;
+    if (school.lastRiskEvaluationOn && school.lastRiskEvaluationOn.getTime() >= today.getTime()) return;
+
+    await prisma.school.update({ where: { id: schoolId }, data: { lastRiskEvaluationOn: today } });
+    await this.evaluateRiskForSchool(schoolId, dateStr, {
+      consecutive: school.absenceAlertConsecutive,
+      monthlyPercent: school.absenceAlertMonthlyPercent,
+      lateCount: school.lateAlertMonthlyCount,
+    });
+  }
+
+  async evaluateRiskForSchool(schoolId: string, dateStr: string, thresholds: RiskThresholds): Promise<number> {
+    const today = parseSchoolDate(dateStr);
+    const since = new Date(today.getTime() - 29 * 86_400_000);
+    const sevenDaysAgo = new Date(today.getTime() - 7 * 86_400_000);
+
+    const enrollments = await prisma.enrollment.findMany({
+      where: { schoolId, isActive: true, academicYear: { isActive: true } },
+      select: {
+        id: true,
+        classroom: { select: { tutorTeacherId: true, grade: true, section: true } },
+        student: { select: { firstNames: true, lastNamePaternal: true } },
+        attendances: { where: { date: { gte: since, lte: today } }, select: { date: true, status: true } },
+      },
+    });
+
+    let created = 0;
+    for (const enrollment of enrollments) {
+      const signals = computeRiskSignals(
+        enrollment.attendances.map((a) => ({ date: a.date.toISOString().slice(0, 10), status: a.status })),
+        thresholds,
+      );
+      for (const signal of signals) {
+        const recentOpen = await prisma.attendanceAlert.findFirst({
+          where: { enrollmentId: enrollment.id, reason: signal.reason, status: 'OPEN', triggeredOn: { gte: sevenDaysAgo } },
+          select: { id: true },
+        });
+        if (recentOpen) continue;
+
+        await prisma.attendanceAlert.upsert({
+          where: { enrollmentId_reason_triggeredOn: { enrollmentId: enrollment.id, reason: signal.reason, triggeredOn: today } },
+          update: {},
+          create: {
+            schoolId,
+            enrollmentId: enrollment.id,
+            reason: signal.reason,
+            metricValue: signal.metricValue,
+            threshold: signal.threshold,
+            triggeredOn: today,
+          },
+        });
+        created++;
+
+        const tutorId = enrollment.classroom.tutorTeacherId;
+        if (tutorId) {
+          await notificationService
+            .createNotification(schoolId, {
+              userId: tutorId,
+              title: 'Alerta de asistencia',
+              message: `${enrollment.student.firstNames} ${enrollment.student.lastNamePaternal} (${enrollment.classroom.grade}° "${enrollment.classroom.section}"): ${RISK_REASON_LABELS[signal.reason]} — ${signal.metricValue}.`,
+              type: 'ATTENDANCE',
+              link: '/attendance-alerts',
+            })
+            .catch((error) => console.error('[Risk notify]', error));
+        }
+      }
+    }
+    return created;
+  }
+
+  async evaluateAlertsNow(schoolId: string): Promise<{ created: number }> {
+    const school = await prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { absenceAlertConsecutive: true, absenceAlertMonthlyPercent: true, lateAlertMonthlyCount: true },
+    });
+    const created = await this.evaluateRiskForSchool(schoolId, getSchoolNow().dateStr, {
+      consecutive: school?.absenceAlertConsecutive ?? 3,
+      monthlyPercent: school?.absenceAlertMonthlyPercent ?? 15,
+      lateCount: school?.lateAlertMonthlyCount ?? 5,
+    });
+    return { created };
+  }
+
+  async listAlerts(
+    schoolId: string,
+    userContext: AttendanceUserContext,
+    query: ListAlertsQueryDto,
+  ) {
+    const where: Record<string, unknown> = {
+      schoolId,
+      ...(query.status && { status: query.status }),
+    };
+
+    if (userContext.role === 'TEACHER') {
+      where.enrollment = { classroom: { tutorTeacherId: userContext.userId } };
+    }
+
+    const [data, total] = await Promise.all([
+      prisma.attendanceAlert.findMany({
+        where,
+        orderBy: { triggeredOn: 'desc' },
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+        include: {
+          enrollment: {
+            select: {
+              id: true,
+              student: {
+                select: {
+                  id: true,
+                  firstNames: true,
+                  lastNamePaternal: true,
+                  lastNameMaternal: true,
+                },
+              },
+              classroom: {
+                select: {
+                  grade: true,
+                  section: true,
+                  educationLevel: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      prisma.attendanceAlert.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page: query.page,
+        limit: query.limit,
+        totalPages: Math.ceil(total / query.limit),
+      },
+    };
+  }
+
+  async attendAlert(
+    schoolId: string,
+    alertId: string,
+    dto: AttendAlertDto,
+    userContext: AttendanceUserContext,
+  ) {
+    const alert = await prisma.attendanceAlert.findFirst({
+      where: { id: alertId, schoolId },
+      include: {
+        enrollment: {
+          select: {
+            classroom: { select: { tutorTeacherId: true } },
+          },
+        },
+      },
+    });
+
+    if (!alert) throw new AppError('Alerta no encontrada.', 404);
+    if (
+      userContext.role === 'TEACHER' &&
+      alert.enrollment.classroom.tutorTeacherId !== userContext.userId
+    ) {
+      throw new AppError('Solo el tutor del aula asignada puede atender esta alerta.', 403);
+    }
+
+    return prisma.attendanceAlert.update({
+      where: { id: alertId },
+      data: {
+        status: 'ATTENDED',
+        attendedById: userContext.userId,
+        attendedAt: new Date(),
+        attendedNote: dto.note,
+      },
+    });
+  }
+
+  async citeFamilyFromAlert(
+    schoolId: string,
+    alertId: string,
+    dto: CiteFamilyAlertDto,
+    userContext: AttendanceUserContext,
+  ) {
+    const alert = await prisma.attendanceAlert.findFirst({
+      where: { id: alertId, schoolId },
+      include: {
+        enrollment: {
+          include: {
+            classroom: true,
+            student: {
+              include: { familyRelations: { select: { userId: true } } },
+            },
+          },
+        },
+      },
+    });
+
+    if (!alert) throw new AppError('Alerta no encontrada.', 404);
+    if (
+      userContext.role === 'TEACHER' &&
+      alert.enrollment.classroom.tutorTeacherId !== userContext.userId
+    ) {
+      throw new AppError('Solo el tutor del aula asignada puede citar a la familia.', 403);
+    }
+
+    const citationDate = new Date(dto.citationDate);
+    const incident = await prisma.studentIncident.create({
+      data: {
+        schoolId,
+        enrollmentId: alert.enrollmentId,
+        authorId: userContext.userId,
+        type: 'CITACION_PADRES',
+        severity: 'MEDIUM',
+        title: 'Citación por asistencia',
+        description: `${RISK_REASON_LABELS[alert.reason]}: ${alert.metricValue} (umbral ${alert.threshold}). ${dto.note ?? ''}`.trim(),
+        citationDate,
+      },
+    });
+
+    const updatedAlert = await prisma.attendanceAlert.update({
+      where: { id: alertId },
+      data: {
+        status: 'ATTENDED',
+        incidentId: incident.id,
+        attendedById: userContext.userId,
+        attendedAt: new Date(),
+        attendedNote: 'Familia citada',
+      },
+    });
+
+    const student = alert.enrollment.student;
+    const studentName = `${student.firstNames} ${student.lastNamePaternal}`;
+    const citationFormatted = citationDate.toLocaleString('es-PE', {
+      timeZone: 'America/Lima',
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
+
+    const parentUserIds = Array.from(new Set(student.familyRelations.map((r) => r.userId)));
+    for (const userId of parentUserIds) {
+      await notificationService
+        .createNotification(schoolId, {
+          userId,
+          title: 'Citación del colegio',
+          message: `Se le cita el ${citationFormatted} para conversar sobre la asistencia de ${studentName}.`,
+          type: 'ATTENDANCE',
+          link: '/dashboard',
+        })
+        .catch((error) => console.error('[Cite family notify]', error));
+    }
+
+    return { alert: updatedAlert, incident };
+  }
 
   /** Padrón minimizado para escaneo y reconocimiento sin conexión */
   async getScanRoster(schoolId: string, userContext?: AttendanceUserContext) {

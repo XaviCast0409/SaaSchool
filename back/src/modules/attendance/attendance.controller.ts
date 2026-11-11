@@ -14,6 +14,9 @@ import {
   studentAttendanceQuerySchema,
   scanAttendanceSchema,
   scanBatchSchema,
+  listAlertsQuerySchema,
+  attendAlertSchema,
+  citeFamilyAlertSchema,
   attendanceSheetQuerySchema,
   saveAttendanceSheetSchema,
   upsertAttendanceScheduleConfigSchema,
@@ -387,5 +390,70 @@ export class AttendanceController {
       },
     });
     response.status(200).json({ status: 'success', data: result });
+  };
+
+  /** GET /api/attendance/alerts */
+  listAlerts = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const userContext = {
+      userId: request.user!.userId,
+      role: request.user!.role,
+      schoolId,
+    };
+    const query = listAlertsQuerySchema.parse(request.query);
+    const result = await this.attendanceService.listAlerts(schoolId, userContext, query);
+    response.status(200).json({ status: 'success', data: result.data, meta: result.meta });
+  };
+
+  /** POST /api/attendance/alerts/evaluate */
+  evaluateAlertsNow = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const result = await this.attendanceService.evaluateAlertsNow(schoolId);
+    response.status(200).json({ status: 'success', data: result });
+  };
+
+  /** PATCH /api/attendance/alerts/:alertId/attend */
+  attendAlert = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const userContext = {
+      userId: request.user!.userId,
+      role: request.user!.role,
+      schoolId,
+    };
+    const alertId = String(request.params.alertId);
+    const dto = attendAlertSchema.parse(request.body);
+    const result = await this.attendanceService.attendAlert(schoolId, alertId, dto, userContext);
+    recordAudit(request, {
+      action: 'ATTENDANCE_ALERT_ATTENDED',
+      entity: 'AttendanceAlert',
+      entityId: alertId,
+      after: { note: dto.note },
+    });
+    response.status(200).json({ status: 'success', data: result });
+  };
+
+  /** POST /api/attendance/alerts/:alertId/cite */
+  citeFamilyFromAlert = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const userContext = {
+      userId: request.user!.userId,
+      role: request.user!.role,
+      schoolId,
+    };
+    const alertId = String(request.params.alertId);
+    const dto = citeFamilyAlertSchema.parse(request.body);
+    const result = await this.attendanceService.citeFamilyFromAlert(
+      schoolId,
+      alertId,
+      dto,
+      userContext,
+    );
+    recordAudit(request, {
+      action: 'ATTENDANCE_ALERT_FAMILY_CITED',
+      entity: 'AttendanceAlert',
+      entityId: alertId,
+      after: { citationDate: dto.citationDate, note: dto.note, incidentId: result.incident.id },
+    });
+    response.status(200).json({ status: 'success', data: result.alert });
   };
 }
