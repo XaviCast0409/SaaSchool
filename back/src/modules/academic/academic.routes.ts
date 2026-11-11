@@ -39,6 +39,7 @@ router.get('/periods', STAFF, c.periods);
 router.put('/periods/status', ADMIN, c.setPeriodStatus);
 
 // Evaluación (plan PRO)
+router.get('/gradebook/export', STAFF, PRO, c.exportGradebook);
 router.get('/gradebook/:assignmentId', STAFF, PRO, c.gradebook);
 router.put('/gradebook/:assignmentId/scores', GRADERS, PRO, c.saveScores);
 router.put('/gradebook/:assignmentId/final-letter', GRADERS, PRO, c.setFinalLetter);
@@ -47,12 +48,9 @@ router.put('/gradebook/:assignmentId/criteria', GRADERS, PRO, c.setCourseCriteri
 router.get('/progress', ADMIN, PRO, c.progress);
 router.get('/my-progress', authorizeRoles('TEACHER'), PRO, c.myProgress);
 router.post('/progress/remind', ADMIN, PRO, c.remind);
+router.get('/consolidation/export', OFFICE, PRO, c.exportConsolidation);
 router.get('/consolidation', OFFICE, PRO, c.consolidation);
 router.get('/report-card/:enrollmentId', ALL, PRO, c.reportCard);
 router.get('/report-cards', STAFF, PRO, c.classroomReportCards);
-
-// Exportaciones Excel
-router.get('/consolidation/export', OFFICE, PRO, c.exportConsolidation);
-router.get('/gradebook/export', STAFF, PRO, c.exportGradebook);
 
 export { router as academicRouter };

@@ -41,9 +41,13 @@ export class AcademicYearService {
       );
     }
 
-    const created = await this.academicYearRepository.create(schoolId, createDto);
+    const created = await this.academicYearRepository.create(schoolId, {
+      ...createDto,
+      isActive: false,
+    });
     if (createDto.isActive === true) {
       await this.activateExclusively(schoolId, created.id);
+      created.isActive = true;
     }
     return created;
   }
