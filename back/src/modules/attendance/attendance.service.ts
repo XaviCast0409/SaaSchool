@@ -1,6 +1,6 @@
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
-import { getSchoolNow, parseSchoolDate } from '../../utils/timezone.util';
+import { getSchoolNow, getSchoolTimeParts, parseSchoolDate } from '../../utils/timezone.util';
 import { sendWebPushNotification } from '../../utils/web-push.util';
 import { notificationService } from '../notifications/notification.routes';
 import { levelsForScope, type ScheduleScope } from './attendance.rules';
@@ -322,7 +322,15 @@ export class AttendanceService {
       }
     }
 
-    const schoolNow = getSchoolNow();
+    let instant = new Date();
+    if (dto.scannedAt) {
+      const scanned = new Date(dto.scannedAt);
+      const diffMs = Date.now() - scanned.getTime();
+      if (diffMs < -2 * 60_000) throw new AppError('La hora del escaneo está en el futuro. Revisa la hora del dispositivo.', 422);
+      if (diffMs > 12 * 60 * 60_000) throw new AppError('El escaneo tiene más de 12 horas y no puede registrarse automáticamente.', 422);
+      instant = scanned;
+    }
+    const schoolNow = getSchoolTimeParts(instant);
     const todayDate = schoolNow.dateObj;
     const now = schoolNow.fullDate;
 
@@ -393,6 +401,9 @@ export class AttendanceService {
     }
     if (isAutoCloseAbsence) {
       noteText += ' (Corrige la falta asignada por el cierre automático)';
+    }
+    if (dto.scannedAt) {
+      noteText += ' [sincronizado sin conexión]';
     }
 
     const attendance = await this.attendanceRepository.recordScanAttendance({
@@ -566,6 +577,64 @@ export class AttendanceService {
   }
 
   async evaluateRiskForSchoolOncePerDay(_schoolId: string, _dateStr: string): Promise<void> {}
+
+  /** Padrón minimizado para escaneo y reconocimiento sin conexión */
+  async getScanRoster(schoolId: string, userContext?: AttendanceUserContext) {
+    const activeYear = await prisma.academicYear.findFirst({
+      where: { schoolId, isActive: true },
+      select: { id: true },
+    });
+    if (!activeYear) return [];
+
+    let classroomIds: string[] | undefined;
+    if (userContext?.role === 'TEACHER') {
+      const tutored = await prisma.classroom.findMany({
+        where: { schoolId, tutorTeacherId: userContext.userId },
+        select: { id: true },
+      });
+      classroomIds = tutored.map((c) => c.id);
+      if (classroomIds.length === 0) return [];
+    }
+
+    const enrollments = await prisma.enrollment.findMany({
+      where: {
+        schoolId,
+        academicYearId: activeYear.id,
+        isActive: true,
+        ...(classroomIds && { classroomId: { in: classroomIds } }),
+      },
+      select: {
+        student: {
+          select: {
+            studentCode: true,
+            documentId: true,
+            firstNames: true,
+            lastNamePaternal: true,
+            lastNameMaternal: true,
+          },
+        },
+        classroom: {
+          select: {
+            grade: true,
+            section: true,
+            educationLevel: true,
+          },
+        },
+      },
+    });
+
+    return enrollments.map((e) => {
+      const s = e.student;
+      const fullName = `${s.firstNames} ${s.lastNamePaternal} ${s.lastNameMaternal || ''}`.trim();
+      const classroom = `${e.classroom.grade}° "${e.classroom.section}" - ${e.classroom.educationLevel}`;
+      return {
+        studentCode: s.studentCode ?? null,
+        documentId: s.documentId,
+        fullName,
+        classroom,
+      };
+    });
+  }
 
   /**
    * Notificación asíncrona Web Push al apoderado tras escaneo de carnet (Fire-and-Forget).

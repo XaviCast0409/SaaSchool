@@ -70,6 +70,7 @@ export const useAuthStore = create<AuthState>((set) => {
       localStorage.removeItem('user');
       localStorage.removeItem('impersonatedSchool');
       queryClient.clear();
+      void import('@/features/attendance/offline/scanQueue').then((m) => m.clearRoster());
       set({ token: null, user: null, impersonatedSchool: null });
     },
   };

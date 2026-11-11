@@ -11,8 +11,7 @@ export interface SchoolNowResult {
   fullDate: Date;    // Instante Date actual
 }
 
-export function getSchoolNow(timeZone: string = 'America/Lima'): SchoolNowResult {
-  const now = new Date();
+export function getSchoolTimeParts(instant: Date, timeZone = 'America/Lima'): SchoolNowResult {
   const formatter = new Intl.DateTimeFormat('en-CA', {
     timeZone,
     year: 'numeric',
@@ -23,7 +22,7 @@ export function getSchoolNow(timeZone: string = 'America/Lima'): SchoolNowResult
     hour12: false,
   });
 
-  const parts = formatter.formatToParts(now);
+  const parts = formatter.formatToParts(instant);
   const getPart = (type: string) => parts.find((p) => p.type === type)?.value || '00';
 
   const year = getPart('year');
@@ -40,8 +39,12 @@ export function getSchoolNow(timeZone: string = 'America/Lima'): SchoolNowResult
     dateObj,
     hour,
     minute,
-    fullDate: now,
+    fullDate: instant,
   };
+}
+
+export function getSchoolNow(timeZone: string = 'America/Lima'): SchoolNowResult {
+  return getSchoolTimeParts(new Date(), timeZone);
 }
 
 export function parseSchoolDate(dateStr: string): Date {

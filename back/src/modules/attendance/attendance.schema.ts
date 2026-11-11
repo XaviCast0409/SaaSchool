@@ -109,6 +109,7 @@ export const studentAttendanceQuerySchema = z.object({
 // Schema para escaneo rápido de QR o código de barras
 export const scanAttendanceSchema = z.object({
   code: z.string().min(1, 'El código o token de escaneo es requerido'),
+  scannedAt: z.string().datetime({ offset: true }).optional(),
   toleranceTime: z
     .string()
     .regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Hora de tolerancia inválida (HH:mm)')
@@ -123,6 +124,20 @@ export const scanAttendanceSchema = z.object({
       'LATE_UNJUSTIFIED',
     ])
     .optional(),
+});
+
+export const scanBatchSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        clientId: z.string().min(1).max(64),
+        code: z.string().min(1).max(64),
+        scannedAt: z.string().datetime({ offset: true }),
+        toleranceTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+      }),
+    )
+    .min(1)
+    .max(200),
 });
 
 // Schema para consultar la hoja completa de asistencia de un aula en una fecha
@@ -218,3 +233,4 @@ export type CloseClassroomAttendanceDto = z.infer<typeof closeClassroomAttendanc
 export type CreateJustificationDto = z.infer<typeof createJustificationSchema>;
 export type ReviewJustificationDto = z.infer<typeof reviewJustificationSchema>;
 export type JustificationFilterDto = z.infer<typeof justificationFilterSchema>;
+export type ScanBatchDto = z.infer<typeof scanBatchSchema>;

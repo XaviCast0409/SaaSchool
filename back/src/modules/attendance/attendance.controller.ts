@@ -13,6 +13,7 @@ import {
   attendanceMatrixQuerySchema,
   studentAttendanceQuerySchema,
   scanAttendanceSchema,
+  scanBatchSchema,
   attendanceSheetQuerySchema,
   saveAttendanceSheetSchema,
   upsertAttendanceScheduleConfigSchema,
@@ -181,6 +182,56 @@ export class AttendanceController {
     const scanDto = scanAttendanceSchema.parse(request.body);
     const result = await this.attendanceService.scanAttendance(schoolId, scanDto, userContext);
     response.status(200).json({ status: 'success', data: result });
+  };
+
+  /** POST /api/attendance/scan/batch — Sincronización de escaneos sin conexión */
+  scanBatch = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const userContext = {
+      userId: request.user!.userId,
+      role: request.user!.role,
+      schoolId,
+    };
+    const dto = scanBatchSchema.parse(request.body);
+
+    const results = [];
+    for (const item of dto.items) {
+      try {
+        const r = await this.attendanceService.scanAttendance(
+          schoolId,
+          { code: item.code, scannedAt: item.scannedAt, toleranceTime: item.toleranceTime },
+          userContext,
+        );
+        results.push({
+          clientId: item.clientId,
+          ok: true,
+          alreadyRegistered: r.alreadyRegistered,
+          status: r.status,
+          studentName: r.student.fullName,
+        });
+      } catch (error) {
+        const appError = error instanceof AppError ? error : null;
+        results.push({
+          clientId: item.clientId,
+          ok: false,
+          httpStatus: appError?.statusCode ?? 500,
+          error: appError?.message ?? 'Error interno',
+        });
+      }
+    }
+    response.status(200).json({ status: 'success', data: { results } });
+  };
+
+  /** GET /api/attendance/scan-roster — Padrón minimizado para escaneo sin conexión */
+  getScanRoster = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const userContext = {
+      userId: request.user!.userId,
+      role: request.user!.role,
+      schoolId,
+    };
+    const roster = await this.attendanceService.getScanRoster(schoolId, userContext);
+    response.status(200).json({ status: 'success', data: roster });
   };
 
   /** GET /api/attendance/sheet?classroomId=UUID&date=YYYY-MM-DD — Hoja unificada de asistencia para pase de lista */

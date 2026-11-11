@@ -133,6 +133,22 @@ attendanceRouter.post(
   attendanceController.scan,
 );
 
+// Sincronización de escaneos por lotes (cola offline)
+attendanceRouter.post(
+  '/scan/batch',
+  scanRateLimiter,
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'ADMINISTRATIVE'),
+  attendanceController.scanBatch,
+);
+
+// Padrón escolar para escaneo y reconocimiento sin conexión
+attendanceRouter.get(
+  '/scan-roster',
+  scanRateLimiter,
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'ADMINISTRATIVE'),
+  attendanceController.getScanRoster,
+);
+
 // Consultar configuración de horarios de asistencia
 attendanceRouter.get(
   '/config',

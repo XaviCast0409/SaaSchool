@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   QrCode,
@@ -9,14 +9,28 @@ import {
   VolumeX,
   School,
   ScanLine,
+  WifiOff,
+  RefreshCw,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 import { useScanAttendance } from '../api/useAttendance';
 import { CameraQrScanner } from './CameraQrScanner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ScanAttendanceResult } from '../types';
 import { formatPeruTime } from '@/lib/dateUtils';
+import { useAuthStore } from '@/store/useAuthStore';
+import { api } from '@/lib/axios';
+import {
+  saveRoster,
+  findInRoster,
+  enqueueScan,
+  type RosterEntry,
+} from '../offline/scanQueue';
+import { useOfflineScanQueue } from '../offline/useOfflineScanQueue';
 
 interface QrScannerModalProps {
   onClose: () => void;
@@ -25,7 +39,9 @@ interface QrScannerModalProps {
 // Generador de audio de confirmación vía Web Audio API (Cero dependencias)
 function playBeep(type: 'success' | 'warning' | 'error') {
   try {
-    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextClass) return;
     const ctx = new AudioContextClass();
 
@@ -59,24 +75,58 @@ function playBeep(type: 'success' | 'warning' | 'error') {
 }
 
 export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
+  const { user, impersonatedSchool } = useAuthStore();
+  const schoolId = impersonatedSchool?.id || user?.schoolId;
+
   const [toleranceTime, setToleranceTime] = useState('07:45');
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [recentScans, setRecentScans] = useState<ScanAttendanceResult[]>([]);
   const [lastResult, setLastResult] = useState<ScanAttendanceResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
+  const queue = useOfflineScanQueue(schoolId);
   const { mutate: scanAttendance, isPending } = useScanAttendance();
 
-  const handleProcessScan = (codeToProcess: string) => {
+  // Escuchar estado online/offline
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Precargar padrón si hay conexión
+  useEffect(() => {
+    if (schoolId && navigator.onLine) {
+      api
+        .get<{ status: string; data: RosterEntry[] }>('/attendance/scan-roster')
+        .then((res) => {
+          if (res.data?.data) {
+            void saveRoster(schoolId, res.data.data);
+          }
+        })
+        .catch((err) => console.error('[ScanRoster] Error al precargar padrón:', err));
+    }
+  }, [schoolId]);
+
+  const handleProcessScan = async (codeToProcess: string) => {
     const trimmed = codeToProcess.trim();
     if (!trimmed || isPending) return;
 
     setErrorMessage(null);
+    const scannedAt = new Date().toISOString();
 
     scanAttendance(
       {
         code: trimmed,
         toleranceTime,
+        scannedAt,
       },
       {
         onSuccess: (data) => {
@@ -91,13 +141,60 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
             }
           }
         },
-        onError: (err: any) => {
-          const msg = err.response?.data?.message || err.message || 'Código QR no reconocido o sin matrícula activa';
+        onError: async (err: any) => {
+          const isNetworkError = !err.response || !navigator.onLine;
+
+          if (isNetworkError && schoolId) {
+            await enqueueScan({
+              schoolId,
+              code: trimmed,
+              scannedAt,
+              toleranceTime,
+            });
+
+            const match = await findInRoster(schoolId, trimmed);
+            const studentName = match?.fullName || trimmed;
+            const timeStr = formatPeruTime(scannedAt, { hour: '2-digit', minute: '2-digit' });
+
+            const offlineResult: ScanAttendanceResult = {
+              alreadyRegistered: false,
+              message: `Guardado sin conexión (${timeStr})`,
+              student: {
+                id: trimmed,
+                fullName: studentName,
+                documentId: match?.documentId || trimmed,
+                studentCode: match?.studentCode ?? null,
+                classroom: match?.classroom || 'Sin conexión',
+              },
+              status: 'PRESENT',
+              checkInTime: scannedAt,
+              offline: true,
+            };
+
+            setLastResult(offlineResult);
+            setRecentScans((prev) => [offlineResult, ...prev.slice(0, 19)]);
+            if (soundEnabled) playBeep('warning');
+            await queue.refresh();
+            return;
+          }
+
+          const msg =
+            err.response?.data?.message ||
+            err.message ||
+            'Código QR no reconocido o sin matrícula activa';
           setErrorMessage(msg);
           if (soundEnabled) playBeep('error');
         },
-      }
+      },
     );
+  };
+
+  const handleRequestClose = () => {
+    if (queue.pending.length > 0) {
+      setShowExitConfirm(true);
+    } else {
+      onClose();
+    }
   };
 
   return (
@@ -110,13 +207,26 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
               <QrCode className="w-6 h-6" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="font-extrabold text-lg text-foreground">
                   Lector QR de Asistencia Escolar
                 </h2>
-                <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30">
-                  En Vivo
-                </Badge>
+                {isOnline ? (
+                  <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30">
+                    En Vivo
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[10px] bg-destructive/15 text-destructive border-destructive/30 gap-1">
+                    <WifiOff className="w-3 h-3" />
+                    Sin conexión
+                  </Badge>
+                )}
+
+                {queue.pending.length > 0 && (
+                  <Badge className="text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 gap-1">
+                    {queue.pending.length} por sincronizar
+                  </Badge>
+                )}
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Escaneo óptico directo mediante cámara web para carnets y fotochecks escolares.
@@ -125,6 +235,19 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
           </div>
 
           <div className="flex items-center gap-2">
+            {queue.pending.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!isOnline || queue.isSyncing}
+                onClick={() => queue.syncNow()}
+                className="h-8 text-xs font-bold gap-1 border-primary/30 text-primary hover:bg-primary/10"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${queue.isSyncing ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Sincronizar ahora</span>
+              </Button>
+            )}
+
             <Button
               variant="ghost"
               size="sm"
@@ -132,16 +255,67 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
               className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
               title={soundEnabled ? 'Silenciar confirmación' : 'Activar confirmación sonora'}
             >
-              {soundEnabled ? <Volume2 className="w-4 h-4 text-emerald-600" /> : <VolumeX className="w-4 h-4 text-muted-foreground" />}
+              {soundEnabled ? (
+                <Volume2 className="w-4 h-4 text-emerald-600" />
+              ) : (
+                <VolumeX className="w-4 h-4 text-muted-foreground" />
+              )}
             </Button>
             <button
-              onClick={onClose}
+              onClick={handleRequestClose}
               className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
+
+        {/* Banner de Estado sin Conexión */}
+        {!isOnline && (
+          <div className="p-2.5 px-4 bg-destructive/10 border-b border-destructive/20 text-destructive text-xs font-bold flex items-center gap-2">
+            <WifiOff className="w-4 h-4 shrink-0" />
+            <span>Sin conexión — los ingresos se guardan en este dispositivo y se sincronizarán al volver internet.</span>
+          </div>
+        )}
+
+        {/* Bloque de Escaneos Rechazados si hay */}
+        {queue.rejected.length > 0 && (
+          <div className="p-3 px-4 bg-destructive/15 border-b border-destructive/30 text-xs space-y-2">
+            <div className="flex items-center justify-between font-bold text-destructive">
+              <span className="flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4" />
+                Escaneos no registrados ({queue.rejected.length})
+              </span>
+            </div>
+            <div className="space-y-1.5 max-h-24 overflow-y-auto">
+              {queue.rejected.map((rej) => (
+                <div
+                  key={rej.id}
+                  className="flex items-center justify-between bg-card/60 p-2 rounded-lg border border-destructive/20 text-[11px]"
+                >
+                  <div className="truncate pr-2">
+                    <span className="font-bold text-foreground">Código: {rej.code}</span>
+                    <span className="text-muted-foreground ml-2">
+                      ({formatPeruTime(rej.scannedAt)})
+                    </span>
+                    <span className="text-destructive block font-medium">
+                      Motivo: {rej.lastError || 'Rechazado'}
+                    </span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => queue.discardRejected(rej.id)}
+                    className="h-6 text-[10px] text-destructive hover:bg-destructive/20 font-bold gap-1 px-2 shrink-0"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>Descartar</span>
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Barra de Ajustes Rápidos */}
         <div className="p-3.5 bg-muted/20 border-b border-border flex flex-wrap items-center justify-between gap-3 text-xs">
@@ -181,6 +355,11 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
                 isProcessing={isPending}
               />
 
+              {/* Texto de Ayuda Offline */}
+              <p className="text-[11px] text-muted-foreground text-center italic">
+                Si se cae el internet, sigue escaneando: los ingresos se guardan con su hora real y se envían solos al volver la conexión. Abre el lector con internet al inicio del día.
+              </p>
+
               {/* Mensaje de Error */}
               {errorMessage && (
                 <div className="p-4 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive flex items-center gap-3 animate-in fade-in">
@@ -196,7 +375,9 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
               {lastResult && (
                 <div
                   className={`p-5 rounded-2xl border transition-all animate-in zoom-in-95 duration-200 ${
-                    lastResult.alreadyRegistered
+                    lastResult.offline
+                      ? 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                      : lastResult.alreadyRegistered
                       ? 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300'
                       : lastResult.status === 'LATE_UNJUSTIFIED'
                       ? 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300'
@@ -207,7 +388,9 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
                     <div className="flex items-center gap-3">
                       <div
                         className={`w-12 h-12 rounded-xl flex items-center justify-center font-extrabold text-xl ${
-                          lastResult.status === 'PRESENT'
+                          lastResult.offline
+                            ? 'bg-amber-600 text-white'
+                            : lastResult.status === 'PRESENT'
                             ? 'bg-emerald-600 text-white'
                             : 'bg-amber-600 text-white'
                         }`}
@@ -218,7 +401,7 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
                         <h3 className="text-lg font-extrabold text-foreground leading-tight">
                           {lastResult.student.fullName}
                         </h3>
-                        <div className="flex items-center gap-2 text-xs font-semibold mt-0.5 text-muted-foreground">
+                        <div className="flex items-center gap-2 text-xs font-semibold mt-0.5 text-muted-foreground flex-wrap">
                           <School className="w-3.5 h-3.5" />
                           <span>{lastResult.student.classroom}</span>
                           <span>•</span>
@@ -229,12 +412,18 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
 
                     <Badge
                       className={`text-xs font-bold uppercase tracking-wider px-2.5 py-1 ${
-                        lastResult.status === 'PRESENT'
+                        lastResult.offline
+                          ? 'bg-amber-600 text-white hover:bg-amber-600'
+                          : lastResult.status === 'PRESENT'
                           ? 'bg-emerald-600 text-white hover:bg-emerald-600'
                           : 'bg-amber-600 text-white hover:bg-amber-600'
                       }`}
                     >
-                      {lastResult.status === 'PRESENT' ? 'Puntual' : 'Tardanza'}
+                      {lastResult.offline
+                        ? 'Sin Conexión'
+                        : lastResult.status === 'PRESENT'
+                        ? 'Puntual'
+                        : 'Tardanza'}
                     </Badge>
                   </div>
 
@@ -307,12 +496,14 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
                         <Badge
                           variant="outline"
                           className={`text-[10px] font-bold ${
-                            scan.status === 'PRESENT'
+                            scan.offline
+                              ? 'border-amber-500/40 bg-amber-500/10 text-amber-600'
+                              : scan.status === 'PRESENT'
                               ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600'
                               : 'border-amber-500/40 bg-amber-500/10 text-amber-600'
                           }`}
                         >
-                          {scan.status === 'PRESENT' ? 'Puntual' : 'Tardanza'}
+                          {scan.offline ? 'Sin conexión' : scan.status === 'PRESENT' ? 'Puntual' : 'Tardanza'}
                         </Badge>
                         <span className="block text-[10px] text-muted-foreground mt-0.5 font-medium">
                           {formatPeruTime(scan.checkInTime)}
@@ -324,12 +515,27 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
               )}
             </div>
 
-            <Button variant="outline" size="sm" onClick={onClose} className="w-full text-xs">
+            <Button variant="outline" size="sm" onClick={handleRequestClose} className="w-full text-xs font-bold">
               Cerrar Lector
             </Button>
           </div>
         </div>
       </div>
+
+      {/* Confirmación al salir con pendientes */}
+      <ConfirmDialog
+        isOpen={showExitConfirm}
+        onClose={() => setShowExitConfirm(false)}
+        onConfirm={() => {
+          setShowExitConfirm(false);
+          onClose();
+        }}
+        title="Ingresos pendientes de sincronización"
+        description={`Hay ${queue.pending.length} ingreso(s) sin sincronizar. Se enviarán automáticamente cuando vuelva la conexión mientras la app esté abierta. ¿Cerrar de todos modos?`}
+        confirmText="Cerrar de todos modos"
+        cancelText="Permanecer aquí"
+        variant="warning"
+      />
     </div>
   );
 };

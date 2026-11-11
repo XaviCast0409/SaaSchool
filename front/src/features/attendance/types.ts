@@ -37,7 +37,7 @@ export interface AttendanceRecord {
 export interface ScanAttendanceResult {
   alreadyRegistered: boolean;
   message: string;
-  attendance: AttendanceRecord;
+  attendance?: AttendanceRecord;
   student: {
     id: string;
     fullName: string;
@@ -47,6 +47,7 @@ export interface ScanAttendanceResult {
   };
   status: AttendanceStatus;
   checkInTime: string;
+  offline?: boolean;
 }
 
 export interface AttendancePaginatedResult {

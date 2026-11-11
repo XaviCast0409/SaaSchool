@@ -214,6 +214,7 @@ export const useScanAttendance = () => {
       code: string;
       toleranceTime?: string;
       statusOverride?: AttendanceStatus;
+      scannedAt?: string;
     }) => {
       const response = await api.post<{ status: string; data: ScanAttendanceResult }>(
         '/attendance/scan',
