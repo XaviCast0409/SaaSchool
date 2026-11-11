@@ -99,8 +99,12 @@ export class CourseAssignmentRepository {
    * La restricción @@unique([classroomId, areaId]) en el schema previene duplicados.
    */
   async create(schoolId: string, data: CreateCourseAssignmentDto): Promise<CourseAssignment> {
+    const activeYear = await prisma.academicYear.findFirst({
+      where: { schoolId, isActive: true },
+      select: { id: true },
+    });
     return prisma.courseAssignment.create({
-      data: { ...data, schoolId },
+      data: { ...data, schoolId, academicYearId: activeYear?.id ?? null },
       include: {
         classroom: true,
         area: true,
@@ -126,8 +130,18 @@ export class CourseAssignmentRepository {
     teacherId: string,
     areaIds: string[],
   ): Promise<{ count: number }> {
+    const activeYear = await prisma.academicYear.findFirst({
+      where: { schoolId, isActive: true },
+      select: { id: true },
+    });
     return prisma.courseAssignment.createMany({
-      data: areaIds.map((areaId) => ({ schoolId, classroomId, areaId, teacherId })),
+      data: areaIds.map((areaId) => ({
+        schoolId,
+        classroomId,
+        areaId,
+        teacherId,
+        academicYearId: activeYear?.id ?? null,
+      })),
       skipDuplicates: true,
     });
   }
@@ -239,24 +253,18 @@ export class CourseAssignmentRepository {
       }
 
       // 2. Procesar las asignaciones deseadas (upsert por combinación classroomId + areaId)
+      const activeYear = await tx.academicYear.findFirst({ where: { schoolId, isActive: true }, select: { id: true } });
       for (const item of desiredAssignments) {
-        await tx.courseAssignment.upsert({
-          where: {
-            classroomId_areaId: {
-              classroomId: item.classroomId,
-              areaId: item.areaId,
-            },
-          },
-          update: {
-            teacherId,
-          },
-          create: {
-            schoolId,
-            classroomId: item.classroomId,
-            areaId: item.areaId,
-            teacherId,
-          },
+        const existing = await tx.courseAssignment.findFirst({
+          where: { schoolId, classroomId: item.classroomId, areaId: item.areaId, academicYearId: activeYear?.id ?? null },
         });
+        if (existing) {
+          await tx.courseAssignment.update({ where: { id: existing.id }, data: { teacherId, deletedAt: null } });
+        } else {
+          await tx.courseAssignment.create({
+            data: { schoolId, classroomId: item.classroomId, areaId: item.areaId, teacherId, academicYearId: activeYear?.id ?? null },
+          });
+        }
       }
 
       return { count: desiredAssignments.length };

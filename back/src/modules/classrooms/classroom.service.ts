@@ -27,48 +27,6 @@ export class ClassroomService {
     }
   }
 
-  private async syncTransversalAssignment(
-    schoolId: string,
-    classroomId: string,
-    _educationLevel: string,
-    tutorTeacherId?: string | null,
-  ): Promise<void> {
-    if (!tutorTeacherId) return;
-
-    const transversalArea = await prisma.curricularArea.findFirst({
-      where: {
-        schoolId,
-        parentAreaId: null,
-        OR: [
-          { isTransversal: true },
-          { officialAreaCode: 'TRANS' },
-          { officialCode: { contains: 'TRANS' } },
-          { name: { contains: 'Transversal', mode: 'insensitive' } },
-        ],
-      },
-    });
-
-    if (!transversalArea) return;
-
-    await prisma.courseAssignment.upsert({
-      where: {
-        classroomId_areaId: {
-          classroomId,
-          areaId: transversalArea.id,
-        },
-      },
-      create: {
-        schoolId,
-        classroomId,
-        areaId: transversalArea.id,
-        teacherId: tutorTeacherId,
-      },
-      update: {
-        teacherId: tutorTeacherId,
-      },
-    });
-  }
-
   async getAllClassrooms(schoolId: string): Promise<ClassroomWithTutor[]> {
     return this.classroomRepository.findAllBySchool(schoolId);
   }
@@ -89,9 +47,6 @@ export class ClassroomService {
   ): Promise<ClassroomWithTutor> {
     await this.validateTutorTeacher(schoolId, createClassroomDto.tutorTeacherId);
     const result = await this.classroomRepository.create(schoolId, createClassroomDto);
-    if (createClassroomDto.tutorTeacherId) {
-      await this.syncTransversalAssignment(schoolId, result.id, result.educationLevel, createClassroomDto.tutorTeacherId);
-    }
     return result;
   }
 
@@ -105,9 +60,6 @@ export class ClassroomService {
       await this.validateTutorTeacher(schoolId, updateClassroomDto.tutorTeacherId);
     }
     const updated = await this.classroomRepository.update(classroomId, schoolId, updateClassroomDto);
-    if (updateClassroomDto.tutorTeacherId) {
-      await this.syncTransversalAssignment(schoolId, classroomId, updated.educationLevel, updateClassroomDto.tutorTeacherId);
-    }
     return updated;
   }
 

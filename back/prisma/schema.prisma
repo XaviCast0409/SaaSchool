@@ -105,6 +105,18 @@ enum AssessmentType {
   SUMMATIVE
 }
 
+enum CourseKind {
+  OFFICIAL   // Área oficial CNEB completa
+  SUBCOURSE  // Curso interno que tributa a un área oficial (Álgebra -> Matemática)
+  WORKSHOP   // Taller propio: no va al SIAGIE
+}
+
+enum PeriodState {
+  OPEN
+  REVIEW
+  CLOSED
+}
+
 enum AnnouncementPriority {
   NORMAL
   IMPORTANT
@@ -188,6 +200,9 @@ model School {
   attendanceAlerts         AttendanceAlert[]
   authorizedPickups        AuthorizedPickup[]
   courseAttendanceSessions CourseAttendanceSession[]
+  studyPlanCourses         StudyPlanCourse[]
+  competencePeriodResults  CompetencePeriodResult[]
+  academicPeriodStatuses   AcademicPeriodStatus[]
 }
 
 model User {
@@ -227,6 +242,7 @@ model User {
   authoredContents CourseContent[]      @relation("AuthoredContents")
   forumComments    ForumComment[]
   incidentsAuthored StudentIncident[]   @relation("IncidentAuthor")
+  periodStatusChanges AcademicPeriodStatus[] @relation("PeriodStatusChangedBy")
 
   @@index([schoolId, role])
   @@unique([schoolId, documentId])
@@ -312,6 +328,9 @@ model AcademicYear {
 
   school      School       @relation(fields: [schoolId], references: [id])
   enrollments Enrollment[]
+  studyPlanCourses StudyPlanCourse[]
+  courseAssignments CourseAssignment[]
+  periodStatuses AcademicPeriodStatus[]
 }
 
 model Classroom {
@@ -330,6 +349,7 @@ model Classroom {
   assignments    CourseAssignment[]
   announcements  Announcement[]
   gradingPeriodLocks GradingPeriodLock[]
+  periodStatuses AcademicPeriodStatus[]
 
   @@index([schoolId, educationLevel, grade])
   @@index([schoolId, tutorTeacherId])
@@ -365,6 +385,7 @@ model Enrollment {
   attendanceJustifications  AttendanceJustification[]
   attendanceAlerts          AttendanceAlert[]
   courseAttendanceRecords   CourseAttendanceRecord[]
+  competencePeriodResults   CompetencePeriodResult[]
 
   @@unique([studentId, academicYearId])
   @@index([schoolId, academicYearId])
@@ -424,6 +445,8 @@ model CurricularArea {
   officialAreaCode String?                // Ej: 'MAT', 'COM', 'CYT', 'TRANS'
   parentAreaId           String?                // ID del Área Madre Oficial SIAGIE (si es una sub-área interna)
   evaluatedCompetenceIds String[]               @default([]) // Competencias evaluadas por el sub-curso
+  educationLevel   EducationLevel?
+  kind             CourseKind      @default(OFFICIAL)
   isActive               Boolean                @default(true)
 
   school                 School                 @relation(fields: [schoolId], references: [id])
@@ -431,8 +454,10 @@ model CurricularArea {
   subAreas               CurricularArea[]       @relation("AreaHierarchy")
   competences            CurricularCompetence[]
   assignments            CourseAssignment[]
+  studyPlanCourses       StudyPlanCourse[]
 
   @@index([schoolId, parentAreaId])
+  @@index([schoolId, educationLevel])
 }
 
 model CurricularCompetence {
@@ -441,35 +466,46 @@ model CurricularCompetence {
   name                   String                 // Ej: "Resuelve problemas de cantidad"
   description            String?
   officialCompetenceCode String?                // Ej: 'C1', 'C2', 'C28', 'C29'
+  cnebNumber             Int?                   // Número oficial CNEB (1..31). Null solo en talleres.
+  weight                 Float                  @default(1) // Peso al combinar sub-cursos en el área oficial
   isActive               Boolean                @default(true)
 
   area                   CurricularArea         @relation(fields: [areaId], references: [id])
   grades                 Grade[]
   detailedGrades         DetailedGrade[]
   conclusions            CompetenceConclusion[]
+  periodResults          CompetencePeriodResult[]
+
+  @@unique([areaId, cnebNumber])
 }
 
 model CourseAssignment {
-  id             String   @id @default(uuid())
+  id             String    @id @default(uuid())
   schoolId       String
+  academicYearId String?   // Requerido en la migración academico_restricciones (bloque 21)
   classroomId    String
   areaId         String
   teacherId      String
-  
+  deletedAt      DateTime? // Borrado lógico: nunca se borra una asignación con notas
+  createdAt      DateTime  @default(now())
+
   school         School         @relation(fields: [schoolId], references: [id])
+  academicYear   AcademicYear?  @relation(fields: [academicYearId], references: [id])
   classroom      Classroom      @relation(fields: [classroomId], references: [id])
   area           CurricularArea @relation(fields: [areaId], references: [id])
-  teacher        User           @relation(fields: [teacherId], references: [id]) 
-  
-  gradeEntries   GradeEntry[]
-  detailedGrades DetailedGrade[]
-  competenceConclusions CompetenceConclusion[]
-  contents       CourseContent[]
-  courseAttendanceSessions CourseAttendanceSession[]
+  teacher        User           @relation(fields: [teacherId], references: [id])
 
-  // Un curso en un aula tiene exactamente un docente asignado
-  @@unique([classroomId, areaId])
+  gradeEntries             GradeEntry[]
+  detailedGrades           DetailedGrade[]
+  competenceConclusions    CompetenceConclusion[]
+  contents                 CourseContent[]
+  courseAttendanceSessions CourseAttendanceSession[]
+  criteria                 CourseAssignmentCriterion[]
+  periodResults            CompetencePeriodResult[]
+
+  @@unique([academicYearId, classroomId, areaId])
   @@index([schoolId, teacherId])
+  @@index([schoolId, academicYearId])
 }
 
 model GradeEntry {
@@ -530,6 +566,7 @@ model EvaluationCriterion {
 
   school         School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   detailedGrades DetailedGrade[]
+  assignmentLinks CourseAssignmentCriterion[]
 
   @@index([schoolId, isActive])
   @@index([schoolId, order])
@@ -580,6 +617,83 @@ model CompetenceConclusion {
   @@unique([enrollmentId, courseAssignmentId, competenceId, periodNumber])
   @@index([schoolId, courseAssignmentId, periodNumber])
   @@index([enrollmentId, periodNumber])
+}
+
+model StudyPlanCourse {
+  id             String         @id @default(uuid())
+  schoolId       String
+  academicYearId String
+  educationLevel EducationLevel
+  grade          Int
+  areaId         String
+  weeklyHours    Int?
+  order          Int            @default(0)
+  createdAt      DateTime       @default(now())
+
+  school         School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYear   AcademicYear   @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  area           CurricularArea @relation(fields: [areaId], references: [id])
+
+  @@unique([academicYearId, educationLevel, grade, areaId])
+  @@index([schoolId, academicYearId])
+}
+
+model CourseAssignmentCriterion {
+  id                 String              @id @default(uuid())
+  courseAssignmentId String
+  criterionId        String
+  weight             Float?              // Si es null se usa el peso del criterio
+
+  assignment         CourseAssignment    @relation(fields: [courseAssignmentId], references: [id], onDelete: Cascade)
+  criterion          EvaluationCriterion @relation(fields: [criterionId], references: [id], onDelete: Cascade)
+
+  @@unique([courseAssignmentId, criterionId])
+}
+
+model CompetencePeriodResult {
+  id                 String               @id @default(uuid())
+  schoolId           String
+  enrollmentId       String
+  courseAssignmentId String
+  competenceId       String
+  periodNumber       Int
+  computedScore      Float?               // Promedio ponderado de criterios (0-20)
+  suggestedLetter    String?              // AD | A | B | C | EXO
+  finalLetter        String?              // Lo que se publica (nota de juicio del docente)
+  isOverridden       Boolean              @default(false)
+  overriddenById     String?
+  overriddenAt       DateTime?
+  updatedAt          DateTime             @updatedAt
+
+  school             School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  enrollment         Enrollment           @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  assignment         CourseAssignment     @relation(fields: [courseAssignmentId], references: [id], onDelete: Cascade)
+  competence         CurricularCompetence @relation(fields: [competenceId], references: [id], onDelete: Cascade)
+
+  @@unique([enrollmentId, courseAssignmentId, competenceId, periodNumber])
+  @@index([schoolId, courseAssignmentId, periodNumber])
+  @@index([enrollmentId, periodNumber])
+}
+
+model AcademicPeriodStatus {
+  id              String       @id @default(uuid())
+  schoolId        String
+  academicYearId  String
+  classroomId     String?      // null = todo el colegio
+  periodNumber    Int
+  status          PeriodState  @default(OPEN)
+  gradingDeadline DateTime?
+  reason          String?
+  changedById     String?
+  changedAt       DateTime     @default(now())
+
+  school          School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYear    AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  classroom       Classroom?   @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  changedBy       User?        @relation("PeriodStatusChangedBy", fields: [changedById], references: [id])
+
+  @@unique([academicYearId, classroomId, periodNumber])
+  @@index([schoolId, academicYearId])
 }
 
 // ============================================================================
