@@ -1,0 +1,142 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { LetterBadge } from '@/components/ui/letter-badge';
+import { useEvaluationCriteria } from '@/features/grades/api/useGrades';
+import { cn } from '@/lib/utils';
+import { useSaveConclusions, useSetCourseCriteria } from '../api';
+import type { GradebookData } from '../types';
+
+export const SummaryTable: React.FC<{ data: GradebookData; onPick: (competenceId: string) => void }> = ({ data, onPick }) => (
+  <div className="overflow-x-auto rounded-lg border border-border">
+    <table className="w-full text-sm">
+      <thead className="bg-muted/40">
+        <tr className="text-xs text-muted-foreground">
+          <th className="px-2 py-2 text-left font-semibold">Estudiante</th>
+          {data.competences.map((c) => (
+            <th key={c.id} className="px-2 py-2 text-center font-semibold">
+              <button type="button" className="hover:underline" onClick={() => onPick(c.id)} title={c.name}>{c.shortName}</button>
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {data.students.map((s) => (
+          <tr key={s.enrollmentId} className={cn('border-t border-border', s.state !== 'REGISTERED' && 'opacity-50')}>
+            <td className="whitespace-nowrap px-2 py-1.5">{s.fullName}</td>
+            {data.competences.map((c) => {
+              const r = data.results.find((x) => x.enrollmentId === s.enrollmentId && x.competenceId === c.id);
+              return <td key={c.id} className="px-2 py-1.5 text-center"><LetterBadge letter={r?.finalLetter} /></td>;
+            })}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+);
+
+const ConclusionItem: React.FC<{ value: string; max: number; disabled: boolean; onSave: (v: string) => void }> = ({ value, max, disabled, onSave }) => {
+  const [text, setText] = useState(value);
+  useEffect(() => setText(value), [value]);
+  return (
+    <div>
+      <Textarea rows={2} value={text} disabled={disabled} maxLength={max} onChange={(e) => setText(e.target.value)} onBlur={() => text !== value && onSave(text)}
+        placeholder="Describe el avance, las dificultades y qué hará para mejorar." />
+      <p className={cn('mt-0.5 text-right text-xs', text.length > max * 0.9 ? 'text-amber-600' : 'text-muted-foreground')}>{text.length}/{max}</p>
+    </div>
+  );
+};
+
+export const ConclusionsPanel: React.FC<{ data: GradebookData; reason: string | null; onNeedReason: () => void }> = ({ data, reason, onNeedReason }) => {
+  const save = useSaveConclusions(data.assignment.id);
+  const [onlyRequired, setOnlyRequired] = useState(true);
+  const items = useMemo(() => {
+    const list: Array<{ enrollmentId: string; fullName: string; competenceId: string; competence: string; letter: string; conclusion: string }> = [];
+    data.students.filter((s) => s.state === 'REGISTERED').forEach((s) => data.competences.forEach((c) => {
+      const r = data.results.find((x) => x.enrollmentId === s.enrollmentId && x.competenceId === c.id);
+      if (!r?.finalLetter) return;
+      if (onlyRequired && r.finalLetter !== 'B' && r.finalLetter !== 'C') return;
+      const conc = data.conclusions.find((x) => x.enrollmentId === s.enrollmentId && x.competenceId === c.id)?.conclusion ?? '';
+      list.push({ enrollmentId: s.enrollmentId, fullName: s.fullName, competenceId: c.id, competence: c.shortName, letter: r.finalLetter, conclusion: conc });
+    }));
+    return list;
+  }, [data, onlyRequired]);
+  const editable = data.canEdit;
+
+  return (
+    <div>
+      <label className="mb-3 flex items-center gap-2 text-sm">
+        <input type="checkbox" checked={onlyRequired} onChange={(e) => setOnlyRequired(e.target.checked)} />
+        Mostrar solo B y C (obligatorias)
+      </label>
+      {items.length === 0 ? <p className="text-sm text-muted-foreground">No hay conclusiones pendientes.</p> : (
+        <div className="space-y-3">
+          {items.map((it) => (
+            <div key={`${it.enrollmentId}|${it.competenceId}`} className={cn('rounded-lg border p-3', !it.conclusion && (it.letter === 'B' || it.letter === 'C') ? 'border-amber-500/40' : 'border-border')}>
+              <div className="mb-2 flex items-center gap-2 text-sm">
+                <span className="font-medium">{it.fullName}</span>
+                <span className="text-muted-foreground">· {it.competence}</span>
+                <LetterBadge letter={it.letter} />
+              </div>
+              <ConclusionItem value={it.conclusion} max={data.conclusionMaxLength} disabled={!editable}
+                onSave={(v) => {
+                  if (data.requiresReason && !reason) { onNeedReason(); return; }
+                  save.mutate({ periodNumber: data.periodNumber, reason, items: [{ enrollmentId: it.enrollmentId, competenceId: it.competenceId, conclusion: v }] });
+                }} />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export const CriteriaModal: React.FC<{ open: boolean; onClose: () => void; data: GradebookData }> = ({ open, onClose, data }) => {
+  const { data: all = [] } = useEvaluationCriteria(data.assignment.classroom.educationLevel);
+  const save = useSetCourseCriteria(data.assignment.id);
+  const [selected, setSelected] = useState<Record<string, string>>(() =>
+    Object.fromEntries(data.criteria.map((c) => [c.id, c.isCustom ? String(c.weight) : ''])));
+  const list = (all as Array<{ id: string; name: string; shortName: string; weight: number; isActive?: boolean }>).filter((c) => c.isActive !== false);
+  return (
+    <Modal open={open} onClose={onClose} title="Criterios de este curso" description="Elige qué criterios usas y su peso. Si dejas el peso vacío, se usa el del colegio."
+      footer={<>
+        <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+        <Button disabled={save.isPending || Object.keys(selected).length === 0}
+          onClick={() => save.mutate(Object.entries(selected).map(([criterionId, w]) => ({ criterionId, weight: w ? Number(w) : null })), { onSuccess: onClose })}>
+          Guardar
+        </Button>
+      </>}>
+      {list.map((c) => {
+        const on = c.id in selected;
+        return (
+          <div key={c.id} className="flex items-center justify-between gap-3 border-b border-border py-2 text-sm">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={on} onChange={(e) => {
+                const next = { ...selected };
+                if (e.target.checked) next[c.id] = ''; else delete next[c.id];
+                setSelected(next);
+              }} />
+              {c.name} <span className="text-muted-foreground">({c.shortName} · peso {c.weight})</span>
+            </label>
+            {on && <Input type="number" min={0.5} max={10} step={0.5} className="w-20" placeholder={String(c.weight)} value={selected[c.id]} onChange={(e) => setSelected({ ...selected, [c.id]: e.target.value })} />}
+          </div>
+        );
+      })}
+    </Modal>
+  );
+};
+
+export const ReasonModal: React.FC<{ open: boolean; onClose: () => void; onConfirm: (reason: string) => void }> = ({ open, onClose, onConfirm }) => {
+  const [text, setText] = useState('');
+  return (
+    <Modal open={open} onClose={onClose} title="Motivo de la corrección" description="El periodo no está abierto. Tu motivo quedará en la bitácora."
+      footer={<>
+        <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+        <Button disabled={text.trim().length < 5} onClick={() => onConfirm(text.trim())}>Continuar</Button>
+      </>}>
+      <Textarea rows={3} value={text} onChange={(e) => setText(e.target.value)} placeholder="Ej.: corrección solicitada por el docente el 12/06 por error de digitación." />
+    </Modal>
+  );
+};

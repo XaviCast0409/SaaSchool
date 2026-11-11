@@ -1,0 +1,121 @@
+import React, { useEffect, useState } from 'react';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Download, ListChecks, Upload } from 'lucide-react';
+import { toast } from 'sonner';
+import { PageHeader } from '@/components/ui/page-header';
+import { Tabs } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Select } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
+import { PeriodStatusBadge } from '@/components/ui/letter-badge';
+import { cn } from '@/lib/utils';
+import { downloadFile, useGradebook, useImportHomework } from '../api';
+import { GradebookGrid } from '../components/GradebookGrid';
+import { ConclusionsPanel, CriteriaModal, ReasonModal, SummaryTable } from '../components/GradebookPanels';
+import { classroomLabel, teacherName } from '../types';
+
+type Tab = 'competence' | 'summary' | 'conclusions';
+
+export const GradebookPage: React.FC = () => {
+  const { assignmentId } = useParams();
+  const [params, setParams] = useSearchParams();
+  const period = Number(params.get('period') ?? 1) || 1;
+  const { data, isLoading, error } = useGradebook(assignmentId, period);
+  const importHomework = useImportHomework();
+  const [tab, setTab] = useState<Tab>('competence');
+  const [competenceId, setCompetenceId] = useState<string | null>(null);
+  const [reason, setReason] = useState<string | null>(null);
+  const [reasonOpen, setReasonOpen] = useState(false);
+  const [criteriaOpen, setCriteriaOpen] = useState(false);
+  const [status, setStatus] = useState<{ s: 'idle' | 'saving' | 'saved' | 'error'; msg?: string }>({ s: 'idle' });
+
+  useEffect(() => {
+    if (data && (!competenceId || !data.competences.some((c) => c.id === competenceId))) setCompetenceId(data.competences[0]?.id ?? null);
+  }, [data, competenceId]);
+  useEffect(() => { setReason(null); }, [period]);
+  useEffect(() => { if (status.s === 'error' && status.msg) toast.error(status.msg); }, [status]);
+
+  if (isLoading) return <Skeleton className="h-96 w-full" />;
+  if (error || !data) return <p className="text-sm text-red-600">No se pudo abrir el curso.</p>;
+
+  const active = data.students.filter((s) => s.state === 'REGISTERED');
+  const missingGrades = active.length * data.competences.length - data.results.filter((r) => r.finalLetter && active.some((s) => s.enrollmentId === r.enrollmentId)).length;
+  const missingConclusions = data.results.filter((r) => (r.finalLetter === 'B' || r.finalLetter === 'C') && active.some((s) => s.enrollmentId === r.enrollmentId)
+    && !data.conclusions.some((c) => c.enrollmentId === r.enrollmentId && c.competenceId === r.competenceId && c.conclusion.trim())).length;
+
+  return (
+    <div className="pb-16">
+      <Link to="/my-courses" className="mb-2 inline-flex items-center text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="mr-1 h-4 w-4" />Mis cursos</Link>
+      <PageHeader
+        title={`${data.assignment.area.name} · ${classroomLabel(data.assignment.classroom)}`}
+        description={<>Docente: {teacherName(data.assignment.teacher)} · <PeriodStatusBadge status={data.periodStatus} /></>}
+        actions={<>
+          <Select aria-label="Periodo" value={period} onChange={(e) => setParams({ period: e.target.value })}>
+            {Array.from({ length: data.periodCount }, (_, i) => i + 1).map((n) => <option key={n} value={n}>Periodo {n}</option>)}
+          </Select>
+          {data.canEdit && <Button variant="outline" size="sm" onClick={() => setCriteriaOpen(true)}><ListChecks className="mr-1 h-4 w-4" />Criterios</Button>}
+          {data.canEdit && data.periodStatus === 'OPEN' && (
+            <Button variant="outline" size="sm" disabled={importHomework.isPending} onClick={() => importHomework.mutate({ courseAssignmentId: data.assignment.id, periodNumber: period })}>
+              <Upload className="mr-1 h-4 w-4" />Importar tareas
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={() => downloadFile('/academic/exports/gradebook.xlsx', { assignmentId: data.assignment.id, periodNumber: period }, `registro-${data.assignment.area.name}-p${period}.xlsx`)}>
+            <Download className="mr-1 h-4 w-4" />Excel
+          </Button>
+        </>}
+      />
+
+      {!data.canEdit && data.periodStatus !== 'OPEN' && (
+        <div className="mb-4 rounded-lg border border-border bg-muted/40 p-3 text-sm">Este periodo está {data.periodStatus === 'REVIEW' ? 'en revisión' : 'cerrado'}: solo lectura.</div>
+      )}
+      {data.canEdit && data.requiresReason && (
+        <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
+          Estás corrigiendo un periodo que no está abierto. {reason ? <>Motivo: <em>{reason}</em></> : <button type="button" className="underline" onClick={() => setReasonOpen(true)}>Indica el motivo para editar</button>}
+        </div>
+      )}
+
+      <Tabs<Tab> value={tab} onChange={setTab} className="mb-4" items={[
+        { value: 'competence', label: 'Por competencia' },
+        { value: 'summary', label: 'Resumen' },
+        { value: 'conclusions', label: 'Conclusiones', count: missingConclusions },
+      ]} />
+
+      {data.competences.length === 0 ? <p className="text-sm text-muted-foreground">Este curso no tiene competencias. Revisa el plan de estudios.</p> : (
+        <>
+          {tab === 'competence' && competenceId && (
+            <>
+              <div className="mb-3 flex flex-wrap gap-1.5">
+                {data.competences.map((c) => (
+                  <button key={c.id} type="button" title={c.name} onClick={() => setCompetenceId(c.id)}
+                    className={cn('rounded-full border px-3 py-1 text-sm', c.id === competenceId ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:text-foreground')}>
+                    {c.shortName}
+                  </button>
+                ))}
+              </div>
+              <p className="mb-3 text-sm text-muted-foreground">{data.competences.find((c) => c.id === competenceId)?.name}</p>
+              {data.criteria.length === 0 && <p className="mb-3 text-sm text-muted-foreground">Este curso no usa criterios: registra directamente el calificativo final.</p>}
+              <GradebookGrid data={data} competenceId={competenceId} reason={reason} onNeedReason={() => setReasonOpen(true)} onStatus={(s, msg) => setStatus({ s, msg })} />
+              <p className="mt-2 text-xs text-muted-foreground">Escribe un número de 0 a 20 o AD, A, B, C, EXO. Puedes pegar columnas desde Excel. Enter baja a la siguiente fila.</p>
+            </>
+          )}
+          {tab === 'summary' && <SummaryTable data={data} onPick={(id) => { setCompetenceId(id); setTab('competence'); }} />}
+          {tab === 'conclusions' && <ConclusionsPanel data={data} reason={reason} onNeedReason={() => setReasonOpen(true)} />}
+        </>
+      )}
+
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2 text-sm">
+          <span className={cn(status.s === 'error' ? 'text-red-600' : 'text-muted-foreground')}>
+            {status.s === 'saving' ? 'Guardando…' : status.s === 'saved' ? 'Guardado' : status.s === 'error' ? 'Error al guardar' : 'Los cambios se guardan solos'}
+          </span>
+          <span className="text-muted-foreground">
+            {Math.max(missingGrades, 0)} calificativos pendientes · {missingConclusions} conclusiones pendientes
+          </span>
+        </div>
+      </div>
+
+      {criteriaOpen && <CriteriaModal open onClose={() => setCriteriaOpen(false)} data={data} />}
+      <ReasonModal open={reasonOpen} onClose={() => setReasonOpen(false)} onConfirm={(r) => { setReason(r); setReasonOpen(false); }} />
+    </div>
+  );
+};
