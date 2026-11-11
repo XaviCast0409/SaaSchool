@@ -39,3 +39,4 @@ export const ProgressBar: React.FC<{ percent: number }> = ({ percent }) => (
     <span className="text-xs tabular-nums text-muted-foreground">{percent}%</span>
   </div>
 );
+

@@ -1,5 +1,5 @@
 import { prisma } from '../../config/prisma';
-import type { AcademicYear } from '@prisma/client';
+import { Prisma, type AcademicYear } from '@prisma/client';
 import type { CreateAcademicYearDto, UpdateAcademicYearDto } from './academic-year.schema';
 
 export class AcademicYearRepository {
@@ -34,9 +34,13 @@ export class AcademicYearRepository {
         schoolId,
         year: data.year,
         name: data.name || `Año Escolar ${data.year}`,
+        periodType: data.periodType ?? 'BIMESTER',
+        periodsConfig: data.periodsConfig ? (data.periodsConfig as Prisma.InputJsonValue) : Prisma.DbNull,
+        annualCalculationMode: data.annualCalculationMode ?? 'LAST_PERIOD',
         startDate: new Date(data.startDate),
         endDate: new Date(data.endDate),
-        isActive: data.isActive ?? true,
+        // La activación siempre pasa por AcademicYearService.activateExclusively
+        isActive: false,
       },
     });
   }
@@ -51,9 +55,17 @@ export class AcademicYearRepository {
       data: {
         year: data.year,
         name: data.name,
+        periodType: data.periodType,
+        periodsConfig:
+          data.periodsConfig === undefined
+            ? undefined
+            : data.periodsConfig === null
+              ? Prisma.DbNull
+              : (data.periodsConfig as Prisma.InputJsonValue),
+        annualCalculationMode: data.annualCalculationMode,
         startDate: data.startDate ? new Date(data.startDate) : undefined,
         endDate: data.endDate ? new Date(data.endDate) : undefined,
-        isActive: data.isActive,
+        // isActive NO se escribe aquí: lo gestiona AcademicYearService
       },
     });
   }

@@ -129,3 +129,4 @@ export const ReportCardView: React.FC<{ enrollmentId: string | null | undefined 
   if (error || !data) return <p className="text-sm text-red-600">No se pudo cargar la libreta.</p>;
   return <ReportCardSheet card={data} />;
 };
+

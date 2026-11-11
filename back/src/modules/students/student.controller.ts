@@ -91,11 +91,14 @@ export class StudentController {
   delete = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
     const id = request.params.id as string;
+    const existing = await this.studentService.getStudentById(id, schoolId);
     await this.studentService.deleteStudent(id, schoolId);
     recordAudit(request, {
       action: 'STUDENT_DELETED',
       entity: 'Student',
       entityId: id,
+      // Se guarda el nombre: después de borrar ya no se podría saber a quién se eliminó
+      before: { firstNames: existing.firstNames, lastNamePaternal: existing.lastNamePaternal, lastNameMaternal: existing.lastNameMaternal, documentId: existing.documentId },
       after: null,
     });
     response.status(204).send();

@@ -5,7 +5,6 @@ import {
   Pencil,
   Trash2,
   CheckCircle2,
-  XCircle,
   Sparkles,
   Clock,
   CalendarDays,
@@ -19,6 +18,7 @@ import {
   type PeriodDateConfig,
 } from '../api/useAcademicYears';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -79,7 +79,7 @@ export const AcademicYearsPage: React.FC = () => {
     name: `Año Escolar ${currentYearNum}`,
     startDate: `${currentYearNum}-03-01`,
     endDate: `${currentYearNum}-12-20`,
-    isActive: true,
+    isActive: false,
     periodType: 'BIMESTER' as 'BIMESTER' | 'TRIMESTER',
     annualCalculationMode: 'LAST_PERIOD' as 'LAST_PERIOD' | 'AVERAGE',
     periodsConfig: getDefaultPeriods('BIMESTER', currentYearNum),
@@ -101,7 +101,7 @@ export const AcademicYearsPage: React.FC = () => {
       name: `Año Escolar ${nextYear}`,
       startDate: `${nextYear}-03-01`,
       endDate: `${nextYear}-12-20`,
-      isActive: true,
+      isActive: false,
       periodType: 'BIMESTER',
       annualCalculationMode: 'LAST_PERIOD',
       periodsConfig: getDefaultPeriods('BIMESTER', nextYear),
@@ -145,7 +145,6 @@ export const AcademicYearsPage: React.FC = () => {
             name: formData.name,
             startDate: formData.startDate,
             endDate: formData.endDate,
-            isActive: formData.isActive,
             periodType: formData.periodType,
             annualCalculationMode: formData.annualCalculationMode,
             periodsConfig: formData.periodsConfig,
@@ -158,7 +157,6 @@ export const AcademicYearsPage: React.FC = () => {
           name: formData.name,
           startDate: formData.startDate,
           endDate: formData.endDate,
-          isActive: formData.isActive,
           periodType: formData.periodType,
           annualCalculationMode: formData.annualCalculationMode,
           periodsConfig: formData.periodsConfig,
@@ -184,16 +182,17 @@ export const AcademicYearsPage: React.FC = () => {
     }
   };
 
-  const handleToggleActive = async (ay: AcademicYear) => {
+  const [yearToActivate, setYearToActivate] = useState<AcademicYear | null>(null);
+
+  const handleConfirmActivate = async () => {
+    if (!yearToActivate) return;
     try {
-      await updateYear({
-        id: ay.id,
-        payload: { isActive: !ay.isActive },
-      });
-      toast.success(`Año Lectivo ${ay.year} ${!ay.isActive ? 'activado' : 'desactivado'}.`);
+      await updateYear({ id: yearToActivate.id, payload: { isActive: true } });
+      toast.success(`Año Lectivo ${yearToActivate.year} activado.`);
+      setYearToActivate(null);
       refetch();
-    } catch {
-      toast.error('Error al cambiar el estado del Año Lectivo.');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'No se pudo activar el Año Lectivo.');
     }
   };
 
@@ -352,25 +351,16 @@ export const AcademicYearsPage: React.FC = () => {
                   </div>
                 </div>
 
-                {isAdmin && (
+                {isAdmin && !ay.isActive && (
                   <div className="pt-2 flex justify-end">
                     <Button
-                      variant={ay.isActive ? 'outline' : 'default'}
+                      variant="default"
                       size="sm"
                       className="h-7 text-xs gap-1 font-semibold"
-                      onClick={() => handleToggleActive(ay)}
+                      onClick={() => setYearToActivate(ay)}
                     >
-                      {ay.isActive ? (
-                        <>
-                          <XCircle className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span>Desactivar Año</span>
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                          <span>Establecer como Activo</span>
-                        </>
-                      )}
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Activar este año</span>
                     </Button>
                   </div>
                 )}
@@ -532,18 +522,6 @@ export const AcademicYearsPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="isActiveToggle"
-                  checked={formData.isActive}
-                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                  className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
-                />
-                <label htmlFor="isActiveToggle" className="text-xs font-semibold text-foreground cursor-pointer">
-                  Establecer como Año Lectivo Activo
-                </label>
-              </div>
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
                 <Button type="button" variant="ghost" size="sm" onClick={() => setIsModalOpen(false)}>
@@ -557,6 +535,16 @@ export const AcademicYearsPage: React.FC = () => {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        isOpen={!!yearToActivate}
+        onClose={() => setYearToActivate(null)}
+        onConfirm={handleConfirmActivate}
+        title={`Activar el año ${yearToActivate?.year ?? ''}`}
+        description={`El año ${activeYearObj?.isActive ? activeYearObj.year : 'actual'} dejará de estar activo. Todas las pantallas (matrícula, asistencia, notas, carga docente) pasarán a trabajar con ${yearToActivate?.year ?? ''}. Puedes volver a activar el año anterior cuando quieras: no se pierde ningún dato.`}
+        confirmText="Activar"
+        variant="warning"
+        isLoading={isUpdating}
+      />
     </div>
   );
 };

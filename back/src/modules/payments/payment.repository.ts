@@ -346,8 +346,9 @@ export class PaymentRepository {
    * Calcula el resumen financiero (recaudado, pendiente, vencido) del colegio.
    */
   async getFinancialSummary(schoolId: string) {
+    // Las pensiones anuladas (retiros y traslados) no cuentan como deuda ni como monto esperado
     const obligations = await prisma.paymentObligation.findMany({
-      where: { schoolId },
+      where: { schoolId, status: { not: 'CANCELLED' } },
       include: { transactions: true },
     });
 

@@ -71,7 +71,7 @@ export interface GradebookData {
     area: { id: string; name: string; kind: CourseKind; officialAreaCode: string | null };
     teacher: TeacherLite;
   };
-  periodNumber: number; periodCount: number; periodStatus: PeriodState; canEdit: boolean; requiresReason: boolean;
+  periodNumber: number; periodCount: number; periodStatus: PeriodState; canEdit: boolean; requiresReason: boolean; yearIsActive: boolean; isCorrection: boolean;
   competences: Array<{ id: string; cnebNumber: number | null; name: string; shortName: string }>;
   criteria: Array<{ id: string; name: string; shortName: string; weight: number; isCustom: boolean }>;
   students: GradebookStudent[]; scores: GradebookScore[]; results: GradebookResult[];
@@ -82,7 +82,7 @@ export interface GradebookData {
 
 export interface ProgressRow {
   assignmentId: string; classroom: { id: string; educationLevel: Level; grade: number; section: string }; course: string; kind: CourseKind;
-  teacher: { id: string; name: string }; students: number; expected: number; filled: number; percent: number; missingGrades: number; missingConclusions: number;
+  teacher: { id: string; name: string }; students: number; expected: number; filled: number; percent: number; noStudents: boolean; missingGrades: number; missingConclusions: number;
 }
 export interface ProgressResponse {
   academicYearId: string; periodNumber: number; rows: ProgressRow[];
@@ -117,3 +117,4 @@ export interface ReportCard {
   finalSituation: string | null;
   scaleLegend: Array<{ letter: string; label: string }>;
 }
+

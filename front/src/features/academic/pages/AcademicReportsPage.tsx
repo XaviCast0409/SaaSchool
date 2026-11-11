@@ -105,3 +105,4 @@ export const AcademicReportsPage: React.FC = () => {
     </div>
   );
 };
+

@@ -41,3 +41,4 @@ export const Modal: React.FC<ModalProps> = ({ open, onClose, title, description,
     </div>
   );
 };
+

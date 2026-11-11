@@ -60,8 +60,9 @@ export const useCreateAcademicYear = () => {
       const response = await api.post<ApiResponse<AcademicYear>>('/academic-years', payload);
       return response.data.data;
     },
+    // Crear el primer año lo activa: todo lo demás depende del año activo
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['academic-years'] });
+      queryClient.invalidateQueries();
     },
   });
 };
@@ -73,8 +74,10 @@ export const useUpdateAcademicYear = () => {
       const response = await api.patch<ApiResponse<AcademicYear>>(`/academic-years/${id}`, payload);
       return response.data.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['academic-years'] });
+    // Cambiar de año activo afecta a todas las pantallas: se descarta toda la caché
+    onSuccess: (_data, variables) => {
+      if (variables.payload.isActive !== undefined) queryClient.invalidateQueries();
+      else queryClient.invalidateQueries({ queryKey: ['academic-years'] });
     },
   });
 };

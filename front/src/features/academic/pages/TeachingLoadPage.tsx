@@ -143,3 +143,4 @@ export const TeachingLoadPage: React.FC = () => {
     </div>
   );
 };
+

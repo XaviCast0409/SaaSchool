@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { createAcademicYearSchema, updateAcademicYearSchema } from './academic-year.schema';
 import type { AcademicYearService } from './academic-year.service';
+import { recordAudit } from '../../utils/audit.util';
 
 export class AcademicYearController {
   constructor(private readonly academicYearService: AcademicYearService) {}
@@ -22,6 +23,7 @@ export class AcademicYearController {
     const schoolId = request.user!.schoolId;
     const createDto = createAcademicYearSchema.parse(request.body);
     const academicYear = await this.academicYearService.createAcademicYear(schoolId, createDto);
+    recordAudit(request, { action: 'ACADEMIC_YEAR_CREATE', entity: 'AcademicYear', entityId: academicYear.id, after: createDto });
     response.status(201).json({ status: 'success', data: academicYear });
   };
 
@@ -29,7 +31,15 @@ export class AcademicYearController {
     const schoolId = request.user!.schoolId;
     const id = request.params.id as string;
     const updateDto = updateAcademicYearSchema.parse(request.body);
+    const before = await this.academicYearService.getAcademicYearById(id, schoolId);
     const academicYear = await this.academicYearService.updateAcademicYear(id, schoolId, updateDto);
+    recordAudit(request, {
+      action: updateDto.isActive === true && !before.isActive ? 'ACADEMIC_YEAR_ACTIVATE' : 'ACADEMIC_YEAR_UPDATE',
+      entity: 'AcademicYear',
+      entityId: id,
+      before: { isActive: before.isActive, year: before.year },
+      after: updateDto,
+    });
     response.status(200).json({ status: 'success', data: academicYear });
   };
 
@@ -37,6 +47,7 @@ export class AcademicYearController {
     const schoolId = request.user!.schoolId;
     const id = request.params.id as string;
     await this.academicYearService.deleteAcademicYear(id, schoolId);
+    recordAudit(request, { action: 'ACADEMIC_YEAR_DELETE', entity: 'AcademicYear', entityId: id });
     response.status(200).json({ status: 'success', message: 'Año Lectivo eliminado correctamente.' });
   };
 }

@@ -193,6 +193,8 @@ export class GradeRepository {
     if (teacherId) {
       const status = await new PeriodService().getEffectiveStatus(assignment.academicYearId!, dto.periodNumber, assignment.classroomId);
       if (status !== 'OPEN') throw new AppError('El periodo no está abierto para registrar notas.', 403);
+      const year = await prisma.academicYear.findUnique({ where: { id: assignment.academicYearId! }, select: { isActive: true } });
+      if (!year?.isActive) throw new AppError('Este año lectivo ya no está activo: sus notas son de solo lectura.', 403);
     }
 
     let effectiveCriterionId = dto.criterionId || dto.targetCriterionId;

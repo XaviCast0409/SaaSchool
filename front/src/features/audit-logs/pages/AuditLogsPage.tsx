@@ -1,223 +1,193 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { ChevronDown, ChevronRight, History } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Pagination } from '@/components/ui/Pagination';
-import { History, Shield, Filter, Calendar } from 'lucide-react';
-import { useAuditLogs } from '../api/useAuditLogs';
+import { PageHeader } from '@/components/ui/page-header';
+import { Select } from '@/components/ui/select';
+import { EmptyState } from '@/components/ui/empty-state';
+import { cn } from '@/lib/utils';
 import { formatPeruDate, formatPeruTime } from '@/lib/dateUtils';
+import { useAuditActors, useAuditCategories, useAuditLogs, type AuditLogItem } from '../api/useAuditLogs';
 
-const ENTITY_OPTIONS = [
-  { value: 'ALL', label: 'Todas las entidades' },
-  { value: 'PaymentTransaction', label: 'Transacción de Pago' },
-  { value: 'PaymentObligation', label: 'Obligación / Pensión' },
-  { value: 'Grades', label: 'Calificaciones y Criterios' },
-  { value: 'GradingPeriodLock', label: 'Cierre de Periodo / Actas' },
-  { value: 'Enrollment', label: 'Matrícula' },
-  { value: 'Student', label: 'Estudiante' },
-  { value: 'User', label: 'Usuario / Docente' },
-  { value: 'School', label: 'Colegio' },
-  { value: 'StudentIncident', label: 'Incidencia Escolar' },
-];
+const ROLE_LABEL: Record<string, string> = {
+  SUPER_ADMIN: 'Soporte',
+  SCHOOL_ADMIN: 'Dirección',
+  ADMINISTRATIVE: 'Secretaría',
+  TEACHER: 'Docente',
+  PARENT: 'Apoderado(a)',
+};
+
+const CATEGORY_STYLE: Record<string, string> = {
+  NOTAS: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
+  ACADEMICO: 'bg-violet-500/10 text-violet-700 dark:text-violet-300',
+  ASISTENCIA: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+  MATRICULA: 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300',
+  PAGOS: 'bg-teal-500/10 text-teal-700 dark:text-teal-300',
+  USUARIOS: 'bg-slate-500/10 text-slate-700 dark:text-slate-300',
+  COLEGIO: 'bg-slate-500/10 text-slate-700 dark:text-slate-300',
+  CONVIVENCIA: 'bg-rose-500/10 text-rose-700 dark:text-rose-300',
+};
+
+/** Resalta el nombre de quien hizo la acción al inicio de la frase. */
+const Summary: React.FC<{ log: AuditLogItem }> = ({ log }) => {
+  const prefix = `${log.actorName} (${log.actorRoleLabel})`;
+  if (!log.summary.startsWith(prefix)) return <span>{log.summary}</span>;
+  const rest = log.summary.slice(prefix.length);
+  const [verb, ...target] = rest.split(' — ');
+  return (
+    <span>
+      <span className="font-semibold">{log.actorName}</span>
+      <span className="text-muted-foreground"> ({log.actorRoleLabel})</span>
+      {verb}
+      {target.length > 0 && <> — <span className="font-medium">{target.join(' — ')}</span></>}
+    </span>
+  );
+};
+
+const LogRow: React.FC<{ log: AuditLogItem }> = ({ log }) => {
+  const [open, setOpen] = useState(false);
+  const hasDetails = log.details.length > 0;
+  return (
+    <li className="px-4 py-3">
+      <div className="flex items-start gap-3">
+        <span className="w-12 shrink-0 pt-0.5 text-xs tabular-nums text-muted-foreground">{formatPeruTime(log.createdAt)}</span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm leading-snug"><Summary log={log} /></p>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-medium', CATEGORY_STYLE[log.category ?? ''] ?? 'bg-muted text-muted-foreground')}>
+              {log.actionLabel}
+            </span>
+            {log.isCorrection && (
+              <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
+                Corrección en periodo cerrado
+              </span>
+            )}
+            {hasDetails && (
+              <button type="button" onClick={() => setOpen(!open)} className="inline-flex items-center text-xs text-primary hover:underline">
+                {open ? <ChevronDown className="mr-0.5 h-3.5 w-3.5" /> : <ChevronRight className="mr-0.5 h-3.5 w-3.5" />}
+                {open ? 'Ocultar detalle' : 'Ver detalle'}
+              </button>
+            )}
+          </div>
+          {open && hasDetails && (
+            <dl className="mt-2 grid gap-x-4 gap-y-1 rounded-lg bg-muted/40 p-3 text-xs sm:grid-cols-[minmax(8rem,auto)_1fr]">
+              {log.details.map((d, i) => (
+                <React.Fragment key={`${d.label}-${i}`}>
+                  <dt className="font-medium text-muted-foreground">{d.label}</dt>
+                  <dd className="text-foreground">{d.value}</dd>
+                </React.Fragment>
+              ))}
+            </dl>
+          )}
+        </div>
+      </div>
+    </li>
+  );
+};
 
 export const AuditLogsPage: React.FC = () => {
-  const [entity, setEntity] = useState<string>('ALL');
-  const [from, setFrom] = useState<string>('');
-  const [to, setTo] = useState<string>('');
-  const [page, setPage] = useState<number>(1);
-  const [limit, setLimit] = useState<number>(25);
+  const [category, setCategory] = useState('');
+  const [actorId, setActorId] = useState('');
+  const [onlyCorrections, setOnlyCorrections] = useState(false);
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(25);
 
+  const { data: categories = [] } = useAuditCategories();
+  const { data: actors = [] } = useAuditActors();
   const { data, isLoading, isError } = useAuditLogs({
-    entity: entity === 'ALL' ? undefined : entity,
+    category: category || undefined,
+    actorId: actorId || undefined,
+    onlyCorrections,
     from: from || undefined,
     to: to || undefined,
     page,
     limit,
   });
+  const logs = data?.data ?? [];
+  const meta = data?.meta ?? { total: 0, page: 1, limit, totalPages: 1 };
 
-  const logs = data?.data || [];
-  const meta = data?.meta || { total: 0, page: 1, limit: 25, totalPages: 1 };
+  // Agrupar por día para que la lectura sea cronológica
+  const byDay = useMemo(() => {
+    const groups: Array<{ day: string; items: AuditLogItem[] }> = [];
+    for (const log of logs) {
+      const day = formatPeruDate(log.createdAt, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      const last = groups[groups.length - 1];
+      if (last && last.day === day) last.items.push(log);
+      else groups.push({ day, items: [log] });
+    }
+    return groups;
+  }, [logs]);
 
-  const handleEntityChange = (newEntity: string) => {
-    setEntity(newEntity);
-    setPage(1);
-  };
-
-  const handleFromChange = (newFrom: string) => {
-    setFrom(newFrom);
-    setPage(1);
-  };
-
-  const handleToChange = (newTo: string) => {
-    setTo(newTo);
-    setPage(1);
-  };
+  const reset = <T,>(setter: (v: T) => void) => (v: T) => { setter(v); setPage(1); };
 
   return (
-    <div className="space-y-6 pb-12">
-      {/* Encabezado */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="border-primary/30 text-primary bg-primary/5 text-[10px] font-bold">
-              <Shield className="w-3 h-3 mr-1" />
-              Seguridad y Trazabilidad
-            </Badge>
-          </div>
-          <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight flex items-center gap-2">
-            <History className="w-6 h-6 text-primary" />
-            Bitácora de auditoría
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            Registro de cambios en notas, pagos, matrículas y usuarios.
-          </p>
+    <div className="max-w-5xl pb-12">
+      <PageHeader
+        title="Bitácora"
+        description="Quién hizo cada cambio en el sistema y cuándo. Útil para revisar correcciones de notas, pagos y matrículas."
+      />
+
+      <Card className="mb-4 p-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <label className="text-xs font-medium text-muted-foreground">
+            Tema
+            <Select className="mt-1 w-full" value={category} onChange={(e) => reset(setCategory)(e.target.value)}>
+              <option value="">Todos los temas</option>
+              {categories.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+            </Select>
+          </label>
+          <label className="text-xs font-medium text-muted-foreground">
+            Persona
+            <Select className="mt-1 w-full" value={actorId} onChange={(e) => reset(setActorId)(e.target.value)}>
+              <option value="">Todas las personas</option>
+              {actors.map((a) => <option key={a.id} value={a.id}>{a.name} ({ROLE_LABEL[a.role] ?? a.role})</option>)}
+            </Select>
+          </label>
+          <label className="text-xs font-medium text-muted-foreground">
+            Desde
+            <Input type="date" className="mt-1 h-9" value={from} onChange={(e) => reset(setFrom)(e.target.value)} />
+          </label>
+          <label className="text-xs font-medium text-muted-foreground">
+            Hasta
+            <Input type="date" className="mt-1 h-9" value={to} onChange={(e) => reset(setTo)(e.target.value)} />
+          </label>
         </div>
-      </div>
-
-      {/* Filtros */}
-      <Card className="p-4 border-border bg-card shadow-sm">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-              <Filter className="w-3.5 h-3.5" />
-              Entidad
-            </label>
-            <select
-              value={entity}
-              onChange={(e) => handleEntityChange(e.target.value)}
-              className="w-full h-9 rounded-md border border-border bg-background px-3 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              {ENTITY_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5" />
-              Desde
-            </label>
-            <Input
-              type="date"
-              value={from}
-              onChange={(e) => handleFromChange(e.target.value)}
-              className="h-9 text-xs font-mono"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5" />
-              Hasta
-            </label>
-            <Input
-              type="date"
-              value={to}
-              onChange={(e) => handleToChange(e.target.value)}
-              className="h-9 text-xs font-mono"
-            />
-          </div>
-        </div>
+        <label className="mt-3 flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={onlyCorrections} onChange={(e) => reset(setOnlyCorrections)(e.target.checked)} />
+          Solo correcciones de notas en periodos cerrados
+        </label>
       </Card>
 
-      {/* Tabla de Registros */}
-      <Card className="border-border bg-card shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="bg-muted border-b border-border font-bold text-muted-foreground">
-                <th className="p-3 w-44">Fecha y hora</th>
-                <th className="p-3 w-56">Usuario</th>
-                <th className="p-3">Acción</th>
-                <th className="p-3 w-40">Entidad</th>
-                <th className="p-3 w-32 font-mono">ID</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {isLoading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}>
-                    <td colSpan={5} className="p-3">
-                      <Skeleton className="h-6 w-full" />
-                    </td>
-                  </tr>
-                ))
-              ) : isError ? (
-                <tr>
-                  <td colSpan={5} className="p-8 text-center text-destructive">
-                    Ocurrió un error al cargar la bitácora de auditoría.
-                  </td>
-                </tr>
-              ) : logs.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="p-8 text-center text-muted-foreground">
-                    No se encontraron registros de auditoría con los filtros aplicados.
-                  </td>
-                </tr>
-              ) : (
-                logs.map((log) => {
-                  const userDisplay = log.actorEmail || `${log.actorId.slice(0, 8)}...`;
-
-                  return (
-                    <tr key={log.id} className="hover:bg-muted/40 transition-colors">
-                      <td className="p-3 text-muted-foreground whitespace-nowrap">
-                        <span className="font-medium text-foreground block">
-                          {formatPeruDate(log.createdAt, { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                        </span>
-                        <span className="text-[11px] font-mono text-muted-foreground">
-                          {formatPeruTime(log.createdAt)}
-                        </span>
-                      </td>
-
-                      <td className="p-3">
-                        <span className="font-semibold text-foreground block truncate max-w-[200px]" title={userDisplay}>
-                          {userDisplay}
-                        </span>
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 mt-0.5">
-                          {log.actorRole}
-                        </Badge>
-                      </td>
-
-                      <td className="p-3">
-                        <Badge
-                          variant="outline"
-                          className="font-mono text-[10px] px-2 py-0.5 border-border bg-secondary/30 text-foreground"
-                        >
-                          {log.action}
-                        </Badge>
-                      </td>
-
-                      <td className="p-3 font-medium text-foreground">
-                        {log.entity}
-                      </td>
-
-                      <td className="p-3 font-mono text-muted-foreground text-[11px]" title={log.entityId || '—'}>
-                        {log.entityId ? `${log.entityId.slice(0, 8)}...` : '—'}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        <Pagination
-          currentPage={page}
-          totalPages={meta.totalPages}
-          totalItems={meta.total}
-          limit={limit}
-          onPageChange={setPage}
-          onLimitChange={(newLimit) => {
-            setLimit(newLimit);
-            setPage(1);
-          }}
-        />
-      </Card>
+      {isLoading ? (
+        <Skeleton className="h-64 w-full" />
+      ) : isError ? (
+        <p className="text-sm text-destructive">No se pudo cargar la bitácora.</p>
+      ) : logs.length === 0 ? (
+        <EmptyState icon={<History className="h-8 w-8" />} title="No hay movimientos con estos filtros" description="Prueba con otro tema, otra persona o un rango de fechas más amplio." />
+      ) : (
+        <Card className="overflow-hidden">
+          {byDay.map((group) => (
+            <section key={group.day}>
+              <h2 className="border-b border-border bg-muted/40 px-4 py-2 text-xs font-semibold capitalize text-muted-foreground">{group.day}</h2>
+              <ul className="divide-y divide-border">
+                {group.items.map((log) => <LogRow key={log.id} log={log} />)}
+              </ul>
+            </section>
+          ))}
+          <Pagination
+            currentPage={page}
+            totalPages={meta.totalPages}
+            totalItems={meta.total}
+            limit={limit}
+            onPageChange={setPage}
+            onLimitChange={(n) => { setLimit(n); setPage(1); }}
+          />
+        </Card>
+      )}
     </div>
   );
 };

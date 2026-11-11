@@ -70,3 +70,4 @@ export const consolidationQuery = z.object({
 });
 export const classroomQuery = z.object({ classroomId: uuid });
 export const gradebookExportQuery = z.object({ assignmentId: uuid, periodNumber: z.coerce.number().int().min(1).max(4) });
+

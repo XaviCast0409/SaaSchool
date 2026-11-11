@@ -49,3 +49,4 @@ ALTER TABLE "CourseAssignment" ADD CONSTRAINT "CourseAssignment_academicYearId_f
 
 -- Un solo año lectivo activo por colegio
 CREATE UNIQUE INDEX "AcademicYear_one_active_per_school" ON "AcademicYear" ("schoolId") WHERE "isActive" = true;
+

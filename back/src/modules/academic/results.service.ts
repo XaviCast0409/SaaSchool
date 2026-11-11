@@ -114,3 +114,4 @@ export class ResultsService {
     return assignments.length;
   }
 }
+

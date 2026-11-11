@@ -51,7 +51,7 @@ export const MyCoursesPage: React.FC = () => {
                 <Card className="h-full p-4 transition-colors group-hover:border-primary/50">
                   <p className="text-sm font-semibold">{c.area.name}</p>
                   <p className="text-sm text-muted-foreground">{classroomLabel(c.classroom)}</p>
-                  <div className="mt-3"><ProgressBar percent={p?.percent ?? 0} /></div>
+                  <div className="mt-3">{p?.noStudents ? <span className="text-xs text-muted-foreground">Sin estudiantes matriculados</span> : <ProgressBar percent={p?.percent ?? 0} />}</div>
                   {p && (p.missingGrades > 0 || p.missingConclusions > 0) && (
                     <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
                       {p.missingGrades > 0 && `${p.missingGrades} calificativos pendientes`}
@@ -80,3 +80,4 @@ export const MyCoursesPage: React.FC = () => {
     </div>
   );
 };
+

@@ -136,22 +136,22 @@ export const academicController = {
   saveScores: async (req: Request, res: Response) => {
     const b = S.scoresBody.parse(req.body);
     const { schoolId, user } = ctx(req);
-    const data = await gradebook.saveScores(schoolId, user, String(req.params.assignmentId), b.periodNumber, b.items, b.reason);
-    recordAudit(req, { action: 'GRADES_SAVE', entity: 'CourseAssignment', entityId: String(req.params.assignmentId), after: { periodNumber: b.periodNumber, count: b.items.length, reason: b.reason ?? null } });
+    const data = await gradebook.saveScores(schoolId, user, String(req.params.assignmentId), b.periodNumber, b.items);
+    recordAudit(req, { action: data.correction ? 'GRADES_SAVE_CORRECTION' : 'GRADES_SAVE', entity: 'CourseAssignment', entityId: String(req.params.assignmentId), after: { periodNumber: b.periodNumber, count: b.items.length, items: data.correction ? b.items : undefined, reason: b.reason ?? null } });
     ok(res, data);
   },
   setFinalLetter: async (req: Request, res: Response) => {
     const b = S.finalLetterBody.parse(req.body);
     const { schoolId, user } = ctx(req);
-    const data = await gradebook.setFinalLetter(schoolId, user, String(req.params.assignmentId), b.periodNumber, b, b.reason);
-    recordAudit(req, { action: 'GRADES_FINAL_LETTER', entity: 'CourseAssignment', entityId: String(req.params.assignmentId), after: b });
+    const data = await gradebook.setFinalLetter(schoolId, user, String(req.params.assignmentId), b.periodNumber, b);
+    recordAudit(req, { action: data.correction ? 'GRADES_FINAL_LETTER_CORRECTION' : 'GRADES_FINAL_LETTER', entity: 'CourseAssignment', entityId: String(req.params.assignmentId), after: b });
     ok(res, data);
   },
   saveConclusions: async (req: Request, res: Response) => {
     const b = S.conclusionsBody.parse(req.body);
     const { schoolId, user } = ctx(req);
-    const data = await gradebook.saveConclusions(schoolId, user, String(req.params.assignmentId), b.periodNumber, b.items, b.reason);
-    recordAudit(req, { action: 'GRADES_CONCLUSIONS', entity: 'CourseAssignment', entityId: String(req.params.assignmentId), after: { periodNumber: b.periodNumber, count: b.items.length, reason: b.reason ?? null } });
+    const data = await gradebook.saveConclusions(schoolId, user, String(req.params.assignmentId), b.periodNumber, b.items);
+    recordAudit(req, { action: data.correction ? 'GRADES_CONCLUSIONS_CORRECTION' : 'GRADES_CONCLUSIONS', entity: 'CourseAssignment', entityId: String(req.params.assignmentId), after: { periodNumber: b.periodNumber, count: b.items.length, reason: b.reason ?? null } });
     ok(res, data);
   },
   setCourseCriteria: async (req: Request, res: Response) => {
@@ -211,3 +211,4 @@ export const academicController = {
     res.send(buffer);
   },
 };
+

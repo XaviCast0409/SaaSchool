@@ -25,3 +25,4 @@ export const ReportCardsPrintPage: React.FC = () => {
     </div>
   );
 };
+

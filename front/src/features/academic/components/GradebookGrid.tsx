@@ -182,3 +182,4 @@ export const GradebookGrid: React.FC<Props> = ({ data, competenceId, reason, onN
     </div>
   );
 };
+

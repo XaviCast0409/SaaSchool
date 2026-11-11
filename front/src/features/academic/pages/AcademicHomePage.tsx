@@ -97,3 +97,4 @@ export const AcademicHomePage: React.FC = () => {
     </div>
   );
 };
+

@@ -12,7 +12,6 @@ export const createEnrollmentSchema = z.object({
 export const updateEnrollmentSchema = z.object({
   classroomId: z.string().uuid().optional(),
   enrollmentState: z.enum(['REGISTERED', 'TRANSFERRED', 'WITHDRAWN']).optional(),
-  isActive: z.boolean().optional(),
 });
 
 export type CreateEnrollmentDto = z.infer<typeof createEnrollmentSchema>;

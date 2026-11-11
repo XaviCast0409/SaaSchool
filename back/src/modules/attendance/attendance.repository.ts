@@ -755,6 +755,8 @@ export class AttendanceRepository {
       where: {
         schoolId,
         ...(query.classroomId ? { classroomId: query.classroomId } : {}),
+        // Solo matrículas del año lectivo que abarca el mes consultado (las aulas se reutilizan cada año)
+        academicYear: { startDate: { lte: endDate }, endDate: { gte: startDate } },
       },
       include: {
         student: {

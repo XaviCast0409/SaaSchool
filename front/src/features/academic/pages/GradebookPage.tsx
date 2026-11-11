@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useAuthStore } from '@/store/useAuthStore';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Download, ListChecks, Upload } from 'lucide-react';
 import { toast } from 'sonner';
@@ -24,6 +25,8 @@ export const GradebookPage: React.FC = () => {
   const importHomework = useImportHomework();
   const [tab, setTab] = useState<Tab>('competence');
   const [competenceId, setCompetenceId] = useState<string | null>(null);
+  const { user } = useAuthStore();
+  const isTeacher = user?.role === 'TEACHER';
   const [reason, setReason] = useState<string | null>(null);
   const [reasonOpen, setReasonOpen] = useState(false);
   const [criteriaOpen, setCriteriaOpen] = useState(false);
@@ -45,7 +48,7 @@ export const GradebookPage: React.FC = () => {
 
   return (
     <div className="pb-16">
-      <Link to="/my-courses" className="mb-2 inline-flex items-center text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="mr-1 h-4 w-4" />Mis cursos</Link>
+      <Link to={isTeacher ? '/my-courses' : '/academic/progress'} className="mb-2 inline-flex items-center text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="mr-1 h-4 w-4" />{isTeacher ? 'Mis cursos' : 'Avance y cierre'}</Link>
       <PageHeader
         title={`${data.assignment.area.name} · ${classroomLabel(data.assignment.classroom)}`}
         description={<>Docente: {teacherName(data.assignment.teacher)} · <PeriodStatusBadge status={data.periodStatus} /></>}
@@ -54,7 +57,7 @@ export const GradebookPage: React.FC = () => {
             {Array.from({ length: data.periodCount }, (_, i) => i + 1).map((n) => <option key={n} value={n}>Periodo {n}</option>)}
           </Select>
           {data.canEdit && <Button variant="outline" size="sm" onClick={() => setCriteriaOpen(true)}><ListChecks className="mr-1 h-4 w-4" />Criterios</Button>}
-          {data.canEdit && data.periodStatus === 'OPEN' && (
+          {data.canEdit && (data.periodStatus === 'OPEN' || data.isCorrection) && (
             <Button variant="outline" size="sm" disabled={importHomework.isPending} onClick={() => importHomework.mutate({ courseAssignmentId: data.assignment.id, periodNumber: period })}>
               <Upload className="mr-1 h-4 w-4" />Importar tareas
             </Button>
@@ -65,12 +68,24 @@ export const GradebookPage: React.FC = () => {
         </>}
       />
 
-      {!data.canEdit && data.periodStatus !== 'OPEN' && (
+      {!data.yearIsActive && !data.canEdit && (
+        <div className="mb-4 rounded-lg border border-border bg-muted/40 p-3 text-sm">Este curso pertenece a un año lectivo que ya no está activo: solo lectura.</div>
+      )}
+      {data.yearIsActive && !data.canEdit && data.periodStatus !== 'OPEN' && (
         <div className="mb-4 rounded-lg border border-border bg-muted/40 p-3 text-sm">Este periodo está {data.periodStatus === 'REVIEW' ? 'en revisión' : 'cerrado'}: solo lectura.</div>
       )}
-      {data.canEdit && data.requiresReason && (
-        <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
-          Estás corrigiendo un periodo que no está abierto. {reason ? <>Motivo: <em>{reason}</em></> : <button type="button" className="underline" onClick={() => setReasonOpen(true)}>Indica el motivo para editar</button>}
+      {data.isCorrection && (
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
+          <span>
+            Estás editando como Dirección {!data.yearIsActive ? 'un año lectivo que ya no está activo' : `un periodo ${data.periodStatus === 'REVIEW' ? 'en revisión' : 'cerrado'}`}.
+            Los cambios se guardan normalmente y quedan registrados en la bitácora.
+          </span>
+          <input
+            className="h-8 min-w-[16rem] flex-1 rounded-md border border-input bg-background px-2 text-sm"
+            placeholder="Motivo (opcional), p. ej.: corrección pedida por el docente"
+            value={reason ?? ''}
+            onChange={(e) => setReason(e.target.value || null)}
+          />
         </div>
       )}
 
@@ -119,3 +134,4 @@ export const GradebookPage: React.FC = () => {
     </div>
   );
 };
+

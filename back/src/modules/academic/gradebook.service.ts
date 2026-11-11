@@ -2,7 +2,7 @@ import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
 import { CONCLUSION_MAX_LENGTH, isResultLetter, sanitizeConclusion, type ResultLetter } from './grade-engine';
 import {
-  assertPeriod, fullNameOf, getThresholds, isAdmin, loadAssignmentForUser, shortNameOf, sortCompetences, type AcademicUser,
+  assertPeriod, periodCount, fullNameOf, getThresholds, isAdmin, loadAssignmentForUser, shortNameOf, sortCompetences, type AcademicUser,
 } from './academic.context';
 import { PeriodService } from './period.service';
 import { ResultsService } from './results.service';
@@ -39,24 +39,28 @@ export class GradebookService {
 
   private async activeEnrollmentIds(schoolId: string, a: LoadedAssignment): Promise<Set<string>> {
     const rows = await prisma.enrollment.findMany({
-      where: { schoolId, classroomId: a.classroomId, academicYearId: a.academicYearId, isActive: true, enrollmentState: 'REGISTERED' },
+      where: { schoolId, classroomId: a.classroomId, academicYearId: a.academicYearId, enrollmentState: 'REGISTERED' },
       select: { id: true },
     });
     return new Set(rows.map((r) => r.id));
   }
 
-  private async assertEditable(user: AcademicUser, a: LoadedAssignment, periodNumber: number, reason?: string | null) {
+  /**
+   * Docentes: solo editan periodos abiertos del año activo.
+   * Dirección (SCHOOL_ADMIN / SUPER_ADMIN): puede registrar o cambiar notas en cualquier momento,
+   * incluso con el periodo cerrado o el año inactivo. Esos cambios se marcan como corrección en la bitácora.
+   */
+  private async assertEditable(user: AcademicUser, a: LoadedAssignment, periodNumber: number): Promise<{ correction: boolean }> {
     assertPeriod(a.academicYear, periodNumber);
     const status = await this.periods.getEffectiveStatus(a.academicYearId, periodNumber, a.classroomId);
-    if (status === 'OPEN') return status;
-    if (!isAdmin(user)) {
-      throw new AppError(
-        `El periodo está ${status === 'REVIEW' ? 'en revisión' : 'cerrado'}. Pide a la Dirección que lo reabra si necesitas corregir.`,
-        403,
-      );
-    }
-    if (!reason?.trim()) throw new AppError('El periodo no está abierto: indica el motivo de la corrección.', 409);
-    return status;
+    const isLocked = status !== 'OPEN' || !a.academicYear.isActive;
+    if (!isLocked) return { correction: false };
+    if (isAdmin(user)) return { correction: true };
+    if (!a.academicYear.isActive) throw new AppError('Este año lectivo ya no está activo: sus notas son de solo lectura.', 403);
+    throw new AppError(
+      `El periodo está ${status === 'REVIEW' ? 'en revisión' : 'cerrado'}. Pide a la Dirección que lo reabra o que haga la corrección.`,
+      403,
+    );
   }
 
   async getGradebook(schoolId: string, user: AcademicUser, assignmentId: string, periodNumber: number) {
@@ -68,7 +72,6 @@ export class GradebookService {
       prisma.enrollment.findMany({
         where: {
           schoolId, classroomId: a.classroomId, academicYearId: a.academicYearId,
-          OR: [{ isActive: true }, { enrollmentState: { in: ['TRANSFERRED', 'WITHDRAWN'] } }],
         },
         select: {
           id: true, enrollmentState: true,
@@ -103,8 +106,11 @@ export class GradebookService {
       periodNumber,
       periodCount: a.academicYear.periodType === 'TRIMESTER' ? 3 : 4,
       periodStatus: status,
-      canEdit: user.role !== 'ADMINISTRATIVE' && (status === 'OPEN' || isAdmin(user)),
-      requiresReason: status !== 'OPEN',
+      canEdit: isAdmin(user) || (user.role === 'TEACHER' && status === 'OPEN' && a.academicYear.isActive),
+      // La Dirección nunca queda bloqueada; el motivo es opcional y solo se guarda en la bitácora
+      requiresReason: false,
+      isCorrection: isAdmin(user) && (status !== 'OPEN' || !a.academicYear.isActive),
+      yearIsActive: a.academicYear.isActive,
       competences: competences.map((c) => ({ id: c.id, cnebNumber: c.cnebNumber, name: c.name, shortName: shortNameOf(c) })),
       criteria,
       students: enrollments.map((e) => ({
@@ -118,10 +124,10 @@ export class GradebookService {
     };
   }
 
-  async saveScores(schoolId: string, user: AcademicUser, assignmentId: string, periodNumber: number, items: ScoreItem[], reason?: string | null) {
+  async saveScores(schoolId: string, user: AcademicUser, assignmentId: string, periodNumber: number, items: ScoreItem[]) {
     const a = await loadAssignmentForUser(schoolId, user, assignmentId, { write: true });
-    await this.assertEditable(user, a, periodNumber, reason);
-    if (items.length === 0) return { saved: 0, results: [] };
+    const { correction } = await this.assertEditable(user, a, periodNumber);
+    if (items.length === 0) return { saved: 0, results: [], correction };
     const compIds = new Set(a.area.competences.map((c) => c.id));
     const critIds = new Set((await this.getCourseCriteria(schoolId, a)).map((c) => c.id));
     const enrollmentIds = await this.activeEnrollmentIds(schoolId, a);
@@ -146,7 +152,7 @@ export class GradebookService {
     );
     const pairs = [...new Map(items.map((i) => [`${i.enrollmentId}|${i.competenceId}`, { enrollmentId: i.enrollmentId, competenceId: i.competenceId }])).values()];
     const results = await this.results.recompute(schoolId, a.id, periodNumber, pairs);
-    return { saved: items.length, results };
+    return { saved: items.length, results, correction };
   }
 
   async setFinalLetter(
@@ -155,10 +161,20 @@ export class GradebookService {
     assignmentId: string,
     periodNumber: number,
     input: { enrollmentId: string; competenceId: string; finalLetter: ResultLetter | null },
-    reason?: string | null,
   ) {
     const a = await loadAssignmentForUser(schoolId, user, assignmentId, { write: true });
-    await this.assertEditable(user, a, periodNumber, reason);
+    const { correction } = await this.assertEditable(user, a, periodNumber);
+    const result = await this.applyFinalLetter(schoolId, user, a, periodNumber, input);
+    return { result, correction };
+  }
+
+  private async applyFinalLetter(
+    schoolId: string,
+    user: AcademicUser,
+    a: LoadedAssignment,
+    periodNumber: number,
+    input: { enrollmentId: string; competenceId: string; finalLetter: ResultLetter | null },
+  ) {
     if (!a.area.competences.some((c) => c.id === input.competenceId)) throw new AppError('La competencia no pertenece a este curso.', 400);
     if (!(await this.activeEnrollmentIds(schoolId, a)).has(input.enrollmentId)) throw new AppError('El estudiante no está matriculado en esta aula.', 400);
     if (input.finalLetter !== null && !isResultLetter(input.finalLetter)) throw new AppError('Calificativo no válido.', 400);
@@ -189,10 +205,9 @@ export class GradebookService {
     assignmentId: string,
     periodNumber: number,
     items: Array<{ enrollmentId: string; competenceId: string; conclusion: string }>,
-    reason?: string | null,
   ) {
     const a = await loadAssignmentForUser(schoolId, user, assignmentId, { write: true });
-    await this.assertEditable(user, a, periodNumber, reason);
+    const { correction } = await this.assertEditable(user, a, periodNumber);
     const compIds = new Set(a.area.competences.map((c) => c.id));
     const enrollmentIds = await this.activeEnrollmentIds(schoolId, a);
     for (const it of items) {
@@ -211,7 +226,7 @@ export class GradebookService {
         });
       }),
     );
-    return { saved: items.length };
+    return { saved: items.length, correction };
   }
 
   async setCourseCriteria(schoolId: string, user: AcademicUser, assignmentId: string, criteria: Array<{ criterionId: string; weight?: number | null }>) {
@@ -234,7 +249,12 @@ export class GradebookService {
         data: criteria.map((c) => ({ courseAssignmentId: a.id, criterionId: c.criterionId, weight: c.weight && c.weight > 0 ? c.weight : null })),
       }),
     ]);
-    await this.results.recomputeAssignment(schoolId, a.id);
+    // Un docente no altera bimestres cerrados al cambiar criterios: solo se recalculan los periodos que puede editar
+    for (let p = 1; p <= periodCount(a.academicYear); p++) {
+      const editable = await this.assertEditable(user, a, p).then(() => true, () => false);
+      if (editable) await this.results.recompute(schoolId, a.id, p);
+    }
     return { saved: criteria.length };
   }
 }
+

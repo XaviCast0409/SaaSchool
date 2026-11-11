@@ -114,10 +114,10 @@ export const PeriodProgressPage: React.FC = () => {
                   <tr key={r.assignmentId} className="border-t border-border">
                     <td className="px-4 py-2">{r.course}</td>
                     <td className="px-2 py-2 text-muted-foreground">{r.teacher.name}</td>
-                    <td className="px-2 py-2"><ProgressBar percent={r.percent} /></td>
+                    <td className="px-2 py-2">{r.noStudents ? <span className="text-xs text-muted-foreground">Sin estudiantes</span> : <ProgressBar percent={r.percent} />}</td>
                     <td className={cn('px-2 py-2 text-right tabular-nums', r.missingGrades > 0 && 'text-amber-700 dark:text-amber-300')}>{r.missingGrades || '—'}</td>
                     <td className={cn('px-2 py-2 text-right tabular-nums', r.missingConclusions > 0 && 'text-amber-700 dark:text-amber-300')}>{r.missingConclusions || '—'}</td>
-                    <td className="px-2 py-2 text-right"><Link className="text-sm text-primary hover:underline" to={`/gradebook/${r.assignmentId}?period=${selected}`}>Ver</Link></td>
+                    <td className="px-2 py-2 text-right"><Link className="text-sm text-primary hover:underline" to={`/gradebook/${r.assignmentId}?period=${selected}`}>Abrir registro</Link></td>
                   </tr>
                 ))}
               </tbody>
@@ -137,3 +137,4 @@ export const PeriodProgressPage: React.FC = () => {
     </div>
   );
 };
+

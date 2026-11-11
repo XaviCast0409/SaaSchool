@@ -56,3 +56,4 @@ export const SiagieExportPanel: React.FC<{ data: ConsolidationResponse }> = ({ d
     </div>
   );
 };
+

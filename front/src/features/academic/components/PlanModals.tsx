@@ -162,3 +162,4 @@ export const CourseCompetencesModal: React.FC<{ open: boolean; onClose: () => vo
     </Modal>
   );
 };
+

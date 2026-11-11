@@ -27,7 +27,7 @@ export class ProgressService {
     });
     const classroomIds = [...new Set(assignments.map((a) => a.classroomId))];
     const enrollments = await prisma.enrollment.findMany({
-      where: { schoolId, academicYearId: year.id, classroomId: { in: classroomIds }, isActive: true, enrollmentState: 'REGISTERED' },
+      where: { schoolId, academicYearId: year.id, classroomId: { in: classroomIds }, enrollmentState: 'REGISTERED' },
       select: { id: true, classroomId: true },
     });
     const activeIds = new Set(enrollments.map((e) => e.id));
@@ -59,7 +59,8 @@ export class ProgressService {
         students,
         expected,
         filled: mine.length,
-        percent: expected > 0 ? Math.round((mine.length * 100) / expected) : 100,
+        percent: expected > 0 ? Math.round((mine.length * 100) / expected) : 0,
+        noStudents: students === 0,
         missingGrades: Math.max(expected - mine.length, 0),
         missingConclusions,
       };
@@ -68,7 +69,7 @@ export class ProgressService {
       (acc, r) => ({ expected: acc.expected + r.expected, filled: acc.filled + r.filled, missingGrades: acc.missingGrades + r.missingGrades, missingConclusions: acc.missingConclusions + r.missingConclusions }),
       { expected: 0, filled: 0, missingGrades: 0, missingConclusions: 0 },
     );
-    return { academicYearId: year.id, periodNumber, rows, totals: { ...totals, percent: totals.expected ? Math.round((totals.filled * 100) / totals.expected) : 100 } };
+    return { academicYearId: year.id, periodNumber, rows, totals: { ...totals, percent: totals.expected ? Math.round((totals.filled * 100) / totals.expected) : 0 } };
   }
 
   async remindPending(schoolId: string, academicYearId: string | undefined, periodNumber: number) {
@@ -93,3 +94,4 @@ export class ProgressService {
     return { notified: byTeacher.size };
   }
 }
+

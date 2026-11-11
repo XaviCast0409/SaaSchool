@@ -291,10 +291,15 @@ export class StudentRepository {
         );
       }
 
-      // Crear Matrícula
+      // Crear Matrícula (vigente solo si el año es el activo)
+      const enrollmentYear = await tx.academicYear.findFirst({
+        where: { id: data.enrollment.academicYearId, schoolId },
+        select: { isActive: true },
+      });
       const enrollment = await tx.enrollment.create({
         data: {
           schoolId,
+          isActive: !!enrollmentYear?.isActive,
           studentId: student.id,
           academicYearId: data.enrollment.academicYearId,
           classroomId: data.enrollment.classroomId,

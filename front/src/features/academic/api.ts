@@ -217,3 +217,4 @@ export async function downloadFile(url: string, params: Record<string, unknown>,
     toast.error(apiErrorMessage(e, 'No se pudo descargar el archivo.'));
   }
 }
+

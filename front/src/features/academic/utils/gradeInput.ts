@@ -22,3 +22,4 @@ export function formatCell(score: { numericScore: number | null; literalScore: s
 export function parseClipboard(text: string): string[][] {
   return text.replace(/\r/g, '').split('\n').filter((line, i, arr) => line !== '' || i < arr.length - 1).map((line) => line.split('\t'));
 }
+
