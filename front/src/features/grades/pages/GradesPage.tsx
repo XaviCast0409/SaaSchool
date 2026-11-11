@@ -1,10 +1,10 @@
 import React from 'react';
+import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useGetActiveSchool } from '@/features/schools/api/useSchool';
 import { PlanGuard } from '@/components/ui/PlanGuard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ParentGradesView } from '@/features/parent/components/ParentGradesView';
-import { TeacherAdminGradesView } from '../components/TeacherAdminGradesView';
 
 export const GradesPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -36,6 +36,12 @@ export const GradesPage: React.FC = () => {
     return <ParentGradesView />;
   }
 
-  // 3. Si es DOCENTE o ADMINISTRACIÓN, mostrar la matriz de ingreso y consolidado SIAGIE
-  return <TeacherAdminGradesView />;
+  // 3. Redirecciones según rol
+  if (user?.role === 'TEACHER') {
+    return <Navigate to="/my-courses" replace />;
+  }
+  if (user?.role === 'ADMINISTRATIVE') {
+    return <Navigate to="/academic/reports" replace />;
+  }
+  return <Navigate to="/academic/progress" replace />;
 };

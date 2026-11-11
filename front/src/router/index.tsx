@@ -70,8 +70,32 @@ const VirtualClassroomSupervisionPage = lazy(() =>
     default: m.VirtualClassroomSupervisionPage,
   })),
 );
-const AcademicReportsPage = lazy(() =>
+const LegacyAcademicReportsPage = lazy(() =>
   import('@/features/academic-reports/pages/AcademicReportsPage').then((m) => ({ default: m.AcademicReportsPage })),
+);
+const AcademicHomePage = lazy(() =>
+  import('@/features/academic/pages/AcademicHomePage').then((m) => ({ default: m.AcademicHomePage })),
+);
+const StudyPlanPage = lazy(() =>
+  import('@/features/academic/pages/StudyPlanPage').then((m) => ({ default: m.StudyPlanPage })),
+);
+const TeachingLoadPage = lazy(() =>
+  import('@/features/academic/pages/TeachingLoadPage').then((m) => ({ default: m.TeachingLoadPage })),
+);
+const PeriodProgressPage = lazy(() =>
+  import('@/features/academic/pages/PeriodProgressPage').then((m) => ({ default: m.PeriodProgressPage })),
+);
+const AcademicReportsPage = lazy(() =>
+  import('@/features/academic/pages/AcademicReportsPage').then((m) => ({ default: m.AcademicReportsPage })),
+);
+const ReportCardsPrintPage = lazy(() =>
+  import('@/features/academic/pages/ReportCardsPrintPage').then((m) => ({ default: m.ReportCardsPrintPage })),
+);
+const MyCoursesPage = lazy(() =>
+  import('@/features/academic/pages/MyCoursesPage').then((m) => ({ default: m.MyCoursesPage })),
+);
+const GradebookPage = lazy(() =>
+  import('@/features/academic/pages/GradebookPage').then((m) => ({ default: m.GradebookPage })),
 );
 const IncidentsPage = lazy(() =>
   import('@/features/incidents/pages/IncidentsPage').then((m) => ({ default: m.IncidentsPage })),
@@ -79,6 +103,11 @@ const IncidentsPage = lazy(() =>
 const AuditLogsPage = lazy(() =>
   import('@/features/audit-logs/pages/AuditLogsPage').then((m) => ({ default: m.AuditLogsPage })),
 );
+
+const TeacherAssignmentsRedirect: React.FC = () => {
+  const role = useAuthStore((s) => s.user?.role);
+  return <Navigate to={role === 'TEACHER' ? '/my-courses' : '/academic/teaching-load'} replace />;
+};
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const token = useAuthStore((state) => state.token);
@@ -184,17 +213,81 @@ export const AppRouter: React.FC = () => {
             />
             <Route
               path="/curricular-areas"
+              element={<Navigate to="/academic/study-plan" replace />}
+            />
+            <Route
+              path="/teacher-assignments"
+              element={<TeacherAssignmentsRedirect />}
+            />
+            <Route
+              path="/academic"
               element={
                 <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
-                  <CurricularAreasPage />
+                  <AcademicHomePage />
                 </RoleGuard>
               }
             />
             <Route
-              path="/teacher-assignments"
+              path="/academic/study-plan"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER']}>
-                  <TeacherAssignmentsPage />
+                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
+                  <StudyPlanPage />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/academic/teaching-load"
+              element={
+                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
+                  <TeachingLoadPage />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/academic/progress"
+              element={
+                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
+                  <PlanGuard minPlan="PRO">
+                    <PeriodProgressPage />
+                  </PlanGuard>
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/academic/reports"
+              element={
+                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE']}>
+                  <PlanGuard minPlan="PRO">
+                    <AcademicReportsPage />
+                  </PlanGuard>
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/academic/report-cards/print"
+              element={
+                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER']}>
+                  <PlanGuard minPlan="PRO">
+                    <ReportCardsPrintPage />
+                  </PlanGuard>
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/my-courses"
+              element={
+                <RoleGuard allowedRoles={['TEACHER']}>
+                  <MyCoursesPage />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/gradebook/:assignmentId"
+              element={
+                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER']}>
+                  <PlanGuard minPlan="PRO">
+                    <GradebookPage />
+                  </PlanGuard>
                 </RoleGuard>
               }
             />
@@ -230,7 +323,7 @@ export const AppRouter: React.FC = () => {
               element={
                 <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER']}>
                   <PlanGuard minPlan="PRO">
-                    <AcademicReportsPage />
+                    <LegacyAcademicReportsPage />
                   </PlanGuard>
                 </RoleGuard>
               }

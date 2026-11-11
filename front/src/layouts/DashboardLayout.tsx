@@ -27,6 +27,7 @@ import {
   FileCheck2,
   AlertTriangle,
   ClipboardCheck,
+  ClipboardList,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/button';
@@ -160,8 +161,50 @@ export const DashboardLayout: React.FC = () => {
       ],
     },
     {
-      title: 'Gestión Académica',
+      title: 'Académico',
       items: [
+        {
+          label: 'Inicio académico',
+          path: '/academic',
+          icon: GraduationCap,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Plan de estudios',
+          path: '/academic/study-plan',
+          icon: BookOpen,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Carga docente',
+          path: '/academic/teaching-load',
+          icon: Users,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Mis cursos',
+          path: '/my-courses',
+          icon: BookOpen,
+          roles: ['TEACHER'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Avance y cierre',
+          path: '/academic/progress',
+          icon: ClipboardList,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
+          minPlan: 'PRO',
+        },
+        {
+          label: 'Reportes académicos',
+          path: '/academic/reports',
+          icon: FileSpreadsheet,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'],
+          minPlan: 'PRO',
+        },
         {
           label: 'Matrícula SIAGIE (Alumnos)',
           path: '/students',
@@ -177,14 +220,7 @@ export const DashboardLayout: React.FC = () => {
           minPlan: 'PRO',
         },
         {
-          label: userRole === 'TEACHER' ? 'Mis Cursos y Notas' : 'Calificaciones y Actas',
-          path: '/grades',
-          icon: BookOpenCheck,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'],
-          minPlan: 'PRO',
-        },
-        {
-          label: 'Reportes Oficiales MINEDU',
+          label: 'Otros reportes',
           path: '/academic-reports',
           icon: FileSpreadsheet,
           roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
@@ -229,21 +265,7 @@ export const DashboardLayout: React.FC = () => {
           minPlan: 'BASIC',
         },
         {
-          label: 'Cursos CNEB',
-          path: '/curricular-areas',
-          icon: BookOpen,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: userRole === 'TEACHER' ? 'Mis Cursos Asignados' : 'Carga Horaria Docente',
-          path: '/teacher-assignments',
-          icon: UserCheck,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Rúbricas de Evaluación',
+          label: 'Criterios y escala',
           path: '/evaluation-criteria',
           icon: SlidersHorizontal,
           roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
