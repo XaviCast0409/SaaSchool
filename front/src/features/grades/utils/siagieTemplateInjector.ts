@@ -42,7 +42,8 @@ export function sanitizeConclusion(text?: string | null): string {
     .replace(/[\r\n\t]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-  return clean.slice(0, 350);
+  // Máximo 300 (igual que el backend; validar con la plantilla vigente)
+  return clean.slice(0, 300);
 }
 
 /**
@@ -376,8 +377,8 @@ export async function injectGradesIntoSiagieTemplate(
 
       totalStudentsInFile++;
 
-      // Buscar estudiante en la matriz del SaaS
-      let matchedStudent = studentByDni.get(rawDni) || studentByCode.get(rawDni);
+      // Buscar estudiante en la matriz del SaaS (código SIAGIE primero, luego DNI, luego nombre)
+      let matchedStudent = studentByCode.get(rawDni) || studentByDni.get(rawDni);
 
       if (!matchedStudent && structure.nameCol !== null) {
         const nameCell = ws[XLSX.utils.encode_cell({ r, c: structure.nameCol })];

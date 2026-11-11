@@ -378,7 +378,7 @@ export const DashboardLayout: React.FC = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row">
       {/* Mobile Top Bar */}
-      <div className="md:hidden flex items-center justify-between p-4 border-b border-border bg-card">
+      <div className="md:hidden flex items-center justify-between p-4 border-b border-border bg-card print:hidden">
         <div className="flex items-center gap-2.5">
           {isSuperAdmin && !isImpersonating ? (
             <ShieldCheck className="w-6 h-6 text-primary" />
@@ -414,7 +414,7 @@ export const DashboardLayout: React.FC = () => {
 
       {/* Sidebar Navigation */}
       <aside
-        className={`w-full md:w-64 border-r border-border bg-card flex flex-col justify-between shrink-0 transition-all md:h-screen md:sticky md:top-0 ${
+        className={`w-full md:w-64 border-r border-border bg-card flex flex-col justify-between shrink-0 transition-all md:h-screen md:sticky md:top-0 print:hidden ${
           isMobileOpen ? 'block' : 'hidden md:flex'
         }`}
       >
@@ -579,7 +579,7 @@ export const DashboardLayout: React.FC = () => {
         )}
 
         {/* Desktop Header Bar with Context & NotificationBell */}
-        <header className="hidden md:flex items-center justify-between px-8 py-3.5 border-b border-border bg-card/60 backdrop-blur-md sticky top-0 z-30">
+        <header className="hidden md:flex items-center justify-between px-8 py-3.5 border-b border-border bg-card/60 backdrop-blur-md sticky top-0 z-30 print:hidden">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <span className="font-semibold text-foreground">
               {user?.firstName ? `Bienvenido, ${user.firstName}` : 'SaaSchool'}
@@ -596,7 +596,7 @@ export const DashboardLayout: React.FC = () => {
         {/* Banner de activación de notificaciones en 2do plano para celulares */}
         <MobilePushBanner />
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 print:p-0 print:overflow-visible">
           <Outlet />
         </main>
       </div>
