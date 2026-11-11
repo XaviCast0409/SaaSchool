@@ -47,12 +47,6 @@ const AnnouncementsPage = lazy(() =>
 const ClassroomsPage = lazy(() =>
   import('@/features/classrooms/pages/ClassroomsPage').then((m) => ({ default: m.ClassroomsPage })),
 );
-const CurricularAreasPage = lazy(() =>
-  import('@/features/curricular-areas/pages/CurricularAreasPage').then((m) => ({ default: m.CurricularAreasPage })),
-);
-const TeacherAssignmentsPage = lazy(() =>
-  import('@/features/course-assignments/pages/TeacherAssignmentsPage').then((m) => ({ default: m.TeacherAssignmentsPage })),
-);
 const AcademicYearsPage = lazy(() =>
   import('@/features/academic-years/pages/AcademicYearsPage').then((m) => ({ default: m.AcademicYearsPage })),
 );

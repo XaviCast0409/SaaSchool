@@ -19,7 +19,6 @@ import {
   School as SchoolIcon,
   ShieldCheck,
   ShieldAlert,
-  UserCheck,
   SlidersHorizontal,
   Laptop,
   FileSpreadsheet,

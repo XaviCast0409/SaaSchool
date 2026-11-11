@@ -56,91 +56,10 @@ gradeRouter.delete(
 );
 
 // ==========================================
-// Matriz de Calificaciones (Cubicol / Excel)
+// Sincronización de tareas del Aula Virtual
 // ==========================================
-gradeRouter.get(
-  '/matrix',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),
-  gradeController.getMatrixData,
-);
-
-gradeRouter.post(
-  '/matrix/batch',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),
-  gradeController.saveBatchGrades,
-);
-
 gradeRouter.post(
   '/matrix/sync-homework',
   authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'),
   gradeController.syncHomeworkToMatrix,
-);
-
-// ==========================================
-// Conclusiones Descriptivas por Competencia
-// ==========================================
-gradeRouter.get(
-  '/conclusions',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),
-  gradeController.getConclusions,
-);
-
-gradeRouter.post(
-  '/conclusions/batch',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),
-  gradeController.saveBatchConclusions,
-);
-
-// ==========================================
-// Libreta de Notas / Report Card
-// ==========================================
-gradeRouter.get(
-  '/report-card/:enrollmentId',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT'),
-  gradeController.getReportCard,
-);
-
-// ==========================================
-// Consolidado SIAGIE (Dirección / Secretaría)
-// ==========================================
-gradeRouter.get(
-  '/siagie/summary',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
-  gradeController.getSiagieSummary,
-);
-
-// ==========================================
-// Cierre y Bloqueo de Periodos / Actas (Dirección)
-// ==========================================
-gradeRouter.get(
-  '/period-lock',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),
-  gradeController.getPeriodLock,
-);
-
-gradeRouter.post(
-  '/period-lock/toggle',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
-  gradeController.togglePeriodLock,
-);
-
-// ==========================================
-// Rutas Legacy (Compatibilidad)
-// ==========================================
-gradeRouter.get(
-  '/enrollment/:enrollmentId',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT'),
-  gradeController.getByEnrollment,
-);
-
-gradeRouter.post(
-  '/entries',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'),
-  gradeController.createEntry,
-);
-
-gradeRouter.post(
-  '/',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'),
-  gradeController.createGrade,
 );

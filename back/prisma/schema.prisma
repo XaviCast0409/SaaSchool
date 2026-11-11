@@ -100,11 +100,6 @@ enum AttendanceOrigin {
   AUTO_CLOSE
 }
 
-enum AssessmentType {
-  FORMATIVE
-  SUMMATIVE
-}
-
 enum CourseKind {
   OFFICIAL   // Área oficial CNEB completa
   SUBCOURSE  // Curso interno que tributa a un área oficial (Álgebra -> Matemática)
@@ -185,7 +180,6 @@ model School {
   evaluationCriteria  EvaluationCriterion[]
   detailedGrades      DetailedGrade[]
   competenceConclusions CompetenceConclusion[]
-  gradingPeriodLocks  GradingPeriodLock[]
   notifications       Notification[]
   pushSubscriptions   PushSubscription[]
   courseContents      CourseContent[]
@@ -236,7 +230,6 @@ model User {
   coursesTaught    CourseAssignment[]
   tutoredClassrooms Classroom[] @relation("ClassroomTutor")
   announcements    Announcement[]
-  lockedGradingPeriods GradingPeriodLock[]
   notifications    Notification[]
   pushSubscriptions PushSubscription[]
   authoredContents CourseContent[]      @relation("AuthoredContents")
@@ -348,9 +341,9 @@ model Classroom {
   enrollments    Enrollment[]
   assignments    CourseAssignment[]
   announcements  Announcement[]
-  gradingPeriodLocks GradingPeriodLock[]
   periodStatuses AcademicPeriodStatus[]
 
+  @@unique([schoolId, educationLevel, grade, section, shift])
   @@index([schoolId, educationLevel, grade])
   @@index([schoolId, tutorTeacherId])
 }
@@ -377,7 +370,6 @@ model Enrollment {
   
   obligations               PaymentObligation[]
   attendances               Attendance[]
-  grades                    Grade[]
   detailedGrades            DetailedGrade[]
   competenceConclusions     CompetenceConclusion[]
   homeworkSubmissions       HomeworkSubmission[]
@@ -444,8 +436,7 @@ model CurricularArea {
   isTransversal    Boolean                @default(false)
   officialAreaCode String?                // Ej: 'MAT', 'COM', 'CYT', 'TRANS'
   parentAreaId           String?                // ID del Área Madre Oficial SIAGIE (si es una sub-área interna)
-  evaluatedCompetenceIds String[]               @default([]) // Competencias evaluadas por el sub-curso
-  educationLevel   EducationLevel?
+  educationLevel   EducationLevel
   kind             CourseKind      @default(OFFICIAL)
   isActive               Boolean                @default(true)
 
@@ -471,7 +462,6 @@ model CurricularCompetence {
   isActive               Boolean                @default(true)
 
   area                   CurricularArea         @relation(fields: [areaId], references: [id])
-  grades                 Grade[]
   detailedGrades         DetailedGrade[]
   conclusions            CompetenceConclusion[]
   periodResults          CompetencePeriodResult[]
@@ -482,7 +472,7 @@ model CurricularCompetence {
 model CourseAssignment {
   id             String    @id @default(uuid())
   schoolId       String
-  academicYearId String?   // Requerido en la migración academico_restricciones (bloque 21)
+  academicYearId String
   classroomId    String
   areaId         String
   teacherId      String
@@ -490,12 +480,11 @@ model CourseAssignment {
   createdAt      DateTime  @default(now())
 
   school         School         @relation(fields: [schoolId], references: [id])
-  academicYear   AcademicYear?  @relation(fields: [academicYearId], references: [id])
+  academicYear   AcademicYear   @relation(fields: [academicYearId], references: [id])
   classroom      Classroom      @relation(fields: [classroomId], references: [id])
   area           CurricularArea @relation(fields: [areaId], references: [id])
   teacher        User           @relation(fields: [teacherId], references: [id])
 
-  gradeEntries             GradeEntry[]
   detailedGrades           DetailedGrade[]
   competenceConclusions    CompetenceConclusion[]
   contents                 CourseContent[]
@@ -506,36 +495,6 @@ model CourseAssignment {
   @@unique([academicYearId, classroomId, areaId])
   @@index([schoolId, teacherId])
   @@index([schoolId, academicYearId])
-}
-
-model GradeEntry {
-  id                  String         @id @default(uuid())
-  courseAssignmentId  String
-  periodNumber        Int            // Ej: 1 para el primer bimestre
-  assessmentType      AssessmentType @default(FORMATIVE)
-  title               String         // "Práctica Calificada 1"
-  weight              Float          @default(1.0) 
-  maxScore            Float          @default(20.0) 
-  dateCreated         DateTime       @default(now())
-
-  assignment          CourseAssignment @relation(fields: [courseAssignmentId], references: [id])
-  grades              Grade[]
-}
-
-model Grade {
-  id                  String   @id @default(uuid())
-  gradeEntryId        String
-  enrollmentId        String
-  competenceId        String
-  
-  numericScore        Float    // EL DATO BRUTO. Ej: 15.5
-  teacherComment      String?  // Útil para cuando sacan C
-
-  entry               GradeEntry           @relation(fields: [gradeEntryId], references: [id])
-  enrollment          Enrollment           @relation(fields: [enrollmentId], references: [id])
-  competence          CurricularCompetence @relation(fields: [competenceId], references: [id])
-
-  @@unique([gradeEntryId, enrollmentId]) 
 }
 
 model GradingScale {
@@ -772,28 +731,7 @@ model Announcement {
   @@index([schoolId, isActive])
 }
 
-// ============================================================================
-// 10. CIERRE Y BLOQUEO DE ACTAS / PERIODOS (Auditoría Dirección)
-// ============================================================================
-model GradingPeriodLock {
-  id           String     @id @default(uuid())
-  schoolId     String
-  classroomId  String?    // Si es null, aplica a todo el colegio; si tiene ID, aplica a esa aula específica
-  periodNumber Int        // 1, 2, 3, 4 (Bimestres)
-  isLocked     Boolean    @default(true)
-  lockedAt     DateTime   @default(now())
-  lockedById   String     // Usuario (Director) que ejecutó el cierre
-  reason       String?    // Motivo u observación del cierre
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
 
-  school       School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  classroom    Classroom? @relation(fields: [classroomId], references: [id], onDelete: Cascade)
-  lockedBy     User       @relation(fields: [lockedById], references: [id])
-
-  @@unique([schoolId, classroomId, periodNumber])
-  @@index([schoolId, periodNumber])
-}
 
 // ============================================================================
 // 11. NOTIFICACIONES IN-APP (Fase 1 - Web & Mobile Push)

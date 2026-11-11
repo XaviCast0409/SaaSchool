@@ -19,30 +19,6 @@ export const updateCriterionSchema = createCriterionSchema.partial().extend({
 export type CreateCriterionDto = z.infer<typeof createCriterionSchema>;
 export type UpdateCriterionDto = z.infer<typeof updateCriterionSchema>;
 
-// ==========================================
-// Matriz de Calificaciones (Docente / Cubicol)
-// ==========================================
-export const getMatrixQuerySchema = z.object({
-  courseAssignmentId: z.string().uuid('courseAssignmentId debe ser un UUID válido'),
-  periodNumber: z.coerce.number().int().min(1).max(4, 'El periodo debe estar entre 1 y 4'),
-});
-
-export const batchGradeItemSchema = z.object({
-  enrollmentId: z.string().uuid(),
-  competenceId: z.string().uuid(),
-  criterionId: z.string().uuid(),
-  numericScore: z.number().min(0, 'La nota mínima es 0').max(20, 'La nota máxima es 20').nullable().optional(),
-  literalScore: z.enum(['AD', 'A', 'B', 'C', 'EXO', '-']).nullable().optional(),
-  isExonerated: z.boolean().optional(),
-  comment: z.string().optional().nullable(),
-});
-
-export const batchSaveGradesSchema = z.object({
-  courseAssignmentId: z.string().uuid(),
-  periodNumber: z.number().int().min(1).max(4),
-  grades: z.array(batchGradeItemSchema),
-});
-
 export const syncHomeworkToMatrixSchema = z.object({
   courseAssignmentId: z.string().uuid(),
   periodNumber: z.number().int().min(1).max(4),
@@ -53,110 +29,7 @@ export const syncHomeworkToMatrixSchema = z.object({
   homeworkId: z.string().uuid().optional(),
 });
 
-export type GetMatrixQueryDto = z.infer<typeof getMatrixQuerySchema>;
-export type BatchGradeItemDto = z.infer<typeof batchGradeItemSchema>;
-export type BatchSaveGradesDto = z.infer<typeof batchSaveGradesSchema>;
 export type SyncHomeworkToMatrixDto = z.infer<typeof syncHomeworkToMatrixSchema>;
-
-// ==========================================
-// Conclusiones Descriptivas por Competencia (Docente)
-// ==========================================
-export const getConclusionsQuerySchema = z.object({
-  courseAssignmentId: z.string().uuid('courseAssignmentId debe ser un UUID válido'),
-  competenceId: z
-    .string()
-    .uuid('competenceId debe ser un UUID válido')
-    .optional()
-    .or(z.literal(''))
-    .transform((val) => val || undefined),
-  periodNumber: z.coerce.number().int().min(1).max(4, 'El periodo debe estar entre 1 y 4'),
-});
-
-export const batchSaveConclusionsSchema = z.object({
-  courseAssignmentId: z.string().uuid(),
-  competenceId: z.string().uuid(),
-  periodNumber: z.number().int().min(1).max(4),
-  conclusions: z.array(
-    z.object({
-      enrollmentId: z.string().uuid(),
-      conclusion: z
-        .string()
-        .transform((val) => val.replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim())
-        .refine(
-          (val) => val.length === 0 || (val.length >= 15 && val.length <= 350),
-          {
-            message:
-              'La conclusión descriptiva debe tener entre 15 y 350 caracteres según RVM N° 094-2020-MINEDU (o estar vacía si no aplica)',
-          },
-        ),
-    }),
-  ),
-});
-
-export type GetConclusionsQueryDto = z.infer<typeof getConclusionsQuerySchema>;
-export type BatchSaveConclusionsDto = z.infer<typeof batchSaveConclusionsSchema>;
-
-// ==========================================
-// Consolidado SIAGIE (Dirección / Secretaría)
-// ==========================================
-export const siagieSummaryQuerySchema = z.object({
-  classroomId: z
-    .string()
-    .uuid('classroomId debe ser un UUID válido')
-    .optional()
-    .or(z.literal(''))
-    .transform((val) => val || undefined),
-  periodNumber: z.coerce.number().int().min(1).max(4),
-  calculationMode: z.enum(['LAST_PERIOD', 'AVERAGE']).optional(),
-});
-
-export type SiagieSummaryQueryDto = z.infer<typeof siagieSummaryQuerySchema>;
-
-// ==========================================
-// Cierre y Bloqueo de Periodos / Actas (Dirección)
-// ==========================================
-export const getPeriodLockQuerySchema = z.object({
-  periodNumber: z.coerce.number().int().min(1).max(4),
-  classroomId: z
-    .string()
-    .uuid('classroomId debe ser un UUID válido')
-    .optional()
-    .or(z.literal(''))
-    .transform((val) => val || undefined),
-});
-
-export const togglePeriodLockSchema = z.object({
-  periodNumber: z.number().int().min(1).max(4),
-  classroomId: z.string().uuid().optional().nullable(),
-  isLocked: z.boolean(),
-  reason: z.string().optional().nullable(),
-});
-
-export type GetPeriodLockQueryDto = z.infer<typeof getPeriodLockQuerySchema>;
-export type TogglePeriodLockDto = z.infer<typeof togglePeriodLockSchema>;
-
-// ==========================================
-// Esquemas Legacy (Compatibilidad)
-// ==========================================
-export const createGradeEntrySchema = z.object({
-  courseAssignmentId: z.string().uuid(),
-  periodNumber: z.number().int().min(1).max(4),
-  assessmentType: z.enum(['FORMATIVE', 'SUMMATIVE']).default('FORMATIVE'),
-  title: z.string().min(1, 'El título es requerido'),
-  weight: z.number().positive().default(1.0),
-  maxScore: z.number().positive().default(20.0),
-});
-
-export const createGradeSchema = z.object({
-  gradeEntryId: z.string().uuid(),
-  enrollmentId: z.string().uuid(),
-  competenceId: z.string().uuid(),
-  numericScore: z.number().min(0),
-  teacherComment: z.string().optional(),
-});
-
-export type CreateGradeEntryDto = z.infer<typeof createGradeEntrySchema>;
-export type CreateGradeDto = z.infer<typeof createGradeSchema>;
 
 // ==========================================
 // Escala de Calificaciones Configurable

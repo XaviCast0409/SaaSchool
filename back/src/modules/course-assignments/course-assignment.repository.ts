@@ -1,7 +1,5 @@
 import { prisma } from '../../config/prisma';
-import { AppError } from '../../core/errors/app-error';
 import type { CourseAssignment } from '@prisma/client';
-import type { CreateCourseAssignmentDto } from './course-assignment.schema';
 
 export class CourseAssignmentRepository {
   /**
@@ -95,91 +93,6 @@ export class CourseAssignmentRepository {
   }
 
   /**
-   * Crea una nueva asignación docente (un área en un aula para un profesor).
-   * La restricción @@unique([classroomId, areaId]) en el schema previene duplicados.
-   */
-  async create(schoolId: string, data: CreateCourseAssignmentDto): Promise<CourseAssignment> {
-    const activeYear = await prisma.academicYear.findFirst({
-      where: { schoolId, isActive: true },
-      select: { id: true },
-    });
-    return prisma.courseAssignment.create({
-      data: { ...data, schoolId, academicYearId: activeYear?.id ?? null },
-      include: {
-        classroom: true,
-        area: true,
-        teacher: {
-          select: {
-            id: true,
-            firstName: true,
-            lastNamePaternal: true,
-            lastNameMaternal: true,
-          },
-        },
-      },
-    });
-  }
-
-  /**
-   * Crea múltiples asignaciones (Unidocencia: un profesor para TODAS las áreas de un aula).
-   * Usa createMany para eficiencia. Ignora duplicados con skipDuplicates.
-   */
-  async bulkCreate(
-    schoolId: string,
-    classroomId: string,
-    teacherId: string,
-    areaIds: string[],
-  ): Promise<{ count: number }> {
-    const activeYear = await prisma.academicYear.findFirst({
-      where: { schoolId, isActive: true },
-      select: { id: true },
-    });
-    return prisma.courseAssignment.createMany({
-      data: areaIds.map((areaId) => ({
-        schoolId,
-        classroomId,
-        areaId,
-        teacherId,
-        academicYearId: activeYear?.id ?? null,
-      })),
-      skipDuplicates: true,
-    });
-  }
-
-  /**
-   * Elimina una asignación. Valida schoolId para aislamiento multi-tenant.
-   */
-  async delete(assignmentId: string, schoolId: string): Promise<CourseAssignment> {
-    return prisma.$transaction(async (tx) => {
-      const gradeCount =
-        (await tx.detailedGrade.count({ where: { courseAssignmentId: assignmentId } })) +
-        (await tx.competenceConclusion.count({ where: { courseAssignmentId: assignmentId } }));
-      if (gradeCount > 0) {
-        throw new AppError(
-          'Este curso ya tiene notas registradas. No se puede quitar; cambia el docente en lugar de eliminar la asignación.',
-          409,
-        );
-      }
-
-      await tx.grade.deleteMany({
-        where: {
-          entry: {
-            courseAssignmentId: assignmentId,
-          },
-        },
-      });
-      await tx.gradeEntry.deleteMany({
-        where: {
-          courseAssignmentId: assignmentId,
-        },
-      });
-      return tx.courseAssignment.delete({
-        where: { id: assignmentId, schoolId },
-      });
-    });
-  }
-
-  /**
    * Lista todos los IDs de CourseAssignment de un docente para filtrar notas.
    * SEGURIDAD: Usado por GradeRepository para filtrar notas del profesor.
    */
@@ -189,85 +102,5 @@ export class CourseAssignmentRepository {
       select: { id: true },
     });
     return assignments.map((a) => a.id);
-  }
-
-  /**
-   * Sincroniza atómicamente la carga horaria completa de un profesor.
-   * Reasigna combinaciones existentes y elimina las desmarcadas para este docente.
-   */
-  async syncTeacherAssignments(
-    schoolId: string,
-    teacherId: string,
-    desiredAssignments: { classroomId: string; areaId: string }[],
-  ): Promise<{ count: number }> {
-    return prisma.$transaction(async (tx) => {
-      // 1. Obtener asignaciones actuales de este profesor
-      const currentAssignments = await tx.courseAssignment.findMany({
-        where: { schoolId, teacherId, deletedAt: null },
-        select: { id: true, classroomId: true, areaId: true },
-      });
-
-      const desiredSet = new Set(
-        desiredAssignments.map((item) => `${item.classroomId}:${item.areaId}`),
-      );
-
-      // Eliminar asignaciones que el profesor tenía antes pero que fueron desmarcadas
-      const toDeleteIds = currentAssignments
-        .filter((item) => !desiredSet.has(`${item.classroomId}:${item.areaId}`))
-        .map((item) => item.id);
-
-      if (toDeleteIds.length > 0) {
-        const withGrades = await tx.detailedGrade.groupBy({
-          by: ['courseAssignmentId'],
-          where: { courseAssignmentId: { in: toDeleteIds } },
-        });
-        const withConclusions = await tx.competenceConclusion.groupBy({
-          by: ['courseAssignmentId'],
-          where: { courseAssignmentId: { in: toDeleteIds } },
-        });
-        if (withGrades.length > 0 || withConclusions.length > 0) {
-          throw new AppError(
-            'Uno o más cursos desmarcados ya tienen notas registradas. No se pueden quitar; asígnalos a otro docente.',
-            409,
-          );
-        }
-
-        // Eliminar en cascada notas y entradas de evaluación asociadas a las asignaciones desmarcadas
-        await tx.grade.deleteMany({
-          where: {
-            entry: {
-              courseAssignmentId: { in: toDeleteIds },
-            },
-          },
-        });
-
-        await tx.gradeEntry.deleteMany({
-          where: {
-            courseAssignmentId: { in: toDeleteIds },
-          },
-        });
-
-        await tx.courseAssignment.deleteMany({
-          where: { id: { in: toDeleteIds }, schoolId },
-        });
-      }
-
-      // 2. Procesar las asignaciones deseadas (upsert por combinación classroomId + areaId)
-      const activeYear = await tx.academicYear.findFirst({ where: { schoolId, isActive: true }, select: { id: true } });
-      for (const item of desiredAssignments) {
-        const existing = await tx.courseAssignment.findFirst({
-          where: { schoolId, classroomId: item.classroomId, areaId: item.areaId, academicYearId: activeYear?.id ?? null },
-        });
-        if (existing) {
-          await tx.courseAssignment.update({ where: { id: existing.id }, data: { teacherId, deletedAt: null } });
-        } else {
-          await tx.courseAssignment.create({
-            data: { schoolId, classroomId: item.classroomId, areaId: item.areaId, teacherId, academicYearId: activeYear?.id ?? null },
-          });
-        }
-      }
-
-      return { count: desiredAssignments.length };
-    });
   }
 }

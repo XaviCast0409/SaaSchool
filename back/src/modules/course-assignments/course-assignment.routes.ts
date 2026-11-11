@@ -26,31 +26,3 @@ courseAssignmentRouter.get(
   authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'),
   controller.getAll,
 );
-
-// Solo ADMIN puede asignar cursos a docentes
-courseAssignmentRouter.post(
-  '/',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'),
-  controller.create,
-);
-
-// Bulk: asignar todas las áreas de un aula a un docente (Unidocencia)
-courseAssignmentRouter.post(
-  '/bulk',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'),
-  controller.bulkAssign,
-);
-
-// Sincronizar carga horaria completa de un profesor (Checklist batch)
-courseAssignmentRouter.post(
-  '/sync-teacher',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'),
-  controller.syncTeacher,
-);
-
-// Solo ADMIN puede eliminar asignaciones
-courseAssignmentRouter.delete(
-  '/:id',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'),
-  controller.delete,
-);
