@@ -84,6 +84,11 @@ export const ACTION_CATALOG: Record<string, { label: string; verb: string; categ
   USER_PASSWORD_RESET: { label: 'Clave restablecida', verb: 'restableció la contraseña de un usuario', category: 'USUARIOS' },
   // Colegio y convivencia
   SCHOOL_UPDATED: { label: 'Datos del colegio', verb: 'actualizó los datos del colegio', category: 'COLEGIO' },
+  CLASSROOM_CREATED: { label: 'Nueva aula', verb: 'creó un aula', category: 'COLEGIO' },
+  CLASSROOMS_BULK_CREATED: { label: 'Aulas creadas', verb: 'creó varias aulas', category: 'COLEGIO' },
+  CLASSROOM_UPDATED: { label: 'Edición de aula', verb: 'editó un aula', category: 'COLEGIO' },
+  CLASSROOM_TUTOR_CHANGED: { label: 'Cambio de tutor', verb: 'cambió el tutor de un aula', category: 'COLEGIO' },
+  CLASSROOM_DELETED: { label: 'Aula eliminada', verb: 'eliminó un aula', category: 'COLEGIO' },
   INCIDENT_CREATED: { label: 'Nueva incidencia', verb: 'registró una incidencia', category: 'CONVIVENCIA' },
   INCIDENT_SISEVE_REGISTERED: { label: 'Reporte SíseVe', verb: 'registró el código SíseVe de un caso', category: 'CONVIVENCIA' },
 };
@@ -165,6 +170,8 @@ function collectIds(logs: AuditLog[]) {
     add(ids.competences, a.competenceId);
     add(ids.classrooms, a.classroomId);
     add(ids.users, a.teacherId);
+    add(ids.users, a.tutorTeacherId);
+    add(ids.users, obj(l.before).tutorTeacherId);
     add(ids.years, a.academicYearId);
     add(ids.years, a.fromAcademicYearId);
     add(ids.years, a.toAcademicYearId);
@@ -427,6 +434,26 @@ export async function presentAuditLogs(schoolId: string, logs: AuditLog[]): Prom
       }
       case 'SCHOOL_UPDATED':
         target = str(a.name) ?? '';
+        break;
+      case 'CLASSROOM_CREATED':
+      case 'CLASSROOM_UPDATED':
+      case 'CLASSROOM_TUTOR_CHANGED':
+      case 'CLASSROOM_DELETED': {
+        const src = a.educationLevel ? a : b;
+        target = roomName(l.entityId) ?? (src.educationLevel ? `${gradeLabel(src.educationLevel as EducationLevel, Number(src.grade))} "${src.section}"` : '');
+        if (l.action === 'CLASSROOM_TUTOR_CHANGED') {
+          push('Tutor anterior', userName(b.tutorTeacherId) ?? 'Sin tutor');
+          push('Nuevo tutor', userName(a.tutorTeacherId) ?? 'Sin tutor');
+        } else {
+          push('Sección', a.section);
+          push('Capacidad', a.capacity);
+          push('Tutor', a.tutorTeacherId ? userName(a.tutorTeacherId) : undefined);
+        }
+        break;
+      }
+      case 'CLASSROOMS_BULK_CREATED':
+        target = Array.isArray(a.created) ? `${(a.created as string[]).length} aula(s)` : '';
+        if (Array.isArray(a.created)) push('Aulas', (a.created as string[]).join(', '));
         break;
       case 'INCIDENT_CREATED':
       case 'INCIDENT_SISEVE_REGISTERED': {

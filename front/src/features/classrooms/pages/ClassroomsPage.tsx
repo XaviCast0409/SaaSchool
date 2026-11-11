@@ -1,586 +1,363 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { Pencil, Plus, School as SchoolIcon, Trash2, Users } from 'lucide-react';
+import { toast } from 'sonner';
 import {
-  School as SchoolIcon,
-  Plus,
-  BookOpen,
-  Users,
-  Pencil,
-  Trash2,
-  Sparkles,
-  Layers,
-  CheckCircle2,
-  GraduationCap,
-} from 'lucide-react';
-import {
+  useBulkCreateClassrooms,
   useClassrooms,
   useCreateClassroom,
-  useUpdateClassroom,
   useDeleteClassroom,
+  useUpdateClassroom,
   type CreateClassroomPayload,
 } from '../api/useClassrooms';
 import type { Classroom } from '../types';
 import { useUsers } from '@/features/users/api/useUsers';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { toast } from 'sonner';
 import { useAuthStore } from '@/store/useAuthStore';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { PageHeader } from '@/components/ui/page-header';
+import { Tabs } from '@/components/ui/tabs';
+import { Select } from '@/components/ui/select';
+import { Modal } from '@/components/ui/modal';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { cn } from '@/lib/utils';
 
-type LevelTab = 'INITIAL' | 'PRIMARY' | 'SECONDARY';
+type Level = 'INITIAL' | 'PRIMARY' | 'SECONDARY';
+type Shift = 'MORNING' | 'AFTERNOON' | 'NIGHT';
 
-const LEVEL_CONFIG: Record<
-  LevelTab,
-  { label: string; description: string; gradeLabels: Record<number, string>; maxGrade: number }
-> = {
-  INITIAL: {
-    label: 'Nivel Inicial (3 a 5 años)',
-    description: 'Modalidad Unidocencia: Aprestamiento, desarrollo integral y expresión corporal.',
-    gradeLabels: { 3: '3 Años', 4: '4 Años', 5: '5 Años' },
-    maxGrade: 5,
-  },
-  PRIMARY: {
-    label: 'Nivel Primaria (1° a 6° Grado)',
-    description: 'Primaria Baja (1°-2°) Unidocencia | Primaria Alta (3°-6°) Polidocencia.',
-    gradeLabels: {
-      1: '1° Grado (Primaria Baja - Unidocencia)',
-      2: '2° Grado (Primaria Baja - Unidocencia)',
-      3: '3° Grado (Primaria Alta - Polidocencia)',
-      4: '4° Grado (Primaria Alta - Polidocencia)',
-      5: '5° Grado (Primaria Alta - Polidocencia)',
-      6: '6° Grado (Primaria Alta - Polidocencia)',
-    },
-    maxGrade: 6,
-  },
-  SECONDARY: {
-    label: 'Nivel Secundaria (1° a 5° Año)',
-    description: 'Modalidad Polidocencia: Asignaturas especializadas (Álgebra, Química, DPCC, EPT, etc.).',
-    gradeLabels: {
-      1: '1° Secundaria',
-      2: '2° Secundaria',
-      3: '3° Secundaria',
-      4: '4° Secundaria',
-      5: '5° Secundaria',
-    },
-    maxGrade: 5,
-  },
-};
+const LEVEL_LABEL: Record<Level, string> = { INITIAL: 'Inicial', PRIMARY: 'Primaria', SECONDARY: 'Secundaria' };
+const LEVEL_GRADES: Record<Level, number[]> = { INITIAL: [3, 4, 5], PRIMARY: [1, 2, 3, 4, 5, 6], SECONDARY: [1, 2, 3, 4, 5] };
+const SHIFT_LABEL: Record<Shift, string> = { MORNING: 'Mañana', AFTERNOON: 'Tarde', NIGHT: 'Noche' };
+const gradeLabel = (level: Level, grade: number) => (level === 'INITIAL' ? `${grade} años` : `${grade}.° ${LEVEL_LABEL[level]}`);
+const roomLabel = (c: { educationLevel: Level; grade: number; section: string }) => `${gradeLabel(c.educationLevel, c.grade)} "${c.section}"`;
+
+interface TeacherOption { id: string; name: string; tutorOf?: string; tutorOfLabel?: string }
+
+/** Selector de tutor: los docentes que ya son tutores de otra aula aparecen deshabilitados. */
+const TutorSelect: React.FC<{
+  value: string | null;
+  classroomId?: string;
+  teachers: TeacherOption[];
+  onChange: (id: string | null) => void;
+  className?: string;
+  disabled?: boolean;
+}> = ({ value, classroomId, teachers, onChange, className, disabled }) => (
+  <Select className={className} value={value ?? ''} disabled={disabled} onChange={(e) => onChange(e.target.value || null)} aria-label="Tutor(a) del aula">
+    <option value="">Sin tutor(a)</option>
+    {teachers.map((t) => {
+      const busy = !!t.tutorOf && t.tutorOf !== classroomId;
+      return (
+        <option key={t.id} value={t.id} disabled={busy}>
+          {t.name}{busy ? ` — ya es tutor(a) de ${t.tutorOfLabel ?? 'otra aula'}` : ''}
+        </option>
+      );
+    })}
+  </Select>
+);
 
 export const ClassroomsPage: React.FC = () => {
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN';
-
-  const [activeTab, setActiveTab] = useState<LevelTab>('PRIMARY');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingClassroom, setEditingClassroom] = useState<Classroom | null>(null);
-
-  // Form State
-  const [formData, setFormData] = useState<CreateClassroomPayload>({
-    educationLevel: 'PRIMARY',
-    grade: 1,
-    section: 'A',
-    shift: 'MORNING',
-    capacity: 30,
-    tutorTeacherId: null,
-  });
+  const [level, setLevel] = useState<Level>('PRIMARY');
+  const [editing, setEditing] = useState<Classroom | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [toDelete, setToDelete] = useState<Classroom | null>(null);
 
   const { data: classrooms = [], isLoading, isError, refetch } = useClassrooms();
-  const { data: teachers = [] } = useUsers('TEACHER');
-  const { mutateAsync: createClassroom, isPending: isCreating } = useCreateClassroom();
-  const { mutateAsync: updateClassroom, isPending: isUpdating } = useUpdateClassroom();
-  const { mutateAsync: deleteClassroom } = useDeleteClassroom();
+  const { data: users = [] } = useUsers('TEACHER');
+  const createClassroom = useCreateClassroom();
+  const updateClassroom = useUpdateClassroom();
+  const deleteClassroom = useDeleteClassroom();
 
-  const filteredClassrooms = classrooms.filter((c) => c.educationLevel === activeTab);
+  // Docentes activos y en qué aula son tutores
+  const teachers = useMemo<Array<TeacherOption & { tutorOfLabel?: string }>>(() => {
+    return users
+      .filter((u) => u.isActive !== false)
+      .map((u) => {
+        const room = classrooms.find((c) => c.tutorTeacherId === u.id);
+        return {
+          id: u.id,
+          name: `${u.lastNamePaternal} ${u.lastNameMaternal ?? ''}`.trim() + `, ${u.firstName}`,
+          tutorOf: room?.id,
+          tutorOfLabel: room ? roomLabel(room) : undefined,
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name, 'es'));
+  }, [users, classrooms]);
 
-  const handleOpenCreate = () => {
-    setEditingClassroom(null);
-    setFormData({
-      educationLevel: activeTab,
-      grade: activeTab === 'INITIAL' ? 3 : 1,
-      section: 'A',
-      shift: 'MORNING',
-      capacity: 30,
-      tutorTeacherId: null,
-    });
-    setIsModalOpen(true);
-  };
+  const levelRooms = classrooms.filter((c) => c.educationLevel === level);
+  const byGrade = LEVEL_GRADES[level].map((g) => ({ grade: g, rooms: levelRooms.filter((c) => c.grade === g) }));
+  const counts = (l: Level) => classrooms.filter((c) => c.educationLevel === l).length;
 
-  const handleOpenEdit = (c: Classroom) => {
-    setEditingClassroom(c);
-    setFormData({
-      educationLevel: c.educationLevel,
-      grade: c.grade,
-      section: c.section,
-      shift: c.shift,
-      capacity: c.capacity,
-      tutorTeacherId: c.tutorTeacherId ?? null,
-    });
-    setIsModalOpen(true);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const changeTutor = async (c: Classroom, tutorTeacherId: string | null) => {
     try {
-      if (editingClassroom) {
-        await updateClassroom({ id: editingClassroom.id, payload: formData });
-        toast.success(`🏫 Aula ${formData.grade}° "${formData.section}" actualizada correctamente.`);
-      } else {
-        await createClassroom(formData);
-        toast.success(`✨ Aula ${formData.grade}° "${formData.section}" creada exitosamente.`);
-      }
-      setIsModalOpen(false);
+      await updateClassroom.mutateAsync({ id: c.id, payload: { tutorTeacherId } });
+      const t = teachers.find((x) => x.id === tutorTeacherId);
+      toast.success(t ? `${t.name} es ahora tutor(a) de ${roomLabel(c)}.` : `${roomLabel(c)} quedó sin tutor(a).`);
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Error al guardar el aula.');
-    }
-  };
-
-  const handleDelete = async (c: Classroom) => {
-    if (window.confirm(`¿Estás seguro de eliminar el aula ${c.grade}° "${c.section}"?`)) {
-      try {
-        await deleteClassroom(c.id);
-        toast.success('Aula eliminada correctamente.');
-      } catch (err: any) {
-        toast.error(err?.response?.data?.message || 'Error al eliminar el aula.');
-      }
-    }
-  };
-
-  // Quick Seed Generator for default sections A
-  const handleQuickSeed = async () => {
-    try {
-      const gradesToSeed = activeTab === 'INITIAL' ? [3, 4, 5] : activeTab === 'PRIMARY' ? [1, 2, 3, 4, 5, 6] : [1, 2, 3, 4, 5];
-      let created = 0;
-      for (const g of gradesToSeed) {
-        const exists = classrooms.some((c) => c.educationLevel === activeTab && c.grade === g && c.section === 'A');
-        if (!exists) {
-          await createClassroom({
-            educationLevel: activeTab,
-            grade: g,
-            section: 'A',
-            shift: 'MORNING',
-            capacity: 30,
-          });
-          created++;
-        }
-      }
-      toast.success(`Se crearon ${created} aulas de Sección "A" para ${LEVEL_CONFIG[activeTab].label}.`);
-    } catch (err: any) {
-      toast.error('Error al generar las aulas automáticas.');
+      toast.error(err?.response?.data?.message || 'No se pudo cambiar el tutor.');
     }
   };
 
   return (
-    <div className="space-y-6 pb-8">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <SchoolIcon className="w-6 h-6 text-primary" />
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Grados Académicos y Aulas
-            </h1>
-          </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            Configuración de Niveles Educativos, Grados, Secciones y Modalidad de Docencia.
-          </p>
-        </div>
-
-        {isAdmin && (
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 text-xs"
-              onClick={handleQuickSeed}
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>Generar Aulas Sección "A"</span>
-            </Button>
-            <Button size="sm" className="gap-2 text-xs" onClick={handleOpenCreate}>
-              <Plus className="w-4 h-4" />
-              <span>Nueva Aula / Sección</span>
-            </Button>
-          </div>
+    <div className="max-w-6xl pb-10">
+      <PageHeader
+        title="Aulas y secciones"
+        description="Crea las secciones de cada grado y asigna su tutor(a). Cada docente puede ser tutor de una sola aula."
+        actions={isAdmin && (
+          <>
+            <Button variant="outline" onClick={() => setBulkOpen(true)}>Crear varias aulas</Button>
+            <Button onClick={() => { setEditing(null); setFormOpen(true); }}><Plus className="mr-1 h-4 w-4" />Nueva aula</Button>
+          </>
         )}
-      </div>
+      />
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="bg-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Total Aulas Registradas</CardTitle>
-            <BookOpen className="w-4 h-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-extrabold text-foreground">{classrooms.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">Distribuidas en 3 niveles</p>
-          </CardContent>
-        </Card>
+      <Tabs<Level> value={level} onChange={setLevel} className="mb-4"
+        items={(['INITIAL', 'PRIMARY', 'SECONDARY'] as Level[]).map((l) => ({ value: l, label: `${LEVEL_LABEL[l]} (${counts(l)})` }))} />
 
-        <Card className="bg-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Capacidad Total Alumnos</CardTitle>
-            <Users className="w-4 h-4 text-emerald-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
-              {classrooms.reduce((acc, curr) => acc + curr.capacity, 0)}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">Aforo institucional proyectado</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Estructura MINEDU</CardTitle>
-            <CheckCircle2 className="w-4 h-4 text-sky-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-extrabold text-sky-600 dark:text-sky-400">SIAGIE 2026</div>
-            <p className="text-xs text-muted-foreground mt-1">Conforme a normativa oficial</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Tabs por Nivel Educativo */}
-      <div className="flex items-center gap-1 border-b border-border overflow-x-auto pb-0 -mb-px">
-        {(['INITIAL', 'PRIMARY', 'SECONDARY'] as LevelTab[]).map((level) => (
-          <button
-            key={level}
-            onClick={() => setActiveTab(level)}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap -mb-px ${activeTab === level
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
-              }`}
-          >
-            <Layers className="w-4 h-4" />
-            <span>{LEVEL_CONFIG[level].label.split(' (')[0]}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Level Description Banner */}
-      <div className="p-4 rounded-xl bg-muted/40 border border-border flex items-center justify-between gap-4">
-        <div>
-          <h3 className="font-bold text-sm text-foreground">{LEVEL_CONFIG[activeTab].label}</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">{LEVEL_CONFIG[activeTab].description}</p>
-        </div>
-        <Badge variant="outline" className="text-xs font-semibold bg-primary/10 text-primary border-primary/20 shrink-0">
-          {activeTab === 'INITIAL'
-            ? 'UNIDOCENCIA'
-            : activeTab === 'PRIMARY'
-              ? 'UNIDOCENCIA (1°-2°) / POLIDOCENCIA (3°-6°)'
-              : 'POLIDOCENCIA (ASIGNATURAS)'}
-        </Badge>
-      </div>
-
-      {/* Classrooms List */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Skeleton className="h-36 w-full rounded-xl" />
-          <Skeleton className="h-36 w-full rounded-xl" />
-          <Skeleton className="h-36 w-full rounded-xl" />
-        </div>
+        <Skeleton className="h-64 w-full" />
       ) : isError ? (
-        <div className="p-6 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive text-center space-y-3">
-          <p className="font-semibold">Error al cargar las aulas del colegio.</p>
-          <Button variant="outline" size="sm" onClick={() => refetch()}>
-            Reintentar
-          </Button>
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+          No se pudieron cargar las aulas. <button type="button" className="underline" onClick={() => refetch()}>Reintentar</button>
         </div>
-      ) : filteredClassrooms.length === 0 ? (
-        <div className="py-16 text-center text-muted-foreground border border-dashed border-border rounded-xl space-y-3 bg-card p-6">
-          <SchoolIcon className="w-10 h-10 text-primary mx-auto opacity-70" />
-          <div className="space-y-1">
-            <h3 className="font-bold text-base text-foreground">No hay aulas registradas para este nivel</h3>
-            <p className="text-xs text-muted-foreground max-w-md mx-auto">
-              Haz clic en "Nueva Aula / Sección" o en "Generar Aulas Sección A" para configurar el catálogo escolar de {LEVEL_CONFIG[activeTab].label}.
-            </p>
-          </div>
-        </div>
+      ) : levelRooms.length === 0 ? (
+        <EmptyState icon={<SchoolIcon className="h-8 w-8" />} title={`Aún no hay aulas de ${LEVEL_LABEL[level]}`}
+          description="Usa “Crear varias aulas” para generar de una vez todas las secciones de los grados que ofreces."
+          action={isAdmin && <Button onClick={() => setBulkOpen(true)}>Crear varias aulas</Button>} />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredClassrooms.map((c) => {
-            const isUnidocencia =
-              c.educationLevel === 'INITIAL' || (c.educationLevel === 'PRIMARY' && c.grade <= 2);
-
-            return (
-              <Card key={c.id} className="hover:shadow-md transition-shadow relative overflow-hidden">
-                <div
-                  className={`absolute top-0 left-0 right-0 h-1.5 ${c.educationLevel === 'INITIAL'
-                      ? 'bg-amber-500'
-                      : c.educationLevel === 'PRIMARY'
-                        ? 'bg-sky-500'
-                        : 'bg-purple-500'
-                    }`}
-                />
-                <CardHeader className="pb-2 pt-4">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg font-bold text-foreground">
-                      {c.grade}° "{c.section}"
-                    </CardTitle>
-                    <Badge variant="outline" className="text-[10px] uppercase font-bold">
-                      {c.shift === 'MORNING' ? 'Turno Mañana' : c.shift === 'AFTERNOON' ? 'Turno Tarde' : 'Noche'}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="text-xs text-muted-foreground font-medium">
-                    {LEVEL_CONFIG[c.educationLevel].gradeLabels[c.grade] || `${c.grade}° Grado`}
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs pt-2 border-t border-border">
-                    <span className="flex items-center gap-1 text-muted-foreground font-semibold">
-                      <Users className="w-3.5 h-3.5 text-primary" />
-                      Capacidad: <strong className="text-foreground">{c.capacity} alumnos</strong>
-                    </span>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${isUnidocencia
-                        ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                        : 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300'
-                      }`}>
-                      {isUnidocencia ? 'Unidocencia' : 'Polidocencia'}
-                    </span>
-                  </div>
-
-                  {/* Tutor de Aula asignado con selector directo para Director */}
-                  <div className="p-2.5 rounded-xl bg-muted/30 border border-border/70 text-xs space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1.5 text-[10px] uppercase font-bold text-muted-foreground">
-                        <GraduationCap className="w-3.5 h-3.5 text-primary" />
-                        Docente Tutor de Aula
-                      </span>
-                      {c.tutorTeacher ? (
-                        <Badge variant="outline" className="text-[9px] px-1.5 py-0 font-bold border-primary/40 text-primary bg-primary/5">
-                          Asignado
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary" className="text-[9px] px-1.5 py-0 font-semibold text-muted-foreground">
-                          Sin Tutor
-                        </Badge>
-                      )}
-                    </div>
-
-                    {isAdmin ? (
-                      <select
-                        value={c.tutorTeacherId || ''}
-                        onChange={async (e) => {
-                          const newTutorId = e.target.value ? e.target.value : null;
-                          try {
-                            await updateClassroom({
-                              id: c.id,
-                              payload: { tutorTeacherId: newTutorId },
-                            });
-                            const teacherObj = teachers.find((t) => t.id === newTutorId);
-                            toast.success(
-                              newTutorId && teacherObj
-                                ? `Prof. ${teacherObj.firstName} ${teacherObj.lastNamePaternal} asignado como Tutor de ${c.grade}° "${c.section}".`
-                                : `Se retiró la tutoría de ${c.grade}° "${c.section}".`
-                            );
-                          } catch (err: any) {
-                            toast.error(err?.response?.data?.message || 'Error al asignar tutor');
-                          }
-                        }}
-                        className="w-full rounded-lg border border-input bg-background px-2.5 py-1 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer shadow-sm"
-                        title="Seleccionar tutor de aula para este grado y sección"
-                      >
-                        <option value="">— Asignar Docente Tutor —</option>
-                        {teachers.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            Prof. {t.firstName} {t.lastNamePaternal} {t.lastNameMaternal || ''}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <p className="font-semibold text-foreground truncate text-xs">
-                        {c.tutorTeacher ? (
-                          `Prof. ${c.tutorTeacher.firstName} ${c.tutorTeacher.lastNamePaternal}`
-                        ) : (
-                          <span className="text-muted-foreground/80 italic font-normal">Sin tutor asignado</span>
+        <div className="space-y-4">
+          {byGrade.filter((g) => g.rooms.length > 0).map(({ grade, rooms }) => (
+            <Card key={grade} className="p-4">
+              <h3 className="mb-3 text-sm font-semibold">{gradeLabel(level, grade)} <span className="font-normal text-muted-foreground">· {rooms.length} sección(es)</span></h3>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {rooms.map((c) => {
+                  const enrolled = c.enrolledCount ?? 0;
+                  const pct = c.capacity > 0 ? Math.round((enrolled / c.capacity) * 100) : 0;
+                  return (
+                    <div key={c.id} className="rounded-lg border border-border p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-base font-semibold">Sección "{c.section}"</p>
+                          <p className="text-xs text-muted-foreground">Turno {SHIFT_LABEL[c.shift as Shift].toLowerCase()}</p>
+                        </div>
+                        {isAdmin && (
+                          <div className="flex">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`Editar ${roomLabel(c)}`} onClick={() => { setEditing(c); setFormOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" aria-label={`Eliminar ${roomLabel(c)}`} onClick={() => setToDelete(c)}><Trash2 className="h-4 w-4" /></Button>
+                          </div>
                         )}
-                      </p>
-                    )}
-                  </div>
-
-                  {isAdmin && (
-                    <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-border">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs text-primary hover:bg-primary/10 gap-1"
-                        onClick={() => handleOpenEdit(c)}
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                        <span>Editar</span>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs text-destructive hover:bg-destructive/10 gap-1"
-                        onClick={() => handleDelete(c)}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>Eliminar</span>
-                      </Button>
+                      </div>
+                      <div className="mt-2">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" />{enrolled} de {c.capacity} estudiantes</span>
+                          <span>{pct}%</span>
+                        </div>
+                        <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+                          <div className={cn('h-full rounded-full', pct >= 100 ? 'bg-red-500' : pct >= 85 ? 'bg-amber-500' : 'bg-emerald-500')} style={{ width: `${Math.min(pct, 100)}%` }} />
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <p className="mb-1 text-xs font-medium text-muted-foreground">Tutor(a)</p>
+                        {isAdmin ? (
+                          <TutorSelect className="w-full" value={c.tutorTeacherId ?? null} classroomId={c.id} teachers={teachers}
+                            disabled={updateClassroom.isPending} onChange={(id) => changeTutor(c, id)} />
+                        ) : (
+                          <p className="text-sm">{c.tutorTeacher ? `${c.tutorTeacher.firstName} ${c.tutorTeacher.lastNamePaternal}` : <span className="text-muted-foreground">Sin tutor(a)</span>}</p>
+                        )}
+                      </div>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
+                  );
+                })}
+              </div>
+            </Card>
+          ))}
         </div>
       )}
 
-      {/* Modal Crear / Editar Aula */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="relative w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4">
-            <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-              <SchoolIcon className="w-5 h-5 text-primary" />
-              <span>{editingClassroom ? 'Editar Aula / Sección' : 'Nueva Aula / Sección'}</span>
-            </h2>
+      {formOpen && (
+        <ClassroomFormModal
+          classroom={editing}
+          defaultLevel={level}
+          teachers={teachers}
+          isSaving={createClassroom.isPending || updateClassroom.isPending}
+          onClose={() => setFormOpen(false)}
+          onSubmit={async (payload) => {
+            try {
+              if (editing) {
+                await updateClassroom.mutateAsync({ id: editing.id, payload });
+                toast.success(`${roomLabel({ ...editing, ...payload } as Classroom)} actualizada.`);
+              } else {
+                await createClassroom.mutateAsync(payload);
+                toast.success(`${roomLabel(payload as Classroom)} creada.`);
+              }
+              setFormOpen(false);
+            } catch (err: any) {
+              toast.error(err?.response?.data?.message || 'No se pudo guardar el aula.');
+            }
+          }}
+        />
+      )}
+      {bulkOpen && <BulkCreateModal defaultLevel={level} onClose={() => setBulkOpen(false)} />}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">
-                  Nivel Educativo
-                </label>
-                <select
-                  value={formData.educationLevel}
-                  onChange={(e) =>
-                    setFormData({ ...formData, educationLevel: e.target.value as LevelTab })
-                  }
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <option value="INITIAL">Inicial (3 a 5 años)</option>
-                  <option value="PRIMARY">Primaria (1° a 6° Grado)</option>
-                  <option value="SECONDARY">Secundaria (1° a 5° Año)</option>
-                </select>
-              </div>
+      <ConfirmDialog
+        isOpen={!!toDelete}
+        onClose={() => setToDelete(null)}
+        onConfirm={async () => {
+          if (!toDelete) return;
+          try {
+            await deleteClassroom.mutateAsync(toDelete.id);
+            toast.success(`${roomLabel(toDelete)} eliminada.`);
+          } catch (err: any) {
+            toast.error(err?.response?.data?.message || 'No se pudo eliminar el aula.');
+          } finally {
+            setToDelete(null);
+          }
+        }}
+        title={toDelete ? `Eliminar ${roomLabel(toDelete)}` : 'Eliminar aula'}
+        description="Solo se puede eliminar un aula que nunca tuvo estudiantes matriculados ni cursos asignados."
+        confirmText="Eliminar"
+        variant="danger"
+        isLoading={deleteClassroom.isPending}
+      />
+    </div>
+  );
+};
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">
-                    Grado / Edad
-                  </label>
-                  <select
-                    value={formData.grade}
-                    onChange={(e) => setFormData({ ...formData, grade: Number(e.target.value) })}
-                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    {formData.educationLevel === 'INITIAL' ? (
-                      <>
-                        <option value={3}>3 Años</option>
-                        <option value={4}>4 Años</option>
-                        <option value={5}>5 Años</option>
-                      </>
-                    ) : formData.educationLevel === 'PRIMARY' ? (
-                      <>
-                        <option value={1}>1° Grado</option>
-                        <option value={2}>2° Grado</option>
-                        <option value={3}>3° Grado</option>
-                        <option value={4}>4° Grado</option>
-                        <option value={5}>5° Grado</option>
-                        <option value={6}>6° Grado</option>
-                      </>
-                    ) : (
-                      <>
-                        <option value={1}>1° Secundaria</option>
-                        <option value={2}>2° Secundaria</option>
-                        <option value={3}>3° Secundaria</option>
-                        <option value={4}>4° Secundaria</option>
-                        <option value={5}>5° Secundaria</option>
-                      </>
-                    )}
-                  </select>
-                </div>
+const ClassroomFormModal: React.FC<{
+  classroom: Classroom | null;
+  defaultLevel: Level;
+  teachers: Array<TeacherOption & { tutorOfLabel?: string }>;
+  isSaving: boolean;
+  onClose: () => void;
+  onSubmit: (payload: CreateClassroomPayload) => void;
+}> = ({ classroom, defaultLevel, teachers, isSaving, onClose, onSubmit }) => {
+  const [form, setForm] = useState<CreateClassroomPayload>(() => classroom
+    ? { educationLevel: classroom.educationLevel, grade: classroom.grade, section: classroom.section, shift: classroom.shift, capacity: classroom.capacity, tutorTeacherId: classroom.tutorTeacherId ?? null }
+    : { educationLevel: defaultLevel, grade: LEVEL_GRADES[defaultLevel][0], section: 'A', shift: 'MORNING', capacity: 30, tutorTeacherId: null });
+  const enrolled = classroom?.enrolledCount ?? 0;
+  const lockLevel = !!classroom && enrolled > 0;
+  const capacityError = (form.capacity ?? 0) < enrolled ? `No puede ser menor que los ${enrolled} estudiantes matriculados.` : '';
+  const valid = form.section.trim().length > 0 && !capacityError && (form.capacity ?? 0) >= 1 && (form.capacity ?? 0) <= 60;
 
-                <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">
-                    Sección
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder='Ej: "A", "B", "Única"'
-                    value={formData.section}
-                    onChange={(e) => setFormData({ ...formData, section: e.target.value.toUpperCase() })}
-                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary uppercase"
-                  />
-                </div>
-              </div>
+  return (
+    <Modal open onClose={onClose} title={classroom ? `Editar ${roomLabel(classroom)}` : 'Nueva aula'}
+      footer={<>
+        <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+        <Button disabled={!valid || isSaving} onClick={() => onSubmit({ ...form, section: form.section.trim().toUpperCase() })}>{classroom ? 'Guardar cambios' : 'Crear aula'}</Button>
+      </>}>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="text-sm font-medium">
+          Nivel
+          <Select className="mt-1 w-full" value={form.educationLevel} disabled={lockLevel}
+            onChange={(e) => { const l = e.target.value as Level; setForm({ ...form, educationLevel: l, grade: LEVEL_GRADES[l][0] }); }}>
+            {(Object.keys(LEVEL_LABEL) as Level[]).map((l) => <option key={l} value={l}>{LEVEL_LABEL[l]}</option>)}
+          </Select>
+        </label>
+        <label className="text-sm font-medium">
+          Grado
+          <Select className="mt-1 w-full" value={form.grade} disabled={lockLevel} onChange={(e) => setForm({ ...form, grade: Number(e.target.value) })}>
+            {LEVEL_GRADES[form.educationLevel].map((g) => <option key={g} value={g}>{gradeLabel(form.educationLevel, g)}</option>)}
+          </Select>
+        </label>
+        {lockLevel && <p className="text-xs text-muted-foreground sm:col-span-2">El nivel y el grado no se pueden cambiar porque el aula ya tiene estudiantes matriculados.</p>}
+        <label className="text-sm font-medium">
+          Sección
+          <Input className="mt-1" maxLength={10} value={form.section} placeholder="A, B, Única…" onChange={(e) => setForm({ ...form, section: e.target.value.toUpperCase() })} />
+        </label>
+        <label className="text-sm font-medium">
+          Turno
+          <Select className="mt-1 w-full" value={form.shift} onChange={(e) => setForm({ ...form, shift: e.target.value as Shift })}>
+            {(Object.keys(SHIFT_LABEL) as Shift[]).map((s) => <option key={s} value={s}>{SHIFT_LABEL[s]}</option>)}
+          </Select>
+        </label>
+        <label className="text-sm font-medium">
+          Capacidad
+          <Input className="mt-1" type="number" min={Math.max(1, enrolled)} max={60} value={form.capacity} onChange={(e) => setForm({ ...form, capacity: Number(e.target.value) })} />
+          {capacityError ? <span className="mt-1 block text-xs text-red-600">{capacityError}</span> : classroom && <span className="mt-1 block text-xs text-muted-foreground">{enrolled} matriculados actualmente.</span>}
+        </label>
+        <label className="text-sm font-medium">
+          Tutor(a)
+          <TutorSelect className="mt-1 w-full" value={form.tutorTeacherId ?? null} classroomId={classroom?.id} teachers={teachers} onChange={(id) => setForm({ ...form, tutorTeacherId: id })} />
+          <span className="mt-1 block text-xs text-muted-foreground">Registra las competencias transversales y puede imprimir las libretas del aula.</span>
+        </label>
+      </div>
+    </Modal>
+  );
+};
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">
-                    Turno
-                  </label>
-                  <select
-                    value={formData.shift}
-                    onChange={(e) =>
-                      setFormData({ ...formData, shift: e.target.value as any })
-                    }
-                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    <option value="MORNING">Mañana</option>
-                    <option value="AFTERNOON">Tarde</option>
-                    <option value="NIGHT">Noche</option>
-                  </select>
-                </div>
+const BulkCreateModal: React.FC<{ defaultLevel: Level; onClose: () => void }> = ({ defaultLevel, onClose }) => {
+  const bulk = useBulkCreateClassrooms();
+  const [level, setLevel] = useState<Level>(defaultLevel);
+  const [grades, setGrades] = useState<number[]>(LEVEL_GRADES[defaultLevel]);
+  const [sectionsText, setSectionsText] = useState('A');
+  const [shift, setShift] = useState<Shift>('MORNING');
+  const [capacity, setCapacity] = useState(30);
+  const sections = [...new Set(sectionsText.split(/[,\s]+/).map((s) => s.trim().toUpperCase()).filter(Boolean))];
+  const total = grades.length * sections.length;
 
-                <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">
-                    Capacidad (Aforo)
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={60}
-                    value={formData.capacity}
-                    onChange={(e) => setFormData({ ...formData, capacity: Number(e.target.value) })}
-                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-muted-foreground uppercase mb-1 flex items-center justify-between">
-                  <span>Docente Tutor de Aula (Opcional)</span>
-                  <span className="text-[10px] font-normal lowercase text-muted-foreground">(puede dejarse vacío)</span>
-                </label>
-                <select
-                  value={formData.tutorTeacherId || ''}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      tutorTeacherId: e.target.value ? e.target.value : null,
-                    })
-                  }
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <option value="">-- Sin tutor asignado --</option>
-                  {teachers.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      Prof. {t.firstName} {t.lastNamePaternal} {t.lastNameMaternal || ''} ({t.email})
-                    </option>
-                  ))}
-                </select>
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  El tutor tendrá autoridad para tomar lista de asistencia y registrar conducta únicamente de esta sección.
-                </p>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
-                <Button type="button" variant="ghost" size="sm" onClick={() => setIsModalOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button type="submit" size="sm" isLoading={isCreating || isUpdating} className="gap-2 font-bold">
-                  <span>{editingClassroom ? 'Guardar Cambios' : 'Crear Aula'}</span>
-                </Button>
-              </div>
-            </form>
+  return (
+    <Modal open onClose={onClose} size="lg" title="Crear varias aulas" description="Genera todas las secciones de una vez. Las aulas que ya existen se omiten."
+      footer={<>
+        <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+        <Button disabled={total === 0 || bulk.isPending} onClick={async () => {
+          try {
+            const r = await bulk.mutateAsync({ educationLevel: level, grades, sections, shift, capacity });
+            toast.success(`${r.created.length} aula(s) creada(s)${r.skipped.length ? ` · ${r.skipped.length} ya existían` : ''}.`);
+            onClose();
+          } catch (err: any) {
+            toast.error(err?.response?.data?.message || 'No se pudieron crear las aulas.');
+          }
+        }}>Crear {total} aula(s)</Button>
+      </>}>
+      <div className="space-y-4">
+        <label className="block text-sm font-medium">
+          Nivel
+          <Select className="mt-1 w-full" value={level} onChange={(e) => { const l = e.target.value as Level; setLevel(l); setGrades(LEVEL_GRADES[l]); }}>
+            {(Object.keys(LEVEL_LABEL) as Level[]).map((l) => <option key={l} value={l}>{LEVEL_LABEL[l]}</option>)}
+          </Select>
+        </label>
+        <div>
+          <p className="text-sm font-medium">Grados</p>
+          <div className="mt-1 flex flex-wrap gap-2">
+            {LEVEL_GRADES[level].map((g) => {
+              const on = grades.includes(g);
+              return (
+                <button key={g} type="button" onClick={() => setGrades(on ? grades.filter((x) => x !== g) : [...grades, g].sort((a, b) => a - b))}
+                  className={cn('rounded-full border px-3 py-1 text-sm', on ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground')}>
+                  {gradeLabel(level, g)}
+                </button>
+              );
+            })}
           </div>
         </div>
-      )}
-    </div>
+        <label className="block text-sm font-medium">
+          Secciones
+          <Input className="mt-1" value={sectionsText} onChange={(e) => setSectionsText(e.target.value)} placeholder="A, B, C" />
+          <span className="mt-1 block text-xs text-muted-foreground">Separa las secciones con comas. Ejemplo: A, B, C</span>
+        </label>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="text-sm font-medium">
+            Turno
+            <Select className="mt-1 w-full" value={shift} onChange={(e) => setShift(e.target.value as Shift)}>
+              {(Object.keys(SHIFT_LABEL) as Shift[]).map((s) => <option key={s} value={s}>{SHIFT_LABEL[s]}</option>)}
+            </Select>
+          </label>
+          <label className="text-sm font-medium">
+            Capacidad de cada aula
+            <Input className="mt-1" type="number" min={1} max={60} value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} />
+          </label>
+        </div>
+        {total > 0 && (
+          <p className="rounded-lg bg-muted/40 p-3 text-sm text-muted-foreground">
+            Se crearán: {grades.map((g) => sections.map((s) => `${gradeLabel(level, g)} "${s}"`).join(', ')).join(' · ')}
+          </p>
+        )}
+        <p className="text-xs text-muted-foreground">Los tutores se asignan después, en cada aula.</p>
+      </div>
+    </Modal>
   );
 };

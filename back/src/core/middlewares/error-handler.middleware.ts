@@ -64,6 +64,10 @@ export const globalErrorHandler = (
         customMessage = 'El Código SIAGIE ingresado ya pertenece a otro estudiante registrado.';
       } else if (targetFields.some((f) => f.includes('email'))) {
         customMessage = 'El correo electrónico ingresado ya se encuentra registrado para otro usuario.';
+      } else if (targetFields.some((f) => f.includes('tutorTeacherId'))) {
+        customMessage = 'Ese docente ya es tutor(a) de otra aula. Cada docente solo puede ser tutor de una aula.';
+      } else if (targetFields.some((f) => f.includes('section'))) {
+        customMessage = 'Ya existe un aula con ese nivel, grado, sección y turno.';
       } else if (targetFields.some((f) => f.includes('cellphone') || f.includes('phone'))) {
         customMessage = 'El número de celular ingresado ya está asociado a otro usuario.';
       } else if (targetFields.length > 0) {

@@ -7,6 +7,8 @@ export interface Classroom {
   shift: 'MORNING' | 'AFTERNOON' | 'NIGHT';
   capacity: number;
   tutorTeacherId?: string | null;
+  /** Estudiantes matriculados vigentes (año activo) */
+  enrolledCount?: number;
   tutorTeacher?: {
     id: string;
     firstName: string;

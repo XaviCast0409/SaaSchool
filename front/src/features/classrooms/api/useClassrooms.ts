@@ -71,3 +71,24 @@ export const useDeleteClassroom = () => {
     },
   });
 };
+
+export interface BulkCreateClassroomsPayload {
+  educationLevel: 'INITIAL' | 'PRIMARY' | 'SECONDARY';
+  grades: number[];
+  sections: string[];
+  shift: 'MORNING' | 'AFTERNOON' | 'NIGHT';
+  capacity: number;
+}
+
+export const useBulkCreateClassrooms = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: BulkCreateClassroomsPayload) => {
+      const response = await api.post<{ status: string; data: { created: string[]; skipped: string[] } }>('/classrooms/bulk', payload);
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['classrooms'] });
+    },
+  });
+};
