@@ -4,6 +4,7 @@ import { app } from './app';
 import { env } from './config/env';
 import { prisma } from './config/prisma';
 
+import { AttendanceService } from './modules/attendance/attendance.service';
 import { AttendanceRepository } from './modules/attendance/attendance.repository';
 import { initAttendanceAutoCloseCron } from './modules/attendance/attendance.cron';
 
@@ -14,8 +15,8 @@ const startServer = async (): Promise<void> => {
     console.log('✅ Conexión con PostgreSQL establecida');
 
     // Inicializar tarea programada de auto-cierre de asistencia
-    const attendanceRepo = new AttendanceRepository();
-    const stopAttendanceCron = initAttendanceAutoCloseCron(attendanceRepo);
+    const attendanceService = new AttendanceService(new AttendanceRepository());
+    const stopAttendanceCron = initAttendanceAutoCloseCron(attendanceService);
 
     const server = app.listen(env.PORT, '0.0.0.0', () => {
       console.log(`🚀 SaaSchool API corriendo en puerto ${env.PORT}`);

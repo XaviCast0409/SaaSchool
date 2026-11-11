@@ -1110,58 +1110,70 @@ export class AttendanceRepository {
   }
 
   /**
-   * Cierre de Asistencia: Asigna Falta Injustificada a todos los alumnos que no tengan marcación.
-   * Respeta intactos a quienes ya tengan asistencia (Puntual, Tardanza, o Justificada).
+   * Cierre de asistencia: asigna falta injustificada a los alumnos sin marcación.
+   * Solo considera matrículas activas del AÑO ACADÉMICO ACTIVO y, si se indica, de ciertos niveles o un aula.
+   * Devuelve los IDs de las asistencias creadas para notificar a las familias.
    */
   async closeAttendance(params: {
     schoolId: string;
     classroomId?: string;
+    educationLevels?: EducationLevel[];
     dateStr: string;
-  }): Promise<{ closedCount: number; totalUnrecorded: number }> {
+  }): Promise<{ closedCount: number; totalUnrecorded: number; createdAttendanceIds: string[] }> {
     const dateObj = parseSchoolDate(params.dateStr);
 
-    // 1. Obtener los IDs de matrículas que ya cuentan con registro para esta fecha
-    const existingAttendances = await prisma.attendance.findMany({
+    const enrollmentScope = {
+      schoolId: params.schoolId,
+      isActive: true,
+      academicYear: { isActive: true },
+      ...(params.classroomId ? { classroomId: params.classroomId } : {}),
+      ...(params.educationLevels ? { classroom: { educationLevel: { in: params.educationLevels } } } : {}),
+    };
+
+    const activeEnrollments = await prisma.enrollment.findMany({ where: enrollmentScope, select: { id: true } });
+    if (activeEnrollments.length === 0) {
+      return { closedCount: 0, totalUnrecorded: 0, createdAttendanceIds: [] };
+    }
+
+    const enrollmentIds = activeEnrollments.map((e) => e.id);
+    const existing = await prisma.attendance.findMany({
+      where: { schoolId: params.schoolId, date: dateObj, enrollmentId: { in: enrollmentIds } },
+      select: { enrollmentId: true },
+    });
+    const recordedSet = new Set(existing.map((a) => a.enrollmentId));
+    const unrecorded = enrollmentIds.filter((id) => !recordedSet.has(id));
+
+    if (unrecorded.length === 0) {
+      return { closedCount: 0, totalUnrecorded: 0, createdAttendanceIds: [] };
+    }
+
+    await prisma.attendance.createMany({
+      data: unrecorded.map((enrollmentId) => ({
+        schoolId: params.schoolId,
+        enrollmentId,
+        date: dateObj,
+        status: 'ABSENT_UNJUSTIFIED' as AttendanceStatus,
+        origin: 'AUTO_CLOSE' as AttendanceOrigin,
+        notes: 'Inasistencia registrada por cierre de horario',
+      })),
+      skipDuplicates: true,
+    });
+
+    const created = await prisma.attendance.findMany({
       where: {
         schoolId: params.schoolId,
         date: dateObj,
-        ...(params.classroomId ? { enrollment: { classroomId: params.classroomId } } : {}),
-      },
-      select: { enrollmentId: true },
-    });
-
-    const recordedSet = new Set(existingAttendances.map((a) => a.enrollmentId));
-
-    // 2. Obtener todas las matrículas activas del ámbito solicitado
-    const activeEnrollments = await prisma.enrollment.findMany({
-      where: {
-        schoolId: params.schoolId,
-        isActive: true,
-        ...(params.classroomId ? { classroomId: params.classroomId } : {}),
+        enrollmentId: { in: unrecorded },
+        origin: 'AUTO_CLOSE',
+        status: 'ABSENT_UNJUSTIFIED',
       },
       select: { id: true },
     });
 
-    const unrecorded = activeEnrollments.filter((e) => !recordedSet.has(e.id));
-
-    if (unrecorded.length === 0) {
-      return { closedCount: 0, totalUnrecorded: 0 };
-    }
-
-    const recordsToCreate = unrecorded.map((e) => ({
-      schoolId: params.schoolId,
-      enrollmentId: e.id,
-      date: dateObj,
-      status: 'ABSENT_UNJUSTIFIED' as AttendanceStatus,
-      origin: 'AUTO_CLOSE' as AttendanceOrigin,
-      notes: 'Inasistencia registrada por cierre de horario',
-    }));
-
-    await prisma.attendance.createMany({
-      data: recordsToCreate,
-      skipDuplicates: true,
-    });
-
-    return { closedCount: recordsToCreate.length, totalUnrecorded: unrecorded.length };
+    return {
+      closedCount: created.length,
+      totalUnrecorded: unrecorded.length,
+      createdAttendanceIds: created.map((a) => a.id),
+    };
   }
 }

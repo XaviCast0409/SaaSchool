@@ -1,7 +1,8 @@
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
-import { getSchoolNow } from '../../utils/timezone.util';
+import { getSchoolNow, parseSchoolDate } from '../../utils/timezone.util';
 import { sendWebPushNotification } from '../../utils/web-push.util';
+import { levelsForScope, type ScheduleScope } from './attendance.rules';
 import type {
   AttendanceRepository,
   AttendanceMonthlySummary,
@@ -333,7 +334,8 @@ export class AttendanceService {
     const studentFullName = `${enrollment.student.firstNames} ${enrollment.student.lastNamePaternal} ${enrollment.student.lastNameMaternal || ''}`.trim();
     const classroomName = `${enrollment.classroom.grade}° "${enrollment.classroom.section}" - ${enrollment.classroom.educationLevel}`;
 
-    if (existing) {
+    const isAutoCloseAbsence = existing?.origin === 'AUTO_CLOSE' && existing.status === 'ABSENT_UNJUSTIFIED';
+    if (existing && !isAutoCloseAbsence) {
       const checkInFormatted = existing.checkInTime
         ? new Date(existing.checkInTime).toLocaleTimeString('es-PE', {
             hour: '2-digit',
@@ -387,6 +389,9 @@ export class AttendanceService {
     let noteText = `Ingreso escaneado vía QR/Kiosco a las ${now.toLocaleTimeString('es-PE', { timeZone: 'America/Lima' })}`;
     if (currentTotalMin > lateLimitTotalMin) {
       noteText += ` (Llegada posterior al límite de tolerancia de las ${schedule.lateToleranceTime})`;
+    }
+    if (isAutoCloseAbsence) {
+      noteText += ' (Corrige la falta asignada por el cierre automático)';
     }
 
     const attendance = await this.attendanceRepository.recordScanAttendance({
@@ -465,20 +470,57 @@ export class AttendanceService {
     }
 
     const dateStr = dto.date || getSchoolNow().dateStr;
+
+    const holiday = await prisma.schoolHoliday.findUnique({
+      where: { schoolId_date: { schoolId, date: parseSchoolDate(dateStr) } },
+    });
+    if (holiday) {
+      throw new AppError(
+        `La fecha ${dateStr} está registrada como feriado (${holiday.name}). No se puede cerrar la asistencia.`,
+        400,
+      );
+    }
+
     const result = await this.attendanceRepository.closeAttendance({
       schoolId,
       classroomId: dto.classroomId,
+      educationLevels: dto.educationLevel ? [dto.educationLevel] : undefined,
       dateStr,
     });
 
+    if (result.createdAttendanceIds.length > 0) {
+      void this.notifyAbsences(schoolId, result.createdAttendanceIds).catch((e) => console.error('[AbsenceNotify]', e));
+    }
+
     return {
-      ...result,
+      closedCount: result.closedCount,
+      totalUnrecorded: result.totalUnrecorded,
       message:
         result.closedCount > 0
           ? `Cierre completado: Se asignó Falta Injustificada a ${result.closedCount} alumno(s) sin marcación.`
           : 'Todos los alumnos contaban con asistencia registrada para la fecha.',
     };
   }
+
+  private async notifyAbsences(_schoolId: string, _ids: string[]): Promise<void> {}
+
+  /** Cierre automático de un horario: solo los niveles que gobierna ese horario. */
+  async closeAttendanceForScope(schoolId: string, scope: ScheduleScope, dateStr: string): Promise<number> {
+    const [school, configs] = await Promise.all([
+      prisma.school.findUnique({ where: { id: schoolId }, select: { offeredLevels: true } }),
+      prisma.attendanceScheduleConfig.findMany({ where: { schoolId }, select: { scope: true } }),
+    ]);
+    const levels = levelsForScope(scope, school?.offeredLevels ?? [], configs.map((c) => c.scope as ScheduleScope));
+    if (levels.length === 0) return 0;
+
+    const result = await this.attendanceRepository.closeAttendance({ schoolId, educationLevels: levels, dateStr });
+    if (result.createdAttendanceIds.length > 0) {
+      void this.notifyAbsences(schoolId, result.createdAttendanceIds).catch((e) => console.error('[AbsenceNotify]', e));
+    }
+    return result.closedCount;
+  }
+
+  async evaluateRiskForSchoolOncePerDay(_schoolId: string, _dateStr: string): Promise<void> {}
 
   /**
    * Notificación asíncrona Web Push al apoderado tras escaneo de carnet (Fire-and-Forget).
@@ -529,7 +571,7 @@ export class AttendanceService {
       const payload = {
         title: `Ingreso al Colegio: ${statusLabel}`,
         message: `${studentName} registró su ingreso a las ${timeStr}.`,
-        link: '/parent/attendance',
+        link: '/attendance',
       };
 
       await Promise.allSettled(

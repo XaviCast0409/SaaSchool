@@ -4,6 +4,7 @@ import { AttendanceService } from './attendance.service';
 import { AttendanceController } from './attendance.controller';
 import { authMiddleware, authorizeRoles } from '../../core/middlewares/auth.middleware';
 import { tenantMiddleware } from '../../core/middlewares/tenant.middleware';
+import { scanRateLimiter } from '../../core/middlewares/rate-limiter.middleware';
 
 const attendanceRepository = new AttendanceRepository();
 const attendanceService = new AttendanceService(attendanceRepository);
@@ -110,6 +111,7 @@ attendanceRouter.patch(
 // Escaneo rápido en puerta o kiosco (QR / Código de barras)
 attendanceRouter.post(
   '/scan',
+  scanRateLimiter,
   authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'ADMINISTRATIVE'),
   attendanceController.scan,
 );

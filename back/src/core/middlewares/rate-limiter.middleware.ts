@@ -32,6 +32,7 @@ export const apiRateLimiter = rateLimit({
   limit: 600,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  skip: (request) => request.path.startsWith('/attendance/scan'),
   keyGenerator: (request) => {
     const header = request.headers.authorization;
     if (header?.startsWith('Bearer ')) {
@@ -61,4 +62,21 @@ export const fileContentRateLimiter = rateLimit({
   legacyHeaders: false,
   keyGenerator: ipKey,
   message: { status: 'fail', message: 'Demasiadas descargas desde esta red. Intenta más tarde.' },
+});
+
+/** Escáner de asistencia: un portero puede registrar cientos de ingresos en minutos. */
+export const scanRateLimiter = rateLimit({
+  windowMs: FIFTEEN_MINUTES,
+  limit: 3000,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  keyGenerator: (request) => {
+    const header = request.headers.authorization;
+    if (header?.startsWith('Bearer ')) {
+      const decoded = jwt.decode(header.slice(7)) as { userId?: string } | null;
+      if (decoded?.userId) return `scan:${decoded.userId}`;
+    }
+    return `scan:${ipKey(request)}`;
+  },
+  message: { status: 'fail', message: 'Demasiados escaneos en poco tiempo. Espera unos segundos.' },
 });

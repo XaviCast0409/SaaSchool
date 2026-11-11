@@ -1,37 +1,26 @@
 import { prisma } from '../../config/prisma';
 import { getSchoolNow } from '../../utils/timezone.util';
-import type { AttendanceRepository } from './attendance.repository';
+import { limaWeekday, type ScheduleScope } from './attendance.rules';
+import type { AttendanceService } from './attendance.service';
 
 /**
- * Tarea periódica programada (Cron) para el cierre automático de asistencia escolar.
- * Implementado con temporizador nativo de Node.js (cero dependencias externas).
- * Se evalúa cada 60 segundos únicamente de Lunes a Viernes bajo la hora oficial de Perú (America/Lima).
+ * Cierre automático de asistencia, cada 60 s, de lunes a viernes (hora de Lima).
+ * Cada horario cierra SOLO los niveles que gobierna (ver levelsForScope).
+ * Al terminar el cierre de un colegio, evalúa la alerta temprana de ausentismo una vez al día.
  */
-export function initAttendanceAutoCloseCron(attendanceRepository: AttendanceRepository): () => void {
+export function initAttendanceAutoCloseCron(attendanceService: AttendanceService): () => void {
   let isExecuting = false;
 
   const intervalId = setInterval(async () => {
     if (isExecuting) return;
-
+    isExecuting = true;
     try {
-      isExecuting = true;
+      const weekday = limaWeekday();
+      if (weekday === 0 || weekday === 6) return;
+
       const schoolNow = getSchoolNow();
-
-      // Excluir fines de semana (0: Domingo, 6: Sábado)
-      const dayOfWeek = schoolNow.fullDate.getDay();
-      if (dayOfWeek === 0 || dayOfWeek === 6) {
-        return;
-      }
-
       const currentTimeStr = `${String(schoolNow.hour).padStart(2, '0')}:${String(schoolNow.minute).padStart(2, '0')}`;
-
-      const todayStr = new Intl.DateTimeFormat('en-CA', {
-        timeZone: 'America/Lima',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      }).format(new Date());
-      const todayDate = new Date(`${todayStr}T00:00:00.000Z`);
+      const todayDate = schoolNow.dateObj;
 
       const candidateConfigs = await prisma.attendanceScheduleConfig.findMany({
         where: {
@@ -41,11 +30,9 @@ export function initAttendanceAutoCloseCron(attendanceRepository: AttendanceRepo
         select: { id: true, schoolId: true, scope: true, autoCloseTime: true },
       });
 
-      // Ejecutar a partir de la hora configurada (no solo en el minuto exacto) y nunca después de las 18:00
       const dueConfigs = candidateConfigs.filter(
         (config) => currentTimeStr >= config.autoCloseTime && currentTimeStr < '18:00',
       );
-
       if (dueConfigs.length === 0) return;
 
       const holidays = await prisma.schoolHoliday.findMany({
@@ -54,45 +41,43 @@ export function initAttendanceAutoCloseCron(attendanceRepository: AttendanceRepo
       });
       const holidaySchoolIds = new Set(holidays.map((h) => h.schoolId));
 
-      // Marcar feriados para no reevaluarlos en todo el día
-      const holidayConfigs = dueConfigs.filter((config) => holidaySchoolIds.has(config.schoolId));
-      for (const config of holidayConfigs) {
-        await prisma.attendanceScheduleConfig
-          .update({ where: { id: config.id }, data: { lastAutoClosedOn: todayDate } })
-          .catch((err) => console.error('[Cron Auto-Cierre Holiday Update Error]:', err));
-      }
+      const processedSchools = new Set<string>();
 
-      const activeConfigs = dueConfigs.filter((config) => !holidaySchoolIds.has(config.schoolId));
-      if (activeConfigs.length === 0) return;
-
-      for (const config of activeConfigs) {
+      for (const config of dueConfigs) {
         try {
-          const result = await attendanceRepository.closeAttendance({
-            schoolId: config.schoolId,
-            dateStr: schoolNow.dateStr,
-          });
-
+          if (!holidaySchoolIds.has(config.schoolId)) {
+            const closed = await attendanceService.closeAttendanceForScope(
+              config.schoolId,
+              config.scope as ScheduleScope,
+              schoolNow.dateStr,
+            );
+            if (closed > 0) {
+              console.log(
+                `[Cron Auto-Cierre] Colegio ${config.schoolId} (${config.scope}): ${closed} faltas asignadas a las ${currentTimeStr}.`,
+              );
+            }
+            processedSchools.add(config.schoolId);
+          }
           await prisma.attendanceScheduleConfig.update({
             where: { id: config.id },
             data: { lastAutoClosedOn: todayDate },
           });
-
-          if (result.closedCount > 0) {
-            console.log(
-              `[Cron Auto-Cierre] Colegio ${config.schoolId} (${config.scope}): ${result.closedCount} faltas asignadas automáticamente a las ${currentTimeStr}.`
-            );
-          }
-        } catch (schoolErr) {
-          console.error(`[Cron Auto-Cierre] Error al cerrar asistencia del colegio ${config.schoolId}:`, schoolErr);
+        } catch (error) {
+          console.error(`[Cron Auto-Cierre] Error en colegio ${config.schoolId} (${config.scope}):`, error);
         }
       }
-    } catch (err) {
-      console.error('[Cron Auto-Cierre] Error general en el programador de asistencia:', err);
+
+      for (const schoolId of processedSchools) {
+        await attendanceService
+          .evaluateRiskForSchoolOncePerDay(schoolId, schoolNow.dateStr)
+          .catch((error) => console.error(`[Cron Riesgo] Error en colegio ${schoolId}:`, error));
+      }
+    } catch (error) {
+      console.error('[Cron Auto-Cierre] Error general:', error);
     } finally {
       isExecuting = false;
     }
   }, 60 * 1000);
 
-  // Retorna función para detener el cron en caso de shutdown
   return () => clearInterval(intervalId);
 }

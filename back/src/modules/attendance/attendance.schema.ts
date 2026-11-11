@@ -167,6 +167,7 @@ export const upsertAttendanceScheduleConfigSchema = z.object({
 
 export const closeClassroomAttendanceSchema = z.object({
   classroomId: z.string().uuid('ID de aula inválido').optional(),
+  educationLevel: z.enum(['INITIAL', 'PRIMARY', 'SECONDARY']).optional(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida (YYYY-MM-DD)').optional(),
 });
 

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
+import { recordAudit } from '../../utils/audit.util';
 import {
   createAttendanceSchema,
   updateAttendanceSchema,
@@ -229,6 +230,12 @@ export class AttendanceController {
     };
     const dto = closeClassroomAttendanceSchema.parse(request.body || {});
     const result = await this.attendanceService.closeAttendance(schoolId, dto, userContext);
+    recordAudit(request, {
+      action: 'ATTENDANCE_CLOSED_MANUALLY',
+      entity: 'Attendance',
+      entityId: null,
+      after: { ...request.body, closedCount: result.closedCount },
+    });
     response.status(200).json({ status: 'success', data: result });
   };
 
