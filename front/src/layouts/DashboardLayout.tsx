@@ -26,6 +26,7 @@ import {
   History,
   FileCheck2,
   AlertTriangle,
+  ClipboardCheck,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/button';
@@ -126,6 +127,13 @@ export const DashboardLayout: React.FC = () => {
           path: '/attendance-alerts',
           icon: AlertTriangle,
           roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Asistencia por curso',
+          path: '/course-attendance',
+          icon: ClipboardCheck,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'],
           minPlan: 'BASIC',
         },
         {

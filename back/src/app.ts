@@ -37,6 +37,7 @@ import { fileRouter } from './modules/files/file.routes';
 import { auditLogRouter } from './modules/audit-logs/audit-log.routes';
 import { legalRouter } from './modules/legal/legal.routes';
 import { pickupRouter } from './modules/pickups/pickup.routes';
+import { courseAttendanceRouter } from './modules/course-attendance/course-attendance.routes';
 
 const app = express();
 
@@ -113,6 +114,7 @@ app.use(`${API_PREFIX}/incidents`, incidentRouter);
 app.use(`${API_PREFIX}/audit-logs`, auditLogRouter);
 app.use(`${API_PREFIX}/legal`, legalRouter);
 app.use(`${API_PREFIX}/pickups`, pickupRouter);
+app.use(`${API_PREFIX}/course-attendance`, courseAttendanceRouter);
 
 app.use((_req, res) => {
   res.status(404).json({ status: 'fail', message: 'Ruta no encontrada' });
