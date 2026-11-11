@@ -19,6 +19,7 @@ import {
   X,
   Sliders,
   CalendarOff,
+  LogOut,
 } from 'lucide-react';
 import { useAttendance, useUpdateAttendance } from '../api/useAttendance';
 import { AttendanceStatusBadge } from '../components/AttendanceStatusBadge';
@@ -27,6 +28,7 @@ import { AttendanceMatrixGrid } from '../components/AttendanceMatrixGrid';
 import { BulkAttendanceModal } from '../components/BulkAttendanceModal';
 import { EditNotesModal } from '../components/EditNotesModal';
 import { QrScannerModal } from '../components/QrScannerModal';
+import { CheckoutModal } from '../components/CheckoutModal';
 import { AttendanceSheetView } from '../components/AttendanceSheetView';
 import { AttendanceScheduleModal } from '../components/AttendanceScheduleModal';
 import { HolidaysModal } from '../components/HolidaysModal';
@@ -67,6 +69,7 @@ export const AttendancePage: React.FC = () => {
   const [editingAttendanceId, setEditingAttendanceId] = useState<string | null>(null);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [isHolidaysModalOpen, setIsHolidaysModalOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ABSENT' | 'LATE' | 'PRESENT'>('ALL');
@@ -170,6 +173,16 @@ export const AttendancePage: React.FC = () => {
           >
             <QrCode className="w-4 h-4" />
             <span>Lector QR</span>
+          </Button>
+
+          {/* Registrar salida */}
+          <Button
+            variant="outline"
+            onClick={() => setIsCheckoutOpen(true)}
+            className="gap-2 shadow-sm rounded-xl h-10 px-4 font-bold border-border hover:bg-accent"
+          >
+            <LogOut className="w-4 h-4 text-primary" />
+            <span>Registrar salida</span>
           </Button>
 
           {/* Configuración de Horarios & Auto-Cierre */}
@@ -787,6 +800,11 @@ export const AttendancePage: React.FC = () => {
       {/* Modal Kiosco Lector QR en Puerta / Ingreso */}
       {isQrScannerOpen && (
         <QrScannerModal onClose={() => setIsQrScannerOpen(false)} />
+      )}
+
+      {/* Modal de Registro de Salida */}
+      {isCheckoutOpen && (
+        <CheckoutModal open={isCheckoutOpen} onClose={() => setIsCheckoutOpen(false)} />
       )}
 
       {/* Modal de Configuración de Horarios & Auto-Cierre */}

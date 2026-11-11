@@ -140,6 +140,18 @@ attendanceRouter.post(
   attendanceController.citeFamilyFromAlert,
 );
 
+// Registro de salida de estudiantes
+attendanceRouter.get(
+  '/checkout/preview',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),
+  attendanceController.checkoutPreview,
+);
+attendanceRouter.post(
+  '/checkout',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),
+  attendanceController.checkout,
+);
+
 // Corregir asistencia ya registrada
 attendanceRouter.patch(
   '/:id',

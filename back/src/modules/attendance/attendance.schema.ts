@@ -155,6 +155,17 @@ export const citeFamilyAlertSchema = z.object({
   note: z.string().trim().max(500).optional(),
 });
 
+export const checkoutSchema = z.object({
+  code: z.string().min(1).max(64),
+  pickupType: z.enum(['GUARDIAN', 'AUTHORIZED', 'SELF']),
+  pickupPersonId: z.string().uuid().optional(),
+  earlyLeaveReason: z.string().trim().max(200).optional().nullable(),
+});
+
+export const checkoutPreviewSchema = z.object({
+  code: z.string().min(1).max(64),
+});
+
 // Schema para consultar la hoja completa de asistencia de un aula en una fecha
 export const attendanceSheetQuerySchema = z.object({
   classroomId: z.string().uuid('ID de aula inválido'),
@@ -252,3 +263,5 @@ export type ScanBatchDto = z.infer<typeof scanBatchSchema>;
 export type ListAlertsQueryDto = z.infer<typeof listAlertsQuerySchema>;
 export type AttendAlertDto = z.infer<typeof attendAlertSchema>;
 export type CiteFamilyAlertDto = z.infer<typeof citeFamilyAlertSchema>;
+export type CheckoutDto = z.infer<typeof checkoutSchema>;
+export type CheckoutPreviewDto = z.infer<typeof checkoutPreviewSchema>;

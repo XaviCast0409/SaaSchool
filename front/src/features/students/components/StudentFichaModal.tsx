@@ -11,8 +11,16 @@ import {
   BookOpen,
   Download,
   Loader2,
+  UserCheck,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import { useStudent } from '../api/useStudents';
+import { usePickups, useCreatePickup, useDeactivatePickup } from '@/features/attendance/api/usePickups';
+import { useUploadMaterial } from '@/features/course-contents/api/useCourseContents';
+import { useResolvedFileUrl } from '@/features/course-contents/api/useResolvedFileUrl';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import type { AuthorizedPickup } from '@/features/attendance/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -42,6 +50,60 @@ const RELATIONSHIP_LABELS: Record<string, string> = {
   OTHER: 'Apoderado',
 };
 
+const PickupCard: React.FC<{
+  pickup: AuthorizedPickup;
+  canManage: boolean;
+  onRemove: (pickup: AuthorizedPickup) => void;
+}> = ({ pickup, canManage, onRemove }) => {
+  const { data: resolvedPhoto } = useResolvedFileUrl(pickup.photoFileUrl);
+
+  return (
+    <div className="p-3 rounded-lg border border-border bg-card flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3 min-w-0">
+        {resolvedPhoto ? (
+          <img
+            src={resolvedPhoto}
+            alt={pickup.fullName}
+            className="w-10 h-10 rounded-full object-cover border border-border shrink-0"
+          />
+        ) : (
+          <div className="w-10 h-10 rounded-full bg-secondary text-secondary-foreground font-bold flex items-center justify-center shrink-0 border border-border">
+            {pickup.fullName.charAt(0).toUpperCase()}
+          </div>
+        )}
+        <div className="min-w-0 text-[11px] space-y-0.5">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-sm text-foreground truncate">{pickup.fullName}</span>
+            <Badge variant="outline" className="text-[10px] text-emerald-600 bg-emerald-500/10 border-emerald-500/30">
+              {pickup.relationship}
+            </Badge>
+          </div>
+          <div className="text-muted-foreground">
+            {pickup.documentType}: <strong className="text-foreground">{pickup.documentId}</strong>
+            {pickup.cellphone && (
+              <span className="ml-2">
+                · Cel: <strong className="text-foreground">{pickup.cellphone}</strong>
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {canManage && (
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => onRemove(pickup)}
+          className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg shrink-0"
+          title="Retirar persona autorizada"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </Button>
+      )}
+    </div>
+  );
+};
+
 export const StudentFichaModal: React.FC<StudentFichaModalProps> = ({
   studentId,
   isOpen,
@@ -49,8 +111,27 @@ export const StudentFichaModal: React.FC<StudentFichaModalProps> = ({
 }) => {
   const user = useAuthStore((state) => state.user);
   const canExportArco = user?.role === 'SUPER_ADMIN' || user?.role === 'SCHOOL_ADMIN';
+  const canManagePickups =
+    user?.role === 'SUPER_ADMIN' || user?.role === 'SCHOOL_ADMIN' || user?.role === 'ADMINISTRATIVE';
   const { data: student, isLoading } = useStudent(studentId || undefined);
   const [isExporting, setIsExporting] = useState(false);
+
+  // Pickups
+  const { data: pickups = [] } = usePickups(studentId);
+  const { mutateAsync: createPickup, isPending: isCreatingPickup } = useCreatePickup();
+  const { mutateAsync: deactivatePickup } = useDeactivatePickup();
+  const { mutateAsync: uploadFile } = useUploadMaterial();
+
+  const [isAddPickupOpen, setIsAddPickupOpen] = useState(false);
+  const [deletingPickup, setDeletingPickup] = useState<AuthorizedPickup | null>(null);
+
+  const [pickupName, setPickupName] = useState('');
+  const [pickupDocType, setPickupDocType] = useState('DNI');
+  const [pickupDocId, setPickupDocId] = useState('');
+  const [pickupRelationship, setPickupRelationship] = useState('');
+  const [pickupCellphone, setPickupCellphone] = useState('');
+  const [pickupPhotoFile, setPickupPhotoFile] = useState<File | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
   if (!isOpen || !studentId) return null;
 
@@ -80,6 +161,49 @@ export const StudentFichaModal: React.FC<StudentFichaModalProps> = ({
     } finally {
       setIsExporting(false);
     }
+  };
+
+  const handleSavePickup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!studentId || !pickupName.trim() || !pickupDocId.trim() || !pickupRelationship.trim()) {
+      toast.error('Completa los campos obligatorios.');
+      return;
+    }
+
+    try {
+      let photoUrl: string | null = null;
+      if (pickupPhotoFile) {
+        setIsUploadingPhoto(true);
+        const res = await uploadFile(pickupPhotoFile);
+        photoUrl = res.url;
+        setIsUploadingPhoto(false);
+      }
+
+      await createPickup({
+        studentId,
+        fullName: pickupName.trim(),
+        documentType: pickupDocType,
+        documentId: pickupDocId.trim(),
+        relationship: pickupRelationship.trim(),
+        cellphone: pickupCellphone.trim() || null,
+        photoFileUrl: photoUrl,
+      });
+
+      setIsAddPickupOpen(false);
+      setPickupName('');
+      setPickupDocId('');
+      setPickupRelationship('');
+      setPickupCellphone('');
+      setPickupPhotoFile(null);
+    } catch {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleConfirmDeactivate = async () => {
+    if (!deletingPickup || !studentId) return;
+    await deactivatePickup({ id: deletingPickup.id, studentId });
+    setDeletingPickup(null);
   };
 
   return (
@@ -339,6 +463,44 @@ export const StudentFichaModal: React.FC<StudentFichaModalProps> = ({
               )}
             </div>
 
+            {/* SECCIÓN 4: PERSONAS AUTORIZADAS A RECOGER */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between border-b border-border pb-1">
+                <h4 className="font-bold text-sm text-foreground flex items-center gap-2">
+                  <UserCheck className="w-4 h-4 text-primary" />
+                  4. Personas Autorizadas a Recoger
+                </h4>
+                {canManagePickups && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setIsAddPickupOpen(true)}
+                    className="h-7 text-xs font-bold gap-1 rounded-lg border-primary/30 text-primary hover:bg-primary/10"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Agregar</span>
+                  </Button>
+                )}
+              </div>
+
+              {pickups.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {pickups.map((p) => (
+                    <PickupCard
+                      key={p.id}
+                      pickup={p}
+                      canManage={canManagePickups}
+                      onRemove={(pickup) => setDeletingPickup(pickup)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 rounded-lg border border-dashed border-border text-center text-muted-foreground text-xs">
+                  No hay personas autorizadas adicionales registradas para recoger al estudiante.
+                </div>
+              )}
+            </div>
+
             {/* Pie de Ficha / Firma para impresión */}
             <div className="hidden print:grid grid-cols-2 gap-8 pt-12 mt-12 border-t border-border text-center">
               <div>
@@ -353,6 +515,151 @@ export const StudentFichaModal: React.FC<StudentFichaModalProps> = ({
           </div>
         )}
       </div>
+
+      {/* Modal: Agregar Persona Autorizada */}
+      {isAddPickupOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card shadow-2xl p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="text-base font-black text-foreground">
+                Nueva Persona Autorizada a Recoger
+              </h3>
+              <button
+                onClick={() => setIsAddPickupOpen(false)}
+                className="rounded-lg p-1 text-muted-foreground hover:bg-muted"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePickup} className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-foreground block mb-1">
+                  Nombre completo <span className="text-destructive">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={pickupName}
+                  onChange={(e) => setPickupName(e.target.value)}
+                  placeholder="Ej. María Elena Paredes López"
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-bold text-foreground block mb-1">
+                    Tipo de Doc. <span className="text-destructive">*</span>
+                  </label>
+                  <select
+                    value={pickupDocType}
+                    onChange={(e) => setPickupDocType(e.target.value)}
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="DNI">DNI</option>
+                    <option value="CE">CE</option>
+                    <option value="PASSPORT">Pasaporte</option>
+                    <option value="OTHER">Otro</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-foreground block mb-1">
+                    N° Documento <span className="text-destructive">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={pickupDocId}
+                    onChange={(e) => setPickupDocId(e.target.value)}
+                    placeholder="Ej. 45892134"
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-bold text-foreground block mb-1">
+                    Parentesco / Vínculo <span className="text-destructive">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={pickupRelationship}
+                    onChange={(e) => setPickupRelationship(e.target.value)}
+                    placeholder="Ej. Tía, Abuelo, Movilidad"
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-foreground block mb-1">
+                    Celular (opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={pickupCellphone}
+                    onChange={(e) => setPickupCellphone(e.target.value)}
+                    placeholder="Ej. 987654321"
+                    maxLength={9}
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-foreground block mb-1">
+                  Foto de la persona (opcional)
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setPickupPhotoFile(e.target.files?.[0] || null)}
+                  className="w-full text-xs text-muted-foreground file:mr-2 file:py-1 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsAddPickupOpen(false)}
+                  disabled={isCreatingPickup || isUploadingPhoto}
+                  className="rounded-xl text-xs font-bold"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={isCreatingPickup || isUploadingPhoto}
+                  className="rounded-xl text-xs font-bold gap-1.5"
+                >
+                  {(isCreatingPickup || isUploadingPhoto) && (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  )}
+                  <span>{isUploadingPhoto ? 'Subiendo foto...' : 'Guardar persona'}</span>
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmación para Quitar Persona Autorizada */}
+      <ConfirmDialog
+        isOpen={Boolean(deletingPickup)}
+        onClose={() => setDeletingPickup(null)}
+        onConfirm={handleConfirmDeactivate}
+        title="Retirar persona autorizada"
+        description={`¿Estás seguro de retirar a "${deletingPickup?.fullName}" de la lista de personas autorizadas a recoger al alumno?`}
+        confirmText="Retirar persona"
+        cancelText="Cancelar"
+        variant="danger"
+      />
     </div>
   );
 };

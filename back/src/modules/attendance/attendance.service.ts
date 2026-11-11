@@ -36,6 +36,7 @@ import type {
   ListAlertsQueryDto,
   AttendAlertDto,
   CiteFamilyAlertDto,
+  CheckoutDto,
 } from './attendance.schema';
 import type { Attendance, AttendanceStatus, AttendanceScheduleConfig } from '@prisma/client';
 
@@ -901,6 +902,204 @@ export class AttendanceService {
         classroom,
       };
     });
+  }
+
+  async checkoutPreview(schoolId: string, code: string, userContext?: AttendanceUserContext) {
+    const enrollment = await this.attendanceRepository.findActiveEnrollmentByCode(schoolId, code);
+    if (!enrollment) {
+      throw new AppError(`No se encontró estudiante con matrícula activa para el código: ${code}`, 404);
+    }
+
+    if (userContext?.role === 'TEACHER' && enrollment.classroom?.tutorTeacherId !== userContext.userId) {
+      throw new AppError('Solo el tutor de aula asignado o personal administrativo puede gestionar la salida de este estudiante.', 403);
+    }
+
+    const today = getSchoolNow().dateObj;
+    const attendance = await this.attendanceRepository.findAttendanceByDate(schoolId, enrollment.id, today);
+
+    const [student, authorizedPickups] = await Promise.all([
+      prisma.student.findUnique({
+        where: { id: enrollment.student.id },
+        select: {
+          id: true,
+          firstNames: true,
+          lastNamePaternal: true,
+          lastNameMaternal: true,
+          documentId: true,
+          familyRelations: {
+            select: {
+              relationshipType: true,
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastNamePaternal: true,
+                  lastNameMaternal: true,
+                  documentId: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      prisma.authorizedPickup.findMany({
+        where: { schoolId, studentId: enrollment.student.id, isActive: true },
+        select: {
+          id: true,
+          fullName: true,
+          relationship: true,
+          documentType: true,
+          documentId: true,
+          photoFileUrl: true,
+        },
+        orderBy: { fullName: 'asc' },
+      }),
+    ]);
+
+    const guardians = (student?.familyRelations || [])
+      .filter((fr) => fr.user)
+      .map((fr) => {
+        const u = fr.user!;
+        const fullName = `${u.firstName} ${u.lastNamePaternal} ${u.lastNameMaternal || ''}`.trim();
+        return {
+          id: u.id,
+          fullName,
+          relationshipType: fr.relationshipType,
+          documentId: u.documentId,
+        };
+      });
+
+    return {
+      student: {
+        id: student?.id,
+        fullName: `${student?.firstNames} ${student?.lastNamePaternal} ${student?.lastNameMaternal || ''}`.trim(),
+        documentId: student?.documentId,
+        classroom: `${enrollment.classroom.grade}° "${enrollment.classroom.section}" - ${enrollment.classroom.educationLevel}`,
+        educationLevel: enrollment.classroom.educationLevel,
+      },
+      todayAttendance: attendance
+        ? {
+            id: attendance.id,
+            status: attendance.status,
+            checkInTime: attendance.checkInTime,
+            checkOutTime: attendance.checkOutTime,
+            earlyLeaveReason: attendance.earlyLeaveReason,
+            pickedUpByName: attendance.pickedUpByName,
+          }
+        : null,
+      guardians,
+      authorizedPickups,
+    };
+  }
+
+  async checkout(schoolId: string, dto: CheckoutDto, userContext: AttendanceUserContext) {
+    const enrollment = await this.attendanceRepository.findActiveEnrollmentByCode(schoolId, dto.code);
+    if (!enrollment) {
+      throw new AppError(`No se encontró estudiante con matrícula activa para el código: ${dto.code}`, 404);
+    }
+
+    if (userContext.role === 'TEACHER' && enrollment.classroom?.tutorTeacherId !== userContext.userId) {
+      throw new AppError('Solo el tutor de aula asignado o personal administrativo puede registrar la salida de este estudiante.', 403);
+    }
+
+    const today = getSchoolNow().dateObj;
+    const attendance = await this.attendanceRepository.findAttendanceByDate(schoolId, enrollment.id, today);
+
+    if (!attendance || !['PRESENT', 'LATE_JUSTIFIED', 'LATE_UNJUSTIFIED'].includes(attendance.status)) {
+      throw new AppError('El estudiante no registra ingreso hoy.', 409);
+    }
+
+    if (attendance.checkOutTime) {
+      const outTime = new Date(attendance.checkOutTime).toLocaleTimeString('es-PE', {
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'America/Lima',
+      });
+      throw new AppError(`El estudiante ya registró su salida a las ${outTime}.`, 409);
+    }
+
+    if (dto.pickupType === 'SELF' && enrollment.classroom.educationLevel !== 'SECONDARY') {
+      throw new AppError('En Inicial y Primaria el estudiante debe ser recogido por un apoderado o una persona autorizada.', 422);
+    }
+
+    let pickedUpByName: string;
+    let pickedUpByDocument: string;
+    let relationshipLabel = '';
+
+    if (dto.pickupType === 'GUARDIAN') {
+      if (!dto.pickupPersonId) throw new AppError('Debes seleccionar el apoderado que recoge.', 422);
+      const relation = await prisma.familyRelationship.findFirst({
+        where: { studentId: enrollment.student.id, userId: dto.pickupPersonId },
+        include: { user: true },
+      });
+      if (!relation || !relation.user) {
+        throw new AppError('Persona no autorizada para recoger a este estudiante.', 422);
+      }
+      pickedUpByName = `${relation.user.firstName} ${relation.user.lastNamePaternal} ${relation.user.lastNameMaternal || ''}`.trim();
+      pickedUpByDocument = relation.user.documentId || '';
+      relationshipLabel = relation.relationshipType;
+    } else if (dto.pickupType === 'AUTHORIZED') {
+      if (!dto.pickupPersonId) throw new AppError('Debes seleccionar la persona autorizada que recoge.', 422);
+      const authPickup = await prisma.authorizedPickup.findFirst({
+        where: { id: dto.pickupPersonId, studentId: enrollment.student.id, schoolId, isActive: true },
+      });
+      if (!authPickup) {
+        throw new AppError('Persona no autorizada para recoger a este estudiante.', 422);
+      }
+      pickedUpByName = authPickup.fullName;
+      pickedUpByDocument = authPickup.documentId;
+      relationshipLabel = authPickup.relationship;
+    } else {
+      // SELF
+      pickedUpByName = `${enrollment.student.firstNames} ${enrollment.student.lastNamePaternal}`;
+      pickedUpByDocument = enrollment.student.documentId;
+      relationshipLabel = 'Por su cuenta';
+    }
+
+    const checkOutTime = new Date();
+    const updated = await prisma.attendance.update({
+      where: { id: attendance.id },
+      data: {
+        checkOutTime,
+        checkOutById: userContext.userId,
+        pickupPersonId: dto.pickupType === 'SELF' ? null : dto.pickupPersonId,
+        pickedUpByName,
+        pickedUpByDocument,
+        earlyLeaveReason: dto.earlyLeaveReason?.trim() || null,
+      },
+    });
+
+    const studentName = `${enrollment.student.firstNames} ${enrollment.student.lastNamePaternal}`;
+    const timeStr = checkOutTime.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Lima' });
+    const pickupDetail = dto.pickupType === 'SELF' ? ' por su cuenta' : `, recogido(a) por ${pickedUpByName} (${relationshipLabel})`;
+
+    const parentRelations = await prisma.familyRelationship.findMany({
+      where: { studentId: enrollment.student.id },
+      select: { userId: true },
+    });
+    const userIds = Array.from(
+      new Set(
+        parentRelations
+          .map((r: { userId: string | null }) => r.userId)
+          .filter((uid): uid is string => Boolean(uid)),
+      ),
+    );
+    for (const userId of userIds) {
+      await notificationService
+        .createNotification(schoolId, {
+          userId,
+          title: 'Salida del colegio',
+          message: `${studentName} salió a las ${timeStr}${pickupDetail}.`,
+          type: 'ATTENDANCE',
+          link: '/attendance',
+        })
+        .catch((err) => console.error('[Checkout notify]', err));
+    }
+
+    return {
+      message: `Salida registrada exitosamente para ${studentName}.`,
+      attendance: updated,
+    };
   }
 
   /**

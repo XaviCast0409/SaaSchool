@@ -7,6 +7,8 @@ import {
   Filter,
   Calendar,
   FileText,
+  UserCheck,
+  Info,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +17,7 @@ import { useParentStore } from '@/store/useParentStore';
 import { useGetMyChildren } from '@/features/students/api/useStudents';
 import { useAttendanceByEnrollment } from '@/features/attendance/api/useAttendance';
 import { useJustifications } from '@/features/attendance/api/useJustifications';
+import { usePickups } from '@/features/attendance/api/usePickups';
 import { JustifyAbsenceModal } from '@/features/attendance/components/JustifyAbsenceModal';
 import { AttendanceStatusBadge } from '@/features/attendance/components/AttendanceStatusBadge';
 import { ChildSwitcher } from './ChildSwitcher';
@@ -45,6 +48,8 @@ export const ParentAttendanceView: React.FC = () => {
 
   const { data: justificationsData, isLoading: loadingJustifications } =
     useJustifications(enrollmentId ? { enrollmentId } : {});
+
+  const { data: authorizedPickups = [] } = usePickups(activeChild.id);
 
   // Detección de parámetros en URL para auto-abrir modal de justificación
   useEffect(() => {
@@ -391,6 +396,55 @@ export const ParentAttendanceView: React.FC = () => {
             })}
           </div>
         )}
+      </div>
+
+      {/* 7. Sección: Personas autorizadas a recoger */}
+      <div className="rounded-2xl bg-card border border-border shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-border bg-muted/30 flex items-center justify-between">
+          <h3 className="font-extrabold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+            <UserCheck className="w-4 h-4 text-primary" />
+            <span>Personas autorizadas a recoger a {activeChild.firstNames} ({authorizedPickups.length})</span>
+          </h3>
+        </div>
+
+        {authorizedPickups.length === 0 ? (
+          <div className="p-6 text-center text-muted-foreground text-xs">
+            No hay personas adicionales autorizadas registradas para recoger al alumno.
+          </div>
+        ) : (
+          <div className="divide-y divide-border/60">
+            {authorizedPickups.map((p) => (
+              <div
+                key={p.id}
+                className="p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:bg-muted/20 transition-colors"
+              >
+                <div className="space-y-0.5 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs sm:text-sm font-bold text-foreground truncate">
+                      {p.fullName}
+                    </span>
+                    <Badge variant="outline" className="text-[10px] text-emerald-600 bg-emerald-500/10 border-emerald-500/30">
+                      {p.relationship}
+                    </Badge>
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {p.documentType}: <strong className="text-foreground">{p.documentId}</strong>
+                    {p.cellphone && (
+                      <span className="ml-2">
+                        · Cel: <strong className="text-foreground">{p.cellphone}</strong>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="p-3 bg-muted/30 border-t border-border flex items-center gap-2 text-xs text-muted-foreground">
+          <Info className="w-3.5 h-3.5 text-primary shrink-0" />
+          <span>Para agregar o quitar personas autorizadas a recoger al estudiante, comunícate con Secretaría.</span>
+        </div>
       </div>
 
       {/* Modal para justificar inasistencia */}

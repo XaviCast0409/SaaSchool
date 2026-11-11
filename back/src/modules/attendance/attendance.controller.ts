@@ -17,6 +17,8 @@ import {
   listAlertsQuerySchema,
   attendAlertSchema,
   citeFamilyAlertSchema,
+  checkoutSchema,
+  checkoutPreviewSchema,
   attendanceSheetQuerySchema,
   saveAttendanceSheetSchema,
   upsertAttendanceScheduleConfigSchema,
@@ -455,5 +457,43 @@ export class AttendanceController {
       after: { citationDate: dto.citationDate, note: dto.note, incidentId: result.incident.id },
     });
     response.status(200).json({ status: 'success', data: result.alert });
+  };
+
+  /** GET /api/attendance/checkout/preview?code=... */
+  checkoutPreview = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const userContext = {
+      userId: request.user!.userId,
+      role: request.user!.role,
+      schoolId,
+    };
+    const { code } = checkoutPreviewSchema.parse(request.query);
+    const data = await this.attendanceService.checkoutPreview(schoolId, code, userContext);
+    response.status(200).json({ status: 'success', data });
+  };
+
+  /** POST /api/attendance/checkout */
+  checkout = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const userContext = {
+      userId: request.user!.userId,
+      role: request.user!.role,
+      schoolId,
+    };
+    const dto = checkoutSchema.parse(request.body);
+    const result = await this.attendanceService.checkout(schoolId, dto, userContext);
+    recordAudit(request, {
+      action: 'ATTENDANCE_CHECKOUT',
+      entity: 'Attendance',
+      entityId: result.attendance.id,
+      after: {
+        code: dto.code,
+        pickupType: dto.pickupType,
+        pickupPersonId: dto.pickupPersonId,
+        earlyLeaveReason: dto.earlyLeaveReason,
+        checkOutTime: result.attendance.checkOutTime,
+      },
+    });
+    response.status(200).json({ status: 'success', data: result });
   };
 }

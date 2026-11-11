@@ -25,6 +25,8 @@ export interface AttendanceSheetStudentItem {
   attendanceId: string | null;
   status: AttendanceStatus | null;
   checkInTime: Date | null;
+  checkOutTime: Date | null;
+  pickedUpByName: string | null;
   origin: AttendanceOrigin | null;
   notes: string | null;
 }
@@ -496,6 +498,8 @@ export class AttendanceRepository {
         attendanceId: att?.id || null,
         status: att?.status || null,
         checkInTime: att?.checkInTime || null,
+        checkOutTime: att?.checkOutTime || null,
+        pickedUpByName: att?.pickedUpByName || null,
         origin: att?.origin || null,
         notes: att?.notes || null,
       };

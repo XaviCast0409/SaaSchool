@@ -468,6 +468,7 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
                 <th scope="col" className="p-3 w-12 text-center">#</th>
                 <th scope="col" className="p-3">Apellidos y Nombres</th>
                 <th scope="col" className="p-3 w-40 text-center">Portería / QR</th>
+                <th scope="col" className="p-3 w-32 text-center">Salida</th>
                 <th scope="col" className="p-3 text-center min-w-[280px]">Pase de Lista (1 Clic)</th>
                 <th scope="col" className="p-3 w-24 text-center">Obs.</th>
                 <th scope="col" className="p-3 w-28 text-center">Incidencia</th>
@@ -476,7 +477,7 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
             <tbody className="divide-y divide-border">
               {filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-muted-foreground text-sm">
+                  <td colSpan={7} className="py-12 text-center text-muted-foreground text-sm">
                     {searchFilter
                       ? 'No hay estudiantes que coincidan con la búsqueda.'
                       : 'No hay estudiantes activos matriculados en esta sección.'}
@@ -536,6 +537,27 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
                             <AlertTriangle className="w-3 h-3 text-amber-500" />
                             <span>No pasó QR</span>
                           </Badge>
+                        ) : (
+                          <span className="text-muted-foreground/40 font-mono text-xs">—</span>
+                        )}
+                      </td>
+
+                      {/* Salida */}
+                      <td className="p-3 text-center whitespace-nowrap">
+                        {student.checkOutTime ? (
+                          <div>
+                            <span className="font-semibold text-foreground text-xs block">
+                              {formatPeruTime(student.checkOutTime)}
+                            </span>
+                            {student.pickedUpByName && (
+                              <span
+                                className="text-[10px] text-muted-foreground block truncate max-w-[120px] mx-auto"
+                                title={student.pickedUpByName}
+                              >
+                                {student.pickedUpByName}
+                              </span>
+                            )}
+                          </div>
                         ) : (
                           <span className="text-muted-foreground/40 font-mono text-xs">—</span>
                         )}
