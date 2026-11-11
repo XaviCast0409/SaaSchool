@@ -1,10 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   CalendarCheck,
   Clock,
   AlertCircle,
   Filter,
   Calendar,
+  FileText,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -12,14 +14,27 @@ import { Button } from '@/components/ui/button';
 import { useParentStore } from '@/store/useParentStore';
 import { useGetMyChildren } from '@/features/students/api/useStudents';
 import { useAttendanceByEnrollment } from '@/features/attendance/api/useAttendance';
+import { useJustifications } from '@/features/attendance/api/useJustifications';
+import { JustifyAbsenceModal } from '@/features/attendance/components/JustifyAbsenceModal';
 import { AttendanceStatusBadge } from '@/features/attendance/components/AttendanceStatusBadge';
 import { ChildSwitcher } from './ChildSwitcher';
 import { AttendanceMetricsCards } from './AttendanceMetricsCards';
 
+const REASON_LABELS: Record<string, string> = {
+  MEDICAL: 'Salud / cita médica',
+  FAMILY: 'Motivo familiar',
+  BEREAVEMENT: 'Duelo',
+  TRANSPORT: 'Problema de transporte',
+  OTHER: 'Otro motivo',
+};
+
 export const ParentAttendanceView: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { selectedChildId, setSelectedChildId } = useParentStore();
   const { data: children = [], isLoading: loadingChildren } = useGetMyChildren();
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalDefaultDate, setModalDefaultDate] = useState<string | undefined>(undefined);
 
   const activeChild =
     children.find((c) => c.id === selectedChildId) || children[0] || null;
@@ -27,6 +42,41 @@ export const ParentAttendanceView: React.FC = () => {
 
   const { data: records = [], isLoading: loadingRecords } =
     useAttendanceByEnrollment(enrollmentId);
+
+  const { data: justificationsData, isLoading: loadingJustifications } =
+    useJustifications(enrollmentId ? { enrollmentId } : {});
+
+  // Detección de parámetros en URL para auto-abrir modal de justificación
+  useEffect(() => {
+    const justifyEnrollmentId = searchParams.get('justify');
+    const justifyDate = searchParams.get('date');
+    if (justifyEnrollmentId) {
+      const targetChild = children.find((c) => c.activeEnrollment?.id === justifyEnrollmentId);
+      if (targetChild && targetChild.id !== activeChild?.id) {
+        setSelectedChildId(targetChild.id);
+      }
+      setModalDefaultDate(justifyDate || undefined);
+      setModalOpen(true);
+    }
+  }, [searchParams, children, activeChild?.id, setSelectedChildId]);
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setModalDefaultDate(undefined);
+    if (searchParams.has('justify') || searchParams.has('date')) {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('justify');
+      nextParams.delete('date');
+      setSearchParams(nextParams, { replace: true });
+    }
+  };
+
+  const isWithinLast30Days = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const now = new Date();
+    const diffDays = (now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
+    return diffDays >= 0 && diffDays <= 30;
+  };
 
   // Conteo por estado para los chips de filtro
   const counts = useMemo(() => {
@@ -103,6 +153,18 @@ export const ParentAttendanceView: React.FC = () => {
             Monitoreo diario de puntualidad y registro oficial de ingreso escolar.
           </p>
         </div>
+
+        <Button
+          size="sm"
+          onClick={() => {
+            setModalDefaultDate(undefined);
+            setModalOpen(true);
+          }}
+          className="rounded-xl text-xs font-bold gap-1.5 shrink-0"
+        >
+          <FileText className="w-3.5 h-3.5" />
+          <span>Justificar una inasistencia</span>
+        </Button>
       </div>
 
       {/* 2. Selector Multi-Hijo si aplica */}
@@ -175,6 +237,10 @@ export const ParentAttendanceView: React.FC = () => {
           <div className="divide-y divide-border/60">
             {filteredRecords.map((item) => {
               const recordDate = new Date(item.date);
+              const canJustify =
+                (item.status === 'ABSENT_UNJUSTIFIED' || item.status === 'LATE_UNJUSTIFIED') &&
+                isWithinLast30Days(item.date);
+
               return (
                 <div
                   key={item.id}
@@ -183,7 +249,7 @@ export const ParentAttendanceView: React.FC = () => {
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-10 h-10 rounded-xl bg-secondary/80 border border-border/60 flex flex-col items-center justify-center text-center shrink-0 shadow-sm">
                       <span className="text-[9px] uppercase font-bold text-muted-foreground leading-none">
-                        {recordDate.toLocaleDateString('es-PE', { month: 'short' })}
+                        {recordDate.toLocaleDateString('es-PE', { month: 'short', timeZone: 'America/Lima' })}
                       </span>
                       <span className="text-sm font-black text-foreground leading-none mt-0.5">
                         {recordDate.getUTCDate()}
@@ -197,13 +263,14 @@ export const ParentAttendanceView: React.FC = () => {
                           day: 'numeric',
                           month: 'long',
                           year: 'numeric',
+                          timeZone: 'America/Lima',
                         })}
                       </span>
                       <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5 flex-wrap">
                         {item.checkInTime ? (
                           <span className="flex items-center gap-1 font-semibold text-foreground">
                             <Clock className="w-3 h-3 text-primary" />
-                            Ingreso: {new Date(item.checkInTime).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
+                            Ingreso: {new Date(item.checkInTime).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Lima' })}
                           </span>
                         ) : (
                           <span>Marcado en lista</span>
@@ -220,8 +287,22 @@ export const ParentAttendanceView: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="shrink-0">
+                  <div className="shrink-0 flex items-center gap-2">
                     <AttendanceStatusBadge status={item.status} />
+                    {canJustify && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setModalDefaultDate(item.date.slice(0, 10));
+                          setModalOpen(true);
+                        }}
+                        className="h-7 text-[11px] font-bold rounded-lg gap-1 border-primary/30 text-primary hover:bg-primary/10"
+                      >
+                        <FileText className="w-3 h-3" />
+                        <span>Justificar</span>
+                      </Button>
+                    )}
                   </div>
                 </div>
               );
@@ -229,6 +310,98 @@ export const ParentAttendanceView: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* 6. Sección: Mis Justificaciones */}
+      <div className="rounded-2xl bg-card border border-border shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-border bg-muted/30 flex items-center justify-between">
+          <h3 className="font-extrabold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+            <FileText className="w-4 h-4 text-primary" />
+            <span>Mis Justificaciones ({justificationsData?.data?.length ?? 0})</span>
+          </h3>
+        </div>
+
+        {loadingJustifications ? (
+          <div className="p-8 text-center text-xs text-muted-foreground">
+            Cargando justificaciones...
+          </div>
+        ) : !justificationsData?.data || justificationsData.data.length === 0 ? (
+          <div className="p-8 text-center text-muted-foreground text-xs">
+            No tienes solicitudes de justificación registradas para este estudiante.
+          </div>
+        ) : (
+          <div className="divide-y divide-border/60">
+            {justificationsData.data.map((j) => {
+              const fromStr = new Date(j.dateFrom).toLocaleDateString('es-PE', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                timeZone: 'America/Lima',
+              });
+              const toStr = new Date(j.dateTo).toLocaleDateString('es-PE', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                timeZone: 'America/Lima',
+              });
+              const dateDisplay = fromStr === toStr ? fromStr : `${fromStr} – ${toStr}`;
+
+              return (
+                <div
+                  key={j.id}
+                  className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-muted/20 transition-colors"
+                >
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs sm:text-sm font-bold text-foreground">
+                        {dateDisplay}
+                      </span>
+                      <span className="text-[11px] font-medium text-muted-foreground">
+                        • {REASON_LABELS[j.reason] || j.reason}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      {j.description}
+                    </p>
+                    {j.reviewNote && j.status === 'REJECTED' && (
+                      <p className="text-[11px] text-destructive font-medium">
+                        Nota del colegio: {j.reviewNote}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="shrink-0 flex items-center gap-2">
+                    {j.status === 'PENDING' && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                        Pendiente
+                      </span>
+                    )}
+                    {j.status === 'APPROVED' && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        Aprobada
+                      </span>
+                    )}
+                    {j.status === 'REJECTED' && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-destructive/15 text-destructive border border-destructive/20">
+                        Rechazada
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Modal para justificar inasistencia */}
+      <JustifyAbsenceModal
+        open={modalOpen}
+        onClose={handleCloseModal}
+        enrollmentId={enrollmentId || ''}
+        studentName={activeChild.firstNames}
+        defaultDate={modalDefaultDate}
+      />
     </div>
   );
 };
+

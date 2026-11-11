@@ -24,6 +24,7 @@ import {
   Laptop,
   FileSpreadsheet,
   History,
+  FileCheck2,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/button';
@@ -109,6 +110,13 @@ export const DashboardLayout: React.FC = () => {
           label: 'Asistencia y Kiosco QR',
           path: '/attendance',
           icon: CalendarCheck,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Justificaciones',
+          path: '/attendance-justifications',
+          icon: FileCheck2,
           roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
           minPlan: 'BASIC',
         },

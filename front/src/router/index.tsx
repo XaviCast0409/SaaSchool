@@ -23,6 +23,11 @@ const GradesPage = lazy(() =>
 const AttendancePage = lazy(() =>
   import('@/features/attendance/pages/AttendancePage').then((m) => ({ default: m.AttendancePage })),
 );
+const AttendanceJustificationsPage = lazy(() =>
+  import('@/features/attendance/pages/AttendanceJustificationsPage').then((m) => ({
+    default: m.AttendanceJustificationsPage,
+  })),
+);
 const DirectoryPage = lazy(() =>
   import('@/features/users/pages/DirectoryPage').then((m) => ({ default: m.DirectoryPage })),
 );
@@ -241,6 +246,14 @@ export const AppRouter: React.FC = () => {
               element={
                 <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT']}>
                   <AttendancePage />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/attendance-justifications"
+              element={
+                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER']}>
+                  <AttendanceJustificationsPage />
                 </RoleGuard>
               }
             />
