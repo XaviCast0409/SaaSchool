@@ -15,6 +15,7 @@ import { ChildGradesPreviewCard } from '../components/ChildGradesPreviewCard';
 import { ChildVirtualClassroomCard } from '../components/ChildVirtualClassroomCard';
 import { StudentDashboardView } from '../components/StudentDashboardView';
 import { ChildIncidentsCard } from '@/features/incidents/components/ChildIncidentsCard';
+import { NextDayCard } from '@/features/schedule/components/NextDayCard';
 
 export const ParentPortalPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -182,8 +183,9 @@ export const ParentPortalPage: React.FC = () => {
             />
           </div>
 
-          {/* Columna Derecha: Aula Virtual, Comunicados y Libreta de Notas */}
+          {/* Columna Derecha: Qué toca mañana, Aula Virtual, Comunicados y Libreta de Notas */}
           <div className="space-y-5">
+            <NextDayCard studentId={activeChild.id} compact />
             <ChildVirtualClassroomCard />
             <ChildAnnouncementsCard />
             <ChildGradesPreviewCard />

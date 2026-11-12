@@ -108,6 +108,12 @@ const MessagesPage = lazy(() =>
 const MeetingsPage = lazy(() =>
   import('@/features/meetings/pages/MeetingsPage').then((m) => ({ default: m.MeetingsPage })),
 );
+const SchedulePage = lazy(() =>
+  import('@/features/schedule/pages/SchedulePage').then((m) => ({ default: m.SchedulePage })),
+);
+const CalendarPage = lazy(() =>
+  import('@/features/calendar/pages/CalendarPage').then((m) => ({ default: m.CalendarPage })),
+);
 const AuditLogsPage = lazy(() =>
   import('@/features/audit-logs/pages/AuditLogsPage').then((m) => ({ default: m.AuditLogsPage })),
 );
@@ -397,6 +403,22 @@ export const AppRouter: React.FC = () => {
               element={
                 <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
                   <EvaluationCriteriaPage />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/schedule"
+              element={
+                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT']}>
+                  <SchedulePage />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/calendar"
+              element={
+                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT']}>
+                  <CalendarPage />
                 </RoleGuard>
               }
             />

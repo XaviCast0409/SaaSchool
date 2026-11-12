@@ -31,6 +31,8 @@ import {
   BellRing,
   MessagesSquare,
   CalendarClock,
+  CalendarDays,
+  Clock3,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/button';
@@ -162,6 +164,20 @@ export const DashboardLayout: React.FC = () => {
           path: '/meetings',
           icon: CalendarClock,
           roles: ['SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Calendario escolar',
+          path: '/calendar',
+          icon: CalendarDays,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Horario de clases',
+          path: '/schedule',
+          icon: Clock3,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
           minPlan: 'BASIC',
         },
         {
@@ -329,6 +345,20 @@ export const DashboardLayout: React.FC = () => {
           minPlan: 'BASIC',
         },
         {
+          label: 'Horario',
+          path: '/schedule',
+          icon: Clock3,
+          roles: ['PARENT'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Calendario',
+          path: '/calendar',
+          icon: CalendarDays,
+          roles: ['PARENT'],
+          minPlan: 'BASIC',
+        },
+        {
           label: 'Mensajes',
           path: '/messages',
           icon: MessagesSquare,
@@ -403,6 +433,20 @@ export const DashboardLayout: React.FC = () => {
           path: '/attendance',
           icon: CalendarCheck,
           roles: ['STUDENT', 'PARENT'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Mi horario',
+          path: '/schedule',
+          icon: Clock3,
+          roles: ['STUDENT'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Calendario',
+          path: '/calendar',
+          icon: CalendarDays,
+          roles: ['STUDENT'],
           minPlan: 'BASIC',
         },
         {

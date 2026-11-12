@@ -40,6 +40,9 @@ import { academicRouter } from './modules/academic/academic.routes';
 import { automationRouter } from './modules/automations/automation.routes';
 import { messagingRouter } from './modules/messaging/messaging.routes';
 import { meetingRouter } from './modules/meetings/meeting.routes';
+import { scheduleRouter } from './modules/schedule/schedule.routes';
+import { calendarRouter } from './modules/calendar/calendar.routes';
+import { calendarFeedRouter } from './modules/calendar/calendar-feed.routes';
 import { notificationPreferenceRouter } from './modules/notifications/notification-preference.routes';
 
 const app = express();
@@ -112,6 +115,10 @@ app.use(`${API_PREFIX}/notifications`, notificationRouter);
 app.use(`${API_PREFIX}/automations`, automationRouter);
 app.use(`${API_PREFIX}/messages`, messagingRouter);
 app.use(`${API_PREFIX}/meetings`, meetingRouter);
+app.use(`${API_PREFIX}/schedule`, scheduleRouter);
+app.use(`${API_PREFIX}/calendar`, calendarRouter);
+// Pública con firma HMAC (suscripción .ics desde Google Calendar / iPhone)
+app.use(`${API_PREFIX}/calendar-feed`, fileContentRateLimiter, calendarFeedRouter);
 app.use(`${API_PREFIX}/uploads`, uploadRouter);
 app.use(`${API_PREFIX}/course-contents`, courseContentRouter);
 app.use(`${API_PREFIX}/academic-reports`, academicReportRouter);

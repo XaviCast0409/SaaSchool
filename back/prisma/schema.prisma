@@ -208,6 +208,8 @@ model School {
   messages                  Message[]
   announcementResponses     AnnouncementResponse[]
   meetingSlots              MeetingSlot[]
+  scheduleBlocks            ScheduleBlock[]
+  events                    SchoolEvent[]
 }
 
 model User {
@@ -252,6 +254,7 @@ model User {
   announcementResponses  AnnouncementResponse[]
   meetingSlotsOwned      MeetingSlot[]           @relation("MeetingStaff")
   meetingSlotsBooked     MeetingSlot[]           @relation("MeetingParent")
+  createdEvents          SchoolEvent[]
   incidentsAuthored      StudentIncident[]       @relation("IncidentAuthor")
   periodStatusChanges    AcademicPeriodStatus[]  @relation("PeriodStatusChangedBy")
 
@@ -345,6 +348,7 @@ model AcademicYear {
   enrollments       Enrollment[]
   studyPlanCourses  StudyPlanCourse[]
   courseAssignments CourseAssignment[]
+  scheduleBlocks    ScheduleBlock[]
   periodStatuses    AcademicPeriodStatus[]
 }
 
@@ -364,6 +368,8 @@ model Classroom {
   assignments    CourseAssignment[]
   announcements  Announcement[]
   periodStatuses AcademicPeriodStatus[]
+  scheduleBlocks ScheduleBlock[]
+  events         SchoolEvent[]
 
   @@unique([schoolId, educationLevel, grade, section, shift])
   @@index([schoolId, educationLevel, grade])
@@ -512,6 +518,7 @@ model CourseAssignment {
   contents                 CourseContent[]
   courseAttendanceSessions CourseAttendanceSession[]
   criteria                 CourseAssignmentCriterion[]
+  scheduleBlocks           ScheduleBlock[]
   periodResults            CompetencePeriodResult[]
 
   @@unique([academicYearId, classroomId, areaId])
@@ -1296,4 +1303,68 @@ model MeetingSlot {
 
   @@index([schoolId, staffId, startsAt])
   @@index([schoolId, bookedByParentId])
+}
+
+// ==========================================
+// Horario y calendario (Fase 3)
+// ==========================================
+
+/// Bloque del horario semanal de un aula. Sin courseAssignmentId es un bloque libre (recreo, tutoría, refrigerio).
+model ScheduleBlock {
+  id                 String   @id @default(uuid())
+  schoolId           String
+  academicYearId     String
+  classroomId        String
+  courseAssignmentId String?
+  label              String? // Para bloques sin curso: "Recreo", "Refrigerio"
+  dayOfWeek          Int // 1 = lunes … 6 = sábado
+  startTime          String // 'HH:mm' hora de Lima
+  endTime            String
+  room               String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  school           School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYear     AcademicYear      @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  classroom        Classroom         @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  courseAssignment CourseAssignment? @relation(fields: [courseAssignmentId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, classroomId, dayOfWeek])
+  @@index([schoolId, academicYearId])
+  @@index([courseAssignmentId])
+}
+
+enum SchoolEventType {
+  EXAM // Evaluación
+  ACTIVITY // Actuación, paseo, deporte
+  MEETING // Reunión de padres
+  CIVIC // Fecha cívica
+  DEADLINE // Fecha límite (matrícula, entrega de documentos)
+  OTHER
+}
+
+/// Evento del calendario escolar. Sin classroomId ni educationLevel es para todo el colegio.
+model SchoolEvent {
+  id                String          @id @default(uuid())
+  schoolId          String
+  title             String
+  description       String?         @db.Text
+  type              SchoolEventType @default(OTHER)
+  startDate         DateTime        @db.Date
+  endDate           DateTime?       @db.Date
+  startTime         String? // 'HH:mm'; sin hora = todo el día
+  endTime           String?
+  location          String?
+  classroomId       String?
+  educationLevel    EducationLevel?
+  visibleToFamilies Boolean         @default(true)
+  createdById       String
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  school    School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classroom Classroom? @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  createdBy User       @relation(fields: [createdById], references: [id])
+
+  @@index([schoolId, startDate])
 }
