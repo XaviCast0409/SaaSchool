@@ -37,6 +37,8 @@ import { legalRouter } from './modules/legal/legal.routes';
 import { pickupRouter } from './modules/pickups/pickup.routes';
 import { courseAttendanceRouter } from './modules/course-attendance/course-attendance.routes';
 import { academicRouter } from './modules/academic/academic.routes';
+import { automationRouter } from './modules/automations/automation.routes';
+import { notificationPreferenceRouter } from './modules/notifications/notification-preference.routes';
 
 const app = express();
 
@@ -103,7 +105,9 @@ app.use(`${API_PREFIX}/attendance`, attendanceRouter);
 app.use(`${API_PREFIX}/family-relationships`, familyRelationshipRouter);
 app.use(`${API_PREFIX}/announcements`, announcementRouter);
 app.use(`${API_PREFIX}/course-assignments`, courseAssignmentRouter);
+app.use(`${API_PREFIX}/notifications/preferences`, notificationPreferenceRouter);
 app.use(`${API_PREFIX}/notifications`, notificationRouter);
+app.use(`${API_PREFIX}/automations`, automationRouter);
 app.use(`${API_PREFIX}/uploads`, uploadRouter);
 app.use(`${API_PREFIX}/course-contents`, courseContentRouter);
 app.use(`${API_PREFIX}/academic-reports`, academicReportRouter);

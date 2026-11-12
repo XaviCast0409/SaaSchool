@@ -94,6 +94,14 @@ const GradebookPage = lazy(() =>
 const IncidentsPage = lazy(() =>
   import('@/features/incidents/pages/IncidentsPage').then((m) => ({ default: m.IncidentsPage })),
 );
+const AutomationsPage = lazy(() =>
+  import('@/features/automations/pages/AutomationsPage').then((m) => ({ default: m.AutomationsPage })),
+);
+const NotificationPreferencesPage = lazy(() =>
+  import('@/features/notifications/pages/NotificationPreferencesPage').then((m) => ({
+    default: m.NotificationPreferencesPage,
+  })),
+);
 const AuditLogsPage = lazy(() =>
   import('@/features/audit-logs/pages/AuditLogsPage').then((m) => ({ default: m.AuditLogsPage })),
 );
@@ -383,6 +391,22 @@ export const AppRouter: React.FC = () => {
               element={
                 <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
                   <EvaluationCriteriaPage />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/automations"
+              element={
+                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
+                  <AutomationsPage />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/notification-preferences"
+              element={
+                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT']}>
+                  <NotificationPreferencesPage />
                 </RoleGuard>
               }
             />

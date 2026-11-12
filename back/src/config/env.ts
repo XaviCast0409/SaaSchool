@@ -15,6 +15,8 @@ const envSchema = z.object({
   // URLs públicas
   CORS_ORIGINS: z.string().default('http://localhost:5173'),
   PUBLIC_API_URL: z.string().url().default('http://localhost:3000'),
+  // URL pública del frontend (enlaces en correos). Por defecto, el primer origen de CORS.
+  FRONTEND_URL: z.string().url().optional(),
 
   // Correo (Nodemailer). SMTP_USER/SMTP_PASS tienen prioridad; USER_EMAIL/PASS_EMAIL se mantienen por compatibilidad.
   SMTP_HOST: z.string().default('smtp.gmail.com'),
@@ -28,6 +30,11 @@ const envSchema = z.object({
   MAIL_FROM: z.string().optional(),
   USER_EMAIL: z.string().email().optional(),
   PASS_EMAIL: z.string().optional(),
+  // Tope diario de correos automáticos (Gmail personal ≈ 500/día)
+  MAIL_DAILY_LIMIT: z.coerce.number().int().positive().default(400),
+  // Programador de automatizaciones. Sin valor: activo solo en producción (evita enviar avisos
+  // reales desde desarrollo). 'true' lo fuerza en desarrollo; 'false' lo apaga (p. ej. segunda instancia).
+  AUTOMATIONS_ENABLED: z.enum(['true', 'false']).optional(),
 
   // Web Push (obligatorias, sin valores por defecto)
   VAPID_PUBLIC_KEY: z.string().min(20),
@@ -52,4 +59,10 @@ if (!parsedEnv.success) {
   process.exit(1);
 }
 
-export const env = parsedEnv.data;
+export const env = {
+  ...parsedEnv.data,
+  automationsEnabled:
+    parsedEnv.data.AUTOMATIONS_ENABLED !== undefined
+      ? parsedEnv.data.AUTOMATIONS_ENABLED === 'true'
+      : parsedEnv.data.NODE_ENV === 'production',
+};

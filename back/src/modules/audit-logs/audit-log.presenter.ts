@@ -84,6 +84,8 @@ export const ACTION_CATALOG: Record<string, { label: string; verb: string; categ
   USER_PASSWORD_RESET: { label: 'Clave restablecida', verb: 'restableció la contraseña de un usuario', category: 'USUARIOS' },
   // Colegio y convivencia
   SCHOOL_UPDATED: { label: 'Datos del colegio', verb: 'actualizó los datos del colegio', category: 'COLEGIO' },
+  AUTOMATION_UPDATED: { label: 'Automatización', verb: 'cambió una automatización', category: 'COLEGIO' },
+  AUTOMATION_RUN_MANUAL: { label: 'Ejecución manual', verb: 'ejecutó manualmente una automatización', category: 'COLEGIO' },
   CLASSROOM_CREATED: { label: 'Nueva aula', verb: 'creó un aula', category: 'COLEGIO' },
   CLASSROOMS_BULK_CREATED: { label: 'Aulas creadas', verb: 'creó varias aulas', category: 'COLEGIO' },
   CLASSROOM_UPDATED: { label: 'Edición de aula', verb: 'editó un aula', category: 'COLEGIO' },

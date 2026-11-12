@@ -27,6 +27,8 @@ import {
   AlertTriangle,
   ClipboardCheck,
   ClipboardList,
+  Bot,
+  BellRing,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/button';
@@ -269,6 +271,13 @@ export const DashboardLayout: React.FC = () => {
           icon: SlidersHorizontal,
           roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
           minPlan: 'PRO',
+        },
+        {
+          label: 'Automatizaciones',
+          path: '/automations',
+          icon: Bot,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
+          minPlan: 'BASIC',
         },
       ],
     },
@@ -548,6 +557,19 @@ export const DashboardLayout: React.FC = () => {
               <span>Ajustes del Colegio</span>
             </Button>
           )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full justify-start gap-2 text-xs rounded-xl"
+            onClick={() => {
+              navigate('/notification-preferences');
+              setIsMobileOpen(false);
+            }}
+          >
+            <BellRing className="w-4 h-4 text-primary" />
+            <span>Mis notificaciones</span>
+          </Button>
 
           <Button
             variant="outline"

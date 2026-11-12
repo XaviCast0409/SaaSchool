@@ -9,6 +9,7 @@ import { prisma } from './config/prisma';
 import { AttendanceService } from './modules/attendance/attendance.service';
 import { AttendanceRepository } from './modules/attendance/attendance.repository';
 import { initAttendanceAutoCloseCron } from './modules/attendance/attendance.cron';
+import { initAutomationScheduler } from './modules/automations/automation.scheduler';
 
 const startServer = async (): Promise<void> => {
   try {
@@ -20,6 +21,10 @@ const startServer = async (): Promise<void> => {
     const attendanceService = new AttendanceService(new AttendanceRepository());
     const stopAttendanceCron = initAttendanceAutoCloseCron(attendanceService);
 
+    // Automatizaciones (recordatorios, resúmenes y alertas): activas por defecto solo en producción
+    const stopAutomations = env.automationsEnabled ? initAutomationScheduler() : () => undefined;
+    console.log(`🤖 Automatizaciones: ${env.automationsEnabled ? 'activas' : 'desactivadas (AUTOMATIONS_ENABLED)'}`);
+
     const server = app.listen(env.PORT, '0.0.0.0', () => {
       console.log(`🚀 SaaSchool API corriendo en puerto ${env.PORT}`);
       console.log(`📋 Ambiente: ${env.NODE_ENV}`);
@@ -30,6 +35,7 @@ const startServer = async (): Promise<void> => {
     const shutdown = async (signal: string) => {
       console.log(`🛑 Señal ${signal} recibida. Cerrando conexiones limpiamente...`);
       stopAttendanceCron();
+      stopAutomations();
       server.close(async () => {
         await prisma.$disconnect();
         console.log('🔒 Conexiones cerradas. Servidor finalizado.');

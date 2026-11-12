@@ -2,7 +2,7 @@ import { formatDateOnly } from './timezone.util';
 import nodemailer, { type Transporter } from 'nodemailer';
 import { env } from '../config/env';
 
-const escapeHtml = (value: string): string =>
+export const escapeHtml = (value: string): string =>
   value
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')

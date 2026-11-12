@@ -104,3 +104,33 @@ export const useSendTestPushNotification = () => {
     },
   });
 };
+
+// ===== Preferencias de notificación =====
+
+export type NotificationKind = 'PAYMENT' | 'ATTENDANCE' | 'ANNOUNCEMENT' | 'ACADEMIC' | 'INCIDENT' | 'GENERAL';
+
+export interface NotificationPreferences {
+  mutedPush: NotificationKind[];
+  mutedEmail: NotificationKind[];
+  weeklyDigest: boolean;
+  quietFrom: string | null;
+  quietTo: string | null;
+}
+
+const PREFS_KEY = ['notification-preferences'];
+
+export const useNotificationPreferences = () =>
+  useQuery({
+    queryKey: PREFS_KEY,
+    queryFn: async () =>
+      (await api.get<{ data: NotificationPreferences }>('/notifications/preferences')).data.data,
+  });
+
+export const useSaveNotificationPreferences = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (prefs: NotificationPreferences) =>
+      (await api.put<{ data: NotificationPreferences }>('/notifications/preferences', prefs)).data.data,
+    onSuccess: (data) => queryClient.setQueryData(PREFS_KEY, data),
+  });
+};
