@@ -46,9 +46,3 @@ export function downloadQrPng(dataUrl: string, fileName: string) {
   document.body.removeChild(a);
 }
 
-/**
- * Imprime un elemento o contenedor específico mediante la ventana nativa del navegador.
- */
-export function triggerPrint() {
-  window.print();
-}

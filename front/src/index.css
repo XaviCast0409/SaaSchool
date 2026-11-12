@@ -80,28 +80,21 @@
   }
 }
 
+#print-root { display: none; }
+
 @media print {
-  body:has(.print-area) * {
-    visibility: hidden !important;
+  body.has-print-portal > *:not(#print-root) { display: none !important; }
+  body.has-print-portal #print-root { display: block !important; }
+  body { background: #fff !important; }
+  #print-root {
+    color: #000;
+    background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
-  .print-area,
-  .print-area * {
-    visibility: visible !important;
-  }
-  .print-area {
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
-    width: 100% !important;
-    margin: 0 !important;
-    padding: 20px !important;
-    background: white !important;
-    color: black !important;
-  }
-  .no-print {
-    display: none !important;
-  }
-  @page { size: A4; margin: 12mm; }
-  body { background: white !important; }
+  .no-print { display: none !important; }
   .break-after-page { break-after: page; }
+  .break-after-page:last-child { break-after: auto; }
+  .avoid-break { break-inside: avoid; }
+  @page { size: A4; margin: 12mm; } /* por defecto; usePrint lo sobrescribe */
 }

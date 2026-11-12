@@ -20,19 +20,6 @@ export const ReportActionToolbar: React.FC<ReportActionToolbarProps> = ({
   onExportExcel,
   isExporting = false,
 }) => {
-  const handleDefaultPrint = () => {
-    if (onPrint) {
-      onPrint();
-      return;
-    }
-    const originalTitle = document.title;
-    document.title = `${reportCode} - ${reportTitle}`;
-    window.print();
-    setTimeout(() => {
-      document.title = originalTitle;
-    }, 1500);
-  };
-
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-card border border-border rounded-xl shadow-sm mb-4 print:hidden">
       <div className="flex items-center gap-2">
@@ -61,15 +48,17 @@ export const ReportActionToolbar: React.FC<ReportActionToolbarProps> = ({
           </Button>
         )}
 
-        <Button
-          variant="default"
-          size="sm"
-          onClick={handleDefaultPrint}
-          className="gap-1.5 text-xs font-bold shadow-sm"
-        >
-          <Printer className="w-3.5 h-3.5" />
-          <span>Imprimir / PDF</span>
-        </Button>
+        {onPrint && (
+          <Button
+            variant="default"
+            size="sm"
+            onClick={onPrint}
+            className="gap-1.5 text-xs font-bold shadow-sm"
+          >
+            <Printer className="w-3.5 h-3.5" />
+            <span>Imprimir / PDF</span>
+          </Button>
+        )}
       </div>
     </div>
   );

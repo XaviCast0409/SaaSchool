@@ -37,6 +37,7 @@ import {
   exportFamiliesRelativesExcel,
   exportStudentBirthdaysExcel,
 } from '../utils/reportExcelExport';
+import { PrintPortal, usePrint } from '@/lib/print';
 
 export const AcademicReportsPage: React.FC = () => {
   const [selectedReportCode, setSelectedReportCode] = useState<ReportCode>('0021');
@@ -235,6 +236,16 @@ export const AcademicReportsPage: React.FC = () => {
     }
   };
 
+  const reportName = ALL_REPORTS_CATALOG.find((r) => r.code === selectedReportCode)?.name || 'Reporte';
+  const reportTitle = `${selectedReportCode} - ${reportName} - ${selectedGrade}Grado`;
+  const pageSize = pdfOrientation === 'Horizontal' ? 'A4 landscape' : 'A4 portrait';
+
+  const { print, isPrinting } = usePrint({
+    pageSize,
+    margin: '8mm',
+    title: reportTitle,
+  });
+
   // =========================================================================
   // ACCIÓN: GENERAR PDF / IMPRESIÓN OFICIAL
   // =========================================================================
@@ -243,16 +254,6 @@ export const AcademicReportsPage: React.FC = () => {
     const toastId = toast.loading('Preparando documento oficial PDF...');
 
     try {
-      // Inyectar regla de orientación en tiempo de ejecución
-      const existingStyle = document.getElementById('report-dynamic-print-style');
-      if (existingStyle) existingStyle.remove();
-
-      const style = document.createElement('style');
-      style.id = 'report-dynamic-print-style';
-      const sizeParam = pdfOrientation === 'Horizontal' ? 'A4 landscape' : 'A4 portrait';
-      style.innerHTML = `@page { size: ${sizeParam}; margin: 8mm; }`;
-      document.head.appendChild(style);
-
       // Asegurar que la consulta tenga datos actualizados
       if (selectedReportCode === '0021') await consolidatedQuery.refetch();
       else if (selectedReportCode === '0048') await meritClassroomQuery.refetch();
@@ -265,17 +266,8 @@ export const AcademicReportsPage: React.FC = () => {
       else if (selectedReportCode === '0003') await familiesRelativesQuery.refetch();
       else if (selectedReportCode === '0019') await studentBirthdaysQuery.refetch();
 
-      // Ajustar temporalmente el título del documento para el nombre del archivo PDF guardado
-      const originalTitle = document.title;
-      const reportName = ALL_REPORTS_CATALOG.find((r) => r.code === selectedReportCode)?.name || 'Reporte';
-      document.title = `${selectedReportCode} - ${reportName} - ${selectedGrade}Grado`;
-
       toast.dismiss(toastId);
-      window.print();
-
-      setTimeout(() => {
-        document.title = originalTitle;
-      }, 1500);
+      print();
     } catch {
       toast.dismiss(toastId);
       toast.error('Error al generar el documento para impresión.');
@@ -287,7 +279,7 @@ export const AcademicReportsPage: React.FC = () => {
   return (
     <div>
       {/* VISTA EN PANTALLA: Centro de Generación y Parámetros */}
-      <div className="print:hidden space-y-4">
+      <div className="space-y-4">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-foreground">
             Centro de Emisión de Reportes
@@ -317,44 +309,46 @@ export const AcademicReportsPage: React.FC = () => {
           onSelectPdfOrientation={setPdfOrientation}
           onGeneratePdf={handleGeneratePdf}
           onGenerateExcel={handleGenerateExcel}
-          isGeneratingPdf={isGeneratingPdf}
+          isGeneratingPdf={isGeneratingPdf || isPrinting}
           isGeneratingExcel={isGeneratingExcel}
         />
       </div>
 
-      {/* CONTENEDOR OCULTO EN PANTALLA / ACTIVO SOLO EN IMPRESIÓN OFICIAL (PDF) */}
-      <div className="hidden print:block">
-        {selectedReportCode === '0021' && consolidatedQuery.data && (
-          <ConsolidatedGradesReport data={consolidatedQuery.data} />
-        )}
-        {selectedReportCode === '0041' && draftRegisterQuery.data && (
-          <DraftRegisterReport data={draftRegisterQuery.data} />
-        )}
-        {selectedReportCode === '0048' && meritClassroomQuery.data && (
-          <MeritSalondReport data={meritClassroomQuery.data} />
-        )}
-        {selectedReportCode === '0049' && meritGradeQuery.data && (
-          <MeritGradeReport data={meritGradeQuery.data} />
-        )}
-        {selectedReportCode === '0030' && conductCommentsQuery.data && (
-          <ConductCommentsReport data={conductCommentsQuery.data} />
-        )}
-        {selectedReportCode === '0011' && classroomRosterQuery.data && (
-          <ClassroomRosterReport data={classroomRosterQuery.data} />
-        )}
-        {selectedReportCode === '0001' && familiesByStateQuery.data && (
-          <FamiliesByStateReport data={familiesByStateQuery.data} />
-        )}
-        {selectedReportCode === '0002' && familiesChildrenQuery.data && (
-          <FamiliesChildrenReport data={familiesChildrenQuery.data} />
-        )}
-        {selectedReportCode === '0003' && familiesRelativesQuery.data && (
-          <FamiliesRelativesReport data={familiesRelativesQuery.data} />
-        )}
-        {selectedReportCode === '0019' && studentBirthdaysQuery.data && (
-          <StudentBirthdaysReport data={studentBirthdaysQuery.data} />
-        )}
-      </div>
+      {/* CONTENEDOR DE IMPRESIÓN OFICIAL (PDF) */}
+      {isPrinting && (
+        <PrintPortal>
+          {selectedReportCode === '0021' && consolidatedQuery.data && (
+            <ConsolidatedGradesReport data={consolidatedQuery.data} />
+          )}
+          {selectedReportCode === '0041' && draftRegisterQuery.data && (
+            <DraftRegisterReport data={draftRegisterQuery.data} />
+          )}
+          {selectedReportCode === '0048' && meritClassroomQuery.data && (
+            <MeritSalondReport data={meritClassroomQuery.data} />
+          )}
+          {selectedReportCode === '0049' && meritGradeQuery.data && (
+            <MeritGradeReport data={meritGradeQuery.data} />
+          )}
+          {selectedReportCode === '0030' && conductCommentsQuery.data && (
+            <ConductCommentsReport data={conductCommentsQuery.data} />
+          )}
+          {selectedReportCode === '0011' && classroomRosterQuery.data && (
+            <ClassroomRosterReport data={classroomRosterQuery.data} />
+          )}
+          {selectedReportCode === '0001' && familiesByStateQuery.data && (
+            <FamiliesByStateReport data={familiesByStateQuery.data} />
+          )}
+          {selectedReportCode === '0002' && familiesChildrenQuery.data && (
+            <FamiliesChildrenReport data={familiesChildrenQuery.data} />
+          )}
+          {selectedReportCode === '0003' && familiesRelativesQuery.data && (
+            <FamiliesRelativesReport data={familiesRelativesQuery.data} />
+          )}
+          {selectedReportCode === '0019' && studentBirthdaysQuery.data && (
+            <StudentBirthdaysReport data={studentBirthdaysQuery.data} />
+          )}
+        </PrintPortal>
+      )}
     </div>
   );
 };

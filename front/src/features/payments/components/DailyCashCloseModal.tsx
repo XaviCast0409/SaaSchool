@@ -13,18 +13,212 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDailyCashClose } from '../api/usePayments';
+import { formatPeruTime, getPeruToday } from '@/lib/dateUtils';
+import { PrintPortal, usePrint } from '@/lib/print';
 
 interface DailyCashCloseModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const getTodayLocal = (): string => {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+// "Hoy" según la hora peruana, aunque la computadora tenga otra zona horaria
+const getTodayLocal = (): string => getPeruToday();
+
+interface DailyCashCloseData {
+  totalCollected: number;
+  transactionsCount: number;
+  byMethod: {
+    CASH?: number;
+    BANK_TRANSFER?: number;
+    CREDIT_CARD?: number;
+  };
+  transactions: Array<{
+    id: string;
+    receiptNumber?: string | null;
+    paymentDate: string;
+    paymentMethod: string;
+    amountPaid: number;
+    obligation?: {
+      title?: string;
+      concept?: string;
+      enrollment?: {
+        student?: {
+          lastNamePaternal: string;
+          firstNames: string;
+        };
+        classroom?: {
+          grade: number;
+          section: string;
+        };
+      };
+    };
+  }>;
+}
+
+export const DailyCashCloseDocument: React.FC<{
+  data: DailyCashCloseData;
+  selectedDate: string;
+  isPrint?: boolean;
+}> = ({ data, selectedDate, isPrint }) => {
+  return (
+    <div className={isPrint ? 'p-6 space-y-6 text-black bg-white max-w-4xl mx-auto' : 'space-y-6'}>
+      {isPrint && (
+        <div className="border-b-2 border-black pb-3 text-center space-y-1">
+          <h1 className="text-xl font-black uppercase text-black">
+            Arqueo de Caja Diario
+          </h1>
+          <p className="text-xs text-gray-700">
+            Fecha de Arqueo: <strong>{selectedDate}</strong>
+          </p>
+        </div>
+      )}
+
+      {/* Tarjetas de Balance por Método */}
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+        {/* Total Recaudado */}
+        <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 space-y-1">
+          <div className="flex items-center justify-between text-xs font-bold text-primary uppercase">
+            <span>Total Recaudado</span>
+            <Receipt className="w-4 h-4" />
+          </div>
+          <p className="text-xl sm:text-2xl font-black text-foreground">
+            S/ {(data.totalCollected || 0).toFixed(2)}
+          </p>
+          <p className="text-[11px] text-muted-foreground">
+            {data.transactionsCount || 0} operaciones
+          </p>
+        </div>
+
+        {/* Efectivo */}
+        <div className="p-4 rounded-xl bg-card border border-border space-y-1">
+          <div className="flex items-center justify-between text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase">
+            <span>Efectivo</span>
+            <Banknote className="w-4 h-4" />
+          </div>
+          <p className="text-lg font-black text-foreground">
+            S/ {(data.byMethod?.CASH || 0).toFixed(2)}
+          </p>
+          <p className="text-[11px] text-muted-foreground">Caja física</p>
+        </div>
+
+        {/* Transferencia */}
+        <div className="p-4 rounded-xl bg-card border border-border space-y-1">
+          <div className="flex items-center justify-between text-xs font-bold text-blue-600 dark:text-blue-400 uppercase">
+            <span>Transferencia</span>
+            <Building2 className="w-4 h-4" />
+          </div>
+          <p className="text-lg font-black text-foreground">
+            S/ {(data.byMethod?.BANK_TRANSFER || 0).toFixed(2)}
+          </p>
+          <p className="text-[11px] text-muted-foreground">Bancos / Depósitos</p>
+        </div>
+
+        {/* Tarjeta */}
+        <div className="p-4 rounded-xl bg-card border border-border space-y-1">
+          <div className="flex items-center justify-between text-xs font-bold text-purple-600 dark:text-purple-400 uppercase">
+            <span>Tarjeta</span>
+            <CreditCard className="w-4 h-4" />
+          </div>
+          <p className="text-lg font-black text-foreground">
+            S/ {(data.byMethod?.CREDIT_CARD || 0).toFixed(2)}
+          </p>
+          <p className="text-[11px] text-muted-foreground">POS / Débito / Crédito</p>
+        </div>
+      </div>
+
+      {/* Detalle de Cobros / Transacciones */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Transacciones Registradas ({data.transactions?.length || 0})
+          </h3>
+        </div>
+
+        {(!data.transactions || data.transactions.length === 0) ? (
+          <div className="py-12 text-center border-2 border-dashed border-border rounded-xl bg-card p-6">
+            <Receipt className="w-10 h-10 text-muted-foreground/40 mx-auto mb-2" />
+            <p className="text-xs font-semibold text-muted-foreground">
+              No se registraron cobros en la fecha seleccionada ({selectedDate}).
+            </p>
+          </div>
+        ) : (
+          <div className="border border-border rounded-xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-muted/50 border-b border-border text-muted-foreground font-semibold">
+                  <tr>
+                    <th className="p-2.5">Recibo / Código</th>
+                    <th className="p-2.5">Estudiante / Aula</th>
+                    <th className="p-2.5">Concepto</th>
+                    <th className="p-2.5">Método</th>
+                    <th className="p-2.5 text-right">Monto</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {data.transactions.map((tx) => {
+                    const student = tx.obligation?.enrollment?.student;
+                    const studentName = student
+                      ? `${student.lastNamePaternal} ${student.firstNames}`
+                      : '—';
+                    const classroom = tx.obligation?.enrollment?.classroom;
+                    const classroomLabel = classroom
+                      ? `${classroom.grade}° "${classroom.section}"`
+                      : '';
+
+                    return (
+                      <tr key={tx.id} className="hover:bg-muted/30 transition-colors">
+                        <td className="p-2.5">
+                          <div className="font-mono font-bold text-foreground">
+                            {tx.receiptNumber || '—'}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {formatPeruTime(tx.paymentDate, {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </div>
+                        </td>
+                        <td className="p-2.5">
+                          <div className="font-semibold text-foreground truncate max-w-[180px]">
+                            {studentName}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {classroomLabel}
+                          </div>
+                        </td>
+                        <td className="p-2.5">
+                          <div className="font-medium text-foreground">
+                            {tx.obligation?.title || 'Obligación'}
+                          </div>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <Badge variant="secondary" className="text-[9px] px-1.5 py-0 font-bold uppercase tracking-wider">
+                              {tx.obligation?.concept || 'GENERAL'}
+                            </Badge>
+                          </div>
+                        </td>
+                        <td className="p-2.5">
+                          <Badge variant="outline" className="text-[10px]">
+                            {tx.paymentMethod === 'CASH'
+                              ? 'Efectivo'
+                              : tx.paymentMethod === 'BANK_TRANSFER'
+                              ? 'Transferencia'
+                              : 'Tarjeta'}
+                          </Badge>
+                        </td>
+                        <td className="p-2.5 text-right font-black text-foreground">
+                          S/ {tx.amountPaid.toFixed(2)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export const DailyCashCloseModal: React.FC<DailyCashCloseModalProps> = ({ isOpen, onClose }) => {
@@ -38,11 +232,13 @@ export const DailyCashCloseModal: React.FC<DailyCashCloseModalProps> = ({ isOpen
 
   const { data, isLoading, refetch, isFetching } = useDailyCashClose(selectedDate);
 
-  if (!isOpen) return null;
+  const { print, isPrinting } = usePrint({
+    pageSize: 'A4 portrait',
+    margin: '10mm',
+    title: `Cierre_Caja_${selectedDate}`,
+  });
 
-  const handlePrint = () => {
-    window.print();
-  };
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
@@ -67,7 +263,8 @@ export const DailyCashCloseModal: React.FC<DailyCashCloseModalProps> = ({ isOpen
             <Button
               variant="outline"
               size="sm"
-              onClick={handlePrint}
+              onClick={print}
+              disabled={isPrinting || isLoading || !data}
               className="gap-1.5 text-xs font-bold"
             >
               <Printer className="w-3.5 h-3.5" />
@@ -119,154 +316,9 @@ export const DailyCashCloseModal: React.FC<DailyCashCloseModalProps> = ({ isOpen
               </div>
               <Skeleton className="h-48 w-full rounded-xl" />
             </div>
-          ) : (
-            <>
-              {/* Tarjetas de Balance por Método */}
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                {/* Total Recaudado */}
-                <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 space-y-1">
-                  <div className="flex items-center justify-between text-xs font-bold text-primary uppercase">
-                    <span>Total Recaudado</span>
-                    <Receipt className="w-4 h-4" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-black text-foreground">
-                    S/ {(data?.totalCollected || 0).toFixed(2)}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {data?.transactionsCount || 0} operaciones
-                  </p>
-                </div>
-
-                {/* Efectivo */}
-                <div className="p-4 rounded-xl bg-card border border-border space-y-1">
-                  <div className="flex items-center justify-between text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase">
-                    <span>Efectivo</span>
-                    <Banknote className="w-4 h-4" />
-                  </div>
-                  <p className="text-lg font-black text-foreground">
-                    S/ {(data?.byMethod?.CASH || 0).toFixed(2)}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">Caja física</p>
-                </div>
-
-                {/* Transferencia */}
-                <div className="p-4 rounded-xl bg-card border border-border space-y-1">
-                  <div className="flex items-center justify-between text-xs font-bold text-blue-600 dark:text-blue-400 uppercase">
-                    <span>Transferencia</span>
-                    <Building2 className="w-4 h-4" />
-                  </div>
-                  <p className="text-lg font-black text-foreground">
-                    S/ {(data?.byMethod?.BANK_TRANSFER || 0).toFixed(2)}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">Bancos / Depósitos</p>
-                </div>
-
-                {/* Tarjeta */}
-                <div className="p-4 rounded-xl bg-card border border-border space-y-1">
-                  <div className="flex items-center justify-between text-xs font-bold text-purple-600 dark:text-purple-400 uppercase">
-                    <span>Tarjeta</span>
-                    <CreditCard className="w-4 h-4" />
-                  </div>
-                  <p className="text-lg font-black text-foreground">
-                    S/ {(data?.byMethod?.CREDIT_CARD || 0).toFixed(2)}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">POS / Débito / Crédito</p>
-                </div>
-              </div>
-
-              {/* Detalle de Cobros / Transacciones */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Transacciones Registradas ({data?.transactions?.length || 0})
-                  </h3>
-                </div>
-
-                {(!data?.transactions || data.transactions.length === 0) ? (
-                  <div className="py-12 text-center border-2 border-dashed border-border rounded-xl bg-card p-6">
-                    <Receipt className="w-10 h-10 text-muted-foreground/40 mx-auto mb-2" />
-                    <p className="text-xs font-semibold text-muted-foreground">
-                      No se registraron cobros en la fecha seleccionada ({selectedDate}).
-                    </p>
-                  </div>
-                ) : (
-                  <div className="border border-border rounded-xl overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs">
-                        <thead className="bg-muted/50 border-b border-border text-muted-foreground font-semibold">
-                          <tr>
-                            <th className="p-2.5">Recibo / Código</th>
-                            <th className="p-2.5">Estudiante / Aula</th>
-                            <th className="p-2.5">Concepto</th>
-                            <th className="p-2.5">Método</th>
-                            <th className="p-2.5 text-right">Monto</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                          {data.transactions.map((tx) => {
-                            const student = tx.obligation?.enrollment?.student;
-                            const studentName = student
-                              ? `${student.lastNamePaternal} ${student.firstNames}`
-                              : '—';
-                            const classroom = tx.obligation?.enrollment?.classroom;
-                            const classroomLabel = classroom
-                              ? `${classroom.grade}° "${classroom.section}"`
-                              : '';
-
-                            return (
-                              <tr key={tx.id} className="hover:bg-muted/30 transition-colors">
-                                <td className="p-2.5">
-                                  <div className="font-mono font-bold text-foreground">
-                                    {tx.receiptNumber || '—'}
-                                  </div>
-                                  <div className="text-[10px] text-muted-foreground">
-                                    {new Date(tx.paymentDate).toLocaleTimeString([], {
-                                      hour: '2-digit',
-                                      minute: '2-digit',
-                                    })}
-                                  </div>
-                                </td>
-                                <td className="p-2.5">
-                                  <div className="font-semibold text-foreground truncate max-w-[180px]">
-                                    {studentName}
-                                  </div>
-                                  <div className="text-[10px] text-muted-foreground">
-                                    {classroomLabel}
-                                  </div>
-                                </td>
-                                <td className="p-2.5">
-                                  <div className="font-medium text-foreground">
-                                    {tx.obligation?.title || 'Obligación'}
-                                  </div>
-                                  <div className="flex items-center gap-1.5 mt-0.5">
-                                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0 font-bold uppercase tracking-wider">
-                                      {tx.obligation?.concept || 'GENERAL'}
-                                    </Badge>
-                                  </div>
-                                </td>
-                                <td className="p-2.5">
-                                  <Badge variant="outline" className="text-[10px]">
-                                    {tx.paymentMethod === 'CASH'
-                                      ? 'Efectivo'
-                                      : tx.paymentMethod === 'BANK_TRANSFER'
-                                      ? 'Transferencia'
-                                      : 'Tarjeta'}
-                                  </Badge>
-                                </td>
-                                <td className="p-2.5 text-right font-black text-foreground">
-                                  S/ {tx.amountPaid.toFixed(2)}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
+          ) : data ? (
+            <DailyCashCloseDocument data={data} selectedDate={selectedDate} />
+          ) : null}
         </div>
 
         {/* Footer */}
@@ -276,6 +328,12 @@ export const DailyCashCloseModal: React.FC<DailyCashCloseModalProps> = ({ isOpen
           </Button>
         </div>
       </div>
+
+      {isPrinting && data && (
+        <PrintPortal>
+          <DailyCashCloseDocument data={data} selectedDate={selectedDate} isPrint />
+        </PrintPortal>
+      )}
     </div>
   );
 };

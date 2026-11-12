@@ -6,11 +6,11 @@ import type { ReportCard } from '../types';
 
 const SITUATION: Record<string, string> = { PROMOTED: 'Promovido(a)', RECOVERY: 'Requiere recuperación', RETAINED: 'Permanece en el grado', TRANSFERRED: 'Trasladado(a)', WITHDRAWN: 'Retirado(a)' };
 
-export const ReportCardSheet: React.FC<{ card: ReportCard; printable?: boolean }> = ({ card, printable }) => {
+export const ReportCardSheet: React.FC<{ card: ReportCard; printable?: boolean; className?: string }> = ({ card, printable, className = '' }) => {
   const periods = card.periods.filter((p) => card.visiblePeriods.includes(p.periodNumber));
   const showFinal = card.officialAreas.some((a) => a.competences.some((c) => c.finalLetter));
   return (
-    <article className={printable ? 'break-after-page bg-white p-6 text-[12px] text-black' : 'rounded-xl border border-border bg-card p-5 text-sm'}>
+    <article className={printable ? `bg-white p-6 text-[12px] text-black ${className}` : `rounded-xl border border-border bg-card p-5 text-sm ${className}`}>
       <header className="mb-4 flex items-start justify-between gap-4 border-b border-border pb-3">
         <div className="flex items-center gap-3">
           {card.school?.logoUrl && <img src={card.school.logoUrl} alt="" className="h-12 w-12 object-contain" />}

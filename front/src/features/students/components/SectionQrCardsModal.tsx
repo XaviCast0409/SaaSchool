@@ -13,13 +13,123 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
 import { useStudents } from '../api/useStudents';
+import type { Student } from '../types';
 import { generateStudentQrCode } from '@/features/attendance/utils/studentQrUtils';
+import { PrintPortal, usePrint } from '@/lib/print';
 
 interface SectionQrCardsModalProps {
   initialClassroomId?: string;
   schoolName?: string;
   onClose: () => void;
 }
+
+interface SectionQrCardsDocumentProps {
+  pages: Student[][];
+  qrMap: Record<string, string>;
+  activeClassroom?: { grade: number; section: string; educationLevel: string };
+  schoolName?: string;
+  isPrint?: boolean;
+}
+
+export const SectionQrCardsDocument: React.FC<SectionQrCardsDocumentProps> = ({
+  pages,
+  qrMap,
+  activeClassroom,
+  schoolName = 'Institución Educativa',
+  isPrint,
+}) => {
+  return (
+    <div className={isPrint ? 'w-[194mm] mx-auto' : 'mx-auto space-y-8'}>
+      {pages.map((pageStudents, pageIndex) => (
+        <div
+          key={`page-${pageIndex}`}
+          className={`a4-print-page ${isPrint ? (pageIndex < pages.length - 1 ? 'break-after-page' : '') : 'bg-white p-3 rounded-xl border border-slate-300 shadow-sm'}`}
+          style={isPrint ? {
+            width: '194mm',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 94mm)',
+            gridTemplateRows: 'repeat(4, 63mm)',
+            gap: '5mm',
+            boxSizing: 'border-box',
+          } : undefined}
+        >
+          {pageStudents.map((student, studentIndex) => {
+            const globalIndex = pageIndex * 8 + studentIndex + 1;
+            const qrUrl = qrMap[student.id];
+            const gradeText = activeClassroom ? `${activeClassroom.grade}° "${activeClassroom.section}"` : '';
+            const levelText = activeClassroom?.educationLevel || '';
+
+            return (
+              <div
+                key={student.id}
+                className="qr-card-item rounded-xl border-2 border-dashed border-slate-400 bg-white text-slate-900 p-2.5 flex flex-col justify-between shadow-sm avoid-break"
+                style={isPrint ? {
+                  width: '94mm',
+                  height: '63mm',
+                  boxSizing: 'border-box',
+                  border: '1.5px dashed #334155',
+                } : undefined}
+              >
+                {/* Cabecera del carnet */}
+                <div className="border-b border-slate-300 pb-1.5 flex items-center justify-between">
+                  <div className="flex items-center gap-1 text-[10px] font-black uppercase text-slate-900 tracking-wider truncate max-w-[170px]">
+                    <School className="w-3 h-3 text-slate-800 shrink-0" />
+                    <span className="truncate">{schoolName}</span>
+                  </div>
+                  <span className="bg-slate-100 text-slate-800 text-[8px] font-bold px-1.5 py-0.5 rounded font-mono border border-slate-200">
+                    {gradeText} • {levelText}
+                  </span>
+                </div>
+
+                {/* Cuerpo: Datos del alumno + QR */}
+                <div className="flex items-center justify-between gap-2 py-1">
+                  {/* Datos */}
+                  <div className="flex-1 space-y-0.5">
+                    <span className="text-[8px] font-bold text-slate-400 uppercase">
+                      Estudiante #{globalIndex}
+                    </span>
+                    <div className="font-black text-[11px] text-slate-900 uppercase leading-snug line-clamp-2">
+                      {student.lastNamePaternal} {student.lastNameMaternal || ''}, {student.firstNames}
+                    </div>
+                    <div className="pt-0.5">
+                      <span className="text-[8px] font-semibold text-slate-500 block">
+                        DNI / DOC. IDENTIDAD
+                      </span>
+                      <span className="font-mono font-black text-xs text-slate-900 tracking-wider">
+                        {student.documentId || student.studentCode || '—'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* QR Image */}
+                  <div className="p-1 rounded-lg border border-slate-300 bg-white shrink-0">
+                    {qrUrl ? (
+                      <img
+                        src={qrUrl}
+                        alt={`QR ${student.firstNames}`}
+                        className="w-16 h-16 object-contain"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 flex items-center justify-center text-[8px] text-slate-400">
+                        QR
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Pie con línea de corte */}
+                <div className="border-t border-slate-200 pt-1 flex items-center justify-between text-[8px] text-slate-500 font-semibold">
+                  <span>✂ Válido para lector óptico / Kiosco</span>
+                  <span className="font-mono">{new Date().getFullYear()}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+};
 
 export const SectionQrCardsModal: React.FC<SectionQrCardsModalProps> = ({
   initialClassroomId,
@@ -59,6 +169,12 @@ export const SectionQrCardsModal: React.FC<SectionQrCardsModalProps> = ({
   const classroomLabel = activeClassroom
     ? `${activeClassroom.grade}° "${activeClassroom.section}" - ${activeClassroom.educationLevel}`
     : 'Sección Seleccionada';
+
+  const { print, isPrinting } = usePrint({
+    pageSize: 'A4 portrait',
+    margin: '8mm',
+    title: `Carnets_${classroomLabel.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
+  });
 
   // Mapa de QRs en Base64
   const [qrMap, setQrMap] = useState<Record<string, string>>({});
@@ -102,15 +218,11 @@ export const SectionQrCardsModal: React.FC<SectionQrCardsModalProps> = ({
     return chunks;
   }, [rawStudents]);
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2 sm:p-4 backdrop-blur-sm animate-in fade-in">
       <div className="w-full max-w-5xl rounded-2xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col max-h-[94vh]">
         {/* Header no imprimible */}
-        <div className="flex items-center justify-between border-b border-border p-4 bg-muted/30 print:hidden">
+        <div className="flex items-center justify-between border-b border-border p-4 bg-muted/30">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
               <QrCode className="w-6 h-6" />
@@ -139,7 +251,7 @@ export const SectionQrCardsModal: React.FC<SectionQrCardsModalProps> = ({
         </div>
 
         {/* Barra de Filtro de Grado/Sección y Botón de Impresión */}
-        <div className="px-5 py-3.5 bg-muted/20 border-b border-border flex flex-wrap items-center justify-between gap-3 text-xs print:hidden">
+        <div className="px-5 py-3.5 bg-muted/20 border-b border-border flex flex-wrap items-center justify-between gap-3 text-xs">
           {/* Selector de Aula / Sección */}
           <div className="flex items-center gap-2">
             <span className="font-bold text-foreground flex items-center gap-1.5">
@@ -180,8 +292,8 @@ export const SectionQrCardsModal: React.FC<SectionQrCardsModalProps> = ({
 
           <Button
             size="sm"
-            onClick={handlePrint}
-            disabled={isGeneratingQrs || rawStudents.length === 0}
+            onClick={print}
+            disabled={isPrinting || isGeneratingQrs || rawStudents.length === 0}
             className="gap-2 font-bold text-xs shadow-sm bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             <Printer className="w-4 h-4" />
@@ -220,86 +332,17 @@ export const SectionQrCardsModal: React.FC<SectionQrCardsModalProps> = ({
               </p>
             </div>
           ) : (
-            <div id="section-printable-sheet-wrap" className="mx-auto space-y-8 print:space-y-0">
-              {pages.map((pageStudents, pageIndex) => (
-                <div
-                  key={`page-${pageIndex}`}
-                  className="a4-print-page bg-white p-3 rounded-xl border border-slate-300 shadow-sm print:shadow-none print:border-none print:p-0 print:rounded-none"
-                >
-                  {pageStudents.map((student, studentIndex) => {
-                    const globalIndex = pageIndex * 8 + studentIndex + 1;
-                    const qrUrl = qrMap[student.id];
-                    const gradeText = activeClassroom ? `${activeClassroom.grade}° "${activeClassroom.section}"` : '';
-                    const levelText = activeClassroom?.educationLevel || '';
-
-                    return (
-                      <div
-                        key={student.id}
-                        className="qr-card-item rounded-xl border-2 border-dashed border-slate-400 bg-white text-slate-900 p-2.5 flex flex-col justify-between overflow-hidden shadow-sm print:shadow-none"
-                      >
-                        {/* Cabecera del carnet */}
-                        <div className="border-b border-slate-300 pb-1.5 flex items-center justify-between">
-                          <div className="flex items-center gap-1 text-[10px] font-black uppercase text-slate-900 tracking-wider truncate max-w-[170px]">
-                            <School className="w-3 h-3 text-slate-800 shrink-0" />
-                            <span className="truncate">{schoolName}</span>
-                          </div>
-                          <span className="bg-slate-100 text-slate-800 text-[8px] font-bold px-1.5 py-0.5 rounded font-mono border border-slate-200">
-                            {gradeText} • {levelText}
-                          </span>
-                        </div>
-
-                        {/* Cuerpo: Datos del alumno + QR */}
-                        <div className="flex items-center justify-between gap-2 py-1">
-                          {/* Datos */}
-                          <div className="flex-1 space-y-0.5">
-                            <span className="text-[8px] font-bold text-slate-400 uppercase">
-                              Estudiante #{globalIndex}
-                            </span>
-                            <div className="font-black text-[11px] text-slate-900 uppercase leading-snug line-clamp-2">
-                              {student.lastNamePaternal} {student.lastNameMaternal || ''}, {student.firstNames}
-                            </div>
-                            <div className="pt-0.5">
-                              <span className="text-[8px] font-semibold text-slate-500 block">
-                                DNI / DOC. IDENTIDAD
-                              </span>
-                              <span className="font-mono font-black text-xs text-slate-900 tracking-wider">
-                                {student.documentId || student.studentCode || '—'}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* QR Image */}
-                          <div className="p-1 rounded-lg border border-slate-300 bg-white shrink-0">
-                            {qrUrl ? (
-                              <img
-                                src={qrUrl}
-                                alt={`QR ${student.firstNames}`}
-                                className="w-16 h-16 object-contain"
-                              />
-                            ) : (
-                              <div className="w-16 h-16 flex items-center justify-center text-[8px] text-slate-400">
-                                QR
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Pie con línea de corte */}
-                        <div className="border-t border-slate-200 pt-1 flex items-center justify-between text-[8px] text-slate-500 font-semibold">
-                          <span>✂ Válido para lector óptico / Kiosco</span>
-                          <span className="font-mono">{new Date().getFullYear()}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
+            <SectionQrCardsDocument
+              pages={pages}
+              qrMap={qrMap}
+              activeClassroom={activeClassroom}
+              schoolName={schoolName}
+            />
           )}
         </div>
 
         {/* Footer no imprimible */}
-        <div className="p-3 bg-muted/30 border-t border-border flex items-center justify-between text-xs text-muted-foreground print:hidden">
+        <div className="p-3 bg-muted/30 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-primary" />
             Al imprimir en horizontal o vertical, selecciona <strong>"Guardar como PDF"</strong> o tu impresora A4.
@@ -310,64 +353,17 @@ export const SectionQrCardsModal: React.FC<SectionQrCardsModalProps> = ({
         </div>
       </div>
 
-      {/* Reglas CSS de Impresión A4 de Alta Precisión sin Sobreposiciones */}
-      <style>{`
-        @media print {
-          @page {
-            size: A4 portrait;
-            margin: 8mm;
-          }
-          body * {
-            visibility: hidden !important;
-          }
-          #section-printable-sheet-wrap,
-          #section-printable-sheet-wrap * {
-            visibility: visible !important;
-          }
-          #section-printable-sheet-wrap {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 194mm !important;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-          .a4-print-page {
-            width: 194mm !important;
-            height: 275mm !important;
-            max-height: 275mm !important;
-            page-break-after: always !important;
-            break-after: page !important;
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-            display: grid !important;
-            grid-template-columns: repeat(2, 94mm) !important;
-            grid-template-rows: repeat(4, 63mm) !important;
-            gap: 5mm !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            box-sizing: border-box !important;
-            overflow: hidden !important;
-          }
-          .a4-print-page:last-child {
-            page-break-after: auto !important;
-            break-after: auto !important;
-          }
-          .qr-card-item {
-            width: 94mm !important;
-            height: 63mm !important;
-            max-height: 63mm !important;
-            box-sizing: border-box !important;
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-            border: 1.5px dashed #334155 !important;
-            background: #ffffff !important;
-            color: #000000 !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-        }
-      `}</style>
+      {isPrinting && (
+        <PrintPortal>
+          <SectionQrCardsDocument
+            pages={pages}
+            qrMap={qrMap}
+            activeClassroom={activeClassroom}
+            schoolName={schoolName}
+            isPrint
+          />
+        </PrintPortal>
+      )}
     </div>
   );
 };
