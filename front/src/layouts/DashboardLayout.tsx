@@ -33,6 +33,7 @@ import {
   CalendarClock,
   CalendarDays,
   Clock3,
+  DoorOpen,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/button';
@@ -45,6 +46,7 @@ import { NotificationBell } from '@/features/notifications/components/Notificati
 import { MobilePushBanner } from '@/features/notifications/components/MobilePushBanner';
 import { applyBrandColor } from '@/lib/brandColor';
 import { useUnreadMessages } from '@/features/messages/api/useMessages';
+import { usePendingReportsCount } from '@/features/payment-reports/api/usePaymentReports';
 import { Toaster } from 'sonner';
 
 export const DashboardLayout: React.FC = () => {
@@ -54,6 +56,8 @@ export const DashboardLayout: React.FC = () => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const canMessage = Boolean(user && user.role !== 'STUDENT' && !(user.role === 'SUPER_ADMIN' && !impersonatedSchool));
   const { data: unreadMessages = 0 } = useUnreadMessages(canMessage);
+  const isTreasury = Boolean(user && ['SCHOOL_ADMIN', 'ADMINISTRATIVE'].includes(user.role)) || Boolean(user?.role === 'SUPER_ADMIN' && impersonatedSchool);
+  const { data: pendingReports = 0 } = usePendingReportsCount(isTreasury);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -122,6 +126,13 @@ export const DashboardLayout: React.FC = () => {
           path: '/attendance',
           icon: CalendarCheck,
           roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Portería (salidas)',
+          path: '/gate',
+          icon: DoorOpen,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'],
           minPlan: 'BASIC',
         },
         {
@@ -612,6 +623,14 @@ export const DashboardLayout: React.FC = () => {
                       >
                         <Icon className="w-4 h-4 shrink-0" />
                         <span className="truncate">{item.label}</span>
+                        {item.path === '/payments' && isTreasury && pendingReports > 0 && (
+                          <span
+                            className={`ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-bold ${isActive ? 'bg-primary-foreground text-primary' : 'bg-amber-500 text-white'}`}
+                            aria-label={`${pendingReports} pagos por validar`}
+                          >
+                            {pendingReports}
+                          </span>
+                        )}
                         {item.path === '/messages' && unreadMessages > 0 && (
                           <span
                             className={`ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-bold ${isActive ? 'bg-primary-foreground text-primary' : 'bg-primary text-primary-foreground'}`}

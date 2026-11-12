@@ -40,7 +40,10 @@ import { EditObligationModal } from '../components/EditObligationModal';
 import { DailyCashCloseModal } from '../components/DailyCashCloseModal';
 import { CreateIndividualObligationModal } from '../components/CreateIndividualObligationModal';
 import { WhatsAppQueueModal } from '../components/WhatsAppQueueModal';
-import { DEFAULT_WA_TEMPLATE, buildWhatsAppLink } from '../utils/whatsapp';
+import { ReportPaymentModal, type ReportableObligation } from '@/features/payment-reports/components/ReportPaymentModal';
+import { ParentPaymentReportsCard } from '@/features/payment-reports/components/ParentPaymentReportsCard';
+import { TreasuryReportsPanel } from '@/features/payment-reports/components/TreasuryReportsPanel';
+import { DEFAULT_WA_TEMPLATE, buildWhatsAppLink, remainingOf } from '../utils/whatsapp';
 import { useGetActiveSchool } from '@/features/schools/api/useSchool';
 import { PaymentObligation, ObligationStatus } from '../types';
 import { formatPeruShortDate } from '@/lib/dateUtils';
@@ -68,10 +71,11 @@ export const PaymentsPage: React.FC = () => {
   const [isDailyCashCloseOpen, setIsDailyCashCloseOpen] = useState(false);
   const [isCreateIndividualOpen, setIsCreateIndividualOpen] = useState(false);
   const [isWhatsAppQueueOpen, setIsWhatsAppQueueOpen] = useState(false);
+  const [reportFor, setReportFor] = useState<ReportableObligation | null>(null);
   const { data: activeSchool } = useGetActiveSchool();
 
   // Queries & Mutations (Solo el Director consulta el resumen financiero macro)
-  const { data: classrooms = [] } = useClassrooms();
+  const { data: classrooms = [] } = useClassrooms(!isParent);
   const { data: financialSummary, isLoading: isLoadingSummary } = useFinancialSummary(isDirector);
 
   const {
@@ -184,6 +188,10 @@ export const PaymentsPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Pagos reportados con voucher (Yape/Plin/transferencia) */}
+      {canManagePayments && <TreasuryReportsPanel />}
+      {isParent && <ParentPaymentReportsCard />}
 
       {/* Financial Summary Cards (Exclusivo para Dirección: Total Proyectado, Recaudado, etc.) */}
       {isDirector && (
@@ -407,6 +415,25 @@ export const PaymentsPage: React.FC = () => {
                               </Button>
                             )}
 
+                            {/* Reportar pago con voucher (apoderado) */}
+                            {isParent && item.status !== 'PAID' && item.status !== 'CANCELLED' && remainingOf(item) > 0 && (
+                              <Button
+                                size="sm"
+                                className="h-7 text-xs gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                                onClick={() =>
+                                  setReportFor({
+                                    id: item.id,
+                                    title: item.title,
+                                    balance: remainingOf(item),
+                                    studentName: item.enrollment?.student ? `${item.enrollment.student.firstNames} ${item.enrollment.student.lastNamePaternal}` : undefined,
+                                  })
+                                }
+                              >
+                                <Send className="w-3.5 h-3.5" />
+                                <span>Reportar pago</span>
+                              </Button>
+                            )}
+
                             {/* Ver Recibo / Boleta */}
                             {item.transactions && item.transactions.length > 0 && (
                               <Button
@@ -511,6 +538,8 @@ export const PaymentsPage: React.FC = () => {
       {isBulkModalOpen && (
         <BulkObligationModal onClose={() => setIsBulkModalOpen(false)} />
       )}
+
+      <ReportPaymentModal obligation={reportFor} onClose={() => setReportFor(null)} />
 
       <WhatsAppQueueModal
         open={isWhatsAppQueueOpen}

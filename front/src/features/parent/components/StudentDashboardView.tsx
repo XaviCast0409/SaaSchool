@@ -19,6 +19,8 @@ import { ChildAttendanceCard } from './ChildAttendanceCard';
 import { ChildAnnouncementsCard } from './ChildAnnouncementsCard';
 import { ChildGradesPreviewCard } from './ChildGradesPreviewCard';
 import { ChildVirtualClassroomCard } from './ChildVirtualClassroomCard';
+import { BadgesCard } from '@/features/family/components/FamilyWidgets';
+import { NextDayCard } from '@/features/schedule/components/NextDayCard';
 import { StudentPendingTasksCard } from '@/features/course-contents/components/StudentPendingTasksCard';
 import { StudentRecentForumsCard } from '@/features/course-contents/components/StudentRecentForumsCard';
 
@@ -140,10 +142,14 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
       {/* 3. Ficha de Identidad del Alumno y Aula */}
       <StudentOverviewCard child={child} />
 
+      {/* Insignias personales (sin rankings) */}
+      <BadgesCard studentId={child.id} />
+
       {/* 4. Panel Académico Modular */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Columna Izquierda: Agenda de Tareas y Control de Asistencia */}
         <div className="space-y-5">
+          <NextDayCard studentId={child.id} compact />
           <StudentPendingTasksCard studentId={child.id} />
           <ChildAttendanceCard enrollment={child.activeEnrollment} />
         </div>

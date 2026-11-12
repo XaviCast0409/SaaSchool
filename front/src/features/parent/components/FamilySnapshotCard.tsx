@@ -60,6 +60,9 @@ export const FamilySnapshotCard: React.FC<FamilySnapshotCardProps> = ({ children
           const financialSummary = child.activeEnrollment?.financialSummary;
           const pendingCount = financialSummary?.pendingCount ?? 0;
           const isFinancialUpToDate = !financialSummary?.hasPending || pendingCount === 0;
+          // "Vencida" solo si la próxima cuota ya pasó su fecha; si no, es solo pendiente
+          const nextDue = financialSummary?.nextDueDate ? String(financialSummary.nextDueDate).slice(0, 10) : null;
+          const isOverdue = Boolean(nextDue && nextDue < new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' }));
 
           return (
             <button
@@ -112,9 +115,17 @@ export const FamilySnapshotCard: React.FC<FamilySnapshotCardProps> = ({ children
                     <span>Al día en pensiones</span>
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-destructive/15 text-destructive border border-destructive/20">
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                      isOverdue ? 'bg-destructive/15 text-destructive border-destructive/20' : 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/20'
+                    }`}
+                  >
                     <AlertCircle className="w-3.5 h-3.5" />
-                    <span>{pendingCount} {pendingCount === 1 ? 'pensión vencida' : 'pensiones vencidas'}</span>
+                    <span>
+                      {isOverdue
+                        ? 'Pensión vencida'
+                        : `${pendingCount} ${pendingCount === 1 ? 'pensión pendiente' : 'pensiones pendientes'}`}
+                    </span>
                   </span>
                 )}
               </div>

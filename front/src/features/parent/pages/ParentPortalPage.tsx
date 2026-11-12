@@ -16,6 +16,8 @@ import { ChildVirtualClassroomCard } from '../components/ChildVirtualClassroomCa
 import { StudentDashboardView } from '../components/StudentDashboardView';
 import { ChildIncidentsCard } from '@/features/incidents/components/ChildIncidentsCard';
 import { NextDayCard } from '@/features/schedule/components/NextDayCard';
+import { ChildLightsCard, FamilyTimeline } from '@/features/family/components/FamilyWidgets';
+import { InstallAppBanner } from '@/features/notifications/components/InstallAppGuide';
 
 export const ParentPortalPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -170,11 +172,18 @@ export const ParentPortalPage: React.FC = () => {
       {/* Tarjeta de Identidad y Aula del Alumno Seleccionado */}
       {activeChild && <ChildOverviewCard child={activeChild} />}
 
+      {/* Guía para instalar la app (necesaria para los avisos en iPhone) */}
+      <InstallAppBanner />
+
+      {/* Semáforo del hijo seleccionado */}
+      {activeChild && <ChildLightsCard studentId={activeChild.id} />}
+
       {/* Grid Central de Información Esencial */}
       {activeChild && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Columna Izquierda: Asistencia, Finanzas e Incidencias */}
           <div className="space-y-5">
+            <FamilyTimeline studentId={activeChild.id} title={`Lo último de ${activeChild.firstNames.split(' ')[0]}`} />
             <ChildAttendanceCard enrollment={activeChild.activeEnrollment} />
             <ChildFinancialCard enrollment={activeChild.activeEnrollment} />
             <ChildIncidentsCard

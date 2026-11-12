@@ -164,6 +164,8 @@ model School {
   messagingStartTime         String           @default("07:00") // Horario de atención (hora de Lima)
   messagingEndTime           String           @default("18:00")
   whatsappCountryCode        String           @default("51") // Prefijo para enlaces de WhatsApp
+  paymentQrFileUrl           String? // Imagen del QR de Yape/Plin del colegio (/api/files/<id>)
+  paymentInstructions        String?          @db.Text // Números de Yape/Plin y cuentas bancarias para las familias
   receiptCounter             Int              @default(0) // Correlativo oficial de recibos (REC-XXXXXX)
   isActive                   Boolean          @default(true)
   createdAt                  DateTime         @default(now())
@@ -214,6 +216,7 @@ model School {
   events                    SchoolEvent[]
   timetableTemplates        TimetableTemplate[]
   teacherAvailabilities     TeacherAvailability[]
+  paymentReports            PaymentReport[]
 }
 
 model User {
@@ -260,6 +263,8 @@ model User {
   meetingSlotsBooked     MeetingSlot[]           @relation("MeetingParent")
   createdEvents          SchoolEvent[]
   teacherAvailabilities  TeacherAvailability[]
+  paymentReportsSent     PaymentReport[]         @relation("PaymentReportReporter")
+  paymentReportsReviewed PaymentReport[]         @relation("PaymentReportReviewer")
   conclusionPhrases      ConclusionPhrase[]      @relation("ConclusionPhraseOwner")
   incidentsAuthored      StudentIncident[]       @relation("IncidentAuthor")
   periodStatusChanges    AcademicPeriodStatus[]  @relation("PeriodStatusChangedBy")
@@ -435,9 +440,10 @@ model PaymentObligation {
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 
-  school       School               @relation(fields: [schoolId], references: [id])
-  enrollment   Enrollment           @relation(fields: [enrollmentId], references: [id])
-  transactions PaymentTransaction[]
+  school         School               @relation(fields: [schoolId], references: [id])
+  enrollment     Enrollment           @relation(fields: [enrollmentId], references: [id])
+  transactions   PaymentTransaction[]
+  paymentReports PaymentReport[]
 
   @@index([schoolId, status])
   @@index([schoolId, dueDate])
@@ -455,8 +461,9 @@ model PaymentTransaction {
   receiptNumber   String?
   notes           String?
 
-  school     School            @relation(fields: [schoolId], references: [id])
-  obligation PaymentObligation @relation(fields: [obligationId], references: [id])
+  school        School            @relation(fields: [schoolId], references: [id])
+  obligation    PaymentObligation @relation(fields: [obligationId], references: [id])
+  paymentReport PaymentReport?
 
   @@index([schoolId, paymentDate])
 }
@@ -1444,4 +1451,44 @@ model TeacherAvailability {
   teacher      User         @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 
   @@unique([academicYearId, teacherId])
+}
+
+// ==========================================
+// Experiencia de la familia (Fase 4)
+// ==========================================
+
+enum PaymentReportStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// Pago que la familia reporta con su voucher (Yape, Plin, transferencia o depósito) y que
+/// tesorería valida. Al aprobarlo se registra la transacción y el recibo interno.
+model PaymentReport {
+  id              String              @id @default(uuid())
+  schoolId        String
+  obligationId    String
+  reportedById    String
+  amount          Decimal             @db.Decimal(10, 2)
+  method          String // YAPE | PLIN | BANK_TRANSFER | DEPOSIT
+  operationNumber String
+  paidOn          DateTime            @db.Date
+  voucherFileUrl  String?
+  note            String?
+  status          PaymentReportStatus @default(PENDING)
+  reviewedById    String?
+  reviewedAt      DateTime?
+  rejectionReason String?
+  transactionId   String?             @unique
+  createdAt       DateTime            @default(now())
+
+  school      School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  obligation  PaymentObligation   @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+  reportedBy  User                @relation("PaymentReportReporter", fields: [reportedById], references: [id])
+  reviewedBy  User?               @relation("PaymentReportReviewer", fields: [reviewedById], references: [id])
+  transaction PaymentTransaction? @relation(fields: [transactionId], references: [id])
+
+  @@index([schoolId, status, createdAt])
+  @@index([obligationId])
 }

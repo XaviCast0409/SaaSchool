@@ -18,6 +18,7 @@ import {
   type NotificationPreferences,
 } from '../api/useNotifications';
 import { isPushSupported, subscribeUserToPush } from '../utils/push.util';
+import { InstallAppGuide } from '../components/InstallAppGuide';
 
 const KINDS: Array<{ value: NotificationKind; label: string; hint: string; roles?: string[] }> = [
   { value: 'PAYMENT', label: 'Pagos y pensiones', hint: 'Vencimientos y saldos pendientes', roles: ['PARENT', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'] },
@@ -113,6 +114,9 @@ export const NotificationPreferencesPage: React.FC = () => {
           </Button>
         }
       />
+
+      {/* Instalar la app (en iPhone es requisito para los avisos) */}
+      {!isStudent && <InstallAppGuide />}
 
       {/* Push en este dispositivo */}
       {isPushSupported() && (

@@ -62,11 +62,20 @@ uploadRouter.post(
       await fileStorageService.assertDailyQuota(user.schoolId, uploadedById, isFamily ? DAILY_QUOTA_FAMILY : DAILY_QUOTA_STAFF);
 
       const requestedPurpose = (req.body as { purpose?: string }).purpose;
-      const purpose: FilePurpose = isFamily
-        ? 'HOMEWORK_SUBMISSION'
-        : requestedPurpose === 'HOMEWORK_SUBMISSION'
-          ? 'HOMEWORK_SUBMISSION'
-          : 'COURSE_MATERIAL';
+      // Vouchers de pago: solo imágenes o PDF
+      if (requestedPurpose === 'PAYMENT_VOUCHER' && !['.jpg', '.jpeg', '.png', '.webp', '.pdf'].includes(path.extname(file.originalname).toLowerCase())) {
+        throw new AppError('El voucher debe ser una foto o captura (JPG, PNG) o un PDF.', 400);
+      }
+      const purpose: FilePurpose =
+        requestedPurpose === 'PAYMENT_VOUCHER'
+          ? 'PAYMENT_VOUCHER'
+          : isFamily
+            ? 'HOMEWORK_SUBMISSION'
+            : requestedPurpose === 'HOMEWORK_SUBMISSION'
+              ? 'HOMEWORK_SUBMISSION'
+              : requestedPurpose === 'SCHOOL_ASSET'
+                ? 'SCHOOL_ASSET'
+                : 'COURSE_MATERIAL';
 
       const stored = await fileStorageService.store({
         schoolId: user.schoolId,

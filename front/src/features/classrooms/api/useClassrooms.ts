@@ -21,9 +21,10 @@ interface SingleClassroomResponse {
   data: Classroom;
 }
 
-export const useClassrooms = () => {
+export const useClassrooms = (enabled = true) => {
   return useQuery({
     queryKey: ['classrooms'],
+    enabled,
     queryFn: async () => {
       const response = await api.get<ClassroomsResponse>('/classrooms');
       return response.data.data;

@@ -9,7 +9,7 @@ import { googleDriveService } from '../uploads/google-drive.service';
 
 const LOCAL_DIR = path.join(process.cwd(), 'storage-local');
 
-export type FilePurpose = 'COURSE_MATERIAL' | 'HOMEWORK_SUBMISSION' | 'OTHER';
+export type FilePurpose = 'COURSE_MATERIAL' | 'HOMEWORK_SUBMISSION' | 'PAYMENT_VOUCHER' | 'SCHOOL_ASSET' | 'OTHER';
 
 const sanitizeFileName = (name: string): string =>
   path.basename(name).replace(/[\u0000-\u001f<>:"/\\|?*]+/g, '_').slice(0, 150) || 'archivo';
