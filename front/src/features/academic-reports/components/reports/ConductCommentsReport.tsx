@@ -1,4 +1,5 @@
 import React from 'react';
+import { usePeriods } from '@/features/academic-years/api/useAcademicYears';
 import * as XLSX from 'xlsx';
 import { ConductCommentsReportData } from '../../types';
 import { ReportHeader } from '../shared/ReportHeader';
@@ -10,10 +11,11 @@ interface ConductCommentsReportProps {
 }
 
 export const ConductCommentsReport: React.FC<ConductCommentsReportProps> = ({ data }) => {
+  const { label: periodLabel } = usePeriods();
   const { school, classroom, periodNumber, students } = data;
 
   const title = 'LISTADO DE COMENTARIOS A LA CONDUCTA';
-  const subtitle = `${classroom.grade}° Grado ${classroom.section} - ${periodNumber}° Bimestre`;
+  const subtitle = `${classroom.grade}° Grado ${classroom.section} - ${periodNumber}° ${periodLabel}`;
 
   const handleExportExcel = () => {
     const wb = XLSX.utils.book_new();

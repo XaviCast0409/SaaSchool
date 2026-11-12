@@ -1,4 +1,5 @@
 import { AppError } from '../../core/errors/app-error';
+import { computeObligationStatus, validateNewPayment } from './payment.rules';
 import { prisma } from '../../config/prisma';
 import { sendReminderNotification } from '../../utils/notification.util';
 import { formatDateOnly, getSchoolNow, parseSchoolDate } from '../../utils/timezone.util';
@@ -284,6 +285,10 @@ export class PaymentService {
       );
     }
 
+    const previous = (obligation as PaymentObligation & { transactions?: PaymentTransaction[] }).transactions ?? [];
+    const amountError = validateNewPayment(obligation.amountDue, previous, createTransactionDto.amountPaid);
+    if (amountError) throw new AppError(amountError, 400);
+
     const transaction = await this.paymentRepository.createTransaction(
       schoolId,
       createTransactionDto,
@@ -291,16 +296,10 @@ export class PaymentService {
 
     // Re-calcular el total pagado para actualizar el estado de la obligación
     const updatedObligation = await this.getObligationById(obligation.id, schoolId);
-    const totalPaid = (
-      updatedObligation as PaymentObligation & { transactions: PaymentTransaction[] }
-    ).transactions.reduce((sum, tx) => sum + Number(tx.amountPaid), 0);
-
-    const newStatus =
-      totalPaid >= Number(updatedObligation.amountDue)
-        ? 'PAID'
-        : totalPaid > 0
-        ? 'PARTIAL'
-        : 'PENDING';
+    const newStatus = computeObligationStatus(
+      updatedObligation.amountDue,
+      (updatedObligation as PaymentObligation & { transactions: PaymentTransaction[] }).transactions,
+    );
 
     await this.paymentRepository.updateObligationStatus(
       obligation.id,
@@ -332,16 +331,10 @@ export class PaymentService {
 
     // Re-calcular el estado de la obligación tras revertir el pago
     const obligation = await this.getObligationById(transaction.obligationId, schoolId);
-    const totalPaid = (
-      obligation as PaymentObligation & { transactions: PaymentTransaction[] }
-    ).transactions.reduce((sum, tx) => sum + Number(tx.amountPaid), 0);
-
-    const newStatus =
-      totalPaid >= Number(obligation.amountDue)
-        ? 'PAID'
-        : totalPaid > 0
-        ? 'PARTIAL'
-        : 'PENDING';
+    const newStatus = computeObligationStatus(
+      obligation.amountDue,
+      (obligation as PaymentObligation & { transactions: PaymentTransaction[] }).transactions,
+    );
 
     await this.paymentRepository.updateObligationStatus(
       obligation.id,

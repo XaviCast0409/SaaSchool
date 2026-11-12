@@ -7,6 +7,7 @@ import type {
 } from './grade.schema';
 import { AppError } from '../../core/errors/app-error';
 import { PeriodService } from '../academic/period.service';
+import { assertPeriod } from '../academic/academic.context';
 import { ResultsService } from '../academic/results.service';
 import { thresholdsFromGradingScale, scoreToLetter, type LetterScaleThresholds } from './letter-scale';
 
@@ -189,6 +190,11 @@ export class GradeRepository {
       select: { id: true },
     });
     const validEnrollmentIds = new Set(classroomEnrollments.map((e) => e.id));
+
+    if (assignment.academicYearId) {
+      const periodYear = await prisma.academicYear.findUnique({ where: { id: assignment.academicYearId }, select: { periodType: true } });
+      if (periodYear) assertPeriod(periodYear, dto.periodNumber);
+    }
 
     if (teacherId) {
       const status = await new PeriodService().getEffectiveStatus(assignment.academicYearId!, dto.periodNumber, assignment.classroomId);

@@ -1,4 +1,5 @@
 import React from 'react';
+import { usePeriods } from '@/features/academic-years/api/useAcademicYears';
 import { Search, RotateCcw } from 'lucide-react';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
 import { Input } from '@/components/ui/input';
@@ -16,6 +17,7 @@ export const SupervisionFilterBar: React.FC<SupervisionFilterBarProps> = ({
   onChange,
   teachers = [],
 }) => {
+  const { periods: yearPeriods, label: periodLabel, labelPlural: periodLabelPlural } = usePeriods();
   const { data: classrooms = [] } = useClassrooms();
 
   const handleReset = () => {
@@ -77,11 +79,10 @@ export const SupervisionFilterBar: React.FC<SupervisionFilterBarProps> = ({
           }
           className="h-9 rounded-md border border-input bg-background px-2.5 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
         >
-          <option value="">— Todos los Bimestres —</option>
-          <option value="1">1° Bimestre</option>
-          <option value="2">2° Bimestre</option>
-          <option value="3">3° Bimestre</option>
-          <option value="4">4° Bimestre</option>
+          <option value="">— Todos los {periodLabelPlural} —</option>
+          {yearPeriods.map((p) => (
+            <option key={p} value={String(p)}>{p}° {periodLabel}</option>
+          ))}
         </select>
 
         {/* Nivel Educativo */}

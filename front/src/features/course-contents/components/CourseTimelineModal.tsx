@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { usePeriods } from '@/features/academic-years/api/useAcademicYears';
 import { X, BookOpen, School, FolderOpen, User as UserIcon } from 'lucide-react';
 import { useGetCourseContents } from '../api/useCourseContents';
 import type { CourseContent } from '../types';
@@ -26,6 +27,7 @@ export const CourseTimelineModal: React.FC<CourseTimelineModalProps> = ({
   classroomLabel,
 }) => {
   const [selectedBimester, setSelectedBimester] = useState<number>(1);
+  const { periods, label: periodLabel } = usePeriods();
   const [activeForumContent, setActiveForumContent] = useState<CourseContent | null>(null);
 
   const { data: rawContents, isLoading } = useGetCourseContents(
@@ -70,7 +72,7 @@ export const CourseTimelineModal: React.FC<CourseTimelineModalProps> = ({
 
           {/* Selector de Bimestres */}
           <div className="p-3 border-b border-border bg-card flex gap-2 overflow-x-auto">
-            {[1, 2, 3, 4].map((bim) => (
+            {periods.map((bim) => (
               <button
                 key={bim}
                 onClick={() => setSelectedBimester(bim)}
@@ -80,7 +82,7 @@ export const CourseTimelineModal: React.FC<CourseTimelineModalProps> = ({
                     : 'bg-background text-muted-foreground border-border hover:bg-muted'
                 }`}
               >
-                <span>{bim}° Bimestre</span>
+                <span>{bim}° {periodLabel}</span>
                 {selectedBimester === bim && (
                   <Badge
                     variant="secondary"
@@ -105,7 +107,7 @@ export const CourseTimelineModal: React.FC<CourseTimelineModalProps> = ({
               <div className="py-16 text-center text-muted-foreground">
                 <FolderOpen className="w-12 h-12 mx-auto opacity-30 mb-3" />
                 <h3 className="text-sm font-bold text-foreground">
-                  Sin materiales publicados en el {selectedBimester}° Bimestre
+                  Sin materiales publicados en el {selectedBimester}° {periodLabel}
                 </h3>
                 <p className="text-xs max-w-sm mx-auto mt-1 leading-relaxed">
                   Tu profesor aún no ha compartido diapositivas, tareas o foros para este bimestre. Vuelve a consultar pronto.

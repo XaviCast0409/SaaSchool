@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { usePeriods } from '@/features/academic-years/api/useAcademicYears';
 import { X, Send, MessageSquare, Loader2, User as UserIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useGetForumComments, useAddForumComment } from '../api/useCourseContents';
@@ -20,6 +21,7 @@ export const ForumCommentsModal: React.FC<ForumCommentsModalProps> = ({
   onClose,
   content,
 }) => {
+  const { label: periodLabel } = usePeriods();
   const [newComment, setNewComment] = useState('');
   const { data: comments = [], isLoading } = useGetForumComments(content?.id);
   const { mutateAsync: addComment, isPending: isSending } = useAddForumComment();
@@ -55,7 +57,7 @@ export const ForumCommentsModal: React.FC<ForumCommentsModalProps> = ({
             </div>
             <div>
               <h2 className="text-sm font-bold text-foreground line-clamp-1">{content.title}</h2>
-              <p className="text-[11px] text-muted-foreground">{content.bimester}° Bimestre • Foro de Debate</p>
+              <p className="text-[11px] text-muted-foreground">{content.bimester}° {periodLabel} • Foro de Debate</p>
             </div>
           </div>
           <Button variant="ghost" size="icon" aria-label="Cerrar modal" onClick={onClose} className="rounded-full">

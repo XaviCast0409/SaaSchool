@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { usePeriods } from '@/features/academic-years/api/useAcademicYears';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   X,
@@ -83,6 +84,7 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
 
   const currentType = watch('contentType');
   const currentBimester = watch('bimester');
+  const { periods, label: periodLabel } = usePeriods();
 
   if (!isOpen) return null;
 
@@ -220,9 +222,9 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
 
           {/* Bimestre */}
           <div className="space-y-1.5">
-            <label className="font-semibold text-foreground">Bimestre Correspondiente:</label>
-            <div className="grid grid-cols-4 gap-2">
-              {[1, 2, 3, 4].map((bim) => (
+            <label className="font-semibold text-foreground">{periodLabel} correspondiente:</label>
+            <div className={`grid gap-2 ${periods.length === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
+              {periods.map((bim) => (
                 <button
                   key={bim}
                   type="button"
@@ -233,7 +235,7 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
                       : 'border-border bg-background text-muted-foreground hover:bg-muted'
                   }`}
                 >
-                  {bim}° Bimestre
+                  {bim}° {periodLabel}
                 </button>
               ))}
             </div>

@@ -53,6 +53,24 @@ export const useActiveAcademicYear = () => {
   return { ...query, activeYear };
 };
 
+/**
+ * Periodos del año lectivo activo: 3 trimestres o 4 bimestres.
+ * Fuente única para selectores de periodo en toda la app.
+ */
+export const usePeriods = () => {
+  const { activeYear, isLoading } = useActiveAcademicYear();
+  const isTrimester = activeYear?.periodType === 'TRIMESTER';
+  const count = isTrimester ? 3 : 4;
+  return {
+    isLoading,
+    isTrimester,
+    count,
+    periods: Array.from({ length: count }, (_, i) => i + 1),
+    label: isTrimester ? 'Trimestre' : 'Bimestre',
+    labelPlural: isTrimester ? 'Trimestres' : 'Bimestres',
+  };
+};
+
 export const useCreateAcademicYear = () => {
   const queryClient = useQueryClient();
   return useMutation({

@@ -8,6 +8,7 @@ import type {
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
 import { fileStorageService } from '../files/file-storage.service';
+import { assertPeriod } from '../academic/academic.context';
 
 export class CourseContentService {
   constructor(private readonly repository: CourseContentRepository) {}
@@ -48,6 +49,15 @@ export class CourseContentService {
     // Si es docente, solo puede publicar en sus propios cursos
     if (user.role === 'TEACHER' && assignment.teacherId !== user.id) {
       throw new AppError('No tienes permisos para publicar en un curso asignado a otro docente.', 403);
+    }
+
+    // El periodo debe existir en el año lectivo del curso (3 trimestres o 4 bimestres)
+    if (assignment.academicYearId) {
+      const year = await prisma.academicYear.findUnique({
+        where: { id: assignment.academicYearId },
+        select: { periodType: true },
+      });
+      if (year) assertPeriod(year, data.bimester);
     }
 
     return this.repository.create(schoolId, user.id, data);

@@ -1,4 +1,5 @@
 import React from 'react';
+import { usePeriods } from '@/features/academic-years/api/useAcademicYears';
 import * as XLSX from 'xlsx';
 import { ConsolidatedGradesReportData } from '../../types';
 import { ReportHeader } from '../shared/ReportHeader';
@@ -10,10 +11,11 @@ interface ConsolidatedGradesReportProps {
 }
 
 export const ConsolidatedGradesReport: React.FC<ConsolidatedGradesReportProps> = ({ data }) => {
+  const { label: periodLabel } = usePeriods();
   const { school, classroom, periodNumber, courses, students, courseStats, totalAttendances } = data;
 
   const title = `CONSOLIDADO DE NOTAS - ${new Date().getFullYear()}`;
-  const subtitle = `${classroom.grade}° Grado ${classroom.section} - ${periodNumber}° Bimestre`;
+  const subtitle = `${classroom.grade}° Grado ${classroom.section} - ${periodNumber}° ${periodLabel}`;
 
   // Exportar a Excel con formato tabular
   const handleExportExcel = () => {

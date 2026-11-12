@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: back
+    env:
+      # Valores ficticios solo para compilar y ejecutar tests (no son secretos reales)
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      JWT_SECRET: ci-only-jwt-secret-0123456789abcdef0123456789
+      FILES_SIGNING_SECRET: ci-only-files-secret-0123456789abcdef012345
+      VAPID_PUBLIC_KEY: ci-only-vapid-public-key-placeholder
+      VAPID_PRIVATE_KEY: ci-only-vapid-private-key-placeholder
+      VAPID_SUBJECT: mailto:ci@example.com
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: back/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Generar cliente Prisma
+        run: pnpm exec prisma generate
+      - name: Verificar tipos
+        run: pnpm exec tsc --noEmit
+      - name: Tests
+        run: pnpm test
+
+  frontend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: front
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: front/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Compilar (tsc + vite build)
+        run: pnpm run build

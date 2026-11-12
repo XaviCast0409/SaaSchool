@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const createCourseContentSchema = z.object({
   courseAssignmentId: z.string().uuid('courseAssignmentId debe ser un UUID válido'),
-  bimester: z.number().int().min(1, 'El bimestre debe ser entre 1 y 4').max(4, 'El bimestre debe ser entre 1 y 4'),
+  bimester: z.number().int().min(1, 'Periodo no válido').max(4, 'Periodo no válido'),
   contentType: z.enum(['LESSON_MATERIAL', 'HOMEWORK', 'FORUM'], {
     errorMap: () => ({ message: 'Tipo de contenido inválido (LESSON_MATERIAL, HOMEWORK, FORUM)' }),
   }),

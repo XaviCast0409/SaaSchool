@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { usePeriods } from '@/features/academic-years/api/useAcademicYears';
 import {
   GraduationCap,
   BarChart3,
@@ -19,6 +20,7 @@ import { SupervisedFeedList } from './SupervisedFeedList';
 import type { SupervisionFeedFilters } from '../../types';
 
 export const VirtualClassroomSupervisionView: React.FC = () => {
+  const { periods: yearPeriods, label: periodLabel } = usePeriods();
   const [selectedBimester, setSelectedBimester] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'analytics' | 'feed'>('analytics');
 
@@ -97,10 +99,9 @@ export const VirtualClassroomSupervisionView: React.FC = () => {
             className="h-8 rounded-lg border-0 bg-muted/60 px-2.5 text-xs font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
           >
             <option value="">Todo el Año Lectivo</option>
-            <option value="1">1° Bimestre</option>
-            <option value="2">2° Bimestre</option>
-            <option value="3">3° Bimestre</option>
-            <option value="4">4° Bimestre</option>
+            {yearPeriods.map((p) => (
+              <option key={p} value={String(p)}>{p}° {periodLabel}</option>
+            ))}
           </select>
         </div>
       </div>

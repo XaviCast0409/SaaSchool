@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { usePeriods } from '@/features/academic-years/api/useAcademicYears';
 import {
   ChevronDown,
   ChevronRight,
@@ -174,6 +175,7 @@ export const AcademicReportsHub: React.FC<AcademicReportsHubProps> = ({
   isGeneratingPdf,
   isGeneratingExcel,
 }) => {
+  const { periods: yearPeriods, label: periodLabel } = usePeriods();
   // Filtros de búsqueda en la tabla izquierda
   const [filterCode, setFilterCode] = useState('');
   const [filterName, setFilterName] = useState('');
@@ -573,10 +575,9 @@ export const AcademicReportsHub: React.FC<AcademicReportsHubProps> = ({
                       onChange={(e) => onSelectPeriod(Number(e.target.value))}
                       className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-foreground focus:ring-1 focus:ring-primary outline-none"
                     >
-                      <option value={1}>Primer Bimestre</option>
-                      <option value={2}>Segundo Bimestre</option>
-                      <option value={3}>Tercer Bimestre</option>
-                      <option value={4}>Cuarto Bimestre</option>
+                      {yearPeriods.map((p) => (
+                        <option key={p} value={p}>{p}° {periodLabel}</option>
+                      ))}
                     </select>
                   </div>
                 </div>

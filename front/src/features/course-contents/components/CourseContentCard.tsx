@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { usePeriods } from '@/features/academic-years/api/useAcademicYears';
 import {
   BookOpen,
   ClipboardList,
@@ -44,6 +45,7 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
   onSubmitHomework,
   canManage = false,
 }) => {
+  const { label: periodLabel } = usePeriods();
   const { user } = useAuthStore();
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSubmissionsModalOpen, setIsSubmissionsModalOpen] = useState(false);
@@ -124,7 +126,7 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
             )}
 
             <Badge variant="outline" className="text-[10px] font-semibold text-muted-foreground">
-              {content.bimester}° Bimestre
+              {content.bimester}° {periodLabel}
             </Badge>
 
             <span className="text-[10px] text-muted-foreground flex items-center gap-1 ml-auto">

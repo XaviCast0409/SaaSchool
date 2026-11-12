@@ -1,4 +1,5 @@
 import React from 'react';
+import { usePeriods } from '@/features/academic-years/api/useAcademicYears';
 import { useNavigate } from 'react-router-dom';
 import {
   ClipboardList,
@@ -21,6 +22,7 @@ interface StudentPendingTasksCardProps {
 }
 
 export const StudentPendingTasksCard: React.FC<StudentPendingTasksCardProps> = ({ studentId }) => {
+  const { label: periodLabel } = usePeriods();
   const navigate = useNavigate();
   const { data: tasksData, isLoading } = useGetStudentTasks(studentId);
 
@@ -96,7 +98,7 @@ export const StudentPendingTasksCard: React.FC<StudentPendingTasksCardProps> = (
                           {areaName}
                         </Badge>
                         <span className="text-[10px] text-muted-foreground font-semibold">
-                          Bimestre {hw.bimester}
+                          {periodLabel} {hw.bimester}
                         </span>
                       </div>
                       <h4 className="text-xs font-bold text-foreground leading-snug">
