@@ -12,7 +12,8 @@ import { PeriodStatusBadge } from '@/components/ui/letter-badge';
 import { cn } from '@/lib/utils';
 import { downloadFile, useGradebook, useImportHomework } from '../api';
 import { GradebookGrid } from '../components/GradebookGrid';
-import { ConclusionsPanel, CriteriaModal, ReasonModal, SummaryTable } from '../components/GradebookPanels';
+import { CriteriaModal, ReasonModal, SummaryTable } from '../components/GradebookPanels';
+import { ConclusionsWorkspace } from '../components/ConclusionsWorkspace';
 import { classroomLabel, teacherName } from '../types';
 
 type Tab = 'competence' | 'summary' | 'conclusions';
@@ -133,7 +134,7 @@ export const GradebookPage: React.FC = () => {
             </>
           )}
           {tab === 'summary' && <SummaryTable data={data} onPick={(id) => { setCompetenceId(id); setTab('competence'); }} />}
-          {tab === 'conclusions' && <ConclusionsPanel data={data} reason={reason} onNeedReason={() => setReasonOpen(true)} />}
+          {tab === 'conclusions' && <ConclusionsWorkspace data={data} reason={reason} onNeedReason={() => setReasonOpen(true)} />}
         </>
       )}
 

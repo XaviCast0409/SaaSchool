@@ -13,6 +13,10 @@ export const subcoursesBody = z.object({
   academicYearId: optionalYear, level, grades: z.array(z.number().int()).min(1), officialAreaCode: z.string().min(2),
   subcourses: z.array(z.object({ name: z.string().trim().min(2).max(80), cnebNumbers: z.array(z.number().int()).min(1), weight: z.number().positive().max(10).optional() })).min(2),
 });
+export const preuniversityBody = z.object({
+  academicYearId: optionalYear, level, grades: z.array(z.number().int()).min(1), officialAreaCode: z.string().min(2),
+  courses: z.array(z.object({ key: z.string().min(2).max(40), weight: z.number().positive().max(10).optional() })).max(12),
+});
 export const workshopBody = z.object({
   academicYearId: optionalYear, level, grades: z.array(z.number().int()).min(1), name: z.string().trim().min(2).max(80), weeklyHours: z.number().int().min(0).max(40).nullable().optional(),
 });
@@ -71,3 +75,19 @@ export const consolidationQuery = z.object({
 export const classroomQuery = z.object({ classroomId: uuid });
 export const gradebookExportQuery = z.object({ assignmentId: uuid, periodNumber: z.coerce.number().int().min(1).max(4) });
 
+
+const phraseLetter = z.enum(['AD', 'A', 'B', 'C']);
+export const phrasesQuery = z.object({ assignmentId: uuid });
+export const phrasesManageQuery = z.object({
+  level, cnebNumber: z.coerce.number().int().min(1).max(31), courseKey: z.string().max(40).optional(),
+});
+export const phraseCreateBody = z.object({
+  scope: z.enum(['MINE', 'SCHOOL']).default('MINE'),
+  cnebNumber: z.number().int().min(1).max(31),
+  letter: phraseLetter.nullable().optional(),
+  level: level.nullable().optional(),
+  courseKey: z.string().max(40).nullable().optional(),
+  text: z.string().max(2000),
+});
+export const phraseUpdateBody = z.object({ text: z.string().max(2000).optional(), letter: phraseLetter.nullable().optional() });
+export const phraseHiddenBody = z.object({ phraseKey: z.string().min(5).max(120), hidden: z.boolean() });

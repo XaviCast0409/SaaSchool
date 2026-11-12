@@ -16,7 +16,7 @@ import type { Student } from '@prisma/client';
 import type { PaginatedResult } from '../../core/interfaces/global.interfaces';
 import { SIAGIE_CATALOGS } from './student.catalogs';
 
-const PLAN_STUDENT_QUOTAS: Record<string, number> = {
+export const PLAN_STUDENT_QUOTAS: Record<string, number> = {
   BASIC: 150,
   PRO: 500,
   ENTERPRISE: Infinity,

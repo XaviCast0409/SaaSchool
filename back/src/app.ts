@@ -37,6 +37,7 @@ import { legalRouter } from './modules/legal/legal.routes';
 import { pickupRouter } from './modules/pickups/pickup.routes';
 import { courseAttendanceRouter } from './modules/course-attendance/course-attendance.routes';
 import { academicRouter } from './modules/academic/academic.routes';
+import { siagieRouter } from './modules/siagie/siagie.routes';
 import { automationRouter } from './modules/automations/automation.routes';
 import { messagingRouter } from './modules/messaging/messaging.routes';
 import { meetingRouter } from './modules/meetings/meeting.routes';
@@ -130,6 +131,7 @@ app.use(`${API_PREFIX}/legal`, legalRouter);
 app.use(`${API_PREFIX}/pickups`, pickupRouter);
 app.use(`${API_PREFIX}/course-attendance`, courseAttendanceRouter);
 app.use(`${API_PREFIX}/academic`, academicRouter);
+app.use(`${API_PREFIX}/siagie`, siagieRouter);
 
 app.use((_req, res) => {
   res.status(404).json({ status: 'fail', message: 'Ruta no encontrada' });

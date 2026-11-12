@@ -1,6 +1,6 @@
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
-import { CONCLUSION_MAX_LENGTH, isResultLetter, sanitizeConclusion, type ResultLetter } from './grade-engine';
+import { CONCLUSION_MAX_LENGTH, CONCLUSION_MIN_LENGTH, isResultLetter, sanitizeConclusion, type ResultLetter } from './grade-engine';
 import {
   assertPeriod, periodCount, fullNameOf, getThresholds, isAdmin, loadAssignmentForUser, shortNameOf, sortCompetences, type AcademicUser,
 } from './academic.context';
@@ -100,7 +100,7 @@ export class GradebookService {
         id: a.id,
         academicYearId: a.academicYearId,
         classroom: { id: a.classroom.id, educationLevel: level, grade: a.classroom.grade, section: a.classroom.section },
-        area: { id: a.area.id, name: a.area.name, kind: a.area.kind, officialAreaCode: a.area.officialAreaCode },
+        area: { id: a.area.id, name: a.area.name, kind: a.area.kind, officialAreaCode: a.area.officialAreaCode, catalogKey: a.area.catalogKey },
         teacher: a.teacher,
       },
       periodNumber,
@@ -120,6 +120,7 @@ export class GradebookService {
       results,
       conclusions,
       conclusionMaxLength: CONCLUSION_MAX_LENGTH,
+      conclusionMinLength: CONCLUSION_MIN_LENGTH,
       thresholds,
     };
   }
@@ -213,6 +214,10 @@ export class GradebookService {
     for (const it of items) {
       if (!compIds.has(it.competenceId)) throw new AppError('La competencia no pertenece a este curso.', 400);
       if (!enrollmentIds.has(it.enrollmentId)) throw new AppError('El estudiante no está matriculado en esta aula.', 400);
+      const text = sanitizeConclusion(it.conclusion);
+      if (text && text.length < CONCLUSION_MIN_LENGTH) {
+        throw new AppError(`La conclusión debe tener al menos ${CONCLUSION_MIN_LENGTH} caracteres (el SIAGIE rechaza textos más cortos).`, 400);
+      }
     }
     await prisma.$transaction(
       items.map((it) => {

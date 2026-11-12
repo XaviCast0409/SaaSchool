@@ -200,6 +200,8 @@ model School {
   courseAttendanceSessions  CourseAttendanceSession[]
   studyPlanCourses          StudyPlanCourse[]
   competencePeriodResults   CompetencePeriodResult[]
+  conclusionPhrases         ConclusionPhrase[]
+  hiddenConclusionPhrases   HiddenConclusionPhrase[]
   academicPeriodStatuses    AcademicPeriodStatus[]
   jobRuns                   JobRun[]
   automationSettings        SchoolAutomationSetting[]
@@ -258,6 +260,7 @@ model User {
   meetingSlotsBooked     MeetingSlot[]           @relation("MeetingParent")
   createdEvents          SchoolEvent[]
   teacherAvailabilities  TeacherAvailability[]
+  conclusionPhrases      ConclusionPhrase[]      @relation("ConclusionPhraseOwner")
   incidentsAuthored      StudentIncident[]       @relation("IncidentAuthor")
   periodStatusChanges    AcademicPeriodStatus[]  @relation("PeriodStatusChangedBy")
 
@@ -471,6 +474,7 @@ model CurricularArea {
   parentAreaId     String? // ID del Área Madre Oficial SIAGIE (si es una sub-área interna)
   educationLevel   EducationLevel
   kind             CourseKind     @default(OFFICIAL)
+  catalogKey       String? // Curso del catálogo preuniversitario (ej: 'ALGEBRA'); null = curso propio del colegio
   isActive         Boolean        @default(true)
 
   school           School                 @relation(fields: [schoolId], references: [id])
@@ -669,6 +673,39 @@ model CompetencePeriodResult {
   @@unique([enrollmentId, courseAssignmentId, competenceId, periodNumber])
   @@index([schoolId, courseAssignmentId, periodNumber])
   @@index([enrollmentId, periodNumber])
+}
+
+/// Frases de conclusión descriptiva creadas por el colegio (ownerId null) o por un docente (ownerId).
+/// Las frases de fábrica viven en código (phrase-bank.catalog.ts) y no se guardan aquí.
+model ConclusionPhrase {
+  id             String          @id @default(uuid())
+  schoolId       String
+  ownerId        String? // null = frase del colegio para todos los docentes
+  educationLevel EducationLevel? // null = cualquier nivel
+  cnebNumber     Int // Competencia CNEB a la que aplica
+  letter         String? // AD | A | B | C ; null = cualquier nivel de logro
+  courseKey      String? // Curso del catálogo preuniversitario (ej: 'ALGEBRA'); null = cualquier curso
+  text           String          @db.Text
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  owner  User?  @relation("ConclusionPhraseOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, cnebNumber])
+  @@index([schoolId, ownerId])
+}
+
+/// Frases de fábrica que el colegio decidió ocultar a sus docentes.
+model HiddenConclusionPhrase {
+  id        String   @id @default(uuid())
+  schoolId  String
+  phraseKey String
+  createdAt DateTime @default(now())
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, phraseKey])
 }
 
 model AcademicPeriodStatus {

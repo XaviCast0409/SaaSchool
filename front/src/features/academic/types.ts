@@ -19,7 +19,7 @@ export interface Catalog {
 
 export interface PlanCompetence { id: string; cnebNumber: number | null; name: string; shortName: string; weight: number }
 export interface PlanCourse {
-  planCourseId: string; areaId: string; name: string; kind: CourseKind; officialAreaCode: string | null; parentAreaId: string | null;
+  planCourseId: string; areaId: string; name: string; kind: CourseKind; catalogKey: string | null; officialAreaCode: string | null; parentAreaId: string | null;
   weeklyHours: number | null; order: number; competences: PlanCompetence[]; assignedClassrooms: number; hasGrades: boolean;
 }
 export interface PlanCoverage {
@@ -29,6 +29,17 @@ export interface PlanCoverage {
 export interface StudyPlan {
   academicYearId: string; level: Level; grade: number; courses: PlanCourse[]; coverage: PlanCoverage[]; requiredMissing: string[]; isValid: boolean;
 }
+
+export interface PreuniversityCourse {
+  key: string; name: string; sanMarcos: boolean; areaCode: string; competences: number[]; suggestedGrades: number[] | null;
+  active: boolean; weight: number; planCourseId: string | null;
+}
+export interface PreuniversityArea {
+  code: string; name: string; competences: number[];
+  customCourses: Array<{ areaId: string; name: string; competences: number[] }>;
+  courses: PreuniversityCourse[];
+}
+export interface PreuniversityCatalog { level: Level; grade: number; areas: PreuniversityArea[] }
 
 export interface TeacherLite { id: string; firstName: string; lastNamePaternal: string; lastNameMaternal?: string | null }
 export const teacherName = (t: TeacherLite) => `${t.lastNamePaternal} ${t.lastNameMaternal ?? ''}`.trim() + `, ${t.firstName}`;
@@ -68,7 +79,7 @@ export interface GradebookData {
   assignment: {
     id: string; academicYearId: string;
     classroom: { id: string; educationLevel: Level; grade: number; section: string };
-    area: { id: string; name: string; kind: CourseKind; officialAreaCode: string | null };
+    area: { id: string; name: string; kind: CourseKind; officialAreaCode: string | null; catalogKey?: string | null };
     teacher: TeacherLite;
   };
   periodNumber: number; periodCount: number; periodStatus: PeriodState; canEdit: boolean; requiresReason: boolean; yearIsActive: boolean; isCorrection: boolean;
@@ -77,6 +88,7 @@ export interface GradebookData {
   students: GradebookStudent[]; scores: GradebookScore[]; results: GradebookResult[];
   conclusions: Array<{ enrollmentId: string; competenceId: string; conclusion: string }>;
   conclusionMaxLength: number;
+  conclusionMinLength?: number;
   thresholds: { AD: number; A: number; B: number };
 }
 
@@ -118,3 +130,10 @@ export interface ReportCard {
   scaleLegend: Array<{ letter: string; label: string }>;
 }
 
+
+export type PhraseSource = 'FACTORY' | 'SCHOOL' | 'MINE';
+export interface Phrase {
+  id: string; source: PhraseSource; cnebNumber: number; letter: Letter | null; courseKey: string | null; level: Level | null; text: string; hidden?: boolean;
+}
+export interface PhrasesForAssignment { level: Level; courseKey: string | null; phrases: Phrase[] }
+export interface PhrasesManage { level: Level; cnebNumber: number; courseKey: string | null; phrases: Phrase[] }

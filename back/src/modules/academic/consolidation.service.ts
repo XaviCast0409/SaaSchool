@@ -71,6 +71,22 @@ export class ConsolidationService {
       };
     });
 
+    const subcourses = official
+      .filter((a) => a.area.kind === 'SUBCOURSE' && areas.some((x) => x.code === a.area.officialAreaCode))
+      .sort((x, y) => areas.findIndex((a) => a.code === x.area.officialAreaCode) - areas.findIndex((a) => a.code === y.area.officialAreaCode)
+        || x.area.name.localeCompare(y.area.name, 'es'))
+      .map((a) => ({
+        id: a.id,
+        name: a.area.name,
+        officialCode: a.area.officialAreaCode,
+        catalogKey: a.area.catalogKey,
+        teacherName: `${a.teacher.firstName} ${a.teacher.lastNamePaternal}`.trim(),
+        competences: a.area.competences
+          .filter((c) => c.cnebNumber !== null)
+          .sort((x, y) => (x.cnebNumber ?? 0) - (y.cnebNumber ?? 0))
+          .map((c) => ({ id: `${a.area.officialAreaCode}_C${c.cnebNumber}`, name: CNEB_COMPETENCES[c.cnebNumber!]?.shortName ?? c.name, weight: c.weight, competenceId: c.id })),
+      }));
+
     const issues: ConsolidationIssue[] = [];
     for (const p of plan) {
       if (!assignments.some((a) => a.areaId === p.areaId)) {
@@ -124,6 +140,24 @@ export class ConsolidationService {
         consolidatedGrades[area.code] = { periodScore: null, letter: null, competences: comps };
         areasForRules.push({ areaCode: area.code, letters });
       }
+      const courseGrades: Record<string, { periodScore: null; letter: ResultLetter | null; competences: Record<string, { score: number | null; letter: ResultLetter | null; conclusion: string }> }> = {};
+      if (!inactive) {
+        for (const sc of subcourses) {
+          const compsOfCourse: Record<string, { score: number | null; letter: ResultLetter | null; conclusion: string }> = {};
+          const parts: Array<{ finalLetter: ResultLetter | null; computedScore: number | null; isOverridden: boolean; weight: number }> = [];
+          for (const c of sc.competences) {
+            const perPeriod = periods.map((p) => {
+              const r = results.find((x) => x.enrollmentId === enr.id && x.courseAssignmentId === sc.id && x.competenceId === c.competenceId && x.periodNumber === p);
+              return { letter: isResultLetter(r?.finalLetter) ? (r!.finalLetter as ResultLetter) : null, score: r?.computedScore ?? null, overridden: r?.isOverridden ?? false };
+            });
+            const letter = period === 'FINAL' ? computeAnnual(perPeriod.map((x) => x.letter), mode, thresholds) : perPeriod[0].letter;
+            const score = period === 'FINAL' ? null : perPeriod[0].score;
+            compsOfCourse[c.id] = { score, letter, conclusion: '' };
+            parts.push({ finalLetter: letter, computedScore: score, isOverridden: period === 'FINAL' ? true : perPeriod[0].overridden, weight: 1 });
+          }
+          courseGrades[sc.id] = { periodScore: null, letter: consolidateOfficialCompetence(parts, thresholds).letter, competences: compsOfCourse };
+        }
+      }
       if (!inactive && !/^\d{14}$/.test(enr.student.studentCode ?? '')) {
         issues.push({ type: 'MISSING_STUDENT_CODE', enrollmentId: enr.id, message: `${fullName}: no tiene código de estudiante SIAGIE válido (14 dígitos).` });
       }
@@ -140,7 +174,7 @@ export class ConsolidationService {
         documentId: enr.student.documentId ?? '',
         studentCode: enr.student.studentCode,
         fullName,
-        courseGrades: {},
+        courseGrades,
         consolidatedGrades,
         generalScore: null,
         generalLetter: null,
@@ -160,7 +194,11 @@ export class ConsolidationService {
       },
       academicYear: { id: year.id, year: year.year, annualCalculationMode: mode },
       period,
-      matrix: { courses: [], students, consolidatedAreas },
+      matrix: {
+        courses: subcourses.map(({ competences, ...c }) => ({ ...c, competences: competences.map(({ competenceId: _id, ...k }) => k) })),
+        students,
+        consolidatedAreas,
+      },
       issues,
       summary: {
         totalStudents: students.filter((s) => s.enrollmentState === 'REGISTERED').length,

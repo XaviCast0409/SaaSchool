@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/axios';
 import type {
-  Catalog, ConsolidationResponse, GradebookData, GradebookResult, Level, MyCourse, PeriodsResponse, PeriodState,
+  Catalog, ConsolidationResponse, PreuniversityCatalog, Phrase, PhrasesForAssignment, PhrasesManage, Letter, GradebookData, GradebookResult, Level, MyCourse, PeriodsResponse, PeriodState,
   ProgressResponse, ReportCard, ResultLetter, SetupStatus, StudyPlan, TeachingLoad,
 } from './types';
 
@@ -50,6 +50,17 @@ export const useCreateSubcourses = planMutation(
   (v: { level: Level; grades: number[]; officialAreaCode: string; subcourses: Array<{ name: string; cnebNumbers: number[]; weight?: number }> }) =>
     api.post('/academic/study-plan/subcourses', v),
   'Área dividida en cursos',
+);
+export const usePreuniversityCatalog = (level: Level, grade: number | null, enabled = true) =>
+  useQuery({
+    queryKey: ['academic', 'plan', 'preuniversity', level, grade],
+    queryFn: () => get<PreuniversityCatalog>('/academic/study-plan/preuniversity', { level, grade }),
+    enabled: enabled && grade !== null,
+  });
+export const useConfigurePreuniversity = planMutation(
+  (v: { level: Level; grades: number[]; officialAreaCode: string; courses: Array<{ key: string; weight?: number }> }) =>
+    api.put('/academic/study-plan/preuniversity', v),
+  'Cursos del área actualizados',
 );
 export const useAddWorkshop = planMutation(
   (v: { level: Level; grades: number[]; name: string; weeklyHours?: number | null }) => api.post('/academic/study-plan/workshops', v),
@@ -226,3 +237,56 @@ export async function downloadFile(url: string, params: Record<string, unknown>,
   }
 }
 
+
+// ── Banco de frases de conclusiones
+export const usePhrases = (assignmentId: string | null) =>
+  useQuery({
+    queryKey: ['academic', 'phrases', assignmentId],
+    queryFn: () => get<PhrasesForAssignment>('/academic/phrases', { assignmentId }),
+    enabled: !!assignmentId,
+    staleTime: 5 * 60_000,
+  });
+
+export const usePhrasesManage = (level: Level, cnebNumber: number | null, courseKey: string | null) =>
+  useQuery({
+    queryKey: ['academic', 'phrases', 'manage', level, cnebNumber, courseKey],
+    queryFn: () => get<PhrasesManage>('/academic/phrases/manage', { level, cnebNumber, courseKey: courseKey ?? undefined }),
+    enabled: cnebNumber !== null,
+  });
+
+export const useCreatePhrase = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: async (v: { scope: 'MINE' | 'SCHOOL'; cnebNumber: number; letter?: Letter | null; level?: Level | null; courseKey?: string | null; text: string }) =>
+      (await api.post<Envelope<Phrase>>('/academic/phrases', v)).data.data,
+    onSuccess: () => { invalidate('phrases'); toast.success('Frase guardada'); },
+    onError: (e) => toast.error(apiErrorMessage(e)),
+  });
+};
+
+export const useUpdatePhrase = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (v: { id: string; text?: string; letter?: Letter | null }) => api.patch(`/academic/phrases/${v.id}`, { text: v.text, letter: v.letter }),
+    onSuccess: () => invalidate('phrases'),
+    onError: (e) => toast.error(apiErrorMessage(e)),
+  });
+};
+
+export const useDeletePhrase = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/academic/phrases/${id}`),
+    onSuccess: () => invalidate('phrases'),
+    onError: (e) => toast.error(apiErrorMessage(e)),
+  });
+};
+
+export const useSetPhraseHidden = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (v: { phraseKey: string; hidden: boolean }) => api.put('/academic/phrases/hidden', v),
+    onSuccess: () => invalidate('phrases'),
+    onError: (e) => toast.error(apiErrorMessage(e)),
+  });
+};

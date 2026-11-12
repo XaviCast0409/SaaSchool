@@ -7,8 +7,9 @@ export type AnnualMode = 'LAST_PERIOD' | 'AVERAGE';
 /** Valor numérico de cada nivel de logro al combinar calificativos literales. Único en todo el sistema. */
 export const LETTER_NUMERIC_VALUE: Record<Letter, number> = { AD: 19, A: 15, B: 12, C: 8 };
 
-/** Máximo de caracteres de la conclusión descriptiva. VALIDAR con la plantilla SIAGIE vigente. */
-export const CONCLUSION_MAX_LENGTH = 300;
+/** Límites de la conclusión descriptiva: la plantilla SIAGIE 2026 valida entre 10 y 500 caracteres. */
+export const CONCLUSION_MAX_LENGTH = 500;
+export const CONCLUSION_MIN_LENGTH = 10;
 
 export const LETTERS_REQUIRING_CONCLUSION: Letter[] = ['B', 'C'];
 

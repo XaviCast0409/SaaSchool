@@ -20,11 +20,13 @@ export const AcademicReportsPage: React.FC = () => {
   const { data: classrooms = [] } = useClassrooms();
   const { data: periods } = usePeriods();
   const [tab, setTab] = useState<Tab>('consolidated');
+  const [showCourses, setShowCourses] = useState(true);
   const [classroomId, setClassroomId] = useState<string | null>(null);
   const [period, setPeriod] = useState<number | 'FINAL'>(1);
   const [downloading, setDownloading] = useState(false);
   useEffect(() => { if (!classroomId && classrooms.length) setClassroomId(classrooms[0].id); }, [classrooms, classroomId]);
   const { data, isLoading } = useConsolidation(tab === 'report-cards' ? null : classroomId, period);
+  const coursesOf = (areaCode: string) => (showCourses && data ? data.matrix.courses.filter((c) => c.officialCode === areaCode) : []);
   const sorted = [...classrooms].sort((a, b) => a.educationLevel.localeCompare(b.educationLevel) || a.grade - b.grade || a.section.localeCompare(b.section));
 
   const handleDownload = async () => {
@@ -69,9 +71,17 @@ export const AcademicReportsPage: React.FC = () => {
       ) : (
         <>
           <div className="mb-3 flex items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground">
-              {data.summary.totalStudents} estudiantes · {data.summary.missingGrades} calificativos y {data.summary.missingConclusions} conclusiones pendientes
-            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-sm text-muted-foreground">
+                {data.summary.totalStudents} estudiantes · {data.summary.missingGrades} calificativos y {data.summary.missingConclusions} conclusiones pendientes
+              </p>
+              {data.matrix.courses.length > 0 && (
+                <label className="flex items-center gap-1.5 text-sm">
+                  <input type="checkbox" checked={showCourses} onChange={(e) => setShowCourses(e.target.checked)} />
+                  Ver cursos de cada área
+                </label>
+              )}
+            </div>
             <Button variant="outline" size="sm" disabled={downloading} onClick={handleDownload}>
               {downloading ? (
                 <>
@@ -89,24 +99,41 @@ export const AcademicReportsPage: React.FC = () => {
               <thead className="bg-muted/40 text-xs text-muted-foreground">
                 <tr>
                   <th rowSpan={2} className="sticky left-0 bg-muted/40 px-3 py-2 text-left font-semibold">Estudiante</th>
-                  {data.matrix.consolidatedAreas?.map((a) => <th key={a.code} colSpan={a.competences.length} className="border-l border-border px-2 py-1.5 text-center font-semibold">{a.name}</th>)}
+                  {data.matrix.consolidatedAreas?.map((a) => (
+                    <th key={a.code} colSpan={a.competences.length + coursesOf(a.code).length} className="border-l border-border px-2 py-1.5 text-center font-semibold">
+                      {a.name}{coursesOf(a.code).length > 0 && <span className="block text-[10px] font-normal">área madre · va al SIAGIE</span>}
+                    </th>
+                  ))}
                   {period === 'FINAL' && <th rowSpan={2} className="border-l border-border px-2 py-2 font-semibold">Situación</th>}
                 </tr>
                 <tr>
-                  {data.matrix.consolidatedAreas?.map((a) => a.competences.map((c, i) => (
-                    <th key={c.id} title={c.name} className={`px-1 py-1.5 text-center font-medium ${i === 0 ? 'border-l border-border' : ''}`}>{c.shortName}</th>
-                  )))}
+                  {data.matrix.consolidatedAreas?.map((a) => [
+                    ...coursesOf(a.code).map((course, i) => (
+                      <th key={course.id} title={`Promedio de ${course.name} (${course.teacherName})`}
+                        className={`bg-primary/5 px-1 py-1.5 text-center font-medium italic ${i === 0 ? 'border-l border-border' : ''}`}>{course.name}</th>
+                    )),
+                    ...a.competences.map((c, i) => (
+                      <th key={c.id} title={c.name} className={`px-1 py-1.5 text-center font-medium ${i === 0 && coursesOf(a.code).length === 0 ? 'border-l border-border' : ''}`}>{c.shortName}</th>
+                    )),
+                  ])}
                 </tr>
               </thead>
               <tbody>
                 {data.matrix.students.map((s) => (
                   <tr key={s.enrollmentId} className={`border-t border-border ${s.enrollmentState !== 'REGISTERED' ? 'opacity-50' : ''}`}>
                     <td className="sticky left-0 whitespace-nowrap bg-card px-3 py-1.5">{s.fullName}</td>
-                    {data.matrix.consolidatedAreas?.map((a) => a.competences.map((c, i) => (
-                      <td key={c.id} className={`px-1 py-1.5 text-center ${i === 0 ? 'border-l border-border' : ''}`}>
-                        <LetterBadge letter={s.consolidatedGrades?.[a.code]?.competences?.[c.id]?.letter} />
-                      </td>
-                    )))}
+                    {data.matrix.consolidatedAreas?.map((a) => [
+                      ...coursesOf(a.code).map((course, i) => (
+                        <td key={course.id} className={`bg-primary/5 px-1 py-1.5 text-center ${i === 0 ? 'border-l border-border' : ''}`}>
+                          <LetterBadge letter={s.courseGrades?.[course.id]?.letter} />
+                        </td>
+                      )),
+                      ...a.competences.map((c, i) => (
+                        <td key={c.id} className={`px-1 py-1.5 text-center ${i === 0 && coursesOf(a.code).length === 0 ? 'border-l border-border' : ''}`}>
+                          <LetterBadge letter={s.consolidatedGrades?.[a.code]?.competences?.[c.id]?.letter} />
+                        </td>
+                      )),
+                    ])}
                     {period === 'FINAL' && <td className="border-l border-border px-2 py-1.5 text-xs">{s.finalSituation ? SITUATION[s.finalSituation] : '—'} <span className="text-muted-foreground">(provisional)</span></td>}
                   </tr>
                 ))}

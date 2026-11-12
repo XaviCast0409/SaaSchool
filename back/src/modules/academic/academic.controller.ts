@@ -11,6 +11,7 @@ import { GradebookService } from './gradebook.service';
 import { ConsolidationService } from './consolidation.service';
 import { ReportCardService } from './report-card.service';
 import { ProgressService } from './progress.service';
+import { PhraseService } from './phrase.service';
 import { buildConsolidationWorkbook, buildGradebookWorkbook } from './academic-excel.service';
 
 const curriculum = new CurriculumService();
@@ -20,6 +21,7 @@ const gradebook = new GradebookService();
 const consolidation = new ConsolidationService();
 const reportCards = new ReportCardService();
 const progress = new ProgressService();
+const phrases = new PhraseService();
 
 const ctx = (req: Request) => {
   const u = req.user!;
@@ -45,6 +47,46 @@ export const academicController = {
     const data = await curriculum.createSubcourses(ctx(req).schoolId, b.academicYearId, b.level, b.grades, b.officialAreaCode, b.subcourses);
     recordAudit(req, { action: 'ACADEMIC_SUBCOURSES', entity: 'StudyPlan', after: b });
     ok(res, data, 201);
+  },
+  // Banco de frases de conclusiones
+  phrasesForAssignment: async (req: Request, res: Response) => {
+    const q = S.phrasesQuery.parse(req.query);
+    const { schoolId, user } = ctx(req);
+    ok(res, await phrases.listForAssignment(schoolId, user, q.assignmentId));
+  },
+  phrasesManage: async (req: Request, res: Response) => {
+    const q = S.phrasesManageQuery.parse(req.query);
+    const { schoolId, user } = ctx(req);
+    ok(res, await phrases.listForManage(schoolId, user, q.level, q.cnebNumber, q.courseKey ?? null));
+  },
+  createPhrase: async (req: Request, res: Response) => {
+    const b = S.phraseCreateBody.parse(req.body);
+    const { schoolId, user } = ctx(req);
+    ok(res, await phrases.create(schoolId, user, b), 201);
+  },
+  updatePhrase: async (req: Request, res: Response) => {
+    const b = S.phraseUpdateBody.parse(req.body);
+    const { schoolId, user } = ctx(req);
+    ok(res, await phrases.update(schoolId, user, String(req.params.phraseId), b));
+  },
+  deletePhrase: async (req: Request, res: Response) => {
+    const { schoolId, user } = ctx(req);
+    ok(res, await phrases.remove(schoolId, user, String(req.params.phraseId)));
+  },
+  setPhraseHidden: async (req: Request, res: Response) => {
+    const b = S.phraseHiddenBody.parse(req.body);
+    ok(res, await phrases.setHidden(ctx(req).schoolId, b.phraseKey, b.hidden));
+  },
+
+  preuniversityCatalog: async (req: Request, res: Response) => {
+    const q = S.studyPlanQuery.parse(req.query);
+    ok(res, await curriculum.getPreuniversityCatalog(ctx(req).schoolId, q.academicYearId, q.level, q.grade));
+  },
+  configurePreuniversity: async (req: Request, res: Response) => {
+    const b = S.preuniversityBody.parse(req.body);
+    const data = await curriculum.configurePreuniversity(ctx(req).schoolId, b.academicYearId, b.level, b.grades, b.officialAreaCode, b.courses);
+    recordAudit(req, { action: 'ACADEMIC_PREUNIVERSITY_COURSES', entity: 'StudyPlan', after: b });
+    ok(res, data);
   },
   addWorkshop: async (req: Request, res: Response) => {
     const b = S.workshopBody.parse(req.body);

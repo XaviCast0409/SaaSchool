@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { LetterBadge } from '@/components/ui/letter-badge';
 import { useEvaluationCriteria } from '@/features/grades/api/useGrades';
 import { cn } from '@/lib/utils';
-import { useSaveConclusions, useSetCourseCriteria } from '../api';
+import { useSetCourseCriteria } from '../api';
 import type { GradebookData } from '../types';
 
 export const SummaryTable: React.FC<{ data: GradebookData; onPick: (competenceId: string) => void }> = ({ data, onPick }) => (
@@ -36,62 +36,6 @@ export const SummaryTable: React.FC<{ data: GradebookData; onPick: (competenceId
     </table>
   </div>
 );
-
-const ConclusionItem: React.FC<{ value: string; max: number; disabled: boolean; onSave: (v: string) => void }> = ({ value, max, disabled, onSave }) => {
-  const [text, setText] = useState(value);
-  useEffect(() => setText(value), [value]);
-  return (
-    <div>
-      <Textarea rows={2} value={text} disabled={disabled} maxLength={max} onChange={(e) => setText(e.target.value)} onBlur={() => text !== value && onSave(text)}
-        placeholder="Describe el avance, las dificultades y qué hará para mejorar." />
-      <p className={cn('mt-0.5 text-right text-xs', text.length > max * 0.9 ? 'text-amber-600' : 'text-muted-foreground')}>{text.length}/{max}</p>
-    </div>
-  );
-};
-
-export const ConclusionsPanel: React.FC<{ data: GradebookData; reason: string | null; onNeedReason: () => void }> = ({ data, reason, onNeedReason }) => {
-  const save = useSaveConclusions(data.assignment.id);
-  const [onlyRequired, setOnlyRequired] = useState(true);
-  const items = useMemo(() => {
-    const list: Array<{ enrollmentId: string; fullName: string; competenceId: string; competence: string; letter: string; conclusion: string }> = [];
-    data.students.filter((s) => s.state === 'REGISTERED').forEach((s) => data.competences.forEach((c) => {
-      const r = data.results.find((x) => x.enrollmentId === s.enrollmentId && x.competenceId === c.id);
-      if (!r?.finalLetter) return;
-      if (onlyRequired && r.finalLetter !== 'B' && r.finalLetter !== 'C') return;
-      const conc = data.conclusions.find((x) => x.enrollmentId === s.enrollmentId && x.competenceId === c.id)?.conclusion ?? '';
-      list.push({ enrollmentId: s.enrollmentId, fullName: s.fullName, competenceId: c.id, competence: c.shortName, letter: r.finalLetter, conclusion: conc });
-    }));
-    return list;
-  }, [data, onlyRequired]);
-  const editable = data.canEdit;
-
-  return (
-    <div>
-      <label className="mb-3 flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={onlyRequired} onChange={(e) => setOnlyRequired(e.target.checked)} />
-        Mostrar solo B y C (obligatorias)
-      </label>
-      {items.length === 0 ? <p className="text-sm text-muted-foreground">No hay conclusiones pendientes.</p> : (
-        <div className="space-y-3">
-          {items.map((it) => (
-            <div key={`${it.enrollmentId}|${it.competenceId}`} className={cn('rounded-lg border p-3', !it.conclusion && (it.letter === 'B' || it.letter === 'C') ? 'border-amber-500/40' : 'border-border')}>
-              <div className="mb-2 flex items-center gap-2 text-sm">
-                <span className="font-medium">{it.fullName}</span>
-                <span className="text-muted-foreground">· {it.competence}</span>
-                <LetterBadge letter={it.letter} />
-              </div>
-              <ConclusionItem value={it.conclusion} max={data.conclusionMaxLength} disabled={!editable}
-                onSave={(v) => {
-                  if (data.requiresReason && !reason) { onNeedReason(); return; }
-                  save.mutate({ periodNumber: data.periodNumber, reason, items: [{ enrollmentId: it.enrollmentId, competenceId: it.competenceId, conclusion: v }] });
-                }} />
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
 
 export const CriteriaModal: React.FC<{ open: boolean; onClose: () => void; data: GradebookData }> = ({ open, onClose, data }) => {
   const { data: all = [] } = useEvaluationCriteria(data.assignment.classroom.educationLevel);

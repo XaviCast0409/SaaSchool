@@ -63,7 +63,7 @@ export const CNEB_AREAS: Record<EducationLevel, CnebArea[]> = {
   INITIAL: [
     { code: 'PS', name: 'Personal Social', competences: [1, 16, 30] },
     { code: 'PSI', name: 'Psicomotriz', competences: [2] },
-    { code: 'COM', name: 'Comunicación', competences: [7, 8, 9, 6] },
+    { code: 'COM', name: 'Comunicación', competences: [7, 8, 6, 9] }, // Orden de la plantilla SIAGIE de inicial
     { code: 'C2L', name: 'Castellano como segunda lengua', competences: [10], optional: true },
     { code: 'MAT', name: 'Matemática', competences: [23, 25] },
     { code: 'CYT', name: 'Ciencia y Tecnología', competences: [20] },

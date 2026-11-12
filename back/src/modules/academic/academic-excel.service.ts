@@ -79,6 +79,61 @@ export async function buildConsolidationWorkbook(data: Consolidation): Promise<B
   for (let i = 4; i <= comps.length + 4; i++) ws.getColumn(i).width = 9;
   ws.views = [{ state: 'frozen', xSplit: 3, ySplit: compRow.number }];
 
+  // Detalle por curso hijo (Álgebra, Geometría…) y el promedio del área madre que va al SIAGIE.
+  if (data.matrix.courses.length > 0) {
+    const wc = wb.addWorksheet('Cursos por área');
+    setup(wc);
+    const subdivided = data.matrix.consolidatedAreas.filter((a) => a.isSubdivided);
+    const blocks = subdivided.map((area) => ({
+      area,
+      courses: data.matrix.courses.filter((c) => c.officialCode === area.code),
+    }));
+    const cols: Array<{ group: string; label: string; get: (s: Consolidation['matrix']['students'][number]) => string }> = [];
+    for (const b of blocks) {
+      for (const c of b.courses) {
+        for (const k of c.competences) cols.push({ group: `${c.name} (${b.area.name})`, label: k.name, get: (s) => s.courseGrades[c.id]?.competences[k.id]?.letter ?? '' });
+        cols.push({ group: `${c.name} (${b.area.name})`, label: 'Prom.', get: (s) => s.courseGrades[c.id]?.letter ?? '' });
+      }
+      for (const k of b.area.competences) {
+        cols.push({ group: `${b.area.name} — área madre (SIAGIE)`, label: k.shortName, get: (s) => s.consolidatedGrades[b.area.code]?.competences[k.id]?.letter ?? '' });
+      }
+    }
+    titleBlock(wc, [
+      data.school?.name ?? 'Colegio',
+      `Cursos por área — ${data.classroom.label} — ${data.academicYear.year} — ${periodLabel}`,
+      'Cada curso tributa a su área madre; en el SIAGIE solo se reporta el área madre.',
+    ], cols.length + 3);
+    const groupRow = wc.addRow(['N.°', 'Código', 'Apellidos y nombres', ...cols.map((c) => c.group)]);
+    let start = 4;
+    while (start < cols.length + 4) {
+      let end = start;
+      while (end + 1 < cols.length + 4 && cols[end + 1 - 4].group === cols[start - 4].group) end += 1;
+      if (end > start) wc.mergeCells(groupRow.number, start, groupRow.number, end);
+      start = end + 1;
+    }
+    styleHeader(groupRow);
+    const labelRow = wc.addRow(['', '', '', ...cols.map((c) => c.label)]);
+    styleHeader(labelRow);
+    wc.mergeCells(groupRow.number, 1, labelRow.number, 1);
+    wc.mergeCells(groupRow.number, 2, labelRow.number, 2);
+    wc.mergeCells(groupRow.number, 3, labelRow.number, 3);
+    data.matrix.students.forEach((s, i) => {
+      const row = wc.addRow([i + 1, s.studentCode ?? '', s.fullName, ...cols.map((c) => c.get(s))]);
+      row.eachCell((cell, n) => {
+        cell.border = BORDER;
+        cell.font = { size: 9, color: s.enrollmentState !== 'REGISTERED' ? { argb: 'FF94A3B8' } : undefined };
+        if (n > 3) cell.alignment = { horizontal: 'center' };
+        const v = String(cell.value ?? '');
+        if (LETTER_FILL[v]) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: LETTER_FILL[v] } };
+      });
+    });
+    wc.getColumn(1).width = 5;
+    wc.getColumn(2).width = 16;
+    wc.getColumn(3).width = 36;
+    for (let i = 4; i <= cols.length + 3; i++) wc.getColumn(i).width = 10;
+    wc.views = [{ state: 'frozen', xSplit: 3, ySplit: labelRow.number }];
+  }
+
   if (data.issues.length > 0) {
     const wi = wb.addWorksheet('Observaciones');
     wi.addRow(['Observación']).font = { bold: true };

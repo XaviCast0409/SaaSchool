@@ -85,7 +85,7 @@ describe('computeAnnual', () => {
 describe('conclusiones', () => {
   it('limpia y recorta', () => {
     expect(sanitizeConclusion('  Hola\n\nmundo  ')).toBe('Hola mundo');
-    expect(sanitizeConclusion('x'.repeat(400))).toHaveLength(CONCLUSION_MAX_LENGTH);
+    expect(sanitizeConclusion('x'.repeat(CONCLUSION_MAX_LENGTH + 100))).toHaveLength(CONCLUSION_MAX_LENGTH);
   });
   it('B y C exigen conclusión', () => {
     expect(needsConclusion('B')).toBe(true);

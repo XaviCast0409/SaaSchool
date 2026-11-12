@@ -11,6 +11,8 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { cn } from '@/lib/utils';
 import { useApplyTemplate, useCatalog, useRemovePlanCourse, useStudyPlan, useUpdatePlanCourse } from '../api';
 import { CourseCompetencesModal, SubcourseModal, TemplateModal, WorkshopModal } from '../components/PlanModals';
+import { PreuniversityModal } from '../components/PreuniversityModal';
+import { PhraseBankModal } from '../components/PhraseBankModal';
 import { LEVEL_LABEL, gradeLabel, type CnebArea, type Level, type PlanCourse } from '../types';
 
 const LEVELS: Level[] = ['INITIAL', 'PRIMARY', 'SECONDARY'];
@@ -38,6 +40,8 @@ export const StudyPlanPage: React.FC = () => {
   const applyTemplate = useApplyTemplate();
   const [templateOpen, setTemplateOpen] = useState(false);
   const [workshopOpen, setWorkshopOpen] = useState(false);
+  const [preuniOpen, setPreuniOpen] = useState(false);
+  const [phrasesOpen, setPhrasesOpen] = useState(false);
   const [splitArea, setSplitArea] = useState<CnebArea | null>(null);
   const [editCourse, setEditCourse] = useState<{ course: PlanCourse; area: CnebArea } | null>(null);
   const [toRemove, setToRemove] = useState<PlanCourse | null>(null);
@@ -59,6 +63,8 @@ export const StudyPlanPage: React.FC = () => {
         title="Plan de estudios"
         description="Qué cursos se dictan en cada grado. Las competencias vienen del Currículo Nacional y no se editan a mano."
         actions={<>
+          <Button variant="outline" onClick={() => setPhrasesOpen(true)}>Banco de frases</Button>
+          {level !== 'INITIAL' && <Button variant="outline" onClick={() => setPreuniOpen(true)}>Cursos preuniversitarios</Button>}
           <Button variant="outline" onClick={() => setWorkshopOpen(true)}>Agregar taller</Button>
           <Button onClick={() => setTemplateOpen(true)}>Aplicar plantilla CNEB</Button>
         </>}
@@ -110,7 +116,7 @@ export const StudyPlanPage: React.FC = () => {
                     {courses.map((course) => (
                       <div key={course.planCourseId} className="flex flex-wrap items-center gap-3 py-2">
                         <div className="min-w-[10rem] flex-1">
-                          <p className="text-sm">{course.name}{course.kind === 'SUBCOURSE' && <span className="ml-2 text-xs text-muted-foreground">curso del área</span>}</p>
+                          <p className="text-sm">{course.name}{course.kind === 'SUBCOURSE' && <span className="ml-2 text-xs text-muted-foreground">{course.catalogKey ? 'curso preuniversitario' : 'curso del área'}</span>}</p>
                           <div className="mt-1 flex flex-wrap gap-1">
                             {course.competences.map((k) => <span key={k.id} className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{k.shortName}{k.weight !== 1 ? ` ×${k.weight}` : ''}</span>)}
                           </div>
@@ -158,6 +164,8 @@ export const StudyPlanPage: React.FC = () => {
       )}
 
       {templateOpen && <TemplateModal open onClose={() => setTemplateOpen(false)} level={level} currentGrade={grade} catalog={catalog} />}
+      {phrasesOpen && <PhraseBankModal open onClose={() => setPhrasesOpen(false)} catalog={catalog} initialLevel={level} />}
+      {preuniOpen && <PreuniversityModal open onClose={() => setPreuniOpen(false)} level={level} grade={grade} catalog={catalog} />}
       {workshopOpen && <WorkshopModal open onClose={() => setWorkshopOpen(false)} level={level} currentGrade={grade} catalog={catalog} />}
       {splitArea && <SubcourseModal open onClose={() => setSplitArea(null)} level={level} currentGrade={grade} area={splitArea} catalog={catalog} />}
       {editCourse && <CourseCompetencesModal open onClose={() => setEditCourse(null)} course={editCourse.course} area={editCourse.area} catalog={catalog} />}

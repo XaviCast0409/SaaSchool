@@ -5,6 +5,7 @@ import {
   CNEB_AREAS, CNEB_COMPETENCES, LEVEL_GRADES, competenceName, getOfficialArea, isValidGrade,
 } from './cneb.catalog';
 import { resolveYear, shortNameOf, sortCompetences } from './academic.context';
+import { getPreuniversityCourse, preuniversityCoursesFor } from './preuniversity.catalog';
 
 type Tx = Prisma.TransactionClient;
 
@@ -12,6 +13,7 @@ export interface SubcourseInput {
   name: string;
   cnebNumbers: number[];
   weight?: number;
+  catalogKey?: string | null;
 }
 
 export async function ensureOfficialArea(tx: Tx, schoolId: string, level: EducationLevel, code: string) {
@@ -89,6 +91,7 @@ export class CurriculumService {
       areaId: r.areaId,
       name: r.area.name,
       kind: r.area.kind,
+      catalogKey: r.area.catalogKey,
       officialAreaCode: r.area.officialAreaCode,
       parentAreaId: r.area.parentAreaId,
       weeklyHours: r.weeklyHours,
@@ -179,12 +182,16 @@ export class CurriculumService {
           if (current.join(',') !== desired.join(',')) {
             throw new AppError(`Ya existe el curso "${name}" con otras competencias. Usa otro nombre o edítalo desde su ficha.`, 409);
           }
+          if (s.catalogKey && !existing.catalogKey) {
+            await tx.curricularArea.update({ where: { id: existing.id }, data: { catalogKey: s.catalogKey } });
+          }
           subAreaIds.push(existing.id);
           continue;
         }
         const created = await tx.curricularArea.create({
           data: {
             schoolId, name, educationLevel: level, kind: 'SUBCOURSE', officialAreaCode: spec.code, parentAreaId: official.id, isActive: true,
+            catalogKey: s.catalogKey ?? null,
             competences: { create: desired.map((n) => ({ name: competenceName(n), cnebNumber: n, weight: s.weight && s.weight > 0 ? s.weight : 1 })) },
           },
         });
@@ -206,6 +213,142 @@ export class CurriculumService {
       }
     }, { timeout: 60_000 });
     return { created: subcourses.length };
+  }
+
+  /** Catálogo preuniversitario de un nivel con el estado de cada curso en un grado. */
+  async getPreuniversityCatalog(schoolId: string, academicYearId: string | undefined, level: EducationLevel, grade: number) {
+    if (!isValidGrade(level, grade)) throw new AppError('Grado no válido para el nivel.', 400);
+    const year = await resolveYear(schoolId, academicYearId);
+    const rows = await prisma.studyPlanCourse.findMany({
+      where: { schoolId, academicYearId: year.id, educationLevel: level, grade, area: { kind: 'SUBCOURSE' } },
+      include: { area: { include: { competences: { where: { isActive: true } } } } },
+    });
+    const courses = preuniversityCoursesFor(level);
+    const areas = [...new Set(courses.map((c) => c.areaCode))]
+      .map((code) => getOfficialArea(level, code))
+      .filter((a): a is NonNullable<typeof a> => !!a)
+      .map((spec) => {
+        const inArea = rows.filter((r) => r.area.officialAreaCode === spec.code);
+        return {
+          code: spec.code,
+          name: spec.name,
+          competences: spec.competences,
+          customCourses: inArea.filter((r) => !r.area.catalogKey).map((r) => ({
+            areaId: r.areaId,
+            name: r.area.name,
+            competences: r.area.competences.map((c) => c.cnebNumber).filter((n): n is number => n !== null),
+          })),
+          courses: courses.filter((c) => c.areaCode === spec.code).map((c) => {
+            const active = inArea.find((r) => r.area.catalogKey === c.key);
+            return {
+              ...c,
+              active: !!active,
+              weight: active?.area.competences[0]?.weight ?? 1,
+              planCourseId: active?.id ?? null,
+            };
+          }),
+        };
+      });
+    return { level, grade, areas };
+  }
+
+  /**
+   * Activa en uno o varios grados los cursos del catálogo preuniversitario elegidos para un área.
+   * Los cursos del catálogo que no se eligen se cierran (si no tienen notas). Con una lista vacía,
+   * el área vuelve a ser un único curso oficial.
+   */
+  async configurePreuniversity(
+    schoolId: string,
+    academicYearId: string | undefined,
+    level: EducationLevel,
+    grades: number[],
+    officialAreaCode: string,
+    items: Array<{ key: string; weight?: number }>,
+  ) {
+    const year = await resolveYear(schoolId, academicYearId);
+    const spec = getOfficialArea(level, officialAreaCode);
+    if (!spec || spec.isTransversal) throw new AppError('Esta área no se puede dividir en cursos.', 400);
+    if (grades.length === 0) throw new AppError('Elige al menos un grado.', 400);
+    grades.forEach((g) => { if (!isValidGrade(level, g)) throw new AppError(`Grado ${g} no válido para el nivel.`, 400); });
+    const available = preuniversityCoursesFor(level, spec.code);
+    const chosen = items.map((i) => {
+      const course = available.find((c) => c.key === i.key);
+      if (!course) {
+        const any = getPreuniversityCourse(i.key);
+        throw new AppError(any ? `"${any.name}" no pertenece a ${spec.name} en este nivel.` : 'Curso del catálogo no reconocido.', 400);
+      }
+      return { ...course, weight: i.weight && i.weight > 0 ? i.weight : 1 };
+    });
+    if (new Set(chosen.map((c) => c.key)).size !== chosen.length) throw new AppError('Hay cursos repetidos.', 400);
+
+    // Validación de cobertura para todos los grados antes de tocar nada.
+    const perGrade: Array<{ grade: number; inputs: SubcourseInput[]; current: Array<{ areaId: string; name: string; catalogKey: string | null }> }> = [];
+    for (const grade of grades) {
+      const current = await prisma.studyPlanCourse.findMany({
+        where: { academicYearId: year.id, educationLevel: level, grade, area: { officialAreaCode: spec.code, kind: 'SUBCOURSE' } },
+        include: { area: { include: { competences: { where: { isActive: true } } } } },
+      });
+      const custom = current.filter((r) => !r.area.catalogKey);
+      const inputs: SubcourseInput[] = [
+        ...chosen.map((c) => ({ name: c.name, cnebNumbers: c.competences, weight: c.weight, catalogKey: c.key })),
+        ...custom.map((r) => ({
+          name: r.area.name,
+          cnebNumbers: r.area.competences.map((k) => k.cnebNumber).filter((n): n is number => n !== null),
+          weight: r.area.competences[0]?.weight ?? 1,
+        })),
+      ];
+      if (chosen.length > 0) {
+        const covered = new Set(inputs.flatMap((i) => i.cnebNumbers));
+        const missing = spec.competences.filter((n) => !covered.has(n));
+        if (missing.length) {
+          const hints = missing.map((n) => {
+            const options = available.filter((c) => c.competences.includes(n)).map((c) => c.name);
+            return `«${CNEB_COMPETENCES[n].shortName}»${options.length ? ` (agrega ${options.join(' o ')})` : ''}`;
+          });
+          throw new AppError(`Con esos cursos ${spec.name} queda incompleta: falta ${hints.join(', ')}.`, 400);
+        }
+        if (inputs.length < 2) throw new AppError('Para dividir un área necesitas al menos dos cursos.', 400);
+      }
+      perGrade.push({ grade, inputs, current: current.map((r) => ({ areaId: r.areaId, name: r.area.name, catalogKey: r.area.catalogKey })) });
+    }
+
+    const result = { grades: grades.length, activated: chosen.length, closed: 0 };
+    for (const { grade, inputs, current } of perGrade) {
+      if (chosen.length === 0) {
+        // Volver al área oficial única
+        await prisma.$transaction(async (tx) => {
+          for (const r of current) await removeAreaFromGrade(tx, schoolId, year.id, level, grade, r.areaId, r.name);
+          const official = await ensureOfficialArea(tx, schoolId, level, spec.code);
+          await tx.studyPlanCourse.upsert({
+            where: { academicYearId_educationLevel_grade_areaId: { academicYearId: year.id, educationLevel: level, grade, areaId: official.id } },
+            update: {},
+            create: {
+              schoolId, academicYearId: year.id, educationLevel: level, grade, areaId: official.id,
+              order: CNEB_AREAS[level].findIndex((a) => a.code === spec.code) + 1,
+            },
+          });
+        }, { timeout: 60_000 });
+        result.closed += current.length;
+        continue;
+      }
+
+      const toClose = current.filter((r) => r.catalogKey && !chosen.some((c) => c.key === r.catalogKey));
+      if (toClose.length) {
+        await prisma.$transaction(async (tx) => {
+          for (const r of toClose) await removeAreaFromGrade(tx, schoolId, year.id, level, grade, r.areaId, r.name);
+        }, { timeout: 60_000 });
+        result.closed += toClose.length;
+      }
+      // Si un curso del catálogo ya existe, se actualiza el peso de sus competencias.
+      for (const c of chosen) {
+        await prisma.curricularCompetence.updateMany({
+          where: { isActive: true, area: { schoolId, educationLevel: level, kind: 'SUBCOURSE', catalogKey: c.key, officialAreaCode: spec.code } },
+          data: { weight: c.weight },
+        });
+      }
+      await this.createSubcourses(schoolId, year.id, level, [grade], spec.code, inputs);
+    }
+    return result;
   }
 
   async addWorkshop(schoolId: string, academicYearId: string | undefined, level: EducationLevel, grades: number[], name: string, weeklyHours?: number | null) {
