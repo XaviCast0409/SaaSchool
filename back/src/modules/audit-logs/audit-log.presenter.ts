@@ -86,6 +86,7 @@ export const ACTION_CATALOG: Record<string, { label: string; verb: string; categ
   SCHOOL_UPDATED: { label: 'Datos del colegio', verb: 'actualizó los datos del colegio', category: 'COLEGIO' },
   AUTOMATION_UPDATED: { label: 'Automatización', verb: 'cambió una automatización', category: 'COLEGIO' },
   AUTOMATION_RUN_MANUAL: { label: 'Ejecución manual', verb: 'ejecutó manualmente una automatización', category: 'COLEGIO' },
+  SCHEDULE_GENERATED: { label: 'Horario automático', verb: 'aplicó un horario generado automáticamente', category: 'ACADEMICO' },
   SCHEDULE_SAVED: { label: 'Horario de aula', verb: 'actualizó el horario de un aula', category: 'ACADEMICO' },
   CALENDAR_EVENT_CREATED: { label: 'Evento del calendario', verb: 'creó un evento en el calendario', category: 'COLEGIO' },
   CALENDAR_EVENT_UPDATED: { label: 'Edición de evento', verb: 'editó un evento del calendario', category: 'COLEGIO' },

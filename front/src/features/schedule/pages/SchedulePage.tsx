@@ -11,6 +11,8 @@ import { useMyTeacherSchedule, useStudentSchedule } from '../api/useSchedule';
 import { ScheduleEditor } from '../components/ScheduleEditor';
 import { WeeklySchedule } from '../components/WeeklySchedule';
 import { NextDayCard } from '../components/NextDayCard';
+import { ScheduleGenerator } from '../components/ScheduleGenerator';
+import { ScheduleConflicts } from '../components/ScheduleConflicts';
 
 const todayWeekday = () => new Date(`${getPeruToday()}T12:00:00Z`).getUTCDay();
 
@@ -83,6 +85,7 @@ export const SchedulePage: React.FC = () => {
   const role = user?.role;
   const isManager = role === 'SCHOOL_ADMIN' || role === 'SUPER_ADMIN';
   const [tab, setTab] = useState<'mine' | 'classrooms'>('mine');
+  const [adminTab, setAdminTab] = useState<'classrooms' | 'generator' | 'conflicts'>('classrooms');
 
   if (role === 'PARENT' || role === 'STUDENT') {
     return (
@@ -113,7 +116,33 @@ export const SchedulePage: React.FC = () => {
           ))}
         </div>
       )}
-      {role === 'TEACHER' && tab === 'mine' ? <TeacherView /> : <ClassroomScheduleView canEdit={isManager} />}
+      {isManager && (
+        <div className="mb-4 inline-flex flex-wrap rounded-lg border border-border p-0.5 text-xs">
+          {([
+            ['classrooms', 'Por aula'],
+            ['generator', 'Armado automático'],
+            ['conflicts', 'Cruces del colegio'],
+          ] as const).map(([t, label]) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setAdminTab(t)}
+              className={`rounded-md px-3 py-1.5 font-semibold ${adminTab === t ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+      {role === 'TEACHER' && tab === 'mine' ? (
+        <TeacherView />
+      ) : isManager && adminTab === 'generator' ? (
+        <ScheduleGenerator />
+      ) : isManager && adminTab === 'conflicts' ? (
+        <ScheduleConflicts />
+      ) : (
+        <ClassroomScheduleView canEdit={isManager} />
+      )}
     </div>
   );
 };

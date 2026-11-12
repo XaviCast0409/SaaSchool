@@ -210,6 +210,8 @@ model School {
   meetingSlots              MeetingSlot[]
   scheduleBlocks            ScheduleBlock[]
   events                    SchoolEvent[]
+  timetableTemplates        TimetableTemplate[]
+  teacherAvailabilities     TeacherAvailability[]
 }
 
 model User {
@@ -255,6 +257,7 @@ model User {
   meetingSlotsOwned      MeetingSlot[]           @relation("MeetingStaff")
   meetingSlotsBooked     MeetingSlot[]           @relation("MeetingParent")
   createdEvents          SchoolEvent[]
+  teacherAvailabilities  TeacherAvailability[]
   incidentsAuthored      StudentIncident[]       @relation("IncidentAuthor")
   periodStatusChanges    AcademicPeriodStatus[]  @relation("PeriodStatusChangedBy")
 
@@ -344,12 +347,14 @@ model AcademicYear {
   endDate               DateTime
   isActive              Boolean  @default(true)
 
-  school            School                 @relation(fields: [schoolId], references: [id])
-  enrollments       Enrollment[]
-  studyPlanCourses  StudyPlanCourse[]
-  courseAssignments CourseAssignment[]
-  scheduleBlocks    ScheduleBlock[]
-  periodStatuses    AcademicPeriodStatus[]
+  school                School                 @relation(fields: [schoolId], references: [id])
+  enrollments           Enrollment[]
+  studyPlanCourses      StudyPlanCourse[]
+  courseAssignments     CourseAssignment[]
+  scheduleBlocks        ScheduleBlock[]
+  timetableTemplates    TimetableTemplate[]
+  teacherAvailabilities TeacherAvailability[]
+  periodStatuses        AcademicPeriodStatus[]
 }
 
 model Classroom {
@@ -608,15 +613,18 @@ model CompetenceConclusion {
 }
 
 model StudyPlanCourse {
-  id             String         @id @default(uuid())
-  schoolId       String
-  academicYearId String
-  educationLevel EducationLevel
-  grade          Int
-  areaId         String
-  weeklyHours    Int?
-  order          Int            @default(0)
-  createdAt      DateTime       @default(now())
+  id                String         @id @default(uuid())
+  schoolId          String
+  academicYearId    String
+  educationLevel    EducationLevel
+  grade             Int
+  areaId            String
+  weeklyHours       Int?
+  preferDoubleBlock Boolean        @default(true) // Generador de horario: agrupar en bloques de 2 horas
+  maxHoursPerDay    Int            @default(2) // Generador: máximo de horas del curso en un mismo día
+  preferEarly       Boolean        @default(false) // Generador: preferir las primeras horas
+  order             Int            @default(0)
+  createdAt         DateTime       @default(now())
 
   school       School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   academicYear AcademicYear   @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
@@ -1367,4 +1375,36 @@ model SchoolEvent {
   createdBy User       @relation(fields: [createdById], references: [id])
 
   @@index([schoolId, startDate])
+}
+
+/// Jornada escolar por nivel (horas pedagógicas y recreos) que usa el generador automático de horarios.
+model TimetableTemplate {
+  id             String         @id @default(uuid())
+  schoolId       String
+  academicYearId String
+  educationLevel EducationLevel
+  days           Int[]          @default([1, 2, 3, 4, 5])
+  slots          Json // Array<{ start: 'HH:mm', end: 'HH:mm', kind: 'CLASS' | 'BREAK', label?: string }>
+  updatedAt      DateTime       @updatedAt
+
+  school       School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+
+  @@unique([academicYearId, educationLevel])
+}
+
+/// Horas en que un docente NO puede dictar (p. ej. docentes por horas que trabajan en otro colegio).
+model TeacherAvailability {
+  id             String   @id @default(uuid())
+  schoolId       String
+  academicYearId String
+  teacherId      String
+  unavailable    String[] @default([]) // 'día|HH:mm|HH:mm', p. ej. '2|08:00|09:30'
+  updatedAt      DateTime @updatedAt
+
+  school       School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  teacher      User         @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@unique([academicYearId, teacherId])
 }
