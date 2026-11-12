@@ -9,7 +9,7 @@ credentials*.json
 backups/
 *.dump
 *.sql
-uploads/
+/uploads/
 storage-local/
 temp-*.txt
 scripts/output/
