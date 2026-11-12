@@ -7,6 +7,7 @@ export const notificationTypeEnum = z.enum([
   'ACADEMIC',
   'INCIDENT',
   'GENERAL',
+  'MESSAGE',
 ]);
 
 export const createNotificationSchema = z.object({

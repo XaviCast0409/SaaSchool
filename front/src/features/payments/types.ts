@@ -93,6 +93,7 @@ export interface ObligationFilterParams {
   classroomId?: string;
   enrollmentId?: string;
   search?: string;
+  overdue?: boolean;
 }
 
 export interface ObligationsPaginatedResponse {

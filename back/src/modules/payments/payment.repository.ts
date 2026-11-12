@@ -1,3 +1,4 @@
+import { getSchoolNow } from '../../utils/timezone.util';
 import { prisma } from '../../config/prisma';
 import type { PaymentObligation, PaymentTransaction, Prisma } from '@prisma/client';
 import type { PaginatedResult } from '../../core/interfaces/global.interfaces';
@@ -92,6 +93,9 @@ export class PaymentRepository {
     const where: Prisma.PaymentObligationWhereInput = {
       schoolId,
       ...(filters.status ? { status: filters.status } : {}),
+      ...(filters.overdue
+        ? { status: { in: ['PENDING', 'PARTIAL'] }, dueDate: { lt: getSchoolNow().dateObj }, enrollment: { isActive: true } }
+        : {}),
       ...(filters.enrollmentId ? { enrollmentId: filters.enrollmentId } : {}),
       ...(filters.classroomId
         ? {

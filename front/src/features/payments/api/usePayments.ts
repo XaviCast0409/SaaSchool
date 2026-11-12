@@ -56,6 +56,7 @@ export const usePayments = (filters: ObligationFilterParams = {}, enabledOverrid
   if (filters.classroomId) queryParams.append('classroomId', filters.classroomId);
   if (filters.enrollmentId) queryParams.append('enrollmentId', filters.enrollmentId);
   if (filters.search) queryParams.append('search', filters.search);
+  if (filters.overdue) queryParams.append('overdue', 'true');
 
   const queryString = queryParams.toString();
   const url = `/payments/obligations${queryString ? `?${queryString}` : ''}`;
@@ -63,7 +64,7 @@ export const usePayments = (filters: ObligationFilterParams = {}, enabledOverrid
   const isEnabled = enabledOverride !== undefined ? enabledOverride : true;
 
   return useQuery({
-    queryKey: ['payments-obligations', filters.page, filters.limit, filters.status, filters.classroomId, filters.search],
+    queryKey: ['payments-obligations', filters.page, filters.limit, filters.status, filters.classroomId, filters.search, filters.overdue],
     queryFn: async () => {
       const response = await api.get<ObligationsPaginatedResponse>(url);
       return response.data;

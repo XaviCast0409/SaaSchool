@@ -29,6 +29,8 @@ import {
   ClipboardList,
   Bot,
   BellRing,
+  MessagesSquare,
+  CalendarClock,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/button';
@@ -40,6 +42,7 @@ import { ConsentGate } from '@/features/legal/components/ConsentGate';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
 import { MobilePushBanner } from '@/features/notifications/components/MobilePushBanner';
 import { applyBrandColor } from '@/lib/brandColor';
+import { useUnreadMessages } from '@/features/messages/api/useMessages';
 import { Toaster } from 'sonner';
 
 export const DashboardLayout: React.FC = () => {
@@ -47,6 +50,8 @@ export const DashboardLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const canMessage = Boolean(user && user.role !== 'STUDENT' && !(user.role === 'SUPER_ADMIN' && !impersonatedSchool));
+  const { data: unreadMessages = 0 } = useUnreadMessages(canMessage);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -143,6 +148,20 @@ export const DashboardLayout: React.FC = () => {
           path: '/announcements',
           icon: Megaphone,
           roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Mensajes',
+          path: '/messages',
+          icon: MessagesSquare,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Entrevistas',
+          path: '/meetings',
+          icon: CalendarClock,
+          roles: ['SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
           minPlan: 'BASIC',
         },
         {
@@ -306,6 +325,20 @@ export const DashboardLayout: React.FC = () => {
           label: 'Comunicados',
           path: '/announcements',
           icon: Megaphone,
+          roles: ['PARENT'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Mensajes',
+          path: '/messages',
+          icon: MessagesSquare,
+          roles: ['PARENT'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Entrevistas',
+          path: '/meetings',
+          icon: CalendarClock,
           roles: ['PARENT'],
           minPlan: 'BASIC',
         },
@@ -535,6 +568,14 @@ export const DashboardLayout: React.FC = () => {
                       >
                         <Icon className="w-4 h-4 shrink-0" />
                         <span className="truncate">{item.label}</span>
+                        {item.path === '/messages' && unreadMessages > 0 && (
+                          <span
+                            className={`ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-bold ${isActive ? 'bg-primary-foreground text-primary' : 'bg-primary text-primary-foreground'}`}
+                            aria-label={`${unreadMessages} mensajes sin leer`}
+                          >
+                            {unreadMessages > 99 ? '99+' : unreadMessages}
+                          </span>
+                        )}
                       </Link>
                     );
                   })}

@@ -107,7 +107,7 @@ export const useSendTestPushNotification = () => {
 
 // ===== Preferencias de notificación =====
 
-export type NotificationKind = 'PAYMENT' | 'ATTENDANCE' | 'ANNOUNCEMENT' | 'ACADEMIC' | 'INCIDENT' | 'GENERAL';
+export type NotificationKind = 'PAYMENT' | 'ATTENDANCE' | 'ANNOUNCEMENT' | 'ACADEMIC' | 'INCIDENT' | 'GENERAL' | 'MESSAGE';
 
 export interface NotificationPreferences {
   mutedPush: NotificationKind[];

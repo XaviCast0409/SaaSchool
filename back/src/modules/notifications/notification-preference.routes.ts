@@ -20,8 +20,8 @@ const time = z
 
 const updateSchema = z
   .object({
-    mutedPush: z.array(notificationTypeEnum).max(6).default([]),
-    mutedEmail: z.array(notificationTypeEnum).max(6).default([]),
+    mutedPush: z.array(notificationTypeEnum).max(7).default([]),
+    mutedEmail: z.array(notificationTypeEnum).max(7).default([]),
     weeklyDigest: z.boolean().default(true),
     quietFrom: time,
     quietTo: time,

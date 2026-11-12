@@ -12,6 +12,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatPeruDate } from '@/lib/dateUtils';
+import { AnnouncementResponsePanel } from './AnnouncementResponsePanel';
 
 interface AnnouncementCardProps {
   announcement: Announcement;
@@ -101,6 +102,8 @@ export const AnnouncementCard: React.FC<AnnouncementCardProps> = ({
       <p className="text-xs sm:text-sm text-muted-foreground whitespace-pre-line mb-4 leading-relaxed">
         {announcement.content}
       </p>
+
+      <AnnouncementResponsePanel announcement={announcement} />
 
       {/* Footer Info */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border/60 text-xs text-muted-foreground">

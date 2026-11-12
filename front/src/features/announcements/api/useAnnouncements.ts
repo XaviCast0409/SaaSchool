@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
-import type { AnnouncementFilters, AnnouncementsResponse, CreateAnnouncementPayload } from '../types';
+import type { AnnouncementFilters, AnnouncementResponsesDetail, AnnouncementsResponse, CreateAnnouncementPayload } from '../types';
 
 export const useGetAnnouncements = (filters: AnnouncementFilters) => {
   return useQuery({
@@ -46,3 +46,24 @@ export const useDeleteAnnouncement = () => {
     },
   });
 };
+
+export const useRespondAnnouncement = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, studentId, response, comment }: { id: string; studentId: string; response: string; comment?: string }) =>
+      (await api.post(`/announcements/${id}/respond`, { studentId, response, comment })).data,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['announcements'] }),
+  });
+};
+
+export const useAnnouncementResponses = (id: string | null) =>
+  useQuery({
+    queryKey: ['announcements', 'responses', id],
+    enabled: Boolean(id),
+    queryFn: async () => (await api.get<{ data: AnnouncementResponsesDetail }>(`/announcements/${id}/responses`)).data.data,
+  });
+
+export const useRemindAnnouncement = () =>
+  useMutation({
+    mutationFn: async (id: string) => (await api.post<{ data: { reminded: number } }>(`/announcements/${id}/remind`)).data.data,
+  });

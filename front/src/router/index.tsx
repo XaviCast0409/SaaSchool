@@ -102,6 +102,12 @@ const NotificationPreferencesPage = lazy(() =>
     default: m.NotificationPreferencesPage,
   })),
 );
+const MessagesPage = lazy(() =>
+  import('@/features/messages/pages/MessagesPage').then((m) => ({ default: m.MessagesPage })),
+);
+const MeetingsPage = lazy(() =>
+  import('@/features/meetings/pages/MeetingsPage').then((m) => ({ default: m.MeetingsPage })),
+);
 const AuditLogsPage = lazy(() =>
   import('@/features/audit-logs/pages/AuditLogsPage').then((m) => ({ default: m.AuditLogsPage })),
 );
@@ -391,6 +397,22 @@ export const AppRouter: React.FC = () => {
               element={
                 <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
                   <EvaluationCriteriaPage />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/messages"
+              element={
+                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT']} disallowStudents>
+                  <MessagesPage />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/meetings"
+              element={
+                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT']} disallowStudents>
+                  <MeetingsPage />
                 </RoleGuard>
               }
             />

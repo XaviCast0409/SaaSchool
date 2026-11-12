@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { X, School as SchoolIcon, Save, Loader2, Lock, ShieldAlert, Palette, RotateCcw, CalendarCheck } from 'lucide-react';
+import { X, School as SchoolIcon, Save, Loader2, Lock, ShieldAlert, Palette, RotateCcw, CalendarCheck, MessagesSquare } from 'lucide-react';
 import { useGetActiveSchool, useUpdateSchool } from '../api/useSchool';
 import { toast } from 'sonner';
 
@@ -24,6 +24,10 @@ interface SchoolFormValues {
   absenceAlertConsecutive: number;
   absenceAlertMonthlyPercent: number;
   lateAlertMonthlyCount: number;
+  messagingEnabled: boolean;
+  messagingStartTime: string;
+  messagingEndTime: string;
+  whatsappCountryCode: string;
 }
 
 export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
@@ -54,6 +58,10 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
         absenceAlertConsecutive: school.absenceAlertConsecutive ?? 3,
         absenceAlertMonthlyPercent: school.absenceAlertMonthlyPercent ?? 15,
         lateAlertMonthlyCount: school.lateAlertMonthlyCount ?? 5,
+        messagingEnabled: school.messagingEnabled ?? true,
+        messagingStartTime: school.messagingStartTime ?? '07:00',
+        messagingEndTime: school.messagingEndTime ?? '18:00',
+        whatsappCountryCode: school.whatsappCountryCode ?? '51',
       });
     }
   }, [school, reset]);
@@ -89,6 +97,7 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
       if (values.notifyAbsencesToFamilies !== undefined) {
         sanitizedPayload.notifyAbsencesToFamilies = Boolean(values.notifyAbsencesToFamilies);
       }
+      sanitizedPayload.messagingEnabled = Boolean(values.messagingEnabled);
       await updateSchool(sanitizedPayload);
       toast.success('🏫 Datos y configuración de la institución guardados correctamente.');
       onClose();
@@ -427,6 +436,53 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Comunicación con familias */}
+            <div className="p-4 rounded-xl bg-card border border-border space-y-3">
+              <div className="flex items-center gap-2 border-b border-border pb-2">
+                <MessagesSquare className="w-4 h-4 text-primary" />
+                <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">Comunicación con familias</h3>
+              </div>
+              <div className="flex items-start justify-between gap-3 pt-1">
+                <div className="space-y-0.5">
+                  <label htmlFor="messaging-enabled" className="text-xs font-semibold text-foreground cursor-pointer">
+                    Mensajería entre familias y docentes
+                  </label>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Chat privado dentro de la app: los docentes no necesitan dar su número personal.
+                  </p>
+                </div>
+                <input
+                  id="messaging-enabled"
+                  type="checkbox"
+                  {...register('messagingEnabled')}
+                  className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary cursor-pointer mt-0.5"
+                />
+              </div>
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+                <div>
+                  <label htmlFor="messaging-start" className="block text-[11px] font-medium text-foreground mb-1">
+                    Atención desde
+                  </label>
+                  <input id="messaging-start" type="time" {...register('messagingStartTime')} className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary" />
+                </div>
+                <div>
+                  <label htmlFor="messaging-end" className="block text-[11px] font-medium text-foreground mb-1">
+                    Atención hasta
+                  </label>
+                  <input id="messaging-end" type="time" {...register('messagingEndTime')} className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary" />
+                </div>
+                <div>
+                  <label htmlFor="wa-prefix" className="block text-[11px] font-medium text-foreground mb-1">
+                    Prefijo de WhatsApp
+                  </label>
+                  <input id="wa-prefix" inputMode="numeric" maxLength={4} {...register('whatsappCountryCode')} className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary" />
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Fuera del horario de atención (y fines de semana) los mensajes de las familias se guardan, pero no suenan en el celular del docente.
+              </p>
             </div>
 
             {/* Plan de Suscripción Contratado (Solo Lectura) */}

@@ -69,8 +69,16 @@ export const updateSchoolSchema = createSchoolSchema
     absenceAlertConsecutive: z.number().int().min(2).max(10).optional(),
     absenceAlertMonthlyPercent: z.number().int().min(5).max(50).optional(),
     lateAlertMonthlyCount: z.number().int().min(2).max(20).optional(),
+    messagingEnabled: z.boolean().optional(),
+    messagingStartTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Hora inválida (HH:mm)').optional(),
+    messagingEndTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Hora inválida (HH:mm)').optional(),
+    whatsappCountryCode: z.string().regex(/^\d{1,4}$/, 'Prefijo inválido (solo números, p. ej. 51)').optional(),
   })
-  .partial();
+  .partial()
+  .refine((v) => !v.messagingStartTime || !v.messagingEndTime || v.messagingStartTime < v.messagingEndTime, {
+    message: 'El fin del horario de atención debe ser posterior al inicio.',
+    path: ['messagingEndTime'],
+  });
 
 export type CreateSchoolDto = z.infer<typeof createSchoolSchema>;
 export type UpdateSchoolDto = z.infer<typeof updateSchoolSchema>;

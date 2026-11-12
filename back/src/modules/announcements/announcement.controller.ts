@@ -1,17 +1,16 @@
 import { Request, Response } from 'express';
 import type { AnnouncementService } from './announcement.service';
 import { createAnnouncementSchema, updateAnnouncementSchema, announcementFilterSchema } from './announcement.schema';
-import { Role } from '@prisma/client';
 
 export class AnnouncementController {
   constructor(private readonly announcementService: AnnouncementService) {}
 
   getAll = async (req: Request, res: Response): Promise<void> => {
-    const schoolId = req.user!.schoolId;
-    const userRole = req.user!.role as Role;
     const queryFilters = announcementFilterSchema.parse(req.query);
-
-    const result = await this.announcementService.getAnnouncements(schoolId, userRole, queryFilters);
+    const result = await this.announcementService.getAnnouncements(
+      { userId: req.user!.userId, role: req.user!.role, schoolId: req.user!.schoolId, studentId: req.user!.studentId },
+      queryFilters,
+    );
 
     res.status(200).json({
       status: 'success',

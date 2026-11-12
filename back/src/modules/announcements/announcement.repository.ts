@@ -8,6 +8,7 @@ export class AnnouncementRepository {
     schoolId: string,
     userRole: Role,
     filters: AnnouncementFilterDto,
+    visibility: Prisma.AnnouncementWhereInput = {},
   ): Promise<PaginatedResult<Announcement>> {
     const { page, limit, search, priority, classroomId } = filters;
     const skip = (page - 1) * limit;
@@ -20,6 +21,7 @@ export class AnnouncementRepository {
           ? { targetRoles: { has: 'PARENT' as Role } }
           : { targetRoles: { has: userRole } }
         : {}),
+      AND: [visibility], // en AND para no chocar con el OR de la búsqueda
       ...(priority ? { priority } : {}),
       ...(classroomId ? { classroomId } : {}),
       ...(search
@@ -110,6 +112,9 @@ export class AnnouncementRepository {
         targetRoles: data.targetRoles,
         classroomId: data.classroomId,
         expiresAt: data.expiresAt,
+        responseType: data.responseType,
+        responseDeadline: data.responseDeadline,
+        pollOptions: data.responseType === 'POLL' ? [...new Set(data.pollOptions)] : [],
       },
     });
   }

@@ -4,6 +4,7 @@ import { homeworkDueTomorrowJob } from './jobs/homework-due.job';
 import { weeklyDigestJob } from './jobs/weekly-digest.job';
 import { gradesMissingJob } from './jobs/grades-missing.job';
 import { birthdaysJob } from './jobs/birthdays.job';
+import { meetingRemindersJob } from './jobs/meeting-reminders.job';
 
 /** Catálogo de automatizaciones. Para agregar una nueva, crear su archivo en jobs/ y registrarla aquí. */
 export const AUTOMATION_JOBS: AutomationJob[] = [
@@ -13,6 +14,7 @@ export const AUTOMATION_JOBS: AutomationJob[] = [
   homeworkDueTomorrowJob,
   gradesMissingJob,
   birthdaysJob,
+  meetingRemindersJob,
 ];
 
 export function findJob(name: string): AutomationJob | undefined {

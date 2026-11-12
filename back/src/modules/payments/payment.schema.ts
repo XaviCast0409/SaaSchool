@@ -55,6 +55,8 @@ export const obligationFilterSchema = z.object({
   classroomId: z.string().uuid().optional().nullable().or(emptyToUndefined),
   enrollmentId: z.string().uuid().optional().nullable().or(emptyToUndefined),
   search: z.string().optional().nullable().or(emptyToUndefined),
+  // Solo pendientes o parciales con fecha de vencimiento pasada
+  overdue: z.enum(['true', 'false']).optional().transform((v) => (v === undefined ? undefined : v === 'true')),
 });
 
 export const createTransactionSchema = z.object({

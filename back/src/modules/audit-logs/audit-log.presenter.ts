@@ -86,6 +86,7 @@ export const ACTION_CATALOG: Record<string, { label: string; verb: string; categ
   SCHOOL_UPDATED: { label: 'Datos del colegio', verb: 'actualizó los datos del colegio', category: 'COLEGIO' },
   AUTOMATION_UPDATED: { label: 'Automatización', verb: 'cambió una automatización', category: 'COLEGIO' },
   AUTOMATION_RUN_MANUAL: { label: 'Ejecución manual', verb: 'ejecutó manualmente una automatización', category: 'COLEGIO' },
+  ANNOUNCEMENT_RESPONSE: { label: 'Respuesta a comunicado', verb: 'respondió un comunicado', category: 'COLEGIO' },
   CLASSROOM_CREATED: { label: 'Nueva aula', verb: 'creó un aula', category: 'COLEGIO' },
   CLASSROOMS_BULK_CREATED: { label: 'Aulas creadas', verb: 'creó varias aulas', category: 'COLEGIO' },
   CLASSROOM_UPDATED: { label: 'Edición de aula', verb: 'editó un aula', category: 'COLEGIO' },

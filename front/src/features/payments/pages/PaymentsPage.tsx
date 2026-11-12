@@ -39,6 +39,9 @@ import { ReminderModal } from '../components/ReminderModal';
 import { EditObligationModal } from '../components/EditObligationModal';
 import { DailyCashCloseModal } from '../components/DailyCashCloseModal';
 import { CreateIndividualObligationModal } from '../components/CreateIndividualObligationModal';
+import { WhatsAppQueueModal } from '../components/WhatsAppQueueModal';
+import { DEFAULT_WA_TEMPLATE, buildWhatsAppLink } from '../utils/whatsapp';
+import { useGetActiveSchool } from '@/features/schools/api/useSchool';
 import { PaymentObligation, ObligationStatus } from '../types';
 import { formatPeruShortDate } from '@/lib/dateUtils';
 
@@ -64,6 +67,8 @@ export const PaymentsPage: React.FC = () => {
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [isDailyCashCloseOpen, setIsDailyCashCloseOpen] = useState(false);
   const [isCreateIndividualOpen, setIsCreateIndividualOpen] = useState(false);
+  const [isWhatsAppQueueOpen, setIsWhatsAppQueueOpen] = useState(false);
+  const { data: activeSchool } = useGetActiveSchool();
 
   // Queries & Mutations (Solo el Director consulta el resumen financiero macro)
   const { data: classrooms = [] } = useClassrooms();
@@ -146,6 +151,15 @@ export const PaymentsPage: React.FC = () => {
             >
               <PlusCircle className="w-3.5 h-3.5 text-primary" />
               <span>Nuevo Cobro</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 text-xs"
+              onClick={() => setIsWhatsAppQueueOpen(true)}
+            >
+              <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+              <span>WhatsApp en cola</span>
             </Button>
             <Button
               variant="outline"
@@ -410,26 +424,17 @@ export const PaymentsPage: React.FC = () => {
                             {canManagePayments && item.status !== 'PAID' && item.status !== 'CANCELLED' && (
                               <button
                                 onClick={() => {
-                                  const parent = item.enrollment?.student?.familyRelations?.[0]?.user;
-                                  const rawPhone = parent?.cellphone || '';
-                                  const cleanPhone = rawPhone.replace(/\D/g, '');
-                                  if (!cleanPhone || cleanPhone.length < 9) {
+                                  const link = buildWhatsAppLink(
+                                    item,
+                                    DEFAULT_WA_TEMPLATE,
+                                    activeSchool?.name ?? '',
+                                    activeSchool?.whatsappCountryCode || '51',
+                                  );
+                                  if (!link) {
                                     toast.warning('El apoderado no tiene un número celular válido registrado.');
                                     return;
                                   }
-                                  const parentName = parent?.firstName
-                                    ? `${parent.firstName} ${parent.lastNamePaternal || ''}`.trim()
-                                    : 'Estimado(a) Apoderado(a)';
-                                  const studentName = item.enrollment?.student
-                                    ? `${item.enrollment.student.firstNames} ${item.enrollment.student.lastNamePaternal}`
-                                    : 'su menor hijo(a)';
-                                  const formattedDueDate = formatPeruShortDate(item.dueDate);
-                                  const paid = (item.transactions || []).reduce((s, t) => s + t.amountPaid, 0);
-                                  const remaining = Math.max(0, item.amountDue - paid).toFixed(2);
-
-                                  const waText = `Estimado(a) ${parentName}, le saludamos cordialmente del Colegio. Le recordamos que la cuota correspondiente a ${item.title} (${item.concept}) de su hijo(a) ${studentName} venció el ${formattedDueDate}. Monto pendiente: S/ ${remaining}. Agradecemos regularizar a la brevedad. Gracias.`;
-                                  const waUrl = `https://wa.me/51${cleanPhone}?text=${encodeURIComponent(waText)}`;
-                                  window.open(waUrl, '_blank');
+                                  window.open(link, '_blank', 'noopener');
                                 }}
                                 className="p-1.5 rounded text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors"
                                 title="Enviar recordatorio por WhatsApp Web"
@@ -506,6 +511,12 @@ export const PaymentsPage: React.FC = () => {
       {isBulkModalOpen && (
         <BulkObligationModal onClose={() => setIsBulkModalOpen(false)} />
       )}
+
+      <WhatsAppQueueModal
+        open={isWhatsAppQueueOpen}
+        onClose={() => setIsWhatsAppQueueOpen(false)}
+        classroomId={selectedClassroomId || undefined}
+      />
 
       {selectedTransactionIdForReceipt && (
         <ReceiptModal

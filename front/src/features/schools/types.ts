@@ -22,6 +22,10 @@ export interface School {
   absenceAlertConsecutive?: number;
   absenceAlertMonthlyPercent?: number;
   lateAlertMonthlyCount?: number;
+  messagingEnabled?: boolean;
+  messagingStartTime?: string;
+  messagingEndTime?: string;
+  whatsappCountryCode?: string;
 }
 
 export interface UpdateSchoolPayload {
@@ -41,4 +45,8 @@ export interface UpdateSchoolPayload {
   absenceAlertConsecutive?: number;
   absenceAlertMonthlyPercent?: number;
   lateAlertMonthlyCount?: number;
+  messagingEnabled?: boolean;
+  messagingStartTime?: string;
+  messagingEndTime?: string;
+  whatsappCountryCode?: string;
 }

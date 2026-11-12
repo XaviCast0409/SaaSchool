@@ -16,7 +16,7 @@ export interface JobResult {
   summary: string;
 }
 
-export type JobAudience = 'Familias' | 'Alumnos y familias' | 'Docentes y Dirección' | 'Alumnos y tutores';
+export type JobAudience = 'Familias' | 'Alumnos y familias' | 'Docentes y Dirección' | 'Alumnos y tutores' | 'Familias y docentes';
 
 export interface AutomationJob {
   name: string;

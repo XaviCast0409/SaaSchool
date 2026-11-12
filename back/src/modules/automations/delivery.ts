@@ -38,6 +38,8 @@ export interface DeliveryMessage {
   email?: EmailContent;
   /** Avisos opcionales (p. ej. resumen semanal) que la persona puede desactivar. */
   respectWeeklyDigest?: boolean;
+  /** No crear la notificación en la campanita (p. ej. mensajes, que tienen su propia bandeja). */
+  skipInApp?: boolean;
 }
 
 export interface DeliveryResult {
@@ -102,7 +104,7 @@ export async function deliver(
   }
 
   // 1. Notificación en la app
-  await prisma.notification.createMany({
+  if (!msg.skipInApp) await prisma.notification.createMany({
     data: list.map((r) => ({
       schoolId,
       userId: r.studentId ? null : r.userId!,
@@ -158,5 +160,5 @@ export async function deliver(
     }
   }
 
-  return { inApp: list.length, push: pushCount, email: emailCount };
+  return { inApp: msg.skipInApp ? 0 : list.length, push: pushCount, email: emailCount };
 }

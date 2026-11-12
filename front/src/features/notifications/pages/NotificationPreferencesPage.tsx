@@ -24,6 +24,7 @@ const KINDS: Array<{ value: NotificationKind; label: string; hint: string; roles
   { value: 'ATTENDANCE', label: 'Asistencia', hint: 'Entradas, salidas y faltas' },
   { value: 'ACADEMIC', label: 'Notas y tareas', hint: 'Tareas por vencer, notas y cierres de periodo' },
   { value: 'ANNOUNCEMENT', label: 'Comunicados', hint: 'Avisos del colegio y del aula' },
+  { value: 'MESSAGE', label: 'Mensajes', hint: 'Mensajes privados con familias o docentes', roles: ['PARENT', 'TEACHER', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'SUPER_ADMIN'] },
   { value: 'INCIDENT', label: 'Convivencia', hint: 'Incidencias y citaciones' },
   { value: 'GENERAL', label: 'Otros avisos', hint: 'Resúmenes, cumpleaños y novedades' },
 ];
