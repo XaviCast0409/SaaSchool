@@ -1,3 +1,5 @@
+// Toda la aplicación trabaja en hora peruana, aunque el servidor (Render) esté en UTC
+process.env.TZ = process.env.TZ || 'America/Lima';
 import './instrument';
 import 'dotenv/config';
 import { app } from './app';

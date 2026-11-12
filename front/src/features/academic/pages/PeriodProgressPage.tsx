@@ -14,9 +14,10 @@ import { cn } from '@/lib/utils';
 import { apiErrorMessage, usePeriods, useProgress, useRemindPending, useSetPeriodStatus } from '../api';
 import { LEVEL_LABEL, classroomLabel, type Level, type PeriodState, type ProgressRow } from '../types';
 import { toast } from 'sonner';
+import { formatPeruDate } from '@/lib/dateUtils';
 
 type LevelFilter = 'ALL' | Level;
-const fmt = (d: string) => new Date(d).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' });
+const fmt = (d: string) => formatPeruDate(d, { day: '2-digit', month: 'short' });
 
 export const PeriodProgressPage: React.FC = () => {
   const { data: periods, isLoading } = usePeriods();

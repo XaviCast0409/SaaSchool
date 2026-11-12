@@ -8,14 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useCreateIndividualObligation } from '../api/usePayments';
 import { useStudents } from '@/features/students/api/useStudents';
+import { getPeruToday } from '@/lib/dateUtils';
 
-const getTodayLocal = (): string => {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
+// "Hoy" según la hora peruana, aunque la computadora tenga otra zona horaria
+const getTodayLocal = (): string => getPeruToday();
 
 const createIndividualSchema = z.object({
   studentId: z.string().min(1, 'Selecciona un estudiante'),

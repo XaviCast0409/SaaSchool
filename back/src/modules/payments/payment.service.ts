@@ -1,7 +1,7 @@
 import { AppError } from '../../core/errors/app-error';
 import { prisma } from '../../config/prisma';
 import { sendReminderNotification } from '../../utils/notification.util';
-import { getSchoolNow, parseSchoolDate } from '../../utils/timezone.util';
+import { formatDateOnly, getSchoolNow, parseSchoolDate } from '../../utils/timezone.util';
 import type { PaginatedResult } from '../../core/interfaces/global.interfaces';
 import type { PaymentRepository } from './payment.repository';
 import type {
@@ -488,7 +488,7 @@ export class PaymentService {
           schoolId,
           userId: parentUser.id,
           title: 'Recordatorio de Pago Pendiente',
-          message: `Estimado(a) ${recipientName}, le recordamos el pago pendiente de S/ ${obWithDetails.amountDue.toFixed(2)} correspondiente a "${obWithDetails.title}" para ${studentName}. Vence el ${new Date(obWithDetails.dueDate).toLocaleDateString('es-PE')}.`,
+          message: `Estimado(a) ${recipientName}, le recordamos el pago pendiente de S/ ${obWithDetails.amountDue.toFixed(2)} correspondiente a "${obWithDetails.title}" para ${studentName}. Vence el ${formatDateOnly(obWithDetails.dueDate)}.`,
           type: 'PAYMENT',
           link: '/payments',
         },

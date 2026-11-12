@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatPeruDate } from '@/lib/dateUtils';
 
 interface ForumCommentsModalProps {
   isOpen: boolean;
@@ -113,7 +114,7 @@ export const ForumCommentsModal: React.FC<ForumCommentsModalProps> = ({
                       </Badge>
                     </div>
                     <span className="text-[10px] text-muted-foreground">
-                      {new Date(comment.createdAt).toLocaleDateString('es-PE', {
+                      {formatPeruDate(comment.createdAt, {
                         day: '2-digit',
                         month: 'short',
                         hour: '2-digit',

@@ -24,16 +24,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/useAuthStore';
+import { formatPeruDate } from '@/lib/dateUtils';
 
 function formatDateDisplay(dateString: string): string {
   if (!dateString) return '──';
   try {
-    const d = new Date(dateString);
-    return d.toLocaleDateString('es-PE', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
+    return formatPeruDate(dateString, { day: '2-digit', month: 'short', year: 'numeric' });
   } catch {
     return dateString;
   }

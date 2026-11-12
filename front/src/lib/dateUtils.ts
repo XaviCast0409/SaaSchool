@@ -48,9 +48,27 @@ export function formatPeruTime(
 }
 
 /**
- * Formatea una fecha 'YYYY-MM-DD' o ISO en texto legible en español para Perú.
- * Evita desfaces por desfase de horas UTC interpretando día/mes/año locales.
- * Ej: 'lunes, 19 de octubre de 2026' o '19/10/2026'
+ * Indica si un valor es una fecha SIN hora: 'YYYY-MM-DD' o un instante exactamente a medianoche UTC
+ * (así llegan del servidor los vencimientos, cumpleaños, fechas de asistencia y feriados).
+ * Esas fechas se muestran en UTC para que no se corran un día al verlas en hora peruana.
+ */
+export function isDateOnlyValue(value: string | Date): boolean {
+  if (typeof value === 'string') {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return true;
+    return /T00:00:00(\.000)?Z$/.test(value);
+  }
+  return value.getUTCHours() === 0 && value.getUTCMinutes() === 0 && value.getUTCSeconds() === 0 && value.getUTCMilliseconds() === 0;
+}
+
+function toDate(value: string | Date): Date {
+  if (typeof value !== 'string') return value;
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00.000Z`) : new Date(value);
+}
+
+/**
+ * Formatea una fecha en español de Perú. Ej: 'lunes, 19 de octubre de 2026'.
+ * - Fecha sin hora: se muestra el mismo día guardado.
+ * - Instante (fecha y hora): se convierte a la hora de Lima.
  */
 export function formatPeruDate(
   dateInput: string | Date | null | undefined,
@@ -62,25 +80,32 @@ export function formatPeruDate(
   }
 ): string {
   if (!dateInput) return '—';
-
-  let safeDate: Date;
-  if (typeof dateInput === 'string') {
-    const clean = dateInput.split('T')[0];
-    const parts = clean.split('-').map(Number);
-    if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
-      // Usar mediodía local para ser inmune a saltos de día por husos horarios
-      safeDate = new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
-    } else {
-      safeDate = new Date(dateInput);
-    }
-  } else {
-    safeDate = dateInput;
-  }
-
-  if (isNaN(safeDate.getTime())) return '—';
-
+  const d = toDate(dateInput);
+  if (isNaN(d.getTime())) return '—';
   return new Intl.DateTimeFormat('es-PE', {
-    timeZone: TIMEZONE_PERU,
     ...options,
-  }).format(safeDate);
+    timeZone: isDateOnlyValue(dateInput) ? 'UTC' : TIMEZONE_PERU,
+  }).format(d);
+}
+
+/** Fecha corta 'dd/mm/aaaa' (misma regla que formatPeruDate). */
+export function formatPeruShortDate(dateInput: string | Date | null | undefined): string {
+  return formatPeruDate(dateInput, { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+/** Fecha y hora de un instante, siempre en hora de Lima. Ej: '12/11/2026, 08:15'. */
+export function formatPeruDateTime(
+  dateInput: string | Date | null | undefined,
+  options: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }
+): string {
+  if (!dateInput) return '—';
+  const d = toDate(dateInput);
+  if (isNaN(d.getTime())) return '—';
+  return new Intl.DateTimeFormat('es-PE', { ...options, timeZone: TIMEZONE_PERU }).format(d);
+}
+
+/** Partes de la fecha actual en Lima (año, mes 1-12, día). */
+export function getPeruTodayParts(date: Date = new Date()): { year: number; month: number; day: number } {
+  const [year, month, day] = getPeruToday(date).split('-').map(Number);
+  return { year, month, day };
 }

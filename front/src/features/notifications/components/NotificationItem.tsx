@@ -43,7 +43,7 @@ const formatTimeAgo = (dateString: string): string => {
   const diffInDays = Math.floor(diffInHours / 24);
   if (diffInDays < 7) return `Hace ${diffInDays}d`;
 
-  return date.toLocaleDateString('es-PE', { day: '2-digit', month: 'short' });
+  return date.toLocaleDateString('es-PE', { day: '2-digit', month: 'short', timeZone: 'America/Lima' });
 };
 
 export const NotificationItem: React.FC<NotificationItemProps> = ({

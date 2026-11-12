@@ -40,6 +40,7 @@ import { EditObligationModal } from '../components/EditObligationModal';
 import { DailyCashCloseModal } from '../components/DailyCashCloseModal';
 import { CreateIndividualObligationModal } from '../components/CreateIndividualObligationModal';
 import { PaymentObligation, ObligationStatus } from '../types';
+import { formatPeruShortDate } from '@/lib/dateUtils';
 
 export const PaymentsPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -354,7 +355,7 @@ export const PaymentsPage: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           <span className={`text-xs ${isOverdue ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
-                            {new Date(item.dueDate).toLocaleDateString('es-PE')}
+                            {formatPeruShortDate(item.dueDate)}
                           </span>
                         </TableCell>
                         <TableCell>
@@ -422,7 +423,7 @@ export const PaymentsPage: React.FC = () => {
                                   const studentName = item.enrollment?.student
                                     ? `${item.enrollment.student.firstNames} ${item.enrollment.student.lastNamePaternal}`
                                     : 'su menor hijo(a)';
-                                  const formattedDueDate = new Date(item.dueDate).toLocaleDateString('es-PE');
+                                  const formattedDueDate = formatPeruShortDate(item.dueDate);
                                   const paid = (item.transactions || []).reduce((s, t) => s + t.amountPaid, 0);
                                   const remaining = Math.max(0, item.amountDue - paid).toFixed(2);
 

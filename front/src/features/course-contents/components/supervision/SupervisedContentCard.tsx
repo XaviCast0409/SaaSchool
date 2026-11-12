@@ -15,6 +15,7 @@ import { getSubjectTheme } from '../../utils/subjectThemes';
 import { openFile } from '../../utils/fileUrls';
 import { DocumentPreviewModal } from '../DocumentPreviewModal';
 import type { SupervisedContentItem } from '../../types';
+import { formatPeruDateTime, formatPeruShortDate } from '@/lib/dateUtils';
 
 interface SupervisedContentCardProps {
   item: SupervisedContentItem;
@@ -128,7 +129,7 @@ export const SupervisedContentCard: React.FC<SupervisedContentCardProps> = ({
         {item.contentType === 'HOMEWORK' && item.dueDate && (
           <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium">
             <Clock className="w-3.5 h-3.5 shrink-0" />
-            <span>Entrega: {new Date(item.dueDate).toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' })}</span>
+            <span>Entrega: {formatPeruDateTime(item.dueDate, { dateStyle: 'short', timeStyle: 'short' })}</span>
           </div>
         )}
 
@@ -149,7 +150,7 @@ export const SupervisedContentCard: React.FC<SupervisedContentCardProps> = ({
             Prof. {item.teacher.lastNamePaternal} {item.teacher.firstName}
           </span>
           <span className="text-[11px] text-muted-foreground shrink-0">
-            • {new Date(item.createdAt).toLocaleDateString('es-PE')}
+            • {formatPeruShortDate(item.createdAt)}
           </span>
         </div>
 

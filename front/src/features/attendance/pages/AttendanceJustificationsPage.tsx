@@ -11,6 +11,7 @@ import { Pagination } from '@/components/ui/Pagination';
 import { openFile } from '@/features/course-contents/utils/fileUrls';
 import { useJustifications, useReviewJustification } from '../api/useJustifications';
 import type { AttendanceJustification, JustificationStatus } from '../types';
+import { formatPeruDate } from '@/lib/dateUtils';
 
 const REASON_LABELS: Record<string, string> = {
   MEDICAL: 'Salud / cita médica',
@@ -66,7 +67,7 @@ export const AttendanceJustificationsPage: React.FC = () => {
   };
 
   const formatDate = (iso: string) => {
-    return new Date(iso).toLocaleDateString('es-PE', {
+    return formatPeruDate(iso, {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -75,7 +76,7 @@ export const AttendanceJustificationsPage: React.FC = () => {
   };
 
   const formatDateTime = (iso: string) => {
-    return new Date(iso).toLocaleDateString('es-PE', {
+    return formatPeruDate(iso, {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',

@@ -4,6 +4,7 @@ import { Megaphone, ArrowRight, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useGetAnnouncements } from '@/features/announcements/api/useAnnouncements';
+import { formatPeruDate } from '@/lib/dateUtils';
 
 export const ChildAnnouncementsCard: React.FC = () => {
   const navigate = useNavigate();
@@ -70,7 +71,7 @@ export const ChildAnnouncementsCard: React.FC = () => {
 
               <div className="flex items-center gap-1 text-[10px] text-muted-foreground pt-0.5">
                 <Calendar className="w-2.5 h-2.5" />
-                <span>{new Date(item.publishedAt).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' })}</span>
+                <span>{formatPeruDate(item.publishedAt, { day: '2-digit', month: 'short' })}</span>
               </div>
             </div>
           ))

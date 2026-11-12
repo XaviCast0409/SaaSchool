@@ -11,6 +11,7 @@ import type { Announcement } from '../types';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { formatPeruDate } from '@/lib/dateUtils';
 
 interface AnnouncementCardProps {
   announcement: Announcement;
@@ -37,7 +38,7 @@ export const AnnouncementCard: React.FC<AnnouncementCardProps> = ({
     ? 'border-l-4 border-l-amber-500 shadow-sm'
     : 'border-l-4 border-l-primary/50 shadow-sm';
 
-  const formattedDate = new Date(announcement.publishedAt).toLocaleDateString('es-PE', {
+  const formattedDate = formatPeruDate(announcement.publishedAt, {
     weekday: 'short',
     day: 'numeric',
     month: 'short',

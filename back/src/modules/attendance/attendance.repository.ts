@@ -1,6 +1,6 @@
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
-import { parseSchoolDate } from '../../utils/timezone.util';
+import { monthRangeUTC, parseSchoolDate } from '../../utils/timezone.util';
 import type { Attendance, AttendanceStatus, AttendanceOrigin, Prisma, AttendanceScheduleConfig, AttendanceScheduleScope, EducationLevel } from '@prisma/client';
 import type {
   AttendanceFilterDto,
@@ -614,14 +614,7 @@ export class AttendanceRepository {
     schoolId: string,
     query: AttendanceSummaryQueryDto,
   ): Promise<AttendanceMonthlySummary> {
-    const now = new Date();
-    const period = query.month || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const [yearStr, monthStr] = period.split('-');
-    const year = parseInt(yearStr, 10);
-    const month = parseInt(monthStr, 10);
-
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+    const { period, startDate, endDate } = monthRangeUTC(query.month);
 
     const where: Prisma.AttendanceWhereInput = {
       schoolId,
@@ -672,11 +665,7 @@ export class AttendanceRepository {
     schoolId: string,
     query: AttendanceExportQueryDto,
   ): Promise<AttendanceExportRow[]> {
-    const [yearStr, monthStr] = query.month.split('-');
-    const year = parseInt(yearStr, 10);
-    const month = parseInt(monthStr, 10);
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+    const { startDate, endDate } = monthRangeUTC(query.month);
 
     const records = await prisma.attendance.findMany({
       where: {
@@ -743,12 +732,7 @@ export class AttendanceRepository {
     schoolId: string,
     query: AttendanceMatrixQueryDto,
   ): Promise<AttendanceMatrixData> {
-    const [yearStr, monthStr] = query.month.split('-');
-    const year = parseInt(yearStr, 10);
-    const month = parseInt(monthStr, 10);
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0, 23, 59, 59, 999);
-    const daysInMonth = new Date(year, month, 0).getDate();
+    const { year, month, startDate, endDate, daysInMonth } = monthRangeUTC(query.month);
 
     // 1. Obtener todas las matrículas activas de la sección (o colegio)
     const enrollments = await prisma.enrollment.findMany({
@@ -911,14 +895,7 @@ export class AttendanceRepository {
     enrollmentId: string,
     query: StudentAttendanceQueryDto,
   ): Promise<StudentAttendanceDetail> {
-    const now = new Date();
-    const period = query.month || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const [yearStr, monthStr] = period.split('-');
-    const year = parseInt(yearStr, 10);
-    const month = parseInt(monthStr, 10);
-
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+    const { period, startDate, endDate } = monthRangeUTC(query.month);
 
     const enrollment = await prisma.enrollment.findFirst({
       where: { id: enrollmentId, schoolId },

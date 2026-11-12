@@ -25,6 +25,7 @@ import { HomeworkSubmissionsModal } from './HomeworkSubmissionsModal';
 import { SubmitHomeworkModal } from './SubmitHomeworkModal';
 import { useGetHomeworkSubmissions } from '../api/useCourseContents';
 import { useAuthStore } from '@/store/useAuthStore';
+import { formatPeruDate } from '@/lib/dateUtils';
 
 interface CourseContentCardProps {
   content: CourseContent;
@@ -68,7 +69,7 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
   const FileIcon = fileMeta.icon;
   const dueDateStatus = getDueDateStatus(content.dueDate);
 
-  const formattedDate = new Date(content.createdAt).toLocaleDateString('es-PE', {
+  const formattedDate = formatPeruDate(content.createdAt, {
     day: '2-digit',
     month: 'short',
     year: 'numeric',

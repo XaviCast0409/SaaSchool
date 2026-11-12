@@ -259,7 +259,7 @@ export async function exportWellMarkedMatrixExcel(params: MarkedMatrixExportPara
   row3.height = 22;
   const cell3 = ws.getCell(3, 1);
   const now = new Date();
-  const emissionDate = now.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const emissionDate = now.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Lima' });
   cell3.value = `I.E.: ${schoolName.toUpperCase()}   |   AULA / SECCIÓN: ${(classroomLabel || 'TODAS LAS SECCIONES').toUpperCase()}   |   MES: ${periodText}   |   EMISIÓN: ${emissionDate}   |   ESTUDIANTES: ${students.length}`;
   applyStyle(cell3, {
     font: { bold: true, size: 9, color: { argb: PALETTE.navyDark } },

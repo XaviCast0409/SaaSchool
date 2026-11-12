@@ -23,6 +23,7 @@ import type {
   CourseContent,
   HomeworkTeacherSubmissionItem,
 } from '../types';
+import { formatPeruDateTime } from '@/lib/dateUtils';
 
 interface HomeworkSubmissionsModalProps {
   isOpen: boolean;
@@ -140,7 +141,7 @@ export const HomeworkSubmissionsModal: React.FC<HomeworkSubmissionsModalProps> =
             </div>
             <p className="text-xs text-muted-foreground">
               {content.dueDate
-                ? `Fecha Límite: ${new Date(content.dueDate).toLocaleString('es-PE', {
+                ? `Fecha Límite: ${formatPeruDateTime(content.dueDate, {
                     dateStyle: 'medium',
                     timeStyle: 'short',
                   })}`
@@ -249,7 +250,7 @@ export const HomeworkSubmissionsModal: React.FC<HomeworkSubmissionsModalProps> =
                           <span>
                             {' '}
                             • Entregado:{' '}
-                            {new Date(sub.submittedAt).toLocaleString('es-PE', {
+                            {formatPeruDateTime(sub.submittedAt, {
                               dateStyle: 'short',
                               timeStyle: 'short',
                             })}

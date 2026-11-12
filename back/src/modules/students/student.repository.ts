@@ -1,3 +1,4 @@
+import { dateOnlyKey, getSchoolNow } from '../../utils/timezone.util';
 import { prisma } from '../../config/prisma';
 import type { Prisma, Student } from '@prisma/client';
 import type { CreateStudentDto, UpdateStudentDto, StudentFilterDto, RegisterFichaMatriculaDto } from './student.schema';
@@ -508,8 +509,7 @@ export class StudentRepository {
       orderBy: [{ lastNamePaternal: 'asc' }, { firstNames: 'asc' }],
     });
 
-    const todayDate = new Date();
-    todayDate.setHours(0, 0, 0, 0);
+    const todayKey = getSchoolNow().dateStr;
 
     return students.map((student) => {
       const activeEnrollment = student.enrollments[0] || null;
@@ -517,9 +517,7 @@ export class StudentRepository {
 
       const attendances = activeEnrollment?.attendances || [];
       const todayAttendance = attendances.find((a) => {
-        const aDate = new Date(a.date);
-        aDate.setHours(0, 0, 0, 0);
-        return aDate.getTime() === todayDate.getTime();
+        return dateOnlyKey(new Date(a.date)) === todayKey;
       });
 
       const totalRecordedAttendances = attendances.length;
@@ -651,16 +649,13 @@ export class StudentRepository {
 
     if (!student) return null;
 
-    const todayDate = new Date();
-    todayDate.setHours(0, 0, 0, 0);
+    const todayKey = getSchoolNow().dateStr;
 
     const activeEnrollment = student.enrollments[0] || null;
 
     const attendances = activeEnrollment?.attendances || [];
     const todayAttendance = attendances.find((a) => {
-      const aDate = new Date(a.date);
-      aDate.setHours(0, 0, 0, 0);
-      return aDate.getTime() === todayDate.getTime();
+      return dateOnlyKey(new Date(a.date)) === todayKey;
     });
 
     const totalRecordedAttendances = attendances.length;

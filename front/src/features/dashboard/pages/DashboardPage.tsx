@@ -29,6 +29,7 @@ import { Button } from '@/components/ui/button';
 
 import { ParentPortalPage } from '@/features/parent/pages/ParentPortalPage';
 import { TeacherDashboardView } from '../components/TeacherDashboardView';
+import { formatPeruShortDate } from '@/lib/dateUtils';
 
 export const DashboardPage: React.FC = () => {
   const { user, impersonatedSchool } = useAuthStore();
@@ -545,7 +546,7 @@ export const DashboardPage: React.FC = () => {
                     {announcement.priority}
                   </span>
                   <span className="text-[11px] text-muted-foreground">
-                    {new Date(announcement.publishedAt).toLocaleDateString('es-PE')}
+                    {formatPeruShortDate(announcement.publishedAt)}
                   </span>
                 </div>
                 <h4 className="font-bold text-sm text-foreground line-clamp-1">{announcement.title}</h4>

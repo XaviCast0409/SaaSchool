@@ -9,6 +9,7 @@ import {
   Video,
   FileCheck,
 } from 'lucide-react';
+import { formatPeruDate } from '@/lib/dateUtils';
 
 export interface FileMetadata {
   icon: React.ComponentType<{ className?: string }>;
@@ -105,12 +106,7 @@ export const getDueDateStatus = (dueDateString?: string | null): DueDateStatus |
   const diffTime = due.getTime() - now.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-  const formattedDate = due.toLocaleDateString('es-PE', {
-    weekday: 'short',
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+  const formattedDate = formatPeruDate(dueDateString, { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
 
   if (diffDays < 0) {
     return {

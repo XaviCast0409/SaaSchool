@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { TeacherComplianceItem } from '../../types';
+import { formatPeruShortDate } from '@/lib/dateUtils';
 
 interface TeacherComplianceTableProps {
   teachers: TeacherComplianceItem[];
@@ -121,7 +122,7 @@ export const TeacherComplianceTable: React.FC<TeacherComplianceTableProps> = ({
                       {t.lastPublishedAt ? (
                         <div className="flex items-center gap-1.5">
                           <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                          <span>{new Date(t.lastPublishedAt).toLocaleDateString('es-PE')}</span>
+                          <span>{formatPeruShortDate(t.lastPublishedAt)}</span>
                         </div>
                       ) : (
                         <span className="text-muted-foreground/60 italic">— Sin actividad —</span>

@@ -23,6 +23,7 @@ import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
 import { CreateIncidentModal } from '../components/CreateIncidentModal';
 import type { IncidentType, IncidentSeverity } from '../types';
 import { toast } from 'sonner';
+import { formatPeruDateTime, formatPeruShortDate } from '@/lib/dateUtils';
 
 const TYPE_CONFIG: Record<
   IncidentType,
@@ -264,7 +265,7 @@ export const IncidentsPage: React.FC = () => {
 
                   <span className="text-xs text-muted-foreground flex items-center gap-1 font-medium">
                     <Clock className="w-3.5 h-3.5" />
-                    {new Date(inc.createdAt).toLocaleString('es-PE')}
+                    {formatPeruDateTime(inc.createdAt)}
                   </span>
                 </div>
 
@@ -304,7 +305,7 @@ export const IncidentsPage: React.FC = () => {
                       <div className="p-2 rounded-lg bg-purple-500/10 border border-purple-500/20 text-xs text-purple-700 dark:text-purple-300 flex items-center gap-2 font-semibold">
                         <CalendarClock className="w-4 h-4" />
                         <span>
-                          Citación programada: {new Date(inc.citationDate).toLocaleString('es-PE')}
+                          Citación programada: {formatPeruDateTime(inc.citationDate)}
                         </span>
                       </div>
                     )}
@@ -318,7 +319,7 @@ export const IncidentsPage: React.FC = () => {
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       <span>
                         Enterado por el apoderado el{' '}
-                        {new Date(inc.acknowledgedAt!).toLocaleDateString('es-PE')}
+                        {formatPeruShortDate(inc.acknowledgedAt!)}
                       </span>
                     </div>
                   ) : (

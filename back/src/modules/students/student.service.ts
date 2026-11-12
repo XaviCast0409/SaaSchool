@@ -1,3 +1,4 @@
+import { getSchoolNow } from '../../utils/timezone.util';
 import { AppError } from '../../core/errors/app-error';
 import { prisma } from '../../config/prisma';
 import { hashPassword } from '../../utils/hash.util';
@@ -323,8 +324,8 @@ export class StudentService {
       'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
       'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
     ];
-    const today = new Date();
-    const issueDate = `${today.getDate()} de ${months[today.getMonth()]} de ${today.getFullYear()}`;
+    const [issueY, issueM, issueD] = getSchoolNow().dateStr.split('-').map(Number);
+    const issueDate = `${issueD} de ${months[issueM - 1]} de ${issueY}`;
 
     return {
       certificateType: 'ENROLLMENT',
@@ -416,8 +417,8 @@ export class StudentService {
       'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
       'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
     ];
-    const today = new Date();
-    const issueDate = `${today.getDate()} de ${months[today.getMonth()]} de ${today.getFullYear()}`;
+    const [issueY, issueM, issueD] = getSchoolNow().dateStr.split('-').map(Number);
+    const issueDate = `${issueD} de ${months[issueM - 1]} de ${issueY}`;
 
     return {
       certificateType: 'NO_DEBT',

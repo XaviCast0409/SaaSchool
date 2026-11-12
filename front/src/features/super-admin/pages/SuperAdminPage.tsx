@@ -34,6 +34,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatPeruShortDate } from '@/lib/dateUtils';
 
 const PLAN_PRICES: Record<string, number> = {
   BASIC: 400,
@@ -300,7 +301,7 @@ export const SuperAdminPage: React.FC = () => {
                         <TableCell>
                           {item.planExpiresAt ? (
                             <span className={`text-xs ${isExpired ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
-                              {new Date(item.planExpiresAt).toLocaleDateString('es-PE')}
+                              {formatPeruShortDate(item.planExpiresAt)}
                             </span>
                           ) : (
                             <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">Mensual Indefinido</span>

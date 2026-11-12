@@ -18,12 +18,14 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
   extraInfoRight,
 }) => {
   const currentDate = new Date().toLocaleDateString('es-PE', {
+    timeZone: 'America/Lima',
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
   });
 
   const currentTime = new Date().toLocaleTimeString('es-PE', {
+    timeZone: 'America/Lima',
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',

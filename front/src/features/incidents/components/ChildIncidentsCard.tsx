@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIncidents, useAcknowledgeIncident } from '../api/useIncidents';
 import type { IncidentType, IncidentSeverity } from '../types';
+import { formatPeruDate, formatPeruDateTime, formatPeruShortDate } from '@/lib/dateUtils';
 
 interface ChildIncidentsCardProps {
   studentId?: string;
@@ -125,7 +126,7 @@ export const ChildIncidentsCard: React.FC<ChildIncidentsCardProps> = ({
 
                   <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                     <Clock className="w-3 h-3" />
-                    {new Date(inc.createdAt).toLocaleDateString('es-PE', {
+                    {formatPeruDate(inc.createdAt, {
                       day: '2-digit',
                       month: 'short',
                       year: 'numeric',
@@ -151,7 +152,7 @@ export const ChildIncidentsCard: React.FC<ChildIncidentsCardProps> = ({
                   <div className="p-2 rounded-lg bg-purple-500/10 border border-purple-500/20 text-[11px] text-purple-700 dark:text-purple-300 flex items-center gap-1.5 font-semibold">
                     <Calendar className="w-3.5 h-3.5" />
                     <span>
-                      Fecha de Citación: {new Date(inc.citationDate).toLocaleString('es-PE')}
+                      Fecha de Citación: {formatPeruDateTime(inc.citationDate)}
                     </span>
                   </div>
                 )}
@@ -167,7 +168,7 @@ export const ChildIncidentsCard: React.FC<ChildIncidentsCardProps> = ({
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       <span>
                         Enterado el{' '}
-                        {new Date(inc.acknowledgedAt!).toLocaleDateString('es-PE')}
+                        {formatPeruShortDate(inc.acknowledgedAt!)}
                       </span>
                     </div>
                   ) : (

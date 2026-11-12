@@ -22,6 +22,7 @@ import { JustifyAbsenceModal } from '@/features/attendance/components/JustifyAbs
 import { AttendanceStatusBadge } from '@/features/attendance/components/AttendanceStatusBadge';
 import { ChildSwitcher } from './ChildSwitcher';
 import { AttendanceMetricsCards } from './AttendanceMetricsCards';
+import { formatPeruDate } from '@/lib/dateUtils';
 
 const REASON_LABELS: Record<string, string> = {
   MEDICAL: 'Salud / cita médica',
@@ -254,7 +255,7 @@ export const ParentAttendanceView: React.FC = () => {
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-10 h-10 rounded-xl bg-secondary/80 border border-border/60 flex flex-col items-center justify-center text-center shrink-0 shadow-sm">
                       <span className="text-[9px] uppercase font-bold text-muted-foreground leading-none">
-                        {recordDate.toLocaleDateString('es-PE', { month: 'short', timeZone: 'America/Lima' })}
+                        {recordDate.toLocaleDateString('es-PE', { month: 'short', timeZone: 'UTC' })}
                       </span>
                       <span className="text-sm font-black text-foreground leading-none mt-0.5">
                         {recordDate.getUTCDate()}
@@ -268,7 +269,7 @@ export const ParentAttendanceView: React.FC = () => {
                           day: 'numeric',
                           month: 'long',
                           year: 'numeric',
-                          timeZone: 'America/Lima',
+                          timeZone: 'UTC',
                         })}
                       </span>
                       <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5 flex-wrap">
@@ -336,13 +337,13 @@ export const ParentAttendanceView: React.FC = () => {
         ) : (
           <div className="divide-y divide-border/60">
             {justificationsData.data.map((j) => {
-              const fromStr = new Date(j.dateFrom).toLocaleDateString('es-PE', {
+              const fromStr = formatPeruDate(j.dateFrom, {
                 day: '2-digit',
                 month: '2-digit',
                 year: 'numeric',
                 timeZone: 'America/Lima',
               });
-              const toStr = new Date(j.dateTo).toLocaleDateString('es-PE', {
+              const toStr = formatPeruDate(j.dateTo, {
                 day: '2-digit',
                 month: '2-digit',
                 year: 'numeric',

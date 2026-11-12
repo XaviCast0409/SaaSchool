@@ -9,10 +9,10 @@ function calculateAgeAtMarch31(birthDateStr: string, academicYear: number): numb
   const birthDate = new Date(birthDateStr);
   if (isNaN(birthDate.getTime())) return 0;
 
-  const refDate = new Date(academicYear, 2, 31); // 31 de marzo (mes 2 es marzo en JS)
-  let age = refDate.getFullYear() - birthDate.getFullYear();
-  const birthMonth = birthDate.getMonth();
-  const birthDay = birthDate.getDate();
+  // La fecha de nacimiento llega sin hora (medianoche UTC): se leen sus partes en UTC
+  let age = academicYear - birthDate.getUTCFullYear();
+  const birthMonth = birthDate.getUTCMonth();
+  const birthDay = birthDate.getUTCDate();
 
   if (birthMonth > 2 || (birthMonth === 2 && birthDay > 31)) {
     age--;
@@ -28,9 +28,9 @@ function formatDateToDMY(isoDateStr: string): string {
   if (!isoDateStr) return '';
   const date = new Date(isoDateStr);
   if (isNaN(date.getTime())) return '';
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const year = date.getUTCFullYear();
   return `${day}/${month}/${year}`;
 }
 
@@ -87,7 +87,7 @@ export function exportNominaToExcel(data: NominaMatriculaResponse): void {
 
   const metaRow4 = [
     'FECHA DE GENERACIÓN:',
-    new Date().toLocaleDateString('es-PE'),
+    new Date().toLocaleDateString('es-PE', { timeZone: 'America/Lima' }),
     'TOTAL MATRICULADOS:',
     String(totalStudents),
     'VARONES (M):',

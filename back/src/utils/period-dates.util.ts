@@ -27,7 +27,7 @@ export function getPeriodDateRange(
       const e = new Date(config.endDate);
       // Asegurar que abarque el final del día en endDate
       if (!isNaN(s.getTime()) && !isNaN(e.getTime())) {
-        e.setHours(23, 59, 59, 999);
+        e.setUTCHours(23, 59, 59, 999);
         return { startDate: s, endDate: e };
       }
     }
@@ -48,7 +48,7 @@ export function getPeriodDateRange(
 
   const s = new Date(pStartMs);
   const e = new Date(pEndMs);
-  e.setHours(23, 59, 59, 999);
+  e.setUTCHours(23, 59, 59, 999);
 
   return {
     startDate: s,

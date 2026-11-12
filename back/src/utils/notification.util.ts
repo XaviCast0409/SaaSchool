@@ -1,3 +1,4 @@
+import { formatDateOnly } from './timezone.util';
 import nodemailer, { type Transporter } from 'nodemailer';
 import { env } from '../config/env';
 
@@ -100,7 +101,7 @@ export const sendReminderNotification = async (
   const results: ReminderNotificationResult[] = [];
   const timestamp = new Date().toISOString();
   const formattedAmount = `S/ ${params.amountDue.toFixed(2)}`;
-  const formattedDate = new Date(params.dueDate).toLocaleDateString('es-PE');
+  const formattedDate = formatDateOnly(params.dueDate);
 
   const safe = {
     recipientName: escapeHtml(params.recipientName),

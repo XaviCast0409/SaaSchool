@@ -24,6 +24,7 @@ import {
   RISK_REASON_LABELS,
   type AttendanceAlert,
 } from '../types';
+import { formatPeruDate } from '@/lib/dateUtils';
 
 const LEVEL_LABELS: Record<string, string> = {
   INITIAL: 'Inicial',
@@ -207,7 +208,7 @@ export const AttendanceAlertsPage: React.FC = () => {
               item.threshold,
             );
 
-            const triggerDateFormatted = new Date(item.triggeredOn).toLocaleDateString('es-PE', {
+            const triggerDateFormatted = formatPeruDate(item.triggeredOn, {
               day: '2-digit',
               month: '2-digit',
               year: 'numeric',

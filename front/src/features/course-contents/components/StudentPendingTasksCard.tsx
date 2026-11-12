@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useGetStudentTasks } from '../api/useCourseContents';
 import { openFile } from '../utils/fileUrls';
+import { formatPeruDate } from '@/lib/dateUtils';
 
 interface StudentPendingTasksCardProps {
   studentId?: string | null;
@@ -73,7 +74,7 @@ export const StudentPendingTasksCard: React.FC<StudentPendingTasksCardProps> = (
               const areaName = hw.courseAssignment?.area?.name || 'Asignatura';
               const teacher = hw.courseAssignment?.teacher;
               const formattedDate = hw.dueDate
-                ? new Date(hw.dueDate).toLocaleDateString('es-PE', {
+                ? formatPeruDate(hw.dueDate, {
                     day: 'numeric',
                     month: 'short',
                     year: 'numeric',

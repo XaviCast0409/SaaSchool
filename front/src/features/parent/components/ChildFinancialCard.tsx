@@ -4,6 +4,7 @@ import { CreditCard, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { ActiveEnrollmentInfo } from '../types';
+import { formatPeruDate } from '@/lib/dateUtils';
 
 interface ChildFinancialCardProps {
   enrollment: ActiveEnrollmentInfo | null;
@@ -71,7 +72,7 @@ export const ChildFinancialCard: React.FC<ChildFinancialCardProps> = ({ enrollme
           <div className="text-right">
             <span className="text-[10px] text-muted-foreground block">Próximo Vencimiento</span>
             <span className="text-xs font-bold text-destructive block">
-              {new Date(fin.nextDueDate).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' })}
+              {formatPeruDate(fin.nextDueDate, { day: '2-digit', month: 'short' })}
             </span>
           </div>
         )}

@@ -25,6 +25,7 @@ import { openFile } from '../utils/fileUrls';
 import type { CourseContent } from '../types';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useParentStore } from '@/store/useParentStore';
+import { formatPeruDateTime } from '@/lib/dateUtils';
 
 interface SubmitHomeworkModalProps {
   isOpen: boolean;
@@ -151,7 +152,7 @@ export const SubmitHomeworkModal: React.FC<SubmitHomeworkModalProps> = ({
                 <Calendar className="w-3.5 h-3.5 shrink-0" />
                 <span>
                   Fecha límite:{' '}
-                  {new Date(content.dueDate).toLocaleString('es-PE', {
+                  {formatPeruDateTime(content.dueDate, {
                     dateStyle: 'medium',
                     timeStyle: 'short',
                   })}
@@ -195,7 +196,7 @@ export const SubmitHomeworkModal: React.FC<SubmitHomeworkModalProps> = ({
                   <Clock className="w-3.5 h-3.5" />
                   <span>
                     Enviado:{' '}
-                    {new Date(currentSubmission.submittedAt).toLocaleString('es-PE', {
+                    {formatPeruDateTime(currentSubmission.submittedAt, {
                       dateStyle: 'medium',
                       timeStyle: 'short',
                     })}
