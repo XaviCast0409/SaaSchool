@@ -8,6 +8,7 @@ const USER_PUBLIC_SELECT = {
   schoolId: true,
   email: true,
   role: true,
+  financeRole: true,
   firstName: true,
   lastNamePaternal: true,
   lastNameMaternal: true,

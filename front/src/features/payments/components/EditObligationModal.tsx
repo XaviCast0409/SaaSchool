@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useUpdateObligation } from '../api/usePayments';
+import { apiError } from '../api/useCash';
 import type { PaymentObligation } from '../types';
 
 interface EditObligationModalProps {
@@ -42,16 +43,6 @@ export const EditObligationModal: React.FC<EditObligationModalProps> = ({
     ? `${obligation.enrollment.student.lastNamePaternal} ${obligation.enrollment.student.lastNameMaternal || ''}, ${obligation.enrollment.student.firstNames}`.trim()
     : 'Estudiante';
 
-  const applyDiscountPercent = (percent: number) => {
-    const current = Number(obligation.amountDue);
-    const discounted = Math.max(0, current * (1 - percent / 100));
-    setAmountDue(discounted.toFixed(2));
-    setNotes(
-      (prev) =>
-        `${prev ? prev + ' · ' : ''}Descuento del ${percent}% aplicado (${obligation.title})`,
-    );
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -66,6 +57,16 @@ export const EditObligationModal: React.FC<EditObligationModalProps> = ({
       return;
     }
 
+    const amountChanged = numericAmount !== Number(obligation.amountDue);
+    if (amountChanged && obligation.transactions.length > 0) {
+      toast.error('Esta cuota ya tiene cobros. Para cambiar el monto, primero anula los cobros (botón Cobros).');
+      return;
+    }
+    if (amountChanged && notes.trim().length < 5) {
+      toast.error('Escribe el motivo del cambio de monto (mínimo 5 caracteres).');
+      return;
+    }
+
     try {
       await updateMutation.mutateAsync({
         id: obligation.id,
@@ -73,14 +74,15 @@ export const EditObligationModal: React.FC<EditObligationModalProps> = ({
           amountDue: numericAmount,
           dueDate: new Date(dueDate).toISOString(),
           title: title.trim() || undefined,
-          notes: notes.trim() || null,
+          // El motivo queda en la auditoría junto con el monto anterior y el nuevo
+          reason: notes.trim() || null,
         },
       });
 
       toast.success('Cuota de pago actualizada correctamente.');
       onClose();
-    } catch {
-      toast.error('Error al actualizar la obligación de pago.');
+    } catch (err) {
+      toast.error(apiError(err, 'Error al actualizar la obligación de pago.'));
     }
   };
 
@@ -157,59 +159,16 @@ export const EditObligationModal: React.FC<EditObligationModalProps> = ({
             </div>
           </div>
 
-          {/* Atajos Rápidos de Descuentos */}
-          <div className="p-3 rounded-xl bg-muted/30 border border-border space-y-2">
-            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
-              Atajos Rápidos de Descuento
-            </span>
-            <div className="flex items-center gap-2 flex-wrap">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => applyDiscountPercent(50)}
-                className="text-xs h-7 rounded-lg font-semibold"
-              >
-                -50% (Media Beca)
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => applyDiscountPercent(25)}
-                className="text-xs h-7 rounded-lg font-semibold"
-              >
-                -25% (Hnos)
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => applyDiscountPercent(10)}
-                className="text-xs h-7 rounded-lg font-semibold"
-              >
-                -10% (Pronto Pago)
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setAmountDue('0.00');
-                  setNotes((prev) => `${prev ? prev + ' · ' : ''}Beca Integral (100%)`);
-                }}
-                className="text-xs h-7 rounded-lg font-semibold text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
-              >
-                Beca 100%
-              </Button>
-            </div>
-          </div>
+          <p className="rounded-lg border border-border bg-muted/30 p-2.5 text-[11px] text-muted-foreground">
+            Aquí solo se corrige el monto base de una cuota sin cobros ni ajustes. Para descuentos, notas de crédito o moras usa
+            <strong> Cobros → Agregar ajuste</strong>; para becas de todo el año, <strong>Becas y moras</strong>. Así queda constancia numerada.
+          </p>
 
           {/* Motivo / Notas */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
               <FileText className="w-3.5 h-3.5 text-muted-foreground" />
-              <span>Motivo del Descuento o Modificación (Notas)</span>
+              <span>Motivo del cambio (obligatorio si cambias el monto)</span>
             </label>
             <textarea
               rows={2}

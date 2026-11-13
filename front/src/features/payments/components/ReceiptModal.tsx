@@ -16,7 +16,10 @@ interface ReceiptData {
     receiptType: string;
     receiptNumber: string;
     paymentDate: string;
+    status?: 'ACTIVE' | 'VOIDED';
+    collectedBy?: string | null;
   };
+  voided?: { at: string | null; reason: string | null; by: string | null } | null;
   student: {
     fullName: string;
     documentId: string;
@@ -25,6 +28,7 @@ interface ReceiptData {
   payment: {
     title: string;
     paymentMethod: string;
+    paymentMethodLabel?: string;
     operationNumber: string;
     amountPaid: number;
   };
@@ -36,6 +40,16 @@ export const ReceiptDocument: React.FC<{ receipt: ReceiptData; isPrint?: boolean
 }) => {
   return (
     <div className={isPrint ? 'max-w-[120mm] mx-auto p-6 space-y-4 text-black bg-white' : 'p-6 space-y-4'}>
+      {receipt.voided && (
+        <div className="rounded-lg border-2 border-destructive bg-destructive/10 p-3 text-center text-destructive">
+          <p className="text-lg font-extrabold tracking-widest">ANULADO</p>
+          <p className="text-[11px]">
+            {receipt.voided.at ? formatPeruDateTime(receipt.voided.at) : ''}
+            {receipt.voided.by ? ` · por ${receipt.voided.by}` : ''}
+          </p>
+          {receipt.voided.reason && <p className="mt-1 text-xs font-medium">Motivo: {receipt.voided.reason}</p>}
+        </div>
+      )}
       {/* School Header Voucher */}
       <div className="text-center border-b border-dashed border-border pb-4 space-y-1">
         <div className="flex items-center justify-center gap-1.5 font-bold text-lg text-foreground">
@@ -78,9 +92,17 @@ export const ReceiptDocument: React.FC<{ receipt: ReceiptData; isPrint?: boolean
           <span className="font-semibold text-foreground">{receipt.payment.title}</span>
         </div>
         <div className="flex justify-between py-1 border-b border-border/40">
-          <span className="text-muted-foreground">Método de Pago:</span>
-          <span className="font-semibold text-foreground">{receipt.payment.paymentMethod}</span>
+          <span className="text-muted-foreground">Medio de pago:</span>
+          <span className="font-semibold text-foreground">
+            {receipt.payment.paymentMethodLabel ?? receipt.payment.paymentMethod}
+          </span>
         </div>
+        {receipt.receiptHeader.collectedBy && (
+          <div className="flex justify-between py-1 border-b border-border/40">
+            <span className="text-muted-foreground">Atendido por:</span>
+            <span className="text-foreground">{receipt.receiptHeader.collectedBy}</span>
+          </div>
+        )}
         <div className="flex justify-between py-1 border-b border-border/40">
           <span className="text-muted-foreground">N° Operación:</span>
           <span className="font-mono text-foreground">{receipt.payment.operationNumber}</span>
@@ -89,8 +111,8 @@ export const ReceiptDocument: React.FC<{ receipt: ReceiptData; isPrint?: boolean
         {/* Amount Total */}
         <div className="flex justify-between items-center py-2 bg-emerald-500/10 px-3 rounded-lg border border-emerald-500/20 mt-3">
           <span className="font-bold text-sm text-foreground">TOTAL PAGADO:</span>
-          <span className="font-extrabold text-lg text-emerald-600 dark:text-emerald-400">
-            S/ {receipt.payment.amountPaid.toFixed(2)}
+          <span className={`font-extrabold text-lg text-emerald-600 dark:text-emerald-400 ${receipt.voided ? 'line-through opacity-60' : ''}`}>
+            S/ {Number(receipt.payment.amountPaid).toFixed(2)}
           </span>
         </div>
       </div>

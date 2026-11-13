@@ -184,7 +184,7 @@ export async function collectCalendar(viewer: Viewer, from: string, to: string):
   if (viewer.role === 'PARENT' && ctx && ctx.enrollments.length) {
     const obligations = await prisma.paymentObligation.findMany({
       where: { schoolId: viewer.schoolId, enrollmentId: { in: ctx.enrollments.map((e) => e.id) }, status: { in: ['PENDING', 'PARTIAL'] }, dueDate: { gte: fromDate, lte: toDate } },
-      select: { id: true, title: true, dueDate: true, amountDue: true, enrollmentId: true, transactions: { select: { amountPaid: true } } },
+      select: { id: true, title: true, dueDate: true, amountDue: true, enrollmentId: true, transactions: { where: { status: 'ACTIVE' }, select: { amountPaid: true } } },
     });
     for (const o of obligations) {
       const e = ctx.enrollments.find((x) => x.id === o.enrollmentId);

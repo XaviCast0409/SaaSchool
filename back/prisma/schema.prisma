@@ -82,7 +82,42 @@ enum ObligationStatus {
 enum PaymentMethod {
   CASH
   BANK_TRANSFER
-  CREDIT_CARD
+  CREDIT_CARD // Tarjeta (crédito o débito)
+  YAPE
+  PLIN
+  DEPOSIT
+}
+
+/// Estado de un registro de caja: nunca se borra, se anula con motivo.
+enum FinanceRecordStatus {
+  ACTIVE
+  VOIDED
+}
+
+/// Rol en finanzas del personal administrativo (Dirección siempre tiene acceso total).
+enum FinanceRole {
+  CASHIER // Cajero: cobra y abre/cierra su caja
+  TREASURER // Tesorero: anula, edita cuotas, valida vouchers y revisa cierres
+  ACCOUNTANT // Contador: solo lectura
+}
+
+/// Ajuste a una cuota. LATE_FEE (mora) aumenta la deuda; los demás la reducen.
+enum AdjustmentType {
+  DISCOUNT // Descuento puntual (pronto pago, hermanos, etc.)
+  SCHOLARSHIP // Beca aplicada desde una beca registrada
+  LATE_FEE // Mora (interés moratorio)
+  CREDIT_NOTE // Nota de crédito: corrección formal del monto cobrado
+}
+
+enum ScholarshipKind {
+  PERCENT
+  FIXED
+}
+
+enum CashSessionStatus {
+  OPEN
+  CLOSED
+  REVIEWED
 }
 
 enum AttendanceStatus {
@@ -167,6 +202,10 @@ model School {
   paymentQrFileUrl           String? // Imagen del QR de Yape/Plin del colegio (/api/files/<id>)
   paymentInstructions        String?          @db.Text // Números de Yape/Plin y cuentas bancarias para las familias
   receiptCounter             Int              @default(0) // Correlativo oficial de recibos (REC-XXXXXX)
+  expenseCounter             Int              @default(0) // Correlativo de egresos de caja (EGR-XXXXXX)
+  adjustmentCounter          Int              @default(0) // Correlativo de ajustes a cuotas (AJ-XXXXXX)
+  lateFeeAnnualRate          Decimal?         @db.Decimal(6, 3) // Tasa anual de interés moratorio (%); tope legal: interbancaria BCRP
+  lateFeeGraceDays           Int              @default(0) // Días de gracia antes de cobrar mora
   isActive                   Boolean          @default(true)
   createdAt                  DateTime         @default(now())
   updatedAt                  DateTime         @updatedAt
@@ -218,14 +257,19 @@ model School {
   timetableTemplates        TimetableTemplate[]
   teacherAvailabilities     TeacherAvailability[]
   paymentReports            PaymentReport[]
+  cashSessions              CashSession[]
+  cashExpenses              CashExpense[]
+  obligationAdjustments     ObligationAdjustment[]
+  scholarships              Scholarship[]
 }
 
 model User {
-  id           String  @id @default(uuid())
+  id           String       @id @default(uuid())
   schoolId     String
-  email        String? @unique
+  email        String?      @unique
   passwordHash String
-  role         Role    @default(PARENT)
+  role         Role         @default(PARENT)
+  financeRole  FinanceRole? // Solo personal administrativo: cajero, tesorero o contador
 
   // Requisitos SIAGIE: Nombres y Apellidos separados
   firstName        String
@@ -269,6 +313,17 @@ model User {
   conclusionPhrases      ConclusionPhrase[]      @relation("ConclusionPhraseOwner")
   incidentsAuthored      StudentIncident[]       @relation("IncidentAuthor")
   periodStatusChanges    AcademicPeriodStatus[]  @relation("PeriodStatusChangedBy")
+  paymentsCollected      PaymentTransaction[]    @relation("TransactionCollector")
+  paymentsVoided         PaymentTransaction[]    @relation("TransactionVoider")
+  obligationsCancelled   PaymentObligation[]     @relation("ObligationCanceller")
+  cashSessions           CashSession[]           @relation("CashSessionCashier")
+  cashSessionsReviewed   CashSession[]           @relation("CashSessionReviewer")
+  cashExpenses           CashExpense[]           @relation("CashExpenseRegistrar")
+  cashExpensesVoided     CashExpense[]           @relation("CashExpenseVoider")
+  adjustmentsCreated     ObligationAdjustment[]  @relation("AdjustmentCreator")
+  adjustmentsVoided      ObligationAdjustment[]  @relation("AdjustmentVoider")
+  scholarshipsCreated    Scholarship[]           @relation("ScholarshipCreator")
+  scholarshipsEnded      Scholarship[]           @relation("ScholarshipDeactivator")
 
   @@unique([schoolId, documentId])
   @@index([schoolId, role])
@@ -421,6 +476,7 @@ model Enrollment {
   courseAttendanceRecords  CourseAttendanceRecord[]
   competencePeriodResults  CompetencePeriodResult[]
   periodReports            StudentPeriodReport[]
+  scholarships             Scholarship[]
 
   @@unique([studentId, academicYearId])
   @@index([schoolId, academicYearId])
@@ -431,20 +487,27 @@ model Enrollment {
 // 6. FINANZAS Y COBRANZAS (MVP Fase 1)
 // ============================================================================
 model PaymentObligation {
-  id           String           @id @default(uuid())
-  schoolId     String
-  enrollmentId String
-  title        String // Ej: "Pensión Marzo 2026"
-  concept      String // Ej: "PENSION", "MATRICULA"
-  amountDue    Decimal          @db.Decimal(10, 2)
-  dueDate      DateTime
-  status       ObligationStatus @default(PENDING)
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  id             String           @id @default(uuid())
+  schoolId       String
+  enrollmentId   String
+  title          String // Ej: "Pensión Marzo 2026"
+  concept        String // Ej: "PENSION", "MATRICULA"
+  amountDue      Decimal          @db.Decimal(10, 2)
+  /// Monto original antes de ajustes (descuentos, becas, moras). amountDue es el monto vigente.
+  originalAmount Decimal?         @db.Decimal(10, 2)
+  dueDate        DateTime
+  status         ObligationStatus @default(PENDING)
+  cancelledAt    DateTime?
+  cancelledById  String?
+  cancelReason   String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
-  school         School               @relation(fields: [schoolId], references: [id])
-  enrollment     Enrollment           @relation(fields: [enrollmentId], references: [id])
+  school         School                 @relation(fields: [schoolId], references: [id])
+  enrollment     Enrollment             @relation(fields: [enrollmentId], references: [id])
+  cancelledBy    User?                  @relation("ObligationCanceller", fields: [cancelledById], references: [id])
   transactions   PaymentTransaction[]
+  adjustments    ObligationAdjustment[]
   paymentReports PaymentReport[]
 
   @@index([schoolId, status])
@@ -452,22 +515,159 @@ model PaymentObligation {
 }
 
 model PaymentTransaction {
-  id              String        @id @default(uuid())
+  id              String              @id @default(uuid())
   schoolId        String
   obligationId    String
-  amountPaid      Decimal       @db.Decimal(10, 2)
-  paymentDate     DateTime      @default(now())
+  amountPaid      Decimal             @db.Decimal(10, 2)
+  paymentDate     DateTime            @default(now())
   paymentMethod   PaymentMethod
   operationNumber String?
-  receiptType     String?       @default("RECIBO_INTERNO") // Solo RECIBO_INTERNO hasta integrar facturación electrónica
-  receiptNumber   String?
+  receiptType     String?             @default("RECIBO_INTERNO") // Solo RECIBO_INTERNO hasta integrar facturación electrónica
+  receiptNumber   String? // Lo genera el sistema; nunca se escribe a mano
   notes           String?
+  status          FinanceRecordStatus @default(ACTIVE)
+  collectedById   String? // Quién cobró (cajero) o validó el voucher
+  cashSessionId   String? // Caja en la que entró el cobro
+  voidedAt        DateTime?
+  voidedById      String?
+  voidReason      String?
+  createdAt       DateTime            @default(now())
 
   school        School            @relation(fields: [schoolId], references: [id])
   obligation    PaymentObligation @relation(fields: [obligationId], references: [id])
+  collectedBy   User?             @relation("TransactionCollector", fields: [collectedById], references: [id])
+  voidedBy      User?             @relation("TransactionVoider", fields: [voidedById], references: [id])
+  cashSession   CashSession?      @relation(fields: [cashSessionId], references: [id])
   paymentReport PaymentReport?
 
+  @@unique([schoolId, receiptNumber])
   @@index([schoolId, paymentDate])
+  @@index([schoolId, status, paymentDate])
+  @@index([cashSessionId])
+}
+
+/// Ajuste con trazabilidad a una cuota: nunca se borra, se anula con motivo.
+/// Al crearlo o anularlo se recalcula amountDue de la cuota.
+model ObligationAdjustment {
+  id            String              @id @default(uuid())
+  schoolId      String
+  obligationId  String
+  number        String // AJ-000001
+  type          AdjustmentType
+  amount        Decimal             @db.Decimal(10, 2) // Siempre positivo; el tipo define si suma o resta
+  reason        String
+  scholarshipId String?
+  createdById   String
+  status        FinanceRecordStatus @default(ACTIVE)
+  voidedAt      DateTime?
+  voidedById    String?
+  voidReason    String?
+  createdAt     DateTime            @default(now())
+
+  school      School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  obligation  PaymentObligation @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+  scholarship Scholarship?      @relation(fields: [scholarshipId], references: [id])
+  createdBy   User              @relation("AdjustmentCreator", fields: [createdById], references: [id])
+  voidedBy    User?             @relation("AdjustmentVoider", fields: [voidedById], references: [id])
+
+  @@unique([schoolId, number])
+  @@index([obligationId])
+  @@index([schoolId, createdAt])
+  @@index([scholarshipId])
+}
+
+/// Beca o descuento recurrente de una matrícula (p. ej. 50 % de la pensión de marzo a diciembre).
+/// Se aplica como ajuste SCHOLARSHIP a cada cuota que cubre.
+model Scholarship {
+  id                 String          @id @default(uuid())
+  schoolId           String
+  enrollmentId       String
+  name               String // Ej: "Beca hermanos", "Beca socioeconómica"
+  kind               ScholarshipKind
+  value              Decimal         @db.Decimal(10, 2) // % o monto fijo por cuota
+  concepts           String[]        @default(["PENSION"])
+  validFrom          DateTime        @db.Date
+  validTo            DateTime?       @db.Date
+  reason             String
+  isActive           Boolean         @default(true)
+  createdById        String
+  deactivatedAt      DateTime?
+  deactivatedById    String?
+  deactivationReason String?
+  createdAt          DateTime        @default(now())
+
+  school        School                 @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  enrollment    Enrollment             @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  createdBy     User                   @relation("ScholarshipCreator", fields: [createdById], references: [id])
+  deactivatedBy User?                  @relation("ScholarshipDeactivator", fields: [deactivatedById], references: [id])
+  adjustments   ObligationAdjustment[]
+
+  @@index([schoolId, isActive])
+  @@index([enrollmentId])
+}
+
+/// Caja de un cajero: se abre con un fondo inicial y se cierra contando el efectivo.
+/// Esperado = fondo + cobros en efectivo − egresos. Diferencia = contado − esperado.
+model CashSession {
+  id             String            @id @default(uuid())
+  schoolId       String
+  cashierId      String
+  status         CashSessionStatus @default(OPEN)
+  openedAt       DateTime          @default(now())
+  openingAmount  Decimal           @db.Decimal(10, 2)
+  openingNote    String?
+  closedAt       DateTime?
+  expectedCash   Decimal?          @db.Decimal(10, 2)
+  countedCash    Decimal?          @db.Decimal(10, 2)
+  difference     Decimal?          @db.Decimal(10, 2)
+  totalsByMethod Json? // Foto del cierre: cobros por medio de pago, egresos y cantidades
+  closingNote    String?
+  reviewedAt     DateTime?
+  reviewedById   String?
+  reviewNote     String?
+  reopenCount    Int               @default(0)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  school       School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  cashier      User                 @relation("CashSessionCashier", fields: [cashierId], references: [id])
+  reviewedBy   User?                @relation("CashSessionReviewer", fields: [reviewedById], references: [id])
+  transactions PaymentTransaction[]
+  expenses     CashExpense[]
+
+  @@index([schoolId, status])
+  @@index([schoolId, openedAt])
+  @@index([cashierId, status])
+}
+
+/// Egreso de caja chica pagado en efectivo desde una caja abierta. Se anula, no se borra.
+model CashExpense {
+  id             String              @id @default(uuid())
+  schoolId       String
+  cashSessionId  String
+  expenseNumber  String // EGR-000001
+  category       String
+  description    String
+  amount         Decimal             @db.Decimal(10, 2)
+  beneficiary    String?
+  documentType   String? // BOLETA | FACTURA | RECIBO_HONORARIOS | TICKET | SIN_COMPROBANTE
+  documentNumber String?
+  attachmentUrl  String?
+  registeredById String
+  status         FinanceRecordStatus @default(ACTIVE)
+  voidedAt       DateTime?
+  voidedById     String?
+  voidReason     String?
+  createdAt      DateTime            @default(now())
+
+  school       School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  cashSession  CashSession @relation(fields: [cashSessionId], references: [id])
+  registeredBy User        @relation("CashExpenseRegistrar", fields: [registeredById], references: [id])
+  voidedBy     User?       @relation("CashExpenseVoider", fields: [voidedById], references: [id])
+
+  @@unique([schoolId, expenseNumber])
+  @@index([schoolId, createdAt])
+  @@index([cashSessionId])
 }
 
 // ============================================================================

@@ -25,7 +25,7 @@ async function runPaymentReminders(ctx: JobContext, mode: Mode): Promise<JobResu
       title: true,
       amountDue: true,
       dueDate: true,
-      transactions: { select: { amountPaid: true } },
+      transactions: { where: { status: 'ACTIVE' }, select: { amountPaid: true } },
       enrollment: { select: { student: { select: { id: true, firstNames: true, lastNamePaternal: true } } } },
     },
   });

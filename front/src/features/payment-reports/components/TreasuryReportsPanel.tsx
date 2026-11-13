@@ -92,7 +92,8 @@ const InstructionsEditor: React.FC<{ open: boolean; onClose: () => void }> = ({ 
 };
 
 /** Bandeja de tesorería: pagos reportados por las familias para validar. */
-export const TreasuryReportsPanel: React.FC = () => {
+/** `readOnly`: el contador ve los vouchers pero no los valida ni cambia los datos de cobro. */
+export const TreasuryReportsPanel: React.FC<{ readOnly?: boolean }> = ({ readOnly = false }) => {
   const [open, setOpen] = useState(true);
   const [status, setStatus] = useState<ReportStatus>('PENDING');
   const { data: reports = [], isLoading } = useTreasuryReports(status, true);
@@ -132,9 +133,11 @@ export const TreasuryReportsPanel: React.FC = () => {
           {pendingCount > 0 && <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[11px] font-bold text-white">{pendingCount} por validar</span>}
           <ChevronDown className={cn('ml-auto h-4 w-4 text-muted-foreground transition-transform', open && 'rotate-180')} aria-hidden />
         </button>
-        <Button size="sm" variant="ghost" className="h-8 gap-1.5 text-xs" onClick={() => setSettingsOpen(true)}>
-          <Settings2 className="h-3.5 w-3.5" aria-hidden /> Datos de cobro (QR)
-        </Button>
+        {!readOnly && (
+          <Button size="sm" variant="ghost" className="h-8 gap-1.5 text-xs" onClick={() => setSettingsOpen(true)}>
+            <Settings2 className="h-3.5 w-3.5" aria-hidden /> Datos de cobro (QR)
+          </Button>
+        )}
       </div>
       {open && (
         <div className="border-t border-border p-4">
@@ -184,7 +187,7 @@ export const TreasuryReportsPanel: React.FC = () => {
         description={selected ? `${selected.obligation.title} · saldo actual S/ ${selected.obligation.balance.toFixed(2)}` : undefined}
         size="lg"
         footer={
-          selected?.status === 'PENDING' ? (
+          selected?.status === 'PENDING' && !readOnly ? (
             rejecting ? (
               <div className="flex justify-end gap-2">
                 <Button variant="ghost" onClick={() => setRejecting(false)}>Volver</Button>

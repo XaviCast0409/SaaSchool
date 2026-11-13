@@ -10,6 +10,7 @@ import {
   ObligationsPaginatedResponse,
   DailyCashCloseData,
   CreateIndividualObligationPayload,
+  FinanceAccess,
 } from '../types';
 import type {
   CreateObligationFormData,
@@ -178,17 +179,43 @@ export const useRegisterTransaction = () => {
       queryClient.invalidateQueries({ queryKey: ['financial-summary'] });
       queryClient.invalidateQueries({ queryKey: ['payments-transactions'] });
       queryClient.invalidateQueries({ queryKey: ['daily-cash-close'] });
+      queryClient.invalidateQueries({ queryKey: ['cash'] });
     },
   });
 };
 
-/** Mutation para anular un pago registrado por error */
-export const useDeleteTransaction = () => {
+/** Qué puede hacer la persona en caja y tesorería (cajero, tesorero, contador, Dirección) */
+export const useFinanceAccess = (enabled: boolean = true) => {
+  return useQuery({
+    queryKey: ['finance-access'],
+    queryFn: async () => {
+      const response = await api.get<{ status: string; data: FinanceAccess }>('/payments/access');
+      return response.data.data;
+    },
+    enabled,
+    staleTime: 60_000,
+  });
+};
+
+/** Detalle de una cuota con todos sus cobros (vigentes y anulados) */
+export const useObligationDetail = (obligationId: string | null) => {
+  return useQuery({
+    queryKey: ['payment-obligation', obligationId],
+    queryFn: async () => {
+      const response = await api.get<SingleObligationResponse>(`/payments/obligations/${obligationId}`);
+      return response.data.data;
+    },
+    enabled: !!obligationId,
+  });
+};
+
+/** Mutation para anular un cobro (el recibo se conserva como ANULADO, con motivo) */
+export const useVoidTransaction = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (transactionId: string) => {
-      const response = await api.delete<SingleTransactionResponse>(`/payments/transactions/${transactionId}`);
+    mutationFn: async ({ transactionId, reason }: { transactionId: string; reason: string }) => {
+      const response = await api.post<SingleTransactionResponse>(`/payments/transactions/${transactionId}/void`, { reason });
       return response.data.data;
     },
     onSuccess: () => {
@@ -197,22 +224,25 @@ export const useDeleteTransaction = () => {
       queryClient.invalidateQueries({ queryKey: ['financial-summary'] });
       queryClient.invalidateQueries({ queryKey: ['payments-transactions'] });
       queryClient.invalidateQueries({ queryKey: ['daily-cash-close'] });
+      queryClient.invalidateQueries({ queryKey: ['payment-obligation'] });
+      queryClient.invalidateQueries({ queryKey: ['cash'] });
     },
   });
 };
 
-/** Mutation para anular/cancelar una obligación */
+/** Mutation para anular una cuota (con motivo; no se borra) */
 export const useCancelObligation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (obligationId: string) => {
-      const response = await api.delete<SingleObligationResponse>(`/payments/obligations/${obligationId}`);
+    mutationFn: async ({ obligationId, reason }: { obligationId: string; reason: string }) => {
+      const response = await api.post<SingleObligationResponse>(`/payments/obligations/${obligationId}/cancel`, { reason });
       return response.data.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payments-obligations'] });
       queryClient.invalidateQueries({ queryKey: ['financial-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['payment-obligation'] });
     },
   });
 };
@@ -248,7 +278,8 @@ export interface UpdateObligationDto {
   dueDate?: string;
   title?: string;
   notes?: string | null;
-  status?: 'PENDING' | 'PAID' | 'PARTIALLY_PAID' | 'OVERDUE' | 'CANCELLED';
+  /** Obligatorio cuando cambia el monto. */
+  reason?: string | null;
 }
 
 /** Mutation para editar una cuota o aplicar descuento */

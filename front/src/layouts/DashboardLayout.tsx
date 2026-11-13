@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
+  Wallet,
+  Percent,
+  BarChart3,
   GraduationCap,
   Users,
   CreditCard,
@@ -35,6 +38,7 @@ import {
   Clock3,
   DoorOpen,
 } from 'lucide-react';
+import { useFinanceAccess } from '@/features/payments/api/usePayments';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -57,7 +61,10 @@ export const DashboardLayout: React.FC = () => {
   const canMessage = Boolean(user && user.role !== 'STUDENT' && !(user.role === 'SUPER_ADMIN' && !impersonatedSchool));
   const { data: unreadMessages = 0 } = useUnreadMessages(canMessage);
   const isTreasury = Boolean(user && ['SCHOOL_ADMIN', 'ADMINISTRATIVE'].includes(user.role)) || Boolean(user?.role === 'SUPER_ADMIN' && impersonatedSchool);
-  const { data: pendingReports = 0 } = usePendingReportsCount(isTreasury);
+  // El contador de vouchers por validar solo aplica a quien puede validarlos o verlos (no al cajero)
+  const { data: financeAccess } = useFinanceAccess(isTreasury);
+  const canSeeVouchers = isTreasury && Boolean(financeAccess?.can.manage || financeAccess?.can.view);
+  const { data: pendingReports = 0 } = usePendingReportsCount(canSeeVouchers);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -289,6 +296,27 @@ export const DashboardLayout: React.FC = () => {
           label: 'Cobranzas y Pensiones',
           path: '/payments',
           icon: CreditCard,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Caja diaria',
+          path: '/payments/cash',
+          icon: Wallet,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Becas y moras',
+          path: '/payments/benefits',
+          icon: Percent,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Reportes financieros',
+          path: '/payments/reports',
+          icon: BarChart3,
           roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'],
           minPlan: 'BASIC',
         },
@@ -623,7 +651,7 @@ export const DashboardLayout: React.FC = () => {
                       >
                         <Icon className="w-4 h-4 shrink-0" />
                         <span className="truncate">{item.label}</span>
-                        {item.path === '/payments' && isTreasury && pendingReports > 0 && (
+                        {item.path === '/payments' && canSeeVouchers && pendingReports > 0 && (
                           <span
                             className={`ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-bold ${isActive ? 'bg-primary-foreground text-primary' : 'bg-amber-500 text-white'}`}
                             aria-label={`${pendingReports} pagos por validar`}

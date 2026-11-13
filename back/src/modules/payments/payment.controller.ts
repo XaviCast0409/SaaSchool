@@ -5,12 +5,17 @@ import {
   createObligationSchema,
   createTransactionSchema,
   obligationFilterSchema,
+  reasonSchema,
   sendReminderSchema,
   transactionFilterSchema,
   updateObligationSchema,
   dailyCashCloseQuerySchema,
 } from './payment.schema';
-import type { PaymentService } from './payment.service';
+import type { FinanceActor, PaymentService } from './payment.service';
+import { resolveFinanceLevel } from './finance-access';
+import { capabilities, FINANCE_LEVEL_LABEL } from './finance.rules';
+
+const actorOf = (request: Request): FinanceActor => ({ userId: request.user!.userId, role: request.user!.role });
 
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
@@ -36,15 +41,24 @@ export class PaymentController {
     const schoolId = request.user!.schoolId;
     const id = String(request.params.id);
     const userContext = { userId: request.user!.userId, role: request.user!.role };
-    const obligation = await this.paymentService.getObligationById(id, schoolId, userContext);
+    const obligation = await this.paymentService.getObligationDetail(id, schoolId, userContext);
     response.status(200).json({ status: 'success', data: obligation });
+  };
+
+  /** GET /api/payments/access — qué puede hacer la persona en caja y tesorería */
+  getAccess = async (request: Request, response: Response): Promise<void> => {
+    const level = await resolveFinanceLevel(request);
+    response.status(200).json({
+      status: 'success',
+      data: { level, label: FINANCE_LEVEL_LABEL[level], can: capabilities(level) },
+    });
   };
 
   /** POST /api/payments/obligations — crear obligación individual */
   createObligation = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
     const createObligationDto = createObligationSchema.parse(request.body);
-    const obligation = await this.paymentService.createObligation(schoolId, createObligationDto);
+    const obligation = await this.paymentService.createObligation(schoolId, createObligationDto, actorOf(request));
     recordAudit(request, {
       action: 'PAYMENT_OBLIGATION_CREATED',
       entity: 'PaymentObligation',
@@ -58,7 +72,7 @@ export class PaymentController {
   bulkCreateObligations = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
     const bulkDto = bulkCreateObligationsSchema.parse(request.body);
-    const result = await this.paymentService.bulkCreateObligations(schoolId, bulkDto);
+    const result = await this.paymentService.bulkCreateObligations(schoolId, bulkDto, actorOf(request));
     recordAudit(request, {
       action: 'PAYMENT_OBLIGATIONS_BULK_CREATED',
       entity: 'PaymentObligation',
@@ -73,26 +87,28 @@ export class PaymentController {
     const schoolId = request.user!.schoolId;
     const id = String(request.params.id);
     const updateDto = updateObligationSchema.parse(request.body);
-    const obligation = await this.paymentService.updateObligation(id, schoolId, updateDto);
+    const { before, after } = await this.paymentService.updateObligation(id, schoolId, updateDto);
     recordAudit(request, {
       action: 'PAYMENT_OBLIGATION_UPDATED',
       entity: 'PaymentObligation',
       entityId: id,
-      after: obligation,
+      before: { title: before.title, concept: before.concept, amountDue: before.amountDue, dueDate: before.dueDate },
+      after: { title: after.title, concept: after.concept, amountDue: after.amountDue, dueDate: after.dueDate, motivo: updateDto.reason ?? null },
     });
-    response.status(200).json({ status: 'success', data: obligation });
+    response.status(200).json({ status: 'success', data: after });
   };
 
-  /** DELETE /api/payments/obligations/:id — anular/cancelar obligación */
+  /** POST /api/payments/obligations/:id/cancel — anular cuota (con motivo, no se borra) */
   cancelObligation = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
     const id = String(request.params.id);
-    const obligation = await this.paymentService.cancelObligation(id, schoolId);
+    const { reason } = reasonSchema.parse(request.body);
+    const obligation = await this.paymentService.cancelObligation(id, schoolId, actorOf(request), reason);
     recordAudit(request, {
       action: 'PAYMENT_OBLIGATION_CANCELLED',
       entity: 'PaymentObligation',
       entityId: id,
-      after: obligation,
+      after: { cuota: obligation.title, monto: obligation.amountDue, motivo: reason },
     });
     response.status(200).json({ status: 'success', data: obligation });
   };
@@ -104,6 +120,7 @@ export class PaymentController {
     const transaction = await this.paymentService.registerTransaction(
       schoolId,
       createTransactionDto,
+      actorOf(request),
     );
     recordAudit(request, {
       action: 'PAYMENT_TRANSACTION_CREATED',
@@ -122,18 +139,20 @@ export class PaymentController {
     response.status(200).json({ status: 'success', data: transactions });
   };
 
-  /** DELETE /api/payments/transactions/:id — anular pago registrado */
-  deleteTransaction = async (request: Request, response: Response): Promise<void> => {
+  /** POST /api/payments/transactions/:id/void — anular cobro (el recibo se conserva como ANULADO) */
+  voidTransaction = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
     const id = String(request.params.id);
-    const transaction = await this.paymentService.deleteTransaction(id, schoolId);
+    const { reason } = reasonSchema.parse(request.body);
+    const { before, after } = await this.paymentService.voidTransaction(id, schoolId, actorOf(request), reason);
     recordAudit(request, {
-      action: 'PAYMENT_TRANSACTION_DELETED',
+      action: 'PAYMENT_TRANSACTION_VOIDED',
       entity: 'PaymentTransaction',
       entityId: id,
-      after: transaction,
+      before: { recibo: before.receiptNumber, monto: before.amountPaid, medio: before.paymentMethod, estado: before.status },
+      after: { recibo: after.receiptNumber, estado: after.status, motivo: reason },
     });
-    response.status(200).json({ status: 'success', data: transaction });
+    response.status(200).json({ status: 'success', data: after });
   };
 
   /** GET /api/payments/transactions/:id/receipt — datos formateados de recibo/boleta */

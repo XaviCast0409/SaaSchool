@@ -64,7 +64,7 @@ async function childOverview(viewer: Viewer, studentId: string) {
     }),
     prisma.paymentObligation.findMany({
       where: { enrollmentId: enrollment.id, status: { in: ['PENDING', 'PARTIAL'] } },
-      select: { dueDate: true, amountDue: true, transactions: { select: { amountPaid: true } } },
+      select: { dueDate: true, amountDue: true, transactions: { where: { status: 'ACTIVE' }, select: { amountPaid: true } } },
     }),
     publishedLetters(enrollment),
   ]);
@@ -161,14 +161,14 @@ familyRouter.get('/timeline', authorizeRoles('PARENT', 'STUDENT'), async (req: R
     prisma.studentIncident.findMany({ where: { enrollmentId: enrollment.id, createdAt: { gte: from } }, select: { id: true, type: true, title: true, createdAt: true } }),
     isParent
       ? prisma.paymentTransaction.findMany({
-          where: { obligation: { enrollmentId: enrollment.id }, paymentDate: { gte: from } },
+          where: { obligation: { enrollmentId: enrollment.id }, status: 'ACTIVE', paymentDate: { gte: from } },
           select: { id: true, paymentDate: true, amountPaid: true, receiptNumber: true, obligation: { select: { title: true } } },
         })
       : Promise.resolve([]),
     isParent
       ? prisma.paymentObligation.findMany({
           where: { enrollmentId: enrollment.id, status: { in: ['PENDING', 'PARTIAL'] }, dueDate: { gte: parseSchoolDate(addDays(today, -q.days)), lte: parseSchoolDate(addDays(today, 7)) } },
-          select: { id: true, title: true, dueDate: true, amountDue: true, transactions: { select: { amountPaid: true } } },
+          select: { id: true, title: true, dueDate: true, amountDue: true, transactions: { where: { status: 'ACTIVE' }, select: { amountPaid: true } } },
         })
       : Promise.resolve([]),
     prisma.academicPeriodStatus.findMany({

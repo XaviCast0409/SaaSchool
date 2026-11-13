@@ -28,7 +28,7 @@ async function run(ctx: JobContext): Promise<JobResult> {
       },
       obligations: {
         where: { status: { in: ['PENDING', 'PARTIAL'] }, dueDate: { lt: dateOnly(ctx.today) } },
-        select: { amountDue: true, transactions: { select: { amountPaid: true } } },
+        select: { amountDue: true, transactions: { where: { status: 'ACTIVE' }, select: { amountPaid: true } } },
       },
       homeworkSubmissions: { select: { courseContentId: true } },
     },

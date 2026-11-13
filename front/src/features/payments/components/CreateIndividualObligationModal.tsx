@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, PlusCircle, User, Calendar, DollarSign, FileText, Banknote, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { PAYMENT_METHODS, PAYMENT_METHOD_LABEL } from '../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useCreateIndividualObligation } from '../api/usePayments';
@@ -21,9 +22,11 @@ const createIndividualSchema = z.object({
   dueDate: z.string().min(1, 'La fecha de vencimiento es obligatoria'),
   notes: z.string().optional(),
   paidNow: z.boolean().default(true),
-  paymentMethod: z.enum(['CASH', 'BANK_TRANSFER', 'CREDIT_CARD']).default('CASH'),
-  receiptType: z.literal('RECIBO_INTERNO').default('RECIBO_INTERNO'),
-  operationNumber: z.string().optional(),
+  paymentMethod: z.enum(['CASH', 'YAPE', 'PLIN', 'BANK_TRANSFER', 'DEPOSIT', 'CREDIT_CARD']).default('CASH'),
+  operationNumber: z.string().trim().optional(),
+}).refine((d) => !d.paidNow || d.paymentMethod === 'CASH' || Boolean(d.operationNumber), {
+  message: 'Ingresa el número de operación.',
+  path: ['operationNumber'],
 });
 
 type FormData = z.infer<typeof createIndividualSchema>;
@@ -78,7 +81,6 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
       notes: '',
       paidNow: true,
       paymentMethod: 'CASH',
-      receiptType: 'RECIBO_INTERNO',
       operationNumber: '',
     },
   });
@@ -102,12 +104,11 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
         notes: data.notes || undefined,
         paidNow: data.paidNow,
         paymentMethod: data.paidNow ? data.paymentMethod : undefined,
-        receiptType: data.paidNow ? data.receiptType : undefined,
-        operationNumber: data.paidNow && data.operationNumber ? data.operationNumber : undefined,
+        operationNumber: data.paidNow && data.paymentMethod !== 'CASH' && data.operationNumber ? data.operationNumber : undefined,
       });
 
       if (data.paidNow) {
-        toast.success(`💵 Cobro de S/ ${Number(data.amountDue).toFixed(2)} registrado exitosamente en el Arqueo de Caja.`);
+        toast.success(`Cobro de S/ ${Number(data.amountDue).toFixed(2)} registrado en tu caja con recibo numerado.`);
       } else {
         toast.success('📋 Cobro individual generado como deuda pendiente.');
       }
@@ -296,9 +297,11 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
                       {...register('paymentMethod')}
                       className="w-full h-8 rounded-lg border border-border bg-background px-2.5 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
                     >
-                      <option value="CASH">Efectivo en Caja</option>
-                      <option value="BANK_TRANSFER">Depósito / Transferencia</option>
-                      <option value="CREDIT_CARD">Tarjeta Débito / Crédito</option>
+                      {PAYMENT_METHODS.map((m) => (
+                        <option key={m} value={m}>
+                          {PAYMENT_METHOD_LABEL[m]}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -306,13 +309,16 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
                   {paymentMethod !== 'CASH' ? (
                     <div className="space-y-1">
                       <label className="text-[11px] font-bold text-muted-foreground">
-                        N° de Operación / Voucher (Opcional):
+                        N° de operación ({PAYMENT_METHOD_LABEL[paymentMethod]}):
                       </label>
                       <Input
                         {...register('operationNumber')}
                         placeholder="Ej: 94827104"
                         className="h-8 text-xs font-mono"
                       />
+                      {errors.operationNumber && (
+                        <p className="text-[11px] text-destructive">{errors.operationNumber.message}</p>
+                      )}
                     </div>
                   ) : <div />}
                 </div>
@@ -320,7 +326,7 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
                 <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 shrink-0" />
                   <span>
-                    El ingreso se reflejará al instante en el <strong>Arqueo de Caja</strong> de hoy con número de recibo correlativo.
+                    El ingreso entra a <strong>tu caja</strong> con número de recibo correlativo. En efectivo necesitas tener la caja abierta.
                   </span>
                 </div>
               </div>

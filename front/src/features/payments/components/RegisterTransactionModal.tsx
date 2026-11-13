@@ -6,7 +6,9 @@ import { registerTransactionSchema, type RegisterTransactionFormData } from '../
 import { useRegisterTransaction } from '../api/usePayments';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { PaymentObligation } from '../types';
+import { PAYMENT_METHODS, PAYMENT_METHOD_LABEL, PaymentObligation } from '../types';
+import { useCurrentCash } from '../api/useCash';
+import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
 interface RegisterTransactionModalProps {
@@ -27,6 +29,7 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<RegisterTransactionFormData>({
     resolver: zodResolver(registerTransactionSchema),
@@ -34,9 +37,11 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
       obligationId: obligation.id,
       amountPaid: remainingBalance,
       paymentMethod: 'CASH',
-      receiptType: 'RECIBO_INTERNO',
     },
   });
+  const method = watch('paymentMethod');
+  const { data: cash } = useCurrentCash();
+  const hasOpenCash = Boolean(cash?.session);
 
   const student = obligation.enrollment?.student;
   const studentName = student
@@ -44,9 +49,10 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
     : 'Estudiante';
 
   const onSubmit = (data: RegisterTransactionFormData) => {
-    registerTransaction(data, {
-      onSuccess: () => {
-        toast.success(`💵 Pago de S/ ${data.amountPaid.toFixed(2)} registrado con éxito para ${studentName}.`);
+    const payload = { ...data, operationNumber: data.paymentMethod === 'CASH' ? undefined : data.operationNumber };
+    registerTransaction(payload, {
+      onSuccess: (tx) => {
+        toast.success(`Pago de S/ ${data.amountPaid.toFixed(2)} registrado para ${studentName}. Recibo ${tx.receiptNumber ?? ''}.`);
         onClose();
       },
       onError: (err: any) => {
@@ -132,19 +138,35 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
               {...register('paymentMethod')}
               className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
-              <option value="CASH">Efectivo en Caja</option>
-              <option value="BANK_TRANSFER">Depósito / Transferencia Bancaria</option>
-              <option value="CREDIT_CARD">Tarjeta de Débito / Crédito</option>
+              {PAYMENT_METHODS.map((m) => (
+                <option key={m} value={m}>
+                  {PAYMENT_METHOD_LABEL[m]}
+                </option>
+              ))}
             </select>
+            {method === 'CASH' && !hasOpenCash && (
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                Para cobrar en efectivo primero abre tu caja del día.{' '}
+                <Link to="/payments/cash" className="font-semibold underline">
+                  Ir a Mi caja
+                </Link>
+              </p>
+            )}
+            {hasOpenCash && (
+              <p className="text-[11px] text-muted-foreground">El cobro entrará en tu caja abierta y quedará a tu nombre.</p>
+            )}
           </div>
 
           {/* N° Operación */}
-          <div className="space-y-1">
-            <label className="text-xs font-semibold uppercase tracking-wide text-foreground">
-              N° Operación / Transacción (Opcional)
-            </label>
-            <Input placeholder="Ej: 09812345" {...register('operationNumber')} className="h-9 text-xs" />
-          </div>
+          {method !== 'CASH' && (
+            <div className="space-y-1">
+              <label className="text-xs font-semibold uppercase tracking-wide text-foreground">
+                N° de operación ({PAYMENT_METHOD_LABEL[method]})
+              </label>
+              <Input placeholder="Ej: 09812345" {...register('operationNumber')} className="h-9 text-xs" />
+              {errors.operationNumber && <p className="text-xs text-destructive">{errors.operationNumber.message}</p>}
+            </div>
+          )}
 
           {/* Observaciones */}
           <div className="space-y-1">

@@ -17,6 +17,15 @@ const StudentsPage = lazy(() =>
 const PaymentsPage = lazy(() =>
   import('@/features/payments/pages/PaymentsPage').then((m) => ({ default: m.PaymentsPage })),
 );
+const CashPage = lazy(() =>
+  import('@/features/payments/pages/CashPage').then((m) => ({ default: m.CashPage })),
+);
+const BenefitsPage = lazy(() =>
+  import('@/features/payments/pages/BenefitsPage').then((m) => ({ default: m.BenefitsPage })),
+);
+const FinanceReportsPage = lazy(() =>
+  import('@/features/payments/pages/FinanceReportsPage').then((m) => ({ default: m.FinanceReportsPage })),
+);
 const GradesPage = lazy(() =>
   import('@/features/grades/pages/GradesPage').then((m) => ({ default: m.GradesPage })),
 );
@@ -337,6 +346,30 @@ export const AppRouter: React.FC = () => {
                   disallowStudents
                 >
                   <PaymentsPage />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/payments/cash"
+              element={
+                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE']}>
+                  <CashPage />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/payments/benefits"
+              element={
+                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE']}>
+                  <BenefitsPage />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/payments/reports"
+              element={
+                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE']}>
+                  <FinanceReportsPage />
                 </RoleGuard>
               }
             />

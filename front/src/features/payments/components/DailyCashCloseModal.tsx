@@ -1,20 +1,13 @@
 import React, { useState } from 'react';
-import {
-  X,
-  Printer,
-  Calendar,
-  Banknote,
-  Building2,
-  CreditCard,
-  Receipt,
-  RotateCcw,
-} from 'lucide-react';
+import { X, Printer, Calendar, Receipt, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDailyCashClose } from '../api/usePayments';
 import { formatPeruTime, getPeruToday } from '@/lib/dateUtils';
 import { PrintPortal, usePrint } from '@/lib/print';
+import { personName, type DailyCashCloseData } from '../types';
+import { ExpensesList, MethodTotals, PaymentsList, soles } from './CashMovements';
 
 interface DailyCashCloseModalProps {
   isOpen: boolean;
@@ -24,199 +17,106 @@ interface DailyCashCloseModalProps {
 // "Hoy" según la hora peruana, aunque la computadora tenga otra zona horaria
 const getTodayLocal = (): string => getPeruToday();
 
-interface DailyCashCloseData {
-  totalCollected: number;
-  transactionsCount: number;
-  byMethod: {
-    CASH?: number;
-    BANK_TRANSFER?: number;
-    CREDIT_CARD?: number;
-  };
-  transactions: Array<{
-    id: string;
-    receiptNumber?: string | null;
-    paymentDate: string;
-    paymentMethod: string;
-    amountPaid: number;
-    obligation?: {
-      title?: string;
-      concept?: string;
-      enrollment?: {
-        student?: {
-          lastNamePaternal: string;
-          firstNames: string;
-        };
-        classroom?: {
-          grade: number;
-          section: string;
-        };
-      };
-    };
-  }>;
-}
+const SESSION_STATUS: Record<string, { label: string; variant: 'success' | 'warning' | 'secondary' }> = {
+  OPEN: { label: 'Abierta', variant: 'warning' },
+  CLOSED: { label: 'Cerrada', variant: 'secondary' },
+  REVIEWED: { label: 'Revisada', variant: 'success' },
+};
 
+/** Resumen del día de todas las cajas: cobros por medio, anulados, egresos y estado de cada caja. */
 export const DailyCashCloseDocument: React.FC<{
   data: DailyCashCloseData;
   selectedDate: string;
   isPrint?: boolean;
 }> = ({ data, selectedDate, isPrint }) => {
   return (
-    <div className={isPrint ? 'p-6 space-y-6 text-black bg-white max-w-4xl mx-auto' : 'space-y-6'}>
+    <div className={isPrint ? 'p-6 space-y-5 text-black bg-white max-w-4xl mx-auto' : 'space-y-5'}>
       {isPrint && (
         <div className="border-b-2 border-black pb-3 text-center space-y-1">
-          <h1 className="text-xl font-black uppercase text-black">
-            Arqueo de Caja Diario
-          </h1>
+          <h1 className="text-xl font-black uppercase text-black">Resumen de caja del día</h1>
           <p className="text-xs text-gray-700">
-            Fecha de Arqueo: <strong>{selectedDate}</strong>
+            Fecha: <strong>{selectedDate}</strong>
           </p>
         </div>
       )}
 
-      {/* Tarjetas de Balance por Método */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-        {/* Total Recaudado */}
-        <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 space-y-1">
-          <div className="flex items-center justify-between text-xs font-bold text-primary uppercase">
-            <span>Total Recaudado</span>
-            <Receipt className="w-4 h-4" />
-          </div>
-          <p className="text-xl sm:text-2xl font-black text-foreground">
-            S/ {(data.totalCollected || 0).toFixed(2)}
-          </p>
-          <p className="text-[11px] text-muted-foreground">
-            {data.transactionsCount || 0} operaciones
-          </p>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-xl border border-primary/20 bg-primary/10 p-3">
+          <p className="text-[11px] font-bold uppercase text-primary">Total cobrado</p>
+          <p className="text-xl font-black text-foreground">{soles(data.totalCollected)}</p>
+          <p className="text-[11px] text-muted-foreground">{data.transactionsCount} cobros vigentes</p>
         </div>
-
-        {/* Efectivo */}
-        <div className="p-4 rounded-xl bg-card border border-border space-y-1">
-          <div className="flex items-center justify-between text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase">
-            <span>Efectivo</span>
-            <Banknote className="w-4 h-4" />
-          </div>
-          <p className="text-lg font-black text-foreground">
-            S/ {(data.byMethod?.CASH || 0).toFixed(2)}
-          </p>
-          <p className="text-[11px] text-muted-foreground">Caja física</p>
+        <div className="rounded-xl border border-border p-3">
+          <p className="text-[11px] font-bold uppercase text-muted-foreground">Egresos (caja chica)</p>
+          <p className="text-xl font-black text-foreground">{soles(data.expensesTotal)}</p>
+          <p className="text-[11px] text-muted-foreground">{data.expensesCount} egresos</p>
         </div>
-
-        {/* Transferencia */}
-        <div className="p-4 rounded-xl bg-card border border-border space-y-1">
-          <div className="flex items-center justify-between text-xs font-bold text-blue-600 dark:text-blue-400 uppercase">
-            <span>Transferencia</span>
-            <Building2 className="w-4 h-4" />
-          </div>
-          <p className="text-lg font-black text-foreground">
-            S/ {(data.byMethod?.BANK_TRANSFER || 0).toFixed(2)}
-          </p>
-          <p className="text-[11px] text-muted-foreground">Bancos / Depósitos</p>
+        <div className="rounded-xl border border-border p-3">
+          <p className="text-[11px] font-bold uppercase text-muted-foreground">Efectivo neto</p>
+          <p className="text-xl font-black text-foreground">{soles(data.netCash)}</p>
+          <p className="text-[11px] text-muted-foreground">Efectivo − egresos (sin fondos)</p>
         </div>
-
-        {/* Tarjeta */}
-        <div className="p-4 rounded-xl bg-card border border-border space-y-1">
-          <div className="flex items-center justify-between text-xs font-bold text-purple-600 dark:text-purple-400 uppercase">
-            <span>Tarjeta</span>
-            <CreditCard className="w-4 h-4" />
-          </div>
-          <p className="text-lg font-black text-foreground">
-            S/ {(data.byMethod?.CREDIT_CARD || 0).toFixed(2)}
-          </p>
-          <p className="text-[11px] text-muted-foreground">POS / Débito / Crédito</p>
+        <div className="rounded-xl border border-border p-3">
+          <p className="text-[11px] font-bold uppercase text-muted-foreground">Recibos anulados</p>
+          <p className="text-xl font-black text-foreground">{data.voidedCount}</p>
+          <p className="text-[11px] text-muted-foreground">No suman al total</p>
         </div>
       </div>
 
-      {/* Detalle de Cobros / Transacciones */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Transacciones Registradas ({data.transactions?.length || 0})
-          </h3>
-        </div>
+      <MethodTotals byMethod={data.byMethod} countByMethod={data.countByMethod} />
 
-        {(!data.transactions || data.transactions.length === 0) ? (
-          <div className="py-12 text-center border-2 border-dashed border-border rounded-xl bg-card p-6">
-            <Receipt className="w-10 h-10 text-muted-foreground/40 mx-auto mb-2" />
-            <p className="text-xs font-semibold text-muted-foreground">
-              No se registraron cobros en la fecha seleccionada ({selectedDate}).
-            </p>
-          </div>
+      <section className="space-y-2">
+        <h3 className="text-xs font-bold uppercase text-muted-foreground">Cajas del día</h3>
+        {data.sessions.length === 0 ? (
+          <p className="text-xs text-muted-foreground">Nadie abrió caja este día.</p>
         ) : (
-          <div className="border border-border rounded-xl overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-muted/50 border-b border-border text-muted-foreground font-semibold">
-                  <tr>
-                    <th className="p-2.5">Recibo / Código</th>
-                    <th className="p-2.5">Estudiante / Aula</th>
-                    <th className="p-2.5">Concepto</th>
-                    <th className="p-2.5">Método</th>
-                    <th className="p-2.5 text-right">Monto</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {data.transactions.map((tx) => {
-                    const student = tx.obligation?.enrollment?.student;
-                    const studentName = student
-                      ? `${student.lastNamePaternal} ${student.firstNames}`
-                      : '—';
-                    const classroom = tx.obligation?.enrollment?.classroom;
-                    const classroomLabel = classroom
-                      ? `${classroom.grade}° "${classroom.section}"`
-                      : '';
-
-                    return (
-                      <tr key={tx.id} className="hover:bg-muted/30 transition-colors">
-                        <td className="p-2.5">
-                          <div className="font-mono font-bold text-foreground">
-                            {tx.receiptNumber || '—'}
-                          </div>
-                          <div className="text-[10px] text-muted-foreground">
-                            {formatPeruTime(tx.paymentDate, {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </div>
-                        </td>
-                        <td className="p-2.5">
-                          <div className="font-semibold text-foreground truncate max-w-[180px]">
-                            {studentName}
-                          </div>
-                          <div className="text-[10px] text-muted-foreground">
-                            {classroomLabel}
-                          </div>
-                        </td>
-                        <td className="p-2.5">
-                          <div className="font-medium text-foreground">
-                            {tx.obligation?.title || 'Obligación'}
-                          </div>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <Badge variant="secondary" className="text-[9px] px-1.5 py-0 font-bold uppercase tracking-wider">
-                              {tx.obligation?.concept || 'GENERAL'}
-                            </Badge>
-                          </div>
-                        </td>
-                        <td className="p-2.5">
-                          <Badge variant="outline" className="text-[10px]">
-                            {tx.paymentMethod === 'CASH'
-                              ? 'Efectivo'
-                              : tx.paymentMethod === 'BANK_TRANSFER'
-                              ? 'Transferencia'
-                              : 'Tarjeta'}
-                          </Badge>
-                        </td>
-                        <td className="p-2.5 text-right font-black text-foreground">
-                          S/ {tx.amountPaid.toFixed(2)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="w-full text-xs">
+              <thead className="bg-muted/40 text-left text-[11px] uppercase text-muted-foreground">
+                <tr>
+                  <th className="p-2">Cajero</th>
+                  <th className="p-2">Apertura</th>
+                  <th className="p-2">Cierre</th>
+                  <th className="p-2 text-right">Esperado</th>
+                  <th className="p-2 text-right">Contado</th>
+                  <th className="p-2 text-right">Diferencia</th>
+                  <th className="p-2">Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.sessions.map((s) => {
+                  const diff = s.difference == null ? null : Number(s.difference);
+                  return (
+                    <tr key={s.id} className="border-t border-border">
+                      <td className="p-2">{personName(s.cashier)}</td>
+                      <td className="p-2">{formatPeruTime(s.openedAt)}</td>
+                      <td className="p-2">{s.closedAt ? formatPeruTime(s.closedAt) : '—'}</td>
+                      <td className="p-2 text-right">{s.expectedCash == null ? '—' : soles(s.expectedCash)}</td>
+                      <td className="p-2 text-right">{s.countedCash == null ? '—' : soles(s.countedCash)}</td>
+                      <td className={`p-2 text-right font-semibold ${diff ? 'text-destructive' : ''}`}>
+                        {diff == null ? '—' : diff === 0 ? 'Cuadrada' : soles(diff)}
+                      </td>
+                      <td className="p-2">
+                        <Badge variant={SESSION_STATUS[s.status].variant}>{SESSION_STATUS[s.status].label}</Badge>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
-      </div>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="text-xs font-bold uppercase text-muted-foreground">Cobros</h3>
+        <PaymentsList transactions={data.transactions} showCashier />
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="text-xs font-bold uppercase text-muted-foreground">Egresos de caja chica</h3>
+        <ExpensesList expenses={data.expenses} />
+      </section>
     </div>
   );
 };
@@ -251,10 +151,10 @@ export const DailyCashCloseModal: React.FC<DailyCashCloseModalProps> = ({ isOpen
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-black text-foreground">
-                Arqueo de Caja Diario
+                Resumen del día (todas las cajas)
               </h2>
               <p className="text-xs text-muted-foreground">
-                Control de ingresos y balance por método de cobro
+                Cobros por medio de pago, egresos, anulados y estado de cada caja
               </p>
             </div>
           </div>
@@ -287,7 +187,7 @@ export const DailyCashCloseModal: React.FC<DailyCashCloseModalProps> = ({ isOpen
           <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-muted/30 border border-border rounded-xl">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-primary" />
-              <span className="text-xs font-bold text-foreground">Fecha del Arqueo:</span>
+              <span className="text-xs font-bold text-foreground">Fecha:</span>
               <input
                 type="date"
                 value={selectedDate}

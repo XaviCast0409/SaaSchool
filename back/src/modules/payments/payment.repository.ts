@@ -1,10 +1,11 @@
+import { randomUUID } from 'crypto';
 import { getSchoolNow } from '../../utils/timezone.util';
 import { prisma } from '../../config/prisma';
+import { computeSessionTotals } from './finance.rules';
 import type { PaymentObligation, PaymentTransaction, Prisma } from '@prisma/client';
 import type { PaginatedResult } from '../../core/interfaces/global.interfaces';
 import type {
   CreateObligationDto,
-  CreateTransactionDto,
   ObligationFilterDto,
   TransactionFilterDto,
   UpdateObligationDto,
@@ -47,10 +48,20 @@ const OBLIGATION_INCLUDE = {
       },
     },
   },
-  transactions: true,
+  // Solo cobros vigentes: los anulados no cuentan para el saldo (se consultan aparte)
+  transactions: {
+    where: { status: 'ACTIVE' },
+    orderBy: { paymentDate: 'asc' },
+    include: { collectedBy: { select: { id: true, firstName: true, lastNamePaternal: true } } },
+  },
 } as const;
 
-const TRANSACTION_INCLUDE = {
+const PERSON = { select: { id: true, firstName: true, lastNamePaternal: true } } as const;
+
+export const TRANSACTION_INCLUDE = {
+  collectedBy: PERSON,
+  voidedBy: PERSON,
+  cashSession: { select: { id: true, status: true, openedAt: true } },
   obligation: {
     include: {
       enrollment: {
@@ -198,6 +209,7 @@ export class PaymentRepository {
         title: data.title,
         concept: data.concept,
         amountDue: data.amountDue,
+        originalAmount: data.amountDue,
         dueDate: new Date(data.dueDate),
       },
       include: OBLIGATION_INCLUDE,
@@ -211,18 +223,23 @@ export class PaymentRepository {
     schoolId: string,
     items: Array<{ enrollmentId: string; amountDue: number }>,
     data: { title: string; concept: string; dueDate: string },
-  ): Promise<{ count: number }> {
-    if (items.length === 0) return { count: 0 };
-    return prisma.paymentObligation.createMany({
-      data: items.map((item) => ({
+  ): Promise<{ count: number; ids: string[] }> {
+    if (items.length === 0) return { count: 0, ids: [] };
+    // Ids generados aquí para poder aplicar después las becas vigentes a estas cuotas
+    const rows = items.map((item) => ({ id: randomUUID(), ...item }));
+    const result = await prisma.paymentObligation.createMany({
+      data: rows.map((item) => ({
+        id: item.id,
         schoolId,
         enrollmentId: item.enrollmentId,
         title: data.title,
         concept: data.concept,
         amountDue: item.amountDue,
+        originalAmount: item.amountDue,
         dueDate: new Date(data.dueDate),
       })),
     });
+    return { count: result.count, ids: rows.map((r) => r.id) };
   }
 
   /**
@@ -238,9 +255,9 @@ export class PaymentRepository {
       data: {
         ...(data.title ? { title: data.title } : {}),
         ...(data.concept ? { concept: data.concept } : {}),
-        ...(data.amountDue !== undefined ? { amountDue: data.amountDue } : {}),
+        // Corregir el monto (sin cobros ni ajustes) corrige también el monto original
+        ...(data.amountDue !== undefined ? { amountDue: data.amountDue, originalAmount: data.amountDue } : {}),
         ...(data.dueDate ? { dueDate: new Date(data.dueDate) } : {}),
-        ...(data.status ? { status: data.status } : {}),
       },
       include: OBLIGATION_INCLUDE,
     });
@@ -262,38 +279,6 @@ export class PaymentRepository {
   }
 
   /**
-   * Registra una transacción/cobro manual.
-   */
-  async createTransaction(
-    schoolId: string,
-    data: CreateTransactionDto,
-  ): Promise<PaymentTransaction> {
-    let receiptNumber = data.receiptNumber?.trim();
-    if (!receiptNumber) {
-      const updatedSchool = await prisma.school.update({
-        where: { id: schoolId },
-        data: { receiptCounter: { increment: 1 } },
-        select: { receiptCounter: true },
-      });
-      receiptNumber = `REC-${String(updatedSchool.receiptCounter).padStart(6, '0')}`;
-    }
-
-    return prisma.paymentTransaction.create({
-      data: {
-        schoolId,
-        obligationId: data.obligationId,
-        amountPaid: data.amountPaid,
-        paymentMethod: data.paymentMethod,
-        operationNumber: data.operationNumber,
-        receiptType: 'RECIBO_INTERNO',
-        receiptNumber,
-        notes: data.notes,
-      },
-      include: TRANSACTION_INCLUDE,
-    });
-  }
-
-  /**
    * Obtiene el listado de transacciones/cobros realizados en el colegio.
    */
   async findAllTransactionsBySchool(
@@ -303,11 +288,15 @@ export class PaymentRepository {
     const where: Prisma.PaymentTransactionWhereInput = {
       schoolId,
       ...(filters.paymentMethod ? { paymentMethod: filters.paymentMethod } : {}),
+      ...(filters.status ? { status: filters.status } : {}),
+      ...(filters.collectedById ? { collectedById: filters.collectedById } : {}),
+      ...(filters.cashSessionId ? { cashSessionId: filters.cashSessionId } : {}),
       ...(filters.startDate || filters.endDate
         ? {
             paymentDate: {
-              ...(filters.startDate ? { gte: new Date(filters.startDate) } : {}),
-              ...(filters.endDate ? { lte: new Date(`${filters.endDate}T23:59:59.999Z`) } : {}),
+              // Días del colegio (America/Lima, UTC-5)
+              ...(filters.startDate ? { gte: new Date(`${filters.startDate}T00:00:00.000-05:00`) } : {}),
+              ...(filters.endDate ? { lte: new Date(`${filters.endDate}T23:59:59.999-05:00`) } : {}),
             },
           }
         : {}),
@@ -317,6 +306,7 @@ export class PaymentRepository {
       where,
       include: TRANSACTION_INCLUDE,
       orderBy: { paymentDate: 'desc' },
+      take: 2000,
     });
   }
 
@@ -334,26 +324,13 @@ export class PaymentRepository {
   }
 
   /**
-   * Elimina una transacción de pago.
-   */
-  async deleteTransaction(
-    transactionId: string,
-    schoolId: string,
-  ): Promise<PaymentTransaction> {
-    return prisma.paymentTransaction.delete({
-      where: { id: transactionId, schoolId },
-      include: TRANSACTION_INCLUDE,
-    });
-  }
-
-  /**
    * Calcula el resumen financiero (recaudado, pendiente, vencido) del colegio.
    */
   async getFinancialSummary(schoolId: string) {
     // Las pensiones anuladas (retiros y traslados) no cuentan como deuda ni como monto esperado
     const obligations = await prisma.paymentObligation.findMany({
       where: { schoolId, status: { not: 'CANCELLED' } },
-      include: { transactions: true },
+      include: { transactions: { where: { status: 'ACTIVE' }, select: { amountPaid: true } } },
     });
 
     let totalExpected = 0;
@@ -386,51 +363,48 @@ export class PaymentRepository {
   }
 
   /**
-   * Arqueo de caja diario: resumen por método y detalle de transacciones.
+   * Resumen del día (todas las cajas): cobros vigentes por medio de pago, anulados, egresos
+   * y el estado de cada caja abierta ese día.
    */
   async getDailyCashClose(schoolId: string, targetDateStr: string) {
-    // Zona horaria oficial del colegio (America/Lima, UTC-5):
-    // Cubre desde las 00:00:00.000-05:00 hasta las 23:59:59.999-05:00 del día escolar
+    // Zona horaria oficial del colegio (America/Lima, UTC-5)
     const startOfDay = new Date(`${targetDateStr}T00:00:00.000-05:00`);
     const endOfDay = new Date(`${targetDateStr}T23:59:59.999-05:00`);
 
-    const transactions = await prisma.paymentTransaction.findMany({
-      where: {
-        schoolId,
-        paymentDate: {
-          gte: startOfDay,
-          lte: endOfDay,
-        },
-      },
-      include: TRANSACTION_INCLUDE,
-      orderBy: { paymentDate: 'desc' },
-    });
+    const [transactions, expenses, sessions] = await Promise.all([
+      prisma.paymentTransaction.findMany({
+        where: { schoolId, paymentDate: { gte: startOfDay, lte: endOfDay } },
+        include: TRANSACTION_INCLUDE,
+        orderBy: { paymentDate: 'desc' },
+      }),
+      prisma.cashExpense.findMany({
+        where: { schoolId, createdAt: { gte: startOfDay, lte: endOfDay } },
+        include: { registeredBy: PERSON, voidedBy: PERSON },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.cashSession.findMany({
+        where: { schoolId, openedAt: { gte: startOfDay, lte: endOfDay } },
+        include: { cashier: PERSON, reviewedBy: PERSON },
+        orderBy: { openedAt: 'asc' },
+      }),
+    ]);
 
-    let totalCollected = 0;
-    const byMethod: Record<string, number> = {
-      CASH: 0,
-      BANK_TRANSFER: 0,
-      CREDIT_CARD: 0,
-    };
-
-    for (const tx of transactions) {
-      const amountPaid = Number(tx.amountPaid);
-      totalCollected += amountPaid;
-      if (tx.paymentMethod in byMethod) {
-        byMethod[tx.paymentMethod] += amountPaid;
-      }
-    }
+    const totals = computeSessionTotals({ openingAmount: 0, payments: transactions, expenses });
 
     return {
       date: targetDateStr,
-      totalCollected: Number(totalCollected.toFixed(2)),
-      byMethod: {
-        CASH: Number((byMethod.CASH || 0).toFixed(2)),
-        BANK_TRANSFER: Number((byMethod.BANK_TRANSFER || 0).toFixed(2)),
-        CREDIT_CARD: Number((byMethod.CREDIT_CARD || 0).toFixed(2)),
-      },
-      transactionsCount: transactions.length,
+      totalCollected: totals.totalCollected,
+      byMethod: totals.byMethod,
+      countByMethod: totals.countByMethod,
+      transactionsCount: totals.paymentsCount,
+      voidedCount: totals.voidedCount,
+      expensesTotal: totals.expensesTotal,
+      expensesCount: totals.expensesCount,
+      /** Efectivo neto del día: cobros en efectivo − egresos (sin fondos iniciales). */
+      netCash: Number((totals.byMethod.CASH - totals.expensesTotal).toFixed(2)),
       transactions,
+      expenses,
+      sessions,
     };
   }
 }

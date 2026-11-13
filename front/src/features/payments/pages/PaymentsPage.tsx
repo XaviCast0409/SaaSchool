@@ -14,7 +14,13 @@ import {
   MessageCircle,
   Receipt,
   PlusCircle,
+  Wallet,
+  History,
+  Percent,
+  BarChart3,
+  FileSpreadsheet,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/useAuthStore';
 import {
@@ -23,7 +29,14 @@ import {
   useFinancialSummary,
   useSendBulkReminders,
   useCancelObligation,
+  useFinanceAccess,
 } from '../api/usePayments';
+import { apiError } from '../api/useCash';
+import { ObligationPaymentsModal } from '../components/ObligationPaymentsModal';
+import { ReasonDialog } from '../components/ReasonDialog';
+import { StatementView } from '../components/StatementView';
+import { useMyStatement } from '../api/useFinance';
+import { Modal } from '@/components/ui/modal';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -51,9 +64,15 @@ import { formatPeruShortDate } from '@/lib/dateUtils';
 export const PaymentsPage: React.FC = () => {
   const { user } = useAuthStore();
   const isParent = user?.role === 'PARENT';
-  const isDirector = user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN';
   const isAdministrative = user?.role === 'ADMINISTRATIVE';
-  const canManagePayments = isDirector || isAdministrative;
+  const isStaff = !isParent && user?.role !== 'TEACHER' && user?.role !== 'STUDENT';
+  // Permisos de caja y tesorería: cajero (cobra), tesorero (gestiona), contador (solo ve), Dirección (todo)
+  const { data: access } = useFinanceAccess(isStaff);
+  const canCollect = Boolean(access?.can.collect);
+  const canManage = Boolean(access?.can.manage);
+  const canView = Boolean(access?.can.view);
+  const canManagePayments = canCollect || canView;
+  const isDirector = canView;
 
   // State de paginación y filtros
   const [page, setPage] = useState(1);
@@ -72,6 +91,10 @@ export const PaymentsPage: React.FC = () => {
   const [isCreateIndividualOpen, setIsCreateIndividualOpen] = useState(false);
   const [isWhatsAppQueueOpen, setIsWhatsAppQueueOpen] = useState(false);
   const [reportFor, setReportFor] = useState<ReportableObligation | null>(null);
+  const [paymentsOf, setPaymentsOf] = useState<string | null>(null);
+  const [toCancel, setToCancel] = useState<PaymentObligation | null>(null);
+  const [statementOpen, setStatementOpen] = useState(false);
+  const { data: myStatement, isLoading: loadingStatement } = useMyStatement(isParent && statementOpen);
   const { data: activeSchool } = useGetActiveSchool();
 
   // Queries & Mutations (Solo el Director consulta el resumen financiero macro)
@@ -99,6 +122,18 @@ export const PaymentsPage: React.FC = () => {
 
   const { mutate: sendBulkReminders, isPending: isSendingBulk } = useSendBulkReminders();
   const { mutate: cancelObligation, isPending: isCancelling } = useCancelObligation();
+  const confirmCancel = (reason: string) =>
+    toCancel &&
+    cancelObligation(
+      { obligationId: toCancel.id, reason },
+      {
+        onSuccess: () => {
+          toast.success('Cuota anulada. Queda registrada como Anulada con tu motivo.');
+          setToCancel(null);
+        },
+        onError: (e) => toast.error(apiError(e, 'No se pudo anular la cuota.')),
+      },
+    );
 
   const adminObligations = adminObligationsResponse?.data || [];
   const obligationsMeta = adminObligationsResponse?.meta;
@@ -138,44 +173,74 @@ export const PaymentsPage: React.FC = () => {
 
         {canManagePayments && (
           <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 text-xs"
-              onClick={() => setIsDailyCashCloseOpen(true)}
-            >
-              <Receipt className="w-3.5 h-3.5 text-primary" />
-              <span>Arqueo de Caja</span>
+            <Button asChild size="sm" className="gap-2 text-xs">
+              <Link to="/payments/cash">
+                <Wallet className="w-3.5 h-3.5" />
+                <span>{canCollect ? 'Mi caja' : 'Cierres de caja'}</span>
+              </Link>
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 text-xs"
-              onClick={() => setIsCreateIndividualOpen(true)}
-            >
-              <PlusCircle className="w-3.5 h-3.5 text-primary" />
-              <span>Nuevo Cobro</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 text-xs"
-              onClick={() => setIsWhatsAppQueueOpen(true)}
-            >
-              <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
-              <span>WhatsApp en cola</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 text-xs"
-              onClick={handleBulkReminders}
-              disabled={isSendingBulk}
-            >
-              <Send className="w-3.5 h-3.5 text-amber-500" />
-              <span>{isSendingBulk ? 'Enviando...' : 'Recordatorios Morosos'}</span>
-            </Button>
-            {isDirector && (
+            {(canView || canManage) && (
+              <Button asChild variant="outline" size="sm" className="gap-2 text-xs">
+                <Link to="/payments/benefits">
+                  <Percent className="w-3.5 h-3.5 text-primary" />
+                  <span>Becas y moras</span>
+                </Link>
+              </Button>
+            )}
+            {canManagePayments && (
+              <Button asChild variant="outline" size="sm" className="gap-2 text-xs">
+                <Link to="/payments/reports">
+                  <BarChart3 className="w-3.5 h-3.5 text-primary" />
+                  <span>{canView ? 'Reportes y estados de cuenta' : 'Estados de cuenta'}</span>
+                </Link>
+              </Button>
+            )}
+            {canView && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 text-xs"
+                onClick={() => setIsDailyCashCloseOpen(true)}
+              >
+                <Receipt className="w-3.5 h-3.5 text-primary" />
+                <span>Resumen del día</span>
+              </Button>
+            )}
+            {canCollect && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 text-xs"
+                onClick={() => setIsCreateIndividualOpen(true)}
+              >
+                <PlusCircle className="w-3.5 h-3.5 text-primary" />
+                <span>Nuevo Cobro</span>
+              </Button>
+            )}
+            {canCollect && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 text-xs"
+                onClick={() => setIsWhatsAppQueueOpen(true)}
+              >
+                <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                <span>WhatsApp en cola</span>
+              </Button>
+            )}
+            {canManage && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 text-xs"
+                onClick={handleBulkReminders}
+                disabled={isSendingBulk}
+              >
+                <Send className="w-3.5 h-3.5 text-amber-500" />
+                <span>{isSendingBulk ? 'Enviando...' : 'Recordatorios Morosos'}</span>
+              </Button>
+            )}
+            {canManage && (
               <Button
                 size="sm"
                 className="gap-2 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
@@ -190,7 +255,15 @@ export const PaymentsPage: React.FC = () => {
       </div>
 
       {/* Pagos reportados con voucher (Yape/Plin/transferencia) */}
-      {canManagePayments && <TreasuryReportsPanel />}
+      {(canManage || canView) && <TreasuryReportsPanel readOnly={!canManage} />}
+      {isParent && (
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={() => setStatementOpen(true)}>
+            <FileSpreadsheet className="w-3.5 h-3.5 text-primary" />
+            <span>Ver estado de cuenta</span>
+          </Button>
+        </div>
+      )}
       {isParent && <ParentPaymentReportsCard />}
 
       {/* Financial Summary Cards (Exclusivo para Dirección: Total Proyectado, Recaudado, etc.) */}
@@ -390,7 +463,7 @@ export const PaymentsPage: React.FC = () => {
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             {/* Registrar Cobro Manual */}
-                            {canManagePayments && item.status !== 'PAID' && item.status !== 'CANCELLED' && (
+                            {canCollect && item.status !== 'PAID' && item.status !== 'CANCELLED' && (
                               <Button
                                 size="sm"
                                 className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
@@ -402,7 +475,7 @@ export const PaymentsPage: React.FC = () => {
                             )}
 
                             {/* Editar Cuota / Descuento */}
-                            {canManagePayments && item.status !== 'PAID' && item.status !== 'CANCELLED' && (
+                            {canManage && item.status !== 'PAID' && item.status !== 'CANCELLED' && (
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -434,13 +507,27 @@ export const PaymentsPage: React.FC = () => {
                               </Button>
                             )}
 
-                            {/* Ver Recibo / Boleta */}
-                            {item.transactions && item.transactions.length > 0 && (
+                            {/* Historial de cobros (vigentes y anulados) para el personal */}
+                            {canManagePayments && (
                               <Button
                                 size="sm"
                                 variant="outline"
                                 className="h-7 text-xs gap-1"
-                                onClick={() => setSelectedTransactionIdForReceipt(item.transactions[0].id)}
+                                onClick={() => setPaymentsOf(item.id)}
+                                title="Ver recibos, anulados y anular cobros"
+                              >
+                                <History className="w-3.5 h-3.5 text-primary" />
+                                <span>Cobros</span>
+                              </Button>
+                            )}
+
+                            {/* Ver Recibo / Boleta (apoderado) */}
+                            {isParent && item.transactions && item.transactions.length > 0 && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs gap-1"
+                                onClick={() => setSelectedTransactionIdForReceipt(item.transactions[item.transactions.length - 1].id)}
                               >
                                 <FileText className="w-3.5 h-3.5 text-primary" />
                                 <span>Boleta</span>
@@ -448,7 +535,7 @@ export const PaymentsPage: React.FC = () => {
                             )}
 
                             {/* Cobranza Preventiva por WhatsApp Web */}
-                            {canManagePayments && item.status !== 'PAID' && item.status !== 'CANCELLED' && (
+                            {canCollect && item.status !== 'PAID' && item.status !== 'CANCELLED' && (
                               <button
                                 onClick={() => {
                                   const link = buildWhatsAppLink(
@@ -471,7 +558,7 @@ export const PaymentsPage: React.FC = () => {
                             )}
 
                             {/* Recordatorio Individual */}
-                            {canManagePayments && item.status !== 'PAID' && item.status !== 'CANCELLED' && (
+                            {canCollect && item.status !== 'PAID' && item.status !== 'CANCELLED' && (
                               <Button
                                 size="sm"
                                 variant="ghost"
@@ -484,12 +571,12 @@ export const PaymentsPage: React.FC = () => {
                             )}
 
                             {/* Anular Obligación */}
-                            {canManagePayments && item.status !== 'CANCELLED' && item.status !== 'PAID' && (
+                            {canManage && item.status === 'PENDING' && item.transactions.length === 0 && (
                               <button
-                                onClick={() => cancelObligation(item.id)}
+                                onClick={() => setToCancel(item)}
                                 disabled={isCancelling}
                                 className="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                                title="Anular obligación"
+                                title="Anular cuota (con motivo)"
                               >
                                 <Ban className="w-3.5 h-3.5" />
                               </button>
@@ -575,6 +662,25 @@ export const PaymentsPage: React.FC = () => {
           onClose={() => setIsDailyCashCloseOpen(false)}
         />
       )}
+
+      <Modal open={statementOpen} onClose={() => setStatementOpen(false)} title="Estado de cuenta de mi familia" size="xl">
+        {loadingStatement || !myStatement ? <Skeleton className="h-48 w-full" /> : <StatementView data={myStatement} />}
+      </Modal>
+
+      {paymentsOf && (
+        <ObligationPaymentsModal obligationId={paymentsOf} canManage={canManage} onClose={() => setPaymentsOf(null)} />
+      )}
+
+      <ReasonDialog
+        open={!!toCancel}
+        title="Anular cuota"
+        description={toCancel ? `${toCancel.title}` : undefined}
+        warning="La cuota deja de figurar como deuda, pero no se borra: queda como Anulada con tu motivo."
+        confirmLabel="Anular cuota"
+        isPending={isCancelling}
+        onClose={() => setToCancel(null)}
+        onConfirm={confirmCancel}
+      />
 
       {isCreateIndividualOpen && (
         <CreateIndividualObligationModal

@@ -1,33 +1,57 @@
-import { Router } from 'express';
+import { Router, type NextFunction, type Request, type Response } from 'express';
 import { PaymentRepository } from './payment.repository';
 import { PaymentService } from './payment.service';
 import { PaymentController } from './payment.controller';
 import { authMiddleware, authorizeRoles } from '../../core/middlewares/auth.middleware';
 import { tenantMiddleware } from '../../core/middlewares/tenant.middleware';
+import { requireFinance } from './finance-access';
+import { cashRouter } from './cash.routes';
+import { adjustmentRouter } from './adjustment.routes';
+import { reportRouter } from './report.routes';
 
 const paymentRepository = new PaymentRepository();
 const paymentService = new PaymentService(paymentRepository);
 const paymentController = new PaymentController(paymentService);
 
+/**
+ * Permisos de caja y tesorería (ver finance.rules.ts):
+ * - collect (cajero, tesorero, Dirección): cobrar, crear cuotas sueltas, su caja y egresos.
+ * - manage (tesorero, Dirección): cuotas masivas, editar/anular cuotas, anular cobros, revisar cierres.
+ * - view (contador, tesorero, Dirección): ver todo sin modificar.
+ */
+const parentOr = (...anyOf: Parameters<typeof requireFinance>) => {
+  const finance = requireFinance(...anyOf);
+  return (req: Request, res: Response, next: NextFunction) =>
+    req.user?.role === 'PARENT' ? next() : finance(req, res, next);
+};
+
 export const paymentRouter = Router();
 
 paymentRouter.use(authMiddleware, tenantMiddleware);
 
-// ──────────────────────────────────────────────────────────────────
-// RESUMEN FINANCIERO Y REPORTES (Exclusivo Dirección)
-// ──────────────────────────────────────────────────────────────────
+// Qué puede hacer la persona en caja y tesorería (para mostrar u ocultar botones)
 paymentRouter.get(
-  '/summary',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
-  paymentController.getSummary,
+  '/access',
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
+  paymentController.getAccess,
 );
 
-// Arqueo de caja diario (Cierre de caja)
-paymentRouter.get(
-  '/daily-cash-close',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
-  paymentController.getDailyCashClose,
-);
+// Caja diaria y egresos
+paymentRouter.use('/cash', cashRouter);
+
+// Descuentos, becas, moras, notas de crédito y configuración de mora
+paymentRouter.use(adjustmentRouter);
+
+// Estados de cuenta (alumno, familia, apoderado) y reportes financieros
+paymentRouter.use(reportRouter);
+
+// ──────────────────────────────────────────────────────────────────
+// RESUMEN FINANCIERO Y REPORTES
+// ──────────────────────────────────────────────────────────────────
+paymentRouter.get('/summary', requireFinance('view'), paymentController.getSummary);
+
+// Resumen del día de todas las cajas
+paymentRouter.get('/daily-cash-close', requireFinance('view'), paymentController.getDailyCashClose);
 
 // ──────────────────────────────────────────────────────────────────
 // OBLIGACIONES DE PAGO (Cronograma)
@@ -40,88 +64,39 @@ paymentRouter.get(
 );
 
 // Generación masiva de cronograma (por aula o colegio completo)
-paymentRouter.post(
-  '/obligations/bulk',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
-  paymentController.bulkCreateObligations,
-);
+paymentRouter.post('/obligations/bulk', requireFinance('manage'), paymentController.bulkCreateObligations);
 
 // Recordatorio masivo por morosidad
-paymentRouter.post(
-  '/obligations/remind-overdue',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
-  paymentController.sendBulkReminders,
-);
+paymentRouter.post('/obligations/remind-overdue', requireFinance('manage'), paymentController.sendBulkReminders);
 
-// Recordatorio individual (WA/Email)
-paymentRouter.post(
-  '/obligations/:id/remind',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
-  paymentController.sendReminder,
-);
+// Recordatorio individual
+paymentRouter.post('/obligations/:id/remind', requireFinance('collect', 'manage'), paymentController.sendReminder);
 
 // Listar todas las obligaciones (con filtros de estado, sección, búsqueda)
-paymentRouter.get(
-  '/obligations',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
-  paymentController.getAllObligations,
-);
+paymentRouter.get('/obligations', requireFinance('collect', 'view'), paymentController.getAllObligations);
 
-// Detalle de obligación específica
-paymentRouter.get(
-  '/obligations/:id',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'PARENT'),
-  paymentController.getObligationById,
-);
+// Detalle de obligación específica (incluye cobros anulados para el personal)
+paymentRouter.get('/obligations/:id', parentOr('collect', 'view'), paymentController.getObligationById);
 
-// Crear obligación individual
-paymentRouter.post(
-  '/obligations',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
-  paymentController.createObligation,
-);
+// Crear obligación individual (opcionalmente cobrada al momento)
+paymentRouter.post('/obligations', requireFinance('collect'), paymentController.createObligation);
 
-// Editar obligación (monto, vencimiento, concepto)
-paymentRouter.patch(
-  '/obligations/:id',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
-  paymentController.updateObligation,
-);
+// Editar obligación (título, concepto, vencimiento; monto solo sin cobros y con motivo)
+paymentRouter.patch('/obligations/:id', requireFinance('manage'), paymentController.updateObligation);
 
-// Anular/Cancelar obligación
-paymentRouter.delete(
-  '/obligations/:id',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
-  paymentController.cancelObligation,
-);
+// Anular obligación con motivo (no se borra)
+paymentRouter.post('/obligations/:id/cancel', requireFinance('manage'), paymentController.cancelObligation);
 
 // ──────────────────────────────────────────────────────────────────
-// TRANSACCIONES Y REGISTRO MANUAL DE COBROS
+// COBROS
 // ──────────────────────────────────────────────────────────────────
-// Historial de cobros/transacciones (Caja diaria)
-paymentRouter.get(
-  '/transactions',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
-  paymentController.getAllTransactions,
-);
+paymentRouter.get('/transactions', requireFinance('collect', 'view'), paymentController.getAllTransactions);
 
-// Registrar cobro manual (Efectivo, Transferencia, Tarjeta)
-paymentRouter.post(
-  '/transactions',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
-  paymentController.registerTransaction,
-);
+// Registrar cobro (queda a nombre de quien cobra y en su caja abierta)
+paymentRouter.post('/transactions', requireFinance('collect'), paymentController.registerTransaction);
 
-// Datos formateados de recibo/boleta de pago
-paymentRouter.get(
-  '/transactions/:id/receipt',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'PARENT'),
-  paymentController.getTransactionReceipt,
-);
+// Datos del recibo (también de recibos anulados)
+paymentRouter.get('/transactions/:id/receipt', parentOr('collect', 'view'), paymentController.getTransactionReceipt);
 
-// Anular pago registrado por error (recalcula la deuda)
-paymentRouter.delete(
-  '/transactions/:id',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ADMINISTRATIVE'),
-  paymentController.deleteTransaction,
-);
+// Anular cobro con motivo: el recibo se conserva como ANULADO y la cuota recupera su saldo
+paymentRouter.post('/transactions/:id/void', requireFinance('manage'), paymentController.voidTransaction);

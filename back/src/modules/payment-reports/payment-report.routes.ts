@@ -10,6 +10,7 @@ import { deliver } from '../automations/delivery';
 import { studentShortName } from '../automations/recipients';
 import { PaymentRepository } from '../payments/payment.repository';
 import { PaymentService } from '../payments/payment.service';
+import { requireFinance } from '../payments/finance-access';
 import { remainingBalance } from '../payments/payment.rules';
 import {
   METHOD_LABEL,
@@ -29,7 +30,6 @@ import {
 export const paymentReportRouter = Router();
 paymentReportRouter.use(authMiddleware, tenantMiddleware);
 
-const TREASURY = ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'] as const;
 const paymentService = new PaymentService(new PaymentRepository());
 const uuid = z.string().uuid();
 const money = (n: number) => `S/ ${n.toFixed(2)}`;
@@ -80,7 +80,7 @@ async function operationExists(schoolId: string, normalized: string, excludeRepo
       where: { schoolId, status: { not: 'REJECTED' }, ...(excludeReportId ? { id: { not: excludeReportId } } : {}) },
       select: { operationNumber: true },
     }),
-    prisma.paymentTransaction.findMany({ where: { schoolId, operationNumber: { not: null } }, select: { operationNumber: true } }),
+    prisma.paymentTransaction.findMany({ where: { schoolId, status: 'ACTIVE', operationNumber: { not: null } }, select: { operationNumber: true } }),
   ]);
   return [...reports, ...transactions].some((r) => r.operationNumber && normalizeOperationNumber(r.operationNumber) === normalized);
 }
@@ -97,7 +97,7 @@ paymentReportRouter.post('/', authorizeRoles('PARENT'), async (req: Request, res
       title: true,
       status: true,
       amountDue: true,
-      transactions: { select: { amountPaid: true } },
+      transactions: { where: { status: 'ACTIVE' }, select: { amountPaid: true } },
       paymentReports: { where: { status: 'PENDING' }, select: { amount: true } },
       enrollment: { select: { student: { select: { id: true, firstNames: true, lastNamePaternal: true, familyRelations: { select: { userId: true } } } } } },
     },
@@ -177,12 +177,12 @@ paymentReportRouter.get('/mine', authorizeRoles('PARENT'), async (req: Request, 
 
 // ------------------------------------------------------------ Tesorería
 
-paymentReportRouter.get('/pending-count', authorizeRoles(...TREASURY), async (req: Request, res: Response) => {
+paymentReportRouter.get('/pending-count', requireFinance('manage', 'view'), async (req: Request, res: Response) => {
   const count = await prisma.paymentReport.count({ where: { schoolId: req.user!.schoolId, status: 'PENDING' } });
   res.status(200).json({ status: 'success', data: { count } });
 });
 
-paymentReportRouter.get('/', authorizeRoles(...TREASURY), async (req: Request, res: Response) => {
+paymentReportRouter.get('/', requireFinance('manage', 'view'), async (req: Request, res: Response) => {
   const { status } = z.object({ status: z.enum(['PENDING', 'APPROVED', 'REJECTED']).default('PENDING') }).parse(req.query);
   const reports = await prisma.paymentReport.findMany({
     where: { schoolId: req.user!.schoolId, status },
@@ -198,7 +198,7 @@ paymentReportRouter.get('/', authorizeRoles(...TREASURY), async (req: Request, r
           title: true,
           amountDue: true,
           dueDate: true,
-          transactions: { select: { amountPaid: true } },
+          transactions: { where: { status: 'ACTIVE' }, select: { amountPaid: true } },
           enrollment: {
             select: {
               student: { select: { firstNames: true, lastNamePaternal: true, lastNameMaternal: true } },
@@ -250,7 +250,7 @@ async function loadPending(schoolId: string, id: string) {
 }
 
 /** Aprobar: registra la transacción (con su recibo interno) y avisa a la familia. */
-paymentReportRouter.post('/:id/approve', authorizeRoles(...TREASURY), async (req: Request, res: Response) => {
+paymentReportRouter.post('/:id/approve', requireFinance('manage'), async (req: Request, res: Response) => {
   const { id } = z.object({ id: uuid }).parse(req.params);
   const schoolId = req.user!.schoolId;
   const report = await loadPending(schoolId, id);
@@ -260,13 +260,20 @@ paymentReportRouter.post('/:id/approve', authorizeRoles(...TREASURY), async (req
   if (claimed.count === 0) throw new AppError('Este reporte ya fue revisado.', 409);
 
   try {
-    const transaction = await paymentService.registerTransaction(schoolId, {
-      obligationId: report.obligationId,
-      amountPaid: Number(report.amount),
-      paymentMethod: 'BANK_TRANSFER',
-      operationNumber: report.operationNumber,
-      notes: `Reportado por la familia vía app (${METHOD_LABEL[report.method as ReportMethod] ?? report.method}, pagado el ${report.paidOn.toISOString().slice(0, 10)})`,
-    });
+    // Cada medio queda separado (Yape, Plin, transferencia o depósito) para la conciliación.
+    // No entra a ninguna caja: el dinero llegó a la cuenta del colegio, no al efectivo del cajero.
+    const transaction = await paymentService.registerTransaction(
+      schoolId,
+      {
+        obligationId: report.obligationId,
+        amountPaid: Number(report.amount),
+        paymentMethod: report.method as ReportMethod,
+        operationNumber: report.operationNumber,
+        notes: `Reportado por la familia vía app (${METHOD_LABEL[report.method as ReportMethod] ?? report.method}, pagado el ${report.paidOn.toISOString().slice(0, 10)})`,
+      },
+      { userId: req.user!.userId, role: req.user!.role },
+      { outsideCashSession: true },
+    );
     await prisma.paymentReport.update({ where: { id }, data: { transactionId: transaction.id } });
     const receipt = (transaction as { receiptNumber?: string | null }).receiptNumber;
     void deliver(
@@ -289,7 +296,7 @@ paymentReportRouter.post('/:id/approve', authorizeRoles(...TREASURY), async (req
   }
 });
 
-paymentReportRouter.post('/:id/reject', authorizeRoles(...TREASURY), async (req: Request, res: Response) => {
+paymentReportRouter.post('/:id/reject', requireFinance('manage'), async (req: Request, res: Response) => {
   const { id } = z.object({ id: uuid }).parse(req.params);
   const { reason } = z.object({ reason: z.string().trim().min(5, 'Indica el motivo para la familia.').max(300) }).parse(req.body);
   const schoolId = req.user!.schoolId;

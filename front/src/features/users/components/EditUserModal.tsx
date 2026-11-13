@@ -8,6 +8,7 @@ import { useUpdateUser } from '../api/useUserMutations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { DirectoryUser } from '../types';
+import { FinanceRoleField } from './FinanceRoleField';
 
 interface EditUserModalProps {
   user: DirectoryUser | null;
@@ -99,6 +100,8 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ user, isOpen, onCl
               <option value="SCHOOL_ADMIN">Director / Promotor (Administrador General)</option>
             </select>
           </div>
+
+          <FinanceRoleField user={user} />
 
           {/* Nombres y Apellidos */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

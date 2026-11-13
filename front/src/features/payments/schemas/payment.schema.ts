@@ -16,17 +16,20 @@ export const bulkCreateObligationsSchema = z.object({
   dueDate: z.string().min(1, 'Fecha de vencimiento requerida'),
 });
 
-export const registerTransactionSchema = z.object({
-  obligationId: z.string().uuid(),
-  amountPaid: z.coerce.number().positive('El monto pagado debe ser positivo'),
-  paymentMethod: z.enum(['CASH', 'BANK_TRANSFER', 'CREDIT_CARD'], {
-    errorMap: () => ({ message: 'Selecciona el método de pago' }),
-  }),
-  operationNumber: z.string().optional(),
-  receiptType: z.literal('RECIBO_INTERNO').default('RECIBO_INTERNO'),
-  receiptNumber: z.string().optional(),
-  notes: z.string().optional(),
-});
+export const registerTransactionSchema = z
+  .object({
+    obligationId: z.string().uuid(),
+    amountPaid: z.coerce.number().positive('El monto pagado debe ser positivo'),
+    paymentMethod: z.enum(['CASH', 'YAPE', 'PLIN', 'BANK_TRANSFER', 'DEPOSIT', 'CREDIT_CARD'], {
+      errorMap: () => ({ message: 'Selecciona el medio de pago' }),
+    }),
+    operationNumber: z.string().trim().optional(),
+    notes: z.string().trim().optional(),
+  })
+  .refine((d) => d.paymentMethod === 'CASH' || Boolean(d.operationNumber), {
+    message: 'Ingresa el número de operación (sirve para conciliar con el banco o el aplicativo).',
+    path: ['operationNumber'],
+  });
 
 export type CreateObligationFormData = z.infer<typeof createObligationSchema>;
 export type BulkCreateObligationsFormData = z.infer<typeof bulkCreateObligationsSchema>;
