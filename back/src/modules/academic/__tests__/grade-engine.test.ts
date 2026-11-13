@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   computeCompetencePeriod, consolidateOfficialCompetence, computeAnnual, resolveFinalLetter,
-  sanitizeConclusion, needsConclusion, CONCLUSION_MAX_LENGTH,
+  sanitizeConclusion, needsConclusion, CONCLUSION_MAX_LENGTH, combineConclusions, fitConclusion,
 } from '../grade-engine';
 
 const T = { AD: 17.5, A: 13.5, B: 10.5 };
@@ -95,3 +95,42 @@ describe('conclusiones', () => {
   });
 });
 
+
+describe('conclusiones de varios cursos en la misma competencia', () => {
+  const frase = (n: number, largo: number) => `Frase ${n} ${'a'.repeat(Math.max(0, largo - 10))}.`;
+
+  it('si entran todas, une las dos conclusiones cerrando cada una con punto', () => {
+    expect(combineConclusions([{ text: 'Resuelve ecuaciones', weight: 1 }, { text: 'Aplica identidades.', weight: 1 }]))
+      .toBe('Resuelve ecuaciones. Aplica identidades.');
+  });
+
+  it('pone primero la del curso de mayor peso y no repite textos iguales', () => {
+    expect(combineConclusions([{ text: 'Uno.', weight: 1 }, { text: 'Dos.', weight: 2 }, { text: 'uno.', weight: 1 }])).toBe('Dos. Uno.');
+  });
+
+  it('si no entran, deja completas las que caben empezando por el mayor peso, sin cortar a la mitad', () => {
+    const a = frase(1, 300);
+    const b = frase(2, 300);
+    const c = frase(3, 150);
+    const out = combineConclusions([{ text: a, weight: 1 }, { text: b, weight: 2 }, { text: c, weight: 1 }]);
+    expect(out).toBe(`${b} ${c}`);
+    expect(out.length).toBeLessThanOrEqual(CONCLUSION_MAX_LENGTH);
+  });
+
+  it('si la del curso de mayor peso sola no cabe, la recorta en la última frase completa', () => {
+    const larga = `${frase(1, 200)} ${frase(2, 200)} ${frase(3, 200)}`;
+    const out = combineConclusions([{ text: larga, weight: 2 }, { text: frase(4, 450), weight: 1 }]);
+    expect(out).toBe(`${frase(1, 200)} ${frase(2, 200)}`);
+  });
+
+  it('sin frases completas útiles, corta en la última palabra entera y cierra con punto', () => {
+    const texto = `${'palabra '.repeat(80)}final`;
+    const out = fitConclusion(texto);
+    expect(out.length).toBeLessThanOrEqual(CONCLUSION_MAX_LENGTH);
+    expect(out.endsWith('palabra.')).toBe(true);
+  });
+
+  it('sin cursos con conclusión devuelve vacío', () => {
+    expect(combineConclusions([{ text: '  ', weight: 1 }, { text: null }])).toBe('');
+  });
+});

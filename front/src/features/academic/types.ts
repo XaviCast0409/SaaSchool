@@ -31,12 +31,13 @@ export interface StudyPlan {
 }
 
 export interface PreuniversityCourse {
-  key: string; name: string; sanMarcos: boolean; areaCode: string; competences: number[]; suggestedGrades: number[] | null;
+  key: string; name: string; sanMarcos: boolean; byTutor: boolean; areaCode: string; competences: number[]; suggestedGrades: number[] | null;
   active: boolean; weight: number; planCourseId: string | null;
 }
 export interface PreuniversityArea {
-  code: string; name: string; competences: number[];
+  code: string; name: string; optional: boolean; isTransversal: boolean; competences: number[];
   customCourses: Array<{ areaId: string; name: string; competences: number[] }>;
+  remainder: { areaId: string; name: string; competences: number[] } | null;
   courses: PreuniversityCourse[];
 }
 export interface PreuniversityCatalog { level: Level; grade: number; areas: PreuniversityArea[] }
@@ -112,6 +113,25 @@ export interface ConsolidationResponse {
   summary: { totalStudents: number; missingGrades: number; missingConclusions: number; missingStudentCodes: number; coursesWithoutTeacher: number };
 }
 
+export interface GradeCell { score: number | null; letter: ResultLetter | null }
+export interface ReportCardCourse {
+  id: string; name: string; teacher: string;
+  criteria: Array<{ id: string; name: string; shortName: string; periods: Record<number, GradeCell> }>;
+  average: Record<number, GradeCell>;
+}
+export interface ReportCardArea {
+  code: string; name: string; isWorkshop: boolean; single: boolean;
+  average: Record<number, GradeCell>; courses: ReportCardCourse[];
+}
+
+export interface TutorReportStudent {
+  enrollmentId: string; fullName: string; conductScore: number | null; conductLetter: Letter | null; conductComment: string; tutorComment: string;
+}
+export interface TutorReport {
+  classroomId: string; periodNumber: number; periodName: string; periodStatus: PeriodState; canEdit: boolean;
+  thresholds: { AD: number; A: number; B: number }; maxCommentLength: number; students: TutorReportStudent[];
+}
+
 export interface ReportCard {
   school: { name: string; modularCode: string | null; documentId: string; address: string | null; logoUrl: string | null } | null;
   student: { fullName: string; studentCode: string | null; documentId: string };
@@ -124,8 +144,9 @@ export interface ReportCard {
     code: string; name: string;
     competences: Array<{ number: number; name: string; shortName: string; letters: Record<number, ResultLetter | null>; conclusions: Record<number, string>; finalLetter: ResultLetter | null }>;
   }>;
-  internalCourses: Array<{ name: string; kind: CourseKind; teacher: string; competences: Array<{ name: string; letters: Record<number, ResultLetter | null> }> }>;
-  attendance: Array<{ periodNumber: number; absentJustified: number; absentUnjustified: number; lateJustified: number; lateUnjustified: number }>;
+  criteriaColumns: Array<{ id: string; name: string; shortName: string }>;
+  areas: ReportCardArea[];
+  conduct: Array<{ periodNumber: number; score: number | null; letter: ResultLetter | null; comment: string; tutorComment: string }>;
   finalSituation: string | null;
   scaleLegend: Array<{ letter: string; label: string }>;
 }

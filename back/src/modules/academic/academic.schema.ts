@@ -11,7 +11,7 @@ export const applyTemplateBody = z.object({
 });
 export const subcoursesBody = z.object({
   academicYearId: optionalYear, level, grades: z.array(z.number().int()).min(1), officialAreaCode: z.string().min(2),
-  subcourses: z.array(z.object({ name: z.string().trim().min(2).max(80), cnebNumbers: z.array(z.number().int()).min(1), weight: z.number().positive().max(10).optional() })).min(2),
+  subcourses: z.array(z.object({ name: z.string().trim().min(2).max(80), cnebNumbers: z.array(z.number().int()).min(1), weight: z.number().positive().max(10).optional() })).min(1),
 });
 export const preuniversityBody = z.object({
   academicYearId: optionalYear, level, grades: z.array(z.number().int()).min(1), officialAreaCode: z.string().min(2),
@@ -91,3 +91,16 @@ export const phraseCreateBody = z.object({
 });
 export const phraseUpdateBody = z.object({ text: z.string().max(2000).optional(), letter: phraseLetter.nullable().optional() });
 export const phraseHiddenBody = z.object({ phraseKey: z.string().min(5).max(120), hidden: z.boolean() });
+
+export const tutorReportQuery = z.object({ classroomId: uuid, periodNumber: z.coerce.number().int().min(1).max(4) });
+export const tutorReportBody = z.object({
+  classroomId: uuid,
+  periodNumber: z.number().int().min(1).max(4),
+  rows: z.array(z.object({
+    enrollmentId: uuid,
+    conductScore: z.number().min(0).max(20).nullable().optional(),
+    conductLetter: z.enum(['AD', 'A', 'B', 'C']).nullable().optional(),
+    conductComment: z.string().max(1000).nullable().optional(),
+    tutorComment: z.string().max(1000).nullable().optional(),
+  })).min(1).max(80),
+});

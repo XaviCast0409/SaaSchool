@@ -308,6 +308,26 @@ export const COURSE_FRAGMENTS: Record<string, string[]> = {
     'relacionar los conocimientos biológicos con el cuidado de la salud',
     'valorar la biodiversidad y la importancia de conservarla',
   ],
+  INGLES: [
+    'comunicarse oralmente en inglés en situaciones cotidianas',
+    'comprender textos sencillos escritos en inglés',
+    'escribir textos breves en inglés con vocabulario adecuado',
+  ],
+  EDU_FISICA: [
+    'desarrollar sus capacidades físicas y su coordinación motriz',
+    'practicar hábitos de vida saludable y de cuidado del cuerpo',
+    'participar en juegos y deportes respetando reglas y compañeros',
+  ],
+  COMPUTACION: [
+    'utilizar herramientas digitales para organizar y presentar información',
+    'buscar y seleccionar información en entornos virtuales de forma segura',
+    'crear producciones digitales sencillas con creatividad',
+  ],
+  ARTE: [
+    'apreciar manifestaciones artísticas de su entorno y de otras culturas',
+    'crear proyectos artísticos usando diversos lenguajes y técnicas',
+    'expresar sus ideas y emociones a través del arte con creatividad',
+  ],
 };
 
 export interface FactoryPhrase {

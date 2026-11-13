@@ -4,7 +4,7 @@ import { AppError } from '../../core/errors/app-error';
 import { evaluateFinalSituation, type Letter, type PromotionRuleOverrides } from '../grades/promotion-rules';
 import { CNEB_AREAS, CNEB_COMPETENCES, competenceName, gradeLabel } from './cneb.catalog';
 import {
-  computeAnnual, consolidateOfficialCompetence, isLetter, isResultLetter, needsConclusion, sanitizeConclusion,
+  combineConclusions, computeAnnual, consolidateOfficialCompetence, isLetter, isResultLetter, needsConclusion,
   type AnnualMode, type ResultLetter,
 } from './grade-engine';
 import { assertPeriod, fullNameOf, getThresholds, periodCount, resolveYear } from './academic.context';
@@ -109,7 +109,7 @@ export class ConsolidationService {
           if (inactive) { comps[key] = { score: null, letter: null, conclusion: '' }; continue; }
           const perPeriod = periods.map((p) => {
             const parts: Array<{ finalLetter: ResultLetter | null; computedScore: number | null; isOverridden: boolean; weight: number }> = [];
-            const texts: string[] = [];
+            const texts: Array<{ text: string; weight: number }> = [];
             for (const a of official.filter((x) => x.area.officialAreaCode === area.code)) {
               const comp = a.area.competences.find((c) => c.cnebNumber === n);
               if (!comp) continue;
@@ -121,10 +121,10 @@ export class ConsolidationService {
                 weight: comp.weight,
               });
               const c = conclusions.find((x) => x.enrollmentId === enr.id && x.courseAssignmentId === a.id && x.competenceId === comp.id && x.periodNumber === p);
-              if (c?.conclusion?.trim()) texts.push(c.conclusion.trim());
+              if (c?.conclusion?.trim()) texts.push({ text: c.conclusion, weight: comp.weight });
             }
             const res = consolidateOfficialCompetence(parts, thresholds);
-            return { ...res, conclusion: sanitizeConclusion(texts.join(' ')) };
+            return { ...res, conclusion: combineConclusions(texts) };
           });
           const letter = period === 'FINAL' ? computeAnnual(perPeriod.map((x) => x.letter), mode, thresholds) : perPeriod[0].letter;
           const score = period === 'FINAL' ? null : perPeriod[0].score;

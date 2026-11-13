@@ -26,7 +26,7 @@ const AreaEditor: React.FC<{ area: PreuniversityArea; level: Level; grade: numbe
   const total = chosen.length + area.customCourses.length;
   const isActive = area.courses.some((c) => c.active);
   const dirty = area.courses.some((c) => (sel[c.key]?.on ?? false) !== c.active || (sel[c.key]?.on && sel[c.key].weight !== c.weight));
-  const canApply = chosen.length > 0 && missing.length === 0 && total >= 2 && (dirty || grades.length > 1);
+  const canApply = chosen.length > 0 && total >= 1 && (dirty || grades.length > 1);
 
   const apply = (courses: Array<{ key: string; weight?: number }>) =>
     configure.mutate({ level, grades, officialAreaCode: area.code, courses });
@@ -42,7 +42,7 @@ const AreaEditor: React.FC<{ area: PreuniversityArea; level: Level; grade: numbe
         </div>
         {isActive && (
           <Button variant="ghost" size="sm" disabled={configure.isPending} onClick={() => apply([])}>
-            Volver a un solo curso
+            {area.optional ? 'Quitar del plan' : 'Volver a un solo curso'}
           </Button>
         )}
       </div>
@@ -91,12 +91,12 @@ const AreaEditor: React.FC<{ area: PreuniversityArea; level: Level; grade: numbe
       </div>
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-        <p className={cn('text-xs', chosen.length === 0 ? 'text-muted-foreground' : missing.length ? 'text-red-600' : 'text-emerald-600')}>
+        <p className={cn('text-xs', chosen.length === 0 ? 'text-muted-foreground' : missing.length ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-600')}>
           {chosen.length === 0
-            ? 'Elige al menos dos cursos para dividir el área.'
+            ? 'Marca los cursos que dicta el colegio en esta área.'
             : missing.length
-              ? `Falta cubrir: ${missing.map((n) => catalog.competences[n].shortName).join(', ')}.`
-              : total < 2 ? 'Elige al menos dos cursos.' : 'Todas las competencias del área quedan cubiertas.'}
+              ? `${missing.map((n) => catalog.competences[n].shortName).join(', ')} ${missing.length > 1 ? 'quedan' : 'queda'} en «${area.name}»${area.isTransversal ? ', que registra el tutor o tutora' : ''}. El SIAGIE recibe el área completa.`
+              : 'Todas las competencias del área quedan cubiertas.'}
         </p>
         <Button size="sm" disabled={!canApply || configure.isPending || grades.length === 0}
           onClick={() => apply(chosen.map((c) => ({ key: c.key, weight: sel[c.key].weight })))}>
@@ -111,8 +111,8 @@ const AreaEditor: React.FC<{ area: PreuniversityArea; level: Level; grade: numbe
 export const PreuniversityModal: React.FC<{ open: boolean; onClose: () => void; level: Level; grade: number; catalog: Catalog }> = ({ open, onClose, level, grade, catalog }) => {
   const { data, isLoading } = usePreuniversityCatalog(level, grade, open);
   return (
-    <Modal open={open} onClose={onClose} size="xl" title={`Cursos preuniversitarios · ${gradeLabel(level, grade)}`}
-      description="Activa los cursos que dicta el colegio por separado. Cada curso tributa a su área madre y en el SIAGIE solo se reporta el promedio del área."
+    <Modal open={open} onClose={onClose} size="xl" title={`Cursos por área · ${gradeLabel(level, grade)}`}
+      description="Activa los cursos que dicta el colegio (polidocencia o unidocencia) y elige en qué grados. Cada curso tributa a su área madre: en el SIAGIE solo se reporta el área. Los talleres o cursos extra se agregan con «Agregar taller»."
       footer={<Button variant="outline" onClick={onClose}>Cerrar</Button>}>
       {level === 'INITIAL' ? (
         <p className="flex items-center gap-2 text-sm text-muted-foreground"><GraduationCap className="h-4 w-4" />En inicial no se dividen las áreas en cursos.</p>

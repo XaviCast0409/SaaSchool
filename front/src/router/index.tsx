@@ -88,6 +88,9 @@ const ReportCardsPrintPage = lazy(() =>
 const MyCoursesPage = lazy(() =>
   import('@/features/academic/pages/MyCoursesPage').then((m) => ({ default: m.MyCoursesPage })),
 );
+const TutorReportPage = lazy(() =>
+  import('@/features/academic/pages/TutorReportPage').then((m) => ({ default: m.TutorReportPage })),
+);
 const GradebookPage = lazy(() =>
   import('@/features/academic/pages/GradebookPage').then((m) => ({ default: m.GradebookPage })),
 );
@@ -286,6 +289,16 @@ export const AppRouter: React.FC = () => {
                 <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER']}>
                   <PlanGuard minPlan="PRO">
                     <ReportCardsPrintPage />
+                  </PlanGuard>
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/academic/tutor-report"
+              element={
+                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER']}>
+                  <PlanGuard minPlan="PRO">
+                    <TutorReportPage />
                   </PlanGuard>
                 </RoleGuard>
               }

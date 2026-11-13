@@ -41,6 +41,7 @@ export const ACTION_CATALOG: Record<string, { label: string; verb: string; categ
   ACADEMIC_YEAR_ACTIVATE: { label: 'Cambio de año activo', verb: 'activó un año lectivo', category: 'ACADEMICO' },
   ACADEMIC_YEAR_DELETE: { label: 'Eliminación de año lectivo', verb: 'eliminó un año lectivo', category: 'ACADEMICO' },
   ACADEMIC_PLAN_TEMPLATE: { label: 'Plantilla CNEB', verb: 'aplicó la plantilla CNEB al plan de estudios', category: 'ACADEMICO' },
+  ACADEMIC_TUTOR_REPORT_SAVED: { label: 'Libreta: conducta y comentario', verb: 'registró conducta y comentarios del tutor en la libreta', category: 'ACADEMICO' },
   ACADEMIC_SUBCOURSES: { label: 'División de un área', verb: 'dividió un área en cursos', category: 'ACADEMICO' },
   ACADEMIC_WORKSHOP: { label: 'Nuevo taller', verb: 'agregó un taller al plan de estudios', category: 'ACADEMICO' },
   ACADEMIC_PLAN_REMOVE: { label: 'Curso quitado del plan', verb: 'quitó un curso del plan de estudios', category: 'ACADEMICO' },

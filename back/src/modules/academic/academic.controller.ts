@@ -12,6 +12,7 @@ import { ConsolidationService } from './consolidation.service';
 import { ReportCardService } from './report-card.service';
 import { ProgressService } from './progress.service';
 import { PhraseService } from './phrase.service';
+import { TutorReportService } from './tutor-report.service';
 import { buildConsolidationWorkbook, buildGradebookWorkbook } from './academic-excel.service';
 
 const curriculum = new CurriculumService();
@@ -22,6 +23,7 @@ const consolidation = new ConsolidationService();
 const reportCards = new ReportCardService();
 const progress = new ProgressService();
 const phrases = new PhraseService();
+const tutorReports = new TutorReportService();
 
 const ctx = (req: Request) => {
   const u = req.user!;
@@ -225,6 +227,18 @@ export const academicController = {
   reportCard: async (req: Request, res: Response) => {
     const { schoolId, user } = ctx(req);
     ok(res, await reportCards.getReportCard(schoolId, user, String(req.params.enrollmentId)));
+  },
+  tutorReport: async (req: Request, res: Response) => {
+    const q = S.tutorReportQuery.parse(req.query);
+    const { schoolId, user } = ctx(req);
+    ok(res, await tutorReports.getForClassroom(schoolId, user, q.classroomId, q.periodNumber));
+  },
+  saveTutorReport: async (req: Request, res: Response) => {
+    const b = S.tutorReportBody.parse(req.body);
+    const { schoolId, user } = ctx(req);
+    const data = await tutorReports.save(schoolId, user, b.classroomId, b.periodNumber, b.rows);
+    recordAudit(req, { action: 'ACADEMIC_TUTOR_REPORT_SAVED', entity: 'StudentPeriodReport', after: { classroomId: b.classroomId, periodNumber: b.periodNumber, rows: b.rows.length } });
+    ok(res, data);
   },
   classroomReportCards: async (req: Request, res: Response) => {
     const q = S.classroomQuery.parse(req.query);

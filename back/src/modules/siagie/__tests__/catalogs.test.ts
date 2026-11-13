@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { CNEB_AREAS, CNEB_COMPETENCES } from '../../academic/cneb.catalog';
-import { PREUNIVERSITY_COURSES, preuniversityCoursesFor } from '../../academic/preuniversity.catalog';
+import { isRemainderKey, PREUNIVERSITY_COURSES, preuniversityCoursesFor, remainderKey } from '../../academic/preuniversity.catalog';
 import { COMPETENCE_FRAGMENTS, COURSE_FRAGMENTS, factoryPhrases, isFactoryPhraseKey, PHRASE_LETTERS } from '../../academic/phrase-bank.catalog';
 import { parseDate, parseDocumentType, parseEnrollmentState, parseGradeText, parseLevel, parseShift } from '../nomina.parser';
 
 describe('catálogo preuniversitario', () => {
-  it('tiene 21 cursos con claves únicas (18 de San Marcos)', () => {
-    expect(PREUNIVERSITY_COURSES).toHaveLength(21);
-    expect(new Set(PREUNIVERSITY_COURSES.map((c) => c.key)).size).toBe(21);
+  it('tiene 25 cursos con claves únicas (18 de San Marcos)', () => {
+    expect(PREUNIVERSITY_COURSES).toHaveLength(25);
+    expect(new Set(PREUNIVERSITY_COURSES.map((c) => c.key)).size).toBe(25);
     expect(PREUNIVERSITY_COURSES.filter((c) => c.sanMarcos)).toHaveLength(18);
   });
 
@@ -26,6 +26,38 @@ describe('catálogo preuniversitario', () => {
       const area = CNEB_AREAS.SECONDARY.find((a) => a.code === code)!;
       const covered = new Set(preuniversityCoursesFor('SECONDARY', code).flatMap((c) => c.competences));
       expect(area.competences.filter((n) => !covered.has(n)), code).toEqual([]);
+    }
+  });
+
+  it('con los cursos de primaria se pueden cubrir todas las competencias de cada área madre', () => {
+    for (const code of ['MAT', 'COM', 'PS', 'CYT', 'ING', 'EF', 'ART']) {
+      const area = CNEB_AREAS.PRIMARY.find((a) => a.code === code)!;
+      const covered = new Set(preuniversityCoursesFor('PRIMARY', code).flatMap((c) => c.competences));
+      expect(area.competences.filter((n) => !covered.has(n)), code).toEqual([]);
+    }
+  });
+
+  it('Tutoría no es un curso y Computación solo evalúa la competencia TIC (28)', () => {
+    expect(PREUNIVERSITY_COURSES.some((c) => c.key === 'TUTORIA')).toBe(false);
+    for (const level of ['PRIMARY', 'SECONDARY'] as const) {
+      expect(preuniversityCoursesFor(level, 'TRANS').map((c) => [c.key, c.competences])).toEqual([['COMPUTACION', [28]]]);
+    }
+  });
+
+  it('la clave del resto del área es estable y se reconoce', () => {
+    expect(remainderKey('TRANS', [29])).toBe('REST_TRANS_29');
+    expect(remainderKey('CYT', [22, 20])).toBe('REST_CYT_20_22');
+    expect(isRemainderKey('REST_TRANS_29')).toBe(true);
+    expect(isRemainderKey('ALGEBRA')).toBe(false);
+  });
+
+  it('los cursos pedidos están disponibles en primaria y en secundaria', () => {
+    const keys = ['RAZ_VERBAL', 'RAZ_MATEMATICO', 'ARITMETICA', 'ALGEBRA', 'TRIGONOMETRIA', 'GEOMETRIA', 'LENGUAJE', 'LITERATURA',
+      'PSICOLOGIA', 'CIVICA', 'HIST_PERU', 'HIST_UNIVERSAL', 'GEOGRAFIA', 'ECONOMIA', 'FILOSOFIA', 'FISICA', 'QUIMICA', 'BIOLOGIA',
+      'INGLES', 'COMPUTACION', 'EDU_FISICA', 'ARTE'];
+    for (const level of ['PRIMARY', 'SECONDARY'] as const) {
+      const available = new Set(preuniversityCoursesFor(level).map((c) => c.key));
+      keys.forEach((k) => expect(available.has(k), `${k} en ${level}`).toBe(true));
     }
   });
 });

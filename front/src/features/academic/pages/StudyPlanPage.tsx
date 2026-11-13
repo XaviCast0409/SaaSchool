@@ -64,8 +64,8 @@ export const StudyPlanPage: React.FC = () => {
         description="Qué cursos se dictan en cada grado. Las competencias vienen del Currículo Nacional y no se editan a mano."
         actions={<>
           <Button variant="outline" onClick={() => setPhrasesOpen(true)}>Banco de frases</Button>
-          {level !== 'INITIAL' && <Button variant="outline" onClick={() => setPreuniOpen(true)}>Cursos preuniversitarios</Button>}
-          <Button variant="outline" onClick={() => setWorkshopOpen(true)}>Agregar taller</Button>
+          {level !== 'INITIAL' && <Button variant="outline" onClick={() => setPreuniOpen(true)}>Cursos por área</Button>}
+          <Button variant="outline" onClick={() => setWorkshopOpen(true)}>Agregar taller o extra</Button>
           <Button onClick={() => setTemplateOpen(true)}>Aplicar plantilla CNEB</Button>
         </>}
       />
@@ -116,7 +116,7 @@ export const StudyPlanPage: React.FC = () => {
                     {courses.map((course) => (
                       <div key={course.planCourseId} className="flex flex-wrap items-center gap-3 py-2">
                         <div className="min-w-[10rem] flex-1">
-                          <p className="text-sm">{course.name}{course.kind === 'SUBCOURSE' && <span className="ml-2 text-xs text-muted-foreground">{course.catalogKey ? 'curso preuniversitario' : 'curso del área'}</span>}</p>
+                          <p className="text-sm">{course.name}{course.kind === 'SUBCOURSE' && <span className="ml-2 text-xs text-muted-foreground">{course.catalogKey?.startsWith('REST_') ? (course.officialAreaCode === 'TRANS' ? 'lo registra el tutor' : 'resto del área') : course.catalogKey ? 'curso del catálogo' : 'curso del área'}</span>}</p>
                           <div className="mt-1 flex flex-wrap gap-1">
                             {course.competences.map((k) => <span key={k.id} className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{k.shortName}{k.weight !== 1 ? ` ×${k.weight}` : ''}</span>)}
                           </div>

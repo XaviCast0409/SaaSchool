@@ -70,9 +70,14 @@ export const MyCoursesPage: React.FC = () => {
           <p className="text-sm font-semibold">Mi aula</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {tutorRooms.map((room) => (
-              <Link key={room.id} to={`/academic/report-cards/print?classroomId=${room.id}`} className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-muted">
-                Libretas de {classroomLabel(room)}
-              </Link>
+              <React.Fragment key={room.id}>
+                <Link to={`/academic/tutor-report?classroomId=${room.id}`} className="rounded-md border border-primary/40 bg-primary/5 px-3 py-1.5 text-sm hover:bg-primary/10">
+                  Conducta y comentarios · {classroomLabel(room)}
+                </Link>
+                <Link to={`/academic/report-cards/print?classroomId=${room.id}`} className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-muted">
+                  Libretas de {classroomLabel(room)}
+                </Link>
+              </React.Fragment>
             ))}
           </div>
         </Card>

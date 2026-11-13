@@ -103,10 +103,61 @@ export function computeAnnual(
   return scoreToLetter(round1(avg), thresholds);
 }
 
-/** Limpia una conclusión descriptiva para el SIAGIE: una línea, sin espacios dobles, recortada. */
+const normalizeSpaces = (text: string) => text.replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
+
+/**
+ * Recorta un texto al máximo sin dejar frases o palabras a medias: corta en la última frase completa
+ * (. ! ?) que entra; si no hay ninguna razonable, en la última palabra completa y cierra con punto.
+ * Solo corta en seco si el texto no tiene espacios.
+ */
+export function fitConclusion(text: string, max = CONCLUSION_MAX_LENGTH): string {
+  const clean = normalizeSpaces(text);
+  if (clean.length <= max) return clean;
+  const head = clean.slice(0, max + 1);
+  let sentenceEnd = -1;
+  for (const m of head.matchAll(/[.!?…](?=\s|$)/g)) if (m.index! < max) sentenceEnd = m.index!;
+  if (sentenceEnd + 1 >= Math.max(CONCLUSION_MIN_LENGTH, Math.floor(max * 0.4))) return clean.slice(0, sentenceEnd + 1);
+  const lastSpace = clean.slice(0, max).lastIndexOf(' ');
+  if (lastSpace <= 0) return clean.slice(0, max);
+  const words = clean.slice(0, lastSpace).replace(/[\s,;:–-]+$/, '');
+  return words.length + 1 <= max ? `${words}.` : words.slice(0, max);
+}
+
+/** Limpia una conclusión descriptiva para el SIAGIE: una línea, sin espacios dobles, recortada sin cortar frases. */
 export function sanitizeConclusion(text: string | null | undefined): string {
   if (!text) return '';
-  return text.replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim().slice(0, CONCLUSION_MAX_LENGTH);
+  return fitConclusion(text);
+}
+
+/**
+ * Une las conclusiones de varios cursos que evalúan la misma competencia (p. ej. Álgebra y Trigonometría).
+ * Si todas entran en el máximo del SIAGIE, van todas (de mayor a menor peso del curso). Si no, entran
+ * completas las que caben, empezando por el curso de mayor peso: nunca se corta una conclusión a la mitad,
+ * salvo que la del curso de mayor peso por sí sola no quepa (entonces se recorta en frase completa).
+ */
+export function combineConclusions(parts: Array<{ text: string | null | undefined; weight?: number }>, max = CONCLUSION_MAX_LENGTH): string {
+  const seen = new Set<string>();
+  const items = parts
+    .map((p, i) => ({ text: normalizeSpaces(p.text ?? ''), weight: p.weight && p.weight > 0 ? p.weight : 1, i }))
+    .filter((p) => {
+      const k = p.text.toLowerCase();
+      if (!k || seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    })
+    .sort((a, b) => b.weight - a.weight || a.i - b.i);
+  if (items.length === 0) return '';
+  if (items.length === 1) return fitConclusion(items[0].text, max);
+  const closed = items.map((p) => (/[.!?…]$/.test(p.text) ? p.text : `${p.text}.`));
+  const all = closed.join(' ');
+  if (all.length <= max) return all;
+  // La del curso de mayor peso siempre va (recortada en frase completa si sola no cabe).
+  let out = fitConclusion(closed[0], max);
+  for (const t of closed.slice(1)) {
+    const next = `${out} ${t}`;
+    if (next.length <= max) out = next;
+  }
+  return out;
 }
 
 export function needsConclusion(letter: ResultLetter | null): boolean {

@@ -5,7 +5,8 @@ import {
   CNEB_AREAS, CNEB_COMPETENCES, LEVEL_GRADES, competenceName, getOfficialArea, isValidGrade,
 } from './cneb.catalog';
 import { resolveYear, shortNameOf, sortCompetences } from './academic.context';
-import { getPreuniversityCourse, preuniversityCoursesFor } from './preuniversity.catalog';
+import { TeachingLoadService } from './teaching-load.service';
+import { getPreuniversityCourse, isRemainderKey, preuniversityCoursesFor, remainderKey } from './preuniversity.catalog';
 
 type Tx = Prisma.TransactionClient;
 
@@ -14,6 +15,8 @@ export interface SubcourseInput {
   cnebNumbers: number[];
   weight?: number;
   catalogKey?: string | null;
+  /** Lo registra el tutor o tutora (p. ej. Tutoría dentro de las competencias transversales). */
+  isTransversal?: boolean;
 }
 
 export async function ensureOfficialArea(tx: Tx, schoolId: string, level: EducationLevel, code: string) {
@@ -151,8 +154,8 @@ export class CurriculumService {
   async createSubcourses(schoolId: string, academicYearId: string | undefined, level: EducationLevel, grades: number[], officialAreaCode: string, subcourses: SubcourseInput[]) {
     const year = await resolveYear(schoolId, academicYearId);
     const spec = getOfficialArea(level, officialAreaCode);
-    if (!spec || spec.isTransversal) throw new AppError('Esta área no se puede dividir.', 400);
-    if (subcourses.length < 2) throw new AppError('Para dividir un área necesitas al menos dos cursos.', 400);
+    if (!spec) throw new AppError('Esta área no se puede dividir.', 400);
+    if (subcourses.length < 1) throw new AppError('Elige al menos un curso.', 400);
     const names = subcourses.map((s) => s.name.trim().toLowerCase());
     if (names.some((n) => n.length < 2)) throw new AppError('Escribe el nombre de cada curso.', 400);
     if (new Set(names).size !== names.length) throw new AppError('Hay cursos con el mismo nombre.', 400);
@@ -173,17 +176,27 @@ export class CurriculumService {
       for (const s of subcourses) {
         const name = s.name.trim();
         const desired = [...new Set(s.cnebNumbers)].sort((a, b) => a - b);
-        const existing = await tx.curricularArea.findFirst({
+        const byKey = s.catalogKey
+          ? await tx.curricularArea.findFirst({
+            where: { schoolId, educationLevel: level, kind: 'SUBCOURSE', officialAreaCode: spec.code, catalogKey: s.catalogKey },
+            include: { competences: { where: { isActive: true } } },
+          })
+          : null;
+        const existing = byKey ?? (isRemainderKey(s.catalogKey) ? null : await tx.curricularArea.findFirst({
           where: { schoolId, educationLevel: level, kind: 'SUBCOURSE', officialAreaCode: spec.code, name: { equals: name, mode: 'insensitive' } },
           include: { competences: { where: { isActive: true } } },
-        });
+        }));
         if (existing) {
           const current = existing.competences.map((c) => c.cnebNumber).filter((n): n is number => n !== null).sort((a, b) => a - b);
           if (current.join(',') !== desired.join(',')) {
             throw new AppError(`Ya existe el curso "${name}" con otras competencias. Usa otro nombre o edítalo desde su ficha.`, 409);
           }
-          if (s.catalogKey && !existing.catalogKey) {
-            await tx.curricularArea.update({ where: { id: existing.id }, data: { catalogKey: s.catalogKey } });
+          const wantsTransversal = !!s.isTransversal;
+          if ((s.catalogKey && !existing.catalogKey) || existing.isTransversal !== wantsTransversal) {
+            await tx.curricularArea.update({
+              where: { id: existing.id },
+              data: { catalogKey: existing.catalogKey ?? s.catalogKey ?? null, isTransversal: wantsTransversal },
+            });
           }
           subAreaIds.push(existing.id);
           continue;
@@ -191,7 +204,7 @@ export class CurriculumService {
         const created = await tx.curricularArea.create({
           data: {
             schoolId, name, educationLevel: level, kind: 'SUBCOURSE', officialAreaCode: spec.code, parentAreaId: official.id, isActive: true,
-            catalogKey: s.catalogKey ?? null,
+            catalogKey: s.catalogKey ?? null, isTransversal: !!s.isTransversal,
             competences: { create: desired.map((n) => ({ name: competenceName(n), cnebNumber: n, weight: s.weight && s.weight > 0 ? s.weight : 1 })) },
           },
         });
@@ -224,15 +237,22 @@ export class CurriculumService {
       include: { area: { include: { competences: { where: { isActive: true } } } } },
     });
     const courses = preuniversityCoursesFor(level);
-    const areas = [...new Set(courses.map((c) => c.areaCode))]
-      .map((code) => getOfficialArea(level, code))
-      .filter((a): a is NonNullable<typeof a> => !!a)
+    const codes = new Set(courses.map((c) => c.areaCode));
+    const areas = CNEB_AREAS[level]
+      .filter((spec) => codes.has(spec.code))
       .map((spec) => {
         const inArea = rows.filter((r) => r.area.officialAreaCode === spec.code);
         return {
           code: spec.code,
           name: spec.name,
+          optional: !!spec.optional,
+          isTransversal: !!spec.isTransversal,
           competences: spec.competences,
+          remainder: inArea.filter((r) => isRemainderKey(r.area.catalogKey)).map((r) => ({
+            areaId: r.areaId,
+            name: r.area.name,
+            competences: r.area.competences.map((c) => c.cnebNumber).filter((n): n is number => n !== null),
+          }))[0] ?? null,
           customCourses: inArea.filter((r) => !r.area.catalogKey).map((r) => ({
             areaId: r.areaId,
             name: r.area.name,
@@ -267,7 +287,7 @@ export class CurriculumService {
   ) {
     const year = await resolveYear(schoolId, academicYearId);
     const spec = getOfficialArea(level, officialAreaCode);
-    if (!spec || spec.isTransversal) throw new AppError('Esta área no se puede dividir en cursos.', 400);
+    if (!spec) throw new AppError('Esta área no existe en este nivel.', 400);
     if (grades.length === 0) throw new AppError('Elige al menos un grado.', 400);
     grades.forEach((g) => { if (!isValidGrade(level, g)) throw new AppError(`Grado ${g} no válido para el nivel.`, 400); });
     const available = preuniversityCoursesFor(level, spec.code);
@@ -290,24 +310,22 @@ export class CurriculumService {
       });
       const custom = current.filter((r) => !r.area.catalogKey);
       const inputs: SubcourseInput[] = [
-        ...chosen.map((c) => ({ name: c.name, cnebNumbers: c.competences, weight: c.weight, catalogKey: c.key })),
+        ...chosen.map((c) => ({ name: c.name, cnebNumbers: c.competences, weight: c.weight, catalogKey: c.key, isTransversal: c.byTutor })),
         ...custom.map((r) => ({
           name: r.area.name,
+          isTransversal: r.area.isTransversal,
           cnebNumbers: r.area.competences.map((k) => k.cnebNumber).filter((n): n is number => n !== null),
           weight: r.area.competences[0]?.weight ?? 1,
         })),
       ];
       if (chosen.length > 0) {
+        // Las competencias que ningún curso evalúa quedan en un curso con el nombre del área madre,
+        // para que el SIAGIE reciba siempre todas las competencias del área.
         const covered = new Set(inputs.flatMap((i) => i.cnebNumbers));
         const missing = spec.competences.filter((n) => !covered.has(n));
         if (missing.length) {
-          const hints = missing.map((n) => {
-            const options = available.filter((c) => c.competences.includes(n)).map((c) => c.name);
-            return `«${CNEB_COMPETENCES[n].shortName}»${options.length ? ` (agrega ${options.join(' o ')})` : ''}`;
-          });
-          throw new AppError(`Con esos cursos ${spec.name} queda incompleta: falta ${hints.join(', ')}.`, 400);
+          inputs.push({ name: spec.name, cnebNumbers: missing, catalogKey: remainderKey(spec.code, missing), isTransversal: !!spec.isTransversal });
         }
-        if (inputs.length < 2) throw new AppError('Para dividir un área necesitas al menos dos cursos.', 400);
       }
       perGrade.push({ grade, inputs, current: current.map((r) => ({ areaId: r.areaId, name: r.area.name, catalogKey: r.area.catalogKey })) });
     }
@@ -315,9 +333,10 @@ export class CurriculumService {
     const result = { grades: grades.length, activated: chosen.length, closed: 0 };
     for (const { grade, inputs, current } of perGrade) {
       if (chosen.length === 0) {
-        // Volver al área oficial única
+        // Volver al área oficial única (un área opcional, como Inglés en primaria, simplemente sale del plan)
         await prisma.$transaction(async (tx) => {
           for (const r of current) await removeAreaFromGrade(tx, schoolId, year.id, level, grade, r.areaId, r.name);
+          if (spec.optional) return;
           const official = await ensureOfficialArea(tx, schoolId, level, spec.code);
           await tx.studyPlanCourse.upsert({
             where: { academicYearId_educationLevel_grade_areaId: { academicYearId: year.id, educationLevel: level, grade, areaId: official.id } },
@@ -332,7 +351,7 @@ export class CurriculumService {
         continue;
       }
 
-      const toClose = current.filter((r) => r.catalogKey && !chosen.some((c) => c.key === r.catalogKey));
+      const toClose = current.filter((r) => r.catalogKey && !inputs.some((i) => i.catalogKey === r.catalogKey));
       if (toClose.length) {
         await prisma.$transaction(async (tx) => {
           for (const r of toClose) await removeAreaFromGrade(tx, schoolId, year.id, level, grade, r.areaId, r.name);
@@ -347,6 +366,14 @@ export class CurriculumService {
         });
       }
       await this.createSubcourses(schoolId, year.id, level, [grade], spec.code, inputs);
+    }
+    if (spec.isTransversal) {
+      // Lo que queda de las competencias transversales lo registra el tutor o tutora de cada aula.
+      const classrooms = await prisma.classroom.findMany({
+        where: { schoolId, educationLevel: level, grade: { in: grades }, tutorTeacherId: { not: null } }, select: { id: true },
+      });
+      const load = new TeachingLoadService();
+      for (const c of classrooms) await load.syncTutorTransversal(schoolId, c.id).catch(() => undefined);
     }
     return result;
   }

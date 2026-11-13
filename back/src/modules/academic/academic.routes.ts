@@ -60,5 +60,7 @@ router.get('/consolidation/export', OFFICE, PRO, c.exportConsolidation);
 router.get('/consolidation', OFFICE, PRO, c.consolidation);
 router.get('/report-card/:enrollmentId', ALL, PRO, c.reportCard);
 router.get('/report-cards', STAFF, PRO, c.classroomReportCards);
+router.get('/tutor-report', STAFF, PRO, c.tutorReport);
+router.put('/tutor-report', GRADERS, PRO, c.saveTutorReport);
 
 export { router as academicRouter };

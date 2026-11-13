@@ -146,11 +146,12 @@ export class TeachingLoadService {
     if (!classroom?.tutorTeacherId) return;
     const year = await prisma.academicYear.findFirst({ where: { schoolId, isActive: true } });
     if (!year) return;
-    const trans = await prisma.studyPlanCourse.findFirst({
+    const trans = await prisma.studyPlanCourse.findMany({
       where: { academicYearId: year.id, educationLevel: classroom.educationLevel, grade: classroom.grade, area: { isTransversal: true } },
     });
-    if (!trans) return;
-    await this.saveChanges(schoolId, year.id, [{ classroomId, areaId: trans.areaId, teacherId: classroom.tutorTeacherId }]);
+    if (trans.length === 0) return;
+    const tutorId = classroom.tutorTeacherId;
+    await this.saveChanges(schoolId, year.id, trans.map((t) => ({ classroomId, areaId: t.areaId, teacherId: tutorId })));
   }
 
   async getMyCourses(schoolId: string, teacherId: string) {

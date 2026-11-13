@@ -62,7 +62,10 @@ export const AcademicReportsPage: React.FC = () => {
       {tab === 'report-cards' && classroomId && (
         <Card className="p-5">
           <p className="text-sm">Genera las libretas de todos los estudiantes del aula en una sola vista lista para imprimir o guardar como PDF.</p>
-          <Button asChild className="mt-3"><Link to={`/academic/report-cards/print?classroomId=${classroomId}`}>Abrir libretas del aula</Link></Button>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button asChild><Link to={`/academic/report-cards/print?classroomId=${classroomId}`}>Abrir libretas del aula</Link></Button>
+            <Button asChild variant="outline"><Link to={`/academic/tutor-report?classroomId=${classroomId}`}>Conducta y comentarios del tutor</Link></Button>
+          </div>
         </Card>
       )}
 

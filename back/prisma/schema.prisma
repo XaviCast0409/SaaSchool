@@ -202,6 +202,7 @@ model School {
   courseAttendanceSessions  CourseAttendanceSession[]
   studyPlanCourses          StudyPlanCourse[]
   competencePeriodResults   CompetencePeriodResult[]
+  studentPeriodReports      StudentPeriodReport[]
   conclusionPhrases         ConclusionPhrase[]
   hiddenConclusionPhrases   HiddenConclusionPhrase[]
   academicPeriodStatuses    AcademicPeriodStatus[]
@@ -419,6 +420,7 @@ model Enrollment {
   attendanceAlerts         AttendanceAlert[]
   courseAttendanceRecords  CourseAttendanceRecord[]
   competencePeriodResults  CompetencePeriodResult[]
+  periodReports            StudentPeriodReport[]
 
   @@unique([studentId, academicYearId])
   @@index([schoolId, academicYearId])
@@ -713,6 +715,27 @@ model HiddenConclusionPhrase {
   school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@unique([schoolId, phraseKey])
+}
+
+/// Libreta interna: conducta y comentario del tutor o tutora por estudiante y periodo (no va al SIAGIE).
+model StudentPeriodReport {
+  id             String   @id @default(uuid())
+  schoolId       String
+  enrollmentId   String
+  periodNumber   Int
+  conductScore   Float? // 0-20 (opcional si el colegio califica la conducta con letra)
+  conductLetter  String? // AD | A | B | C (se deduce de la nota si no se escribe)
+  conductComment String?  @db.Text
+  tutorComment   String?  @db.Text // Comentario del tutor sobre el desempeño general
+  updatedById    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  school     School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@unique([enrollmentId, periodNumber])
+  @@index([schoolId, periodNumber])
 }
 
 model AcademicPeriodStatus {

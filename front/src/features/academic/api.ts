@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { api } from '@/lib/axios';
 import type {
   Catalog, ConsolidationResponse, PreuniversityCatalog, Phrase, PhrasesForAssignment, PhrasesManage, Letter, GradebookData, GradebookResult, Level, MyCourse, PeriodsResponse, PeriodState,
-  ProgressResponse, ReportCard, ResultLetter, SetupStatus, StudyPlan, TeachingLoad,
+  ProgressResponse, ReportCard, ResultLetter, SetupStatus, StudyPlan, TeachingLoad, TutorReport,
 } from './types';
 
 interface Envelope<T> { status: string; data: T }
@@ -287,6 +287,26 @@ export const useSetPhraseHidden = () => {
   return useMutation({
     mutationFn: (v: { phraseKey: string; hidden: boolean }) => api.put('/academic/phrases/hidden', v),
     onSuccess: () => invalidate('phrases'),
+    onError: (e) => toast.error(apiErrorMessage(e)),
+  });
+};
+
+// ── Libreta interna: conducta y comentario del tutor
+export const useTutorReport = (classroomId: string | null, periodNumber: number | null) =>
+  useQuery({
+    queryKey: ['academic', 'tutor-report', classroomId, periodNumber],
+    queryFn: () => get<TutorReport>('/academic/tutor-report', { classroomId, periodNumber }),
+    enabled: !!classroomId && !!periodNumber,
+  });
+
+export const useSaveTutorReport = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (v: {
+      classroomId: string; periodNumber: number;
+      rows: Array<{ enrollmentId: string; conductScore: number | null; conductLetter: Letter | null; conductComment: string; tutorComment: string }>;
+    }) => api.put('/academic/tutor-report', v),
+    onSuccess: () => { invalidate('tutor-report', 'report-card', 'report-cards'); toast.success('Libreta guardada'); },
     onError: (e) => toast.error(apiErrorMessage(e)),
   });
 };
