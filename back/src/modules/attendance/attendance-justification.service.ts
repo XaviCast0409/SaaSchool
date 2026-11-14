@@ -1,4 +1,4 @@
-import type { AttendanceStatus } from '@prisma/client';
+import type { AttendanceStatus, Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
 import { getSchoolNow } from '../../utils/timezone.util';
@@ -16,12 +16,19 @@ interface Principal {
 const STAFF = ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'];
 const MAX_RANGE_DAYS = 15;
 const MAX_PAST_DAYS = 30;
+// Hasta 15 días lectivos con varias consultas cada uno: margen sobre los 5 s por defecto de Prisma.
+const TX_OPTIONS = { timeout: 15_000 };
 const REASON_LABELS: Record<string, string> = {
   MEDICAL: 'Salud / cita médica',
   FAMILY: 'Motivo familiar',
   BEREAVEMENT: 'Duelo',
   TRANSPORT: 'Problema de transporte',
   OTHER: 'Otro motivo',
+};
+/** Estado al que pasa cada estado injustificado cuando se aprueba la justificación. */
+const JUSTIFIED_STATUS: Partial<Record<AttendanceStatus, AttendanceStatus>> = {
+  ABSENT_UNJUSTIFIED: 'ABSENT_JUSTIFIED',
+  LATE_UNJUSTIFIED: 'LATE_JUSTIFIED',
 };
 
 export class AttendanceJustificationService {
@@ -51,9 +58,21 @@ export class AttendanceJustificationService {
     return enrollment;
   }
 
-  /** Aplica la justificación a los días lectivos del rango. */
-  private async applyToAttendance(schoolId: string, enrollmentId: string, dateFrom: string, dateTo: string, justificationId: string) {
-    const holidays = await prisma.schoolHoliday.findMany({
+  /**
+   * Aplica la justificación a los días lectivos del rango, dentro de la transacción recibida:
+   * - Asistencia diaria: falta injustificada -> falta justificada, tardanza injustificada -> tardanza
+   *   justificada; los días sin registro quedan como falta justificada.
+   * - Asistencia por curso: los registros ya tomados de esos días pasan igual al tipo justificado.
+   */
+  private async applyToAttendance(
+    tx: Prisma.TransactionClient,
+    schoolId: string,
+    enrollmentId: string,
+    dateFrom: string,
+    dateTo: string,
+    justificationId: string,
+  ) {
+    const holidays = await tx.schoolHoliday.findMany({
       where: {
         schoolId,
         date: { gte: new Date(`${dateFrom}T00:00:00.000Z`), lte: new Date(`${dateTo}T00:00:00.000Z`) },
@@ -61,29 +80,32 @@ export class AttendanceJustificationService {
       select: { date: true },
     });
     const days = expandSchoolDays(dateFrom, dateTo, new Set(holidays.map((h) => h.date.toISOString().slice(0, 10))));
+    if (days.length === 0) return;
+    const dates = days.map((day) => new Date(`${day}T00:00:00.000Z`));
     const note = `Justificada (solicitud ${justificationId.slice(0, 8)})`;
 
-    for (const day of days) {
-      const date = new Date(`${day}T00:00:00.000Z`);
-      const existing = await prisma.attendance.findUnique({
+    for (const date of dates) {
+      const existing = await tx.attendance.findUnique({
         where: { enrollmentId_date: { enrollmentId, date } },
         select: { id: true, status: true },
       });
       if (!existing) {
-        await prisma.attendance.create({
+        await tx.attendance.create({
           data: { schoolId, enrollmentId, date, status: 'ABSENT_JUSTIFIED', origin: 'MANUAL', notes: note },
         });
         continue;
       }
-      const nextStatus: AttendanceStatus | null =
-        existing.status === 'ABSENT_UNJUSTIFIED'
-          ? 'ABSENT_JUSTIFIED'
-          : existing.status === 'LATE_UNJUSTIFIED'
-            ? 'LATE_JUSTIFIED'
-            : null;
+      const nextStatus = JUSTIFIED_STATUS[existing.status];
       if (nextStatus) {
-        await prisma.attendance.update({ where: { id: existing.id }, data: { status: nextStatus, notes: note } });
+        await tx.attendance.update({ where: { id: existing.id }, data: { status: nextStatus, notes: note } });
       }
+    }
+
+    for (const [from, to] of Object.entries(JUSTIFIED_STATUS) as [AttendanceStatus, AttendanceStatus][]) {
+      await tx.courseAttendanceRecord.updateMany({
+        where: { enrollmentId, status: from, session: { schoolId, date: { in: dates } } },
+        data: { status: to, note },
+      });
     }
   }
 
@@ -99,28 +121,33 @@ export class AttendanceJustificationService {
     }
 
     const isStaff = STAFF.includes(principal.role) || principal.role === 'TEACHER';
-    const justification = await prisma.attendanceJustification.create({
-      data: {
-        schoolId: principal.schoolId,
-        enrollmentId: dto.enrollmentId,
-        dateFrom: new Date(`${dto.dateFrom}T00:00:00.000Z`),
-        dateTo: new Date(`${dto.dateTo}T00:00:00.000Z`),
-        reason: dto.reason,
-        description: dto.description,
-        fileUrl: dto.fileUrl ?? null,
-        fileName: dto.fileName ?? null,
-        requestedById: principal.userId,
-        requestedByRole: principal.role,
-        // Registrada por personal del colegio: queda aprobada directamente
-        status: isStaff ? 'APPROVED' : 'PENDING',
-        reviewedById: isStaff ? principal.userId : null,
-        reviewedAt: isStaff ? new Date() : null,
-      },
-    });
+    // La solicitud y su efecto en la asistencia se guardan juntos: o se aplica todo o nada.
+    const justification = await prisma.$transaction(async (tx) => {
+      const created = await tx.attendanceJustification.create({
+        data: {
+          schoolId: principal.schoolId,
+          enrollmentId: dto.enrollmentId,
+          dateFrom: new Date(`${dto.dateFrom}T00:00:00.000Z`),
+          dateTo: new Date(`${dto.dateTo}T00:00:00.000Z`),
+          reason: dto.reason,
+          description: dto.description,
+          fileUrl: dto.fileUrl ?? null,
+          fileName: dto.fileName ?? null,
+          requestedById: principal.userId,
+          requestedByRole: principal.role,
+          // Registrada por personal del colegio: queda aprobada directamente
+          status: isStaff ? 'APPROVED' : 'PENDING',
+          reviewedById: isStaff ? principal.userId : null,
+          reviewedAt: isStaff ? new Date() : null,
+        },
+      });
+      if (isStaff) {
+        await this.applyToAttendance(tx, principal.schoolId, dto.enrollmentId, dto.dateFrom, dto.dateTo, created.id);
+      }
+      return created;
+    }, TX_OPTIONS);
 
-    if (isStaff) {
-      await this.applyToAttendance(principal.schoolId, dto.enrollmentId, dto.dateFrom, dto.dateTo, justification.id);
-    } else {
+    if (!isStaff) {
       const studentName = `${enrollment.student.firstNames} ${enrollment.student.lastNamePaternal}`;
       const tutorId = enrollment.classroom.tutorTeacherId;
       const reviewers = await prisma.user.findMany({
@@ -186,16 +213,21 @@ export class AttendanceJustificationService {
     const enrollment = await this.getEnrollmentForPrincipal(justification.enrollmentId, principal);
     if (principal.role === 'PARENT') throw new AppError('No tienes permisos para revisar justificaciones.', 403);
 
-    const updated = await prisma.attendanceJustification.update({
-      where: { id },
-      data: { status: dto.decision, reviewedById: principal.userId, reviewedAt: new Date(), reviewNote: dto.reviewNote ?? null },
-    });
-
     const from = justification.dateFrom.toISOString().slice(0, 10);
     const to = justification.dateTo.toISOString().slice(0, 10);
-    if (dto.decision === 'APPROVED') {
-      await this.applyToAttendance(principal.schoolId, justification.enrollmentId, from, to, id);
-    }
+    // Cambio de estado y actualización de asistencia en una sola transacción. El filtro por PENDING
+    // evita que dos revisiones simultáneas apliquen la misma solicitud dos veces.
+    const updated = await prisma.$transaction(async (tx) => {
+      const { count } = await tx.attendanceJustification.updateMany({
+        where: { id, schoolId: principal.schoolId, status: 'PENDING' },
+        data: { status: dto.decision, reviewedById: principal.userId, reviewedAt: new Date(), reviewNote: dto.reviewNote ?? null },
+      });
+      if (count === 0) throw new AppError('Esta justificación ya fue revisada.', 409);
+      if (dto.decision === 'APPROVED') {
+        await this.applyToAttendance(tx, principal.schoolId, justification.enrollmentId, from, to, id);
+      }
+      return tx.attendanceJustification.findUniqueOrThrow({ where: { id } });
+    }, TX_OPTIONS);
 
     const studentName = `${enrollment.student.firstNames} ${enrollment.student.lastNamePaternal}`;
     await notificationService
