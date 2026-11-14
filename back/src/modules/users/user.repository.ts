@@ -25,7 +25,7 @@ const USER_PUBLIC_SELECT = {
   updatedAt: true,
 } satisfies Prisma.UserSelect;
 
-type PublicUser = Omit<User, 'passwordHash'>;
+type PublicUser = Omit<User, 'passwordHash' | 'lastSeenAt'>;
 
 export class UserRepository {
   async findAllBySchool(

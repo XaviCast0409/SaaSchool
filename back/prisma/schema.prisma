@@ -263,6 +263,7 @@ model School {
   jobRuns                   JobRun[]
   automationSettings        SchoolAutomationSetting[]
   notificationPreferences   NotificationPreference[]
+  subscriptionPayments      SubscriptionPayment[]
   conversations             Conversation[]
   messages                  Message[]
   announcementResponses     AnnouncementResponse[]
@@ -305,6 +306,7 @@ model User {
   passwordChangedAt   DateTime?
   failedLoginAttempts Int          @default(0)
   lockedUntil         DateTime?
+  lastSeenAt          DateTime? // Última actividad en la plataforma (se actualiza como máximo cada 15 min)
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
 
@@ -394,6 +396,7 @@ model Student {
   passwordChangedAt   DateTime?
   failedLoginAttempts Int          @default(0)
   lockedUntil         DateTime?
+  lastSeenAt          DateTime? // Última actividad en la plataforma (se actualiza como máximo cada 15 min)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2130,4 +2133,40 @@ model Complaint {
 
   @@unique([schoolId, code])
   @@index([schoolId, status])
+}
+
+enum SubscriptionPaymentMethod {
+  TRANSFER
+  YAPE
+  PLIN
+  CASH
+  CARD
+  OTHER
+}
+
+/// Pago de la suscripción de un colegio a la plataforma (lo registra SUPER_ADMIN).
+/// Cada pago extiende School.planExpiresAt; anularlo (solo el último) revierte la vigencia.
+model SubscriptionPayment {
+  id                String                    @id @default(uuid())
+  schoolId          String
+  amount            Decimal                   @db.Decimal(10, 2)
+  paidOn            DateTime                  @db.Date
+  method            SubscriptionPaymentMethod
+  reference         String? // N.° de operación, factura o comprobante
+  notes             String?                   @db.Text
+  plan              SubscriptionPlan // Plan vigente al momento del pago
+  monthsCovered     Int
+  previousExpiresAt DateTime? // Vigencia antes del pago (para revertir al anular)
+  newExpiresAt      DateTime
+  createdById       String
+  createdByEmail    String?
+  voidedAt          DateTime?
+  voidedByEmail     String?
+  voidReason        String?
+  createdAt         DateTime                  @default(now())
+
+  school School @relation(fields: [schoolId], references: [id])
+
+  @@index([schoolId, paidOn])
+  @@index([paidOn])
 }

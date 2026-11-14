@@ -1,6 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
-import { SchoolWithStats, CreateSchoolPayload } from '../types';
+import {
+  SchoolWithStats,
+  CreateSchoolPayload,
+  SubscriptionPayment,
+  CreateSubscriptionPaymentPayload,
+  BillingSummary,
+} from '../types';
 import { SubscriptionPlan } from '@/features/schools/types';
 
 interface SchoolsResponse {
@@ -139,5 +145,83 @@ export const useResetAdminPassword = () => {
       }>(`/schools/${id}/reset-admin-password`, { password });
       return response.data.data;
     },
+  });
+};
+
+/** Cobrado este mes y el anterior (pagos de suscripción no anulados) */
+export const useBillingSummary = () => {
+  return useQuery({
+    queryKey: ['superadmin-billing-summary'],
+    queryFn: async () => {
+      const response = await api.get<{ status: string; data: BillingSummary }>('/schools/billing-summary');
+      return response.data.data;
+    },
+  });
+};
+
+/** Historial de pagos de suscripción de un colegio */
+export const useSubscriptionPayments = (schoolId: string | null) => {
+  return useQuery({
+    queryKey: ['superadmin-subscription-payments', schoolId],
+    queryFn: async () => {
+      const response = await api.get<{ status: string; data: SubscriptionPayment[] }>(
+        `/schools/${schoolId}/subscription-payments`,
+      );
+      return response.data.data;
+    },
+    enabled: !!schoolId,
+  });
+};
+
+/** Vista previa de la nueva vigencia al pagar N meses (la regla vive en el back) */
+export const useRenewalPreview = (schoolId: string | null, months: number) => {
+  return useQuery({
+    queryKey: ['superadmin-renewal-preview', schoolId, months],
+    queryFn: async () => {
+      const response = await api.get<{ status: string; data: { newExpiresAt: string; currentExpiresAt: string | null } }>(
+        `/schools/${schoolId}/subscription-payments/preview`,
+        { params: { months } },
+      );
+      return response.data.data;
+    },
+    enabled: !!schoolId && months >= 1 && months <= 24,
+  });
+};
+
+const invalidateBilling = (queryClient: ReturnType<typeof useQueryClient>, schoolId: string) => {
+  queryClient.invalidateQueries({ queryKey: ['superadmin-subscription-payments', schoolId] });
+  queryClient.invalidateQueries({ queryKey: ['superadmin-renewal-preview', schoolId] });
+  queryClient.invalidateQueries({ queryKey: ['superadmin-billing-summary'] });
+  queryClient.invalidateQueries({ queryKey: ['superadmin-schools'] });
+  queryClient.invalidateQueries({ queryKey: ['school'] });
+};
+
+/** Registrar un pago de suscripción (extiende la vigencia del plan) */
+export const useCreateSubscriptionPayment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ schoolId, payload }: { schoolId: string; payload: CreateSubscriptionPaymentPayload }) => {
+      const response = await api.post<{ status: string; data: SubscriptionPayment }>(
+        `/schools/${schoolId}/subscription-payments`,
+        payload,
+      );
+      return response.data.data;
+    },
+    onSuccess: (_data, { schoolId }) => invalidateBilling(queryClient, schoolId),
+  });
+};
+
+/** Anular el último pago (revierte la vigencia si nadie la cambió después) */
+export const useVoidSubscriptionPayment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ schoolId, paymentId, reason }: { schoolId: string; paymentId: string; reason: string }) => {
+      const response = await api.post<{ status: string; data: { payment: SubscriptionPayment; expiryReverted: boolean } }>(
+        `/schools/${schoolId}/subscription-payments/${paymentId}/void`,
+        { reason },
+      );
+      return response.data.data;
+    },
+    onSuccess: (_data, { schoolId }) => invalidateBilling(queryClient, schoolId),
   });
 };

@@ -21,8 +21,19 @@ const toView = (school: School): SchoolView => ({
 export class SchoolService {
   constructor(private readonly schoolRepository: SchoolRepository) {}
 
-  async getAllSchools(): Promise<SchoolView[]> {
-    return (await this.schoolRepository.findAll()).map(toView);
+  /** Listado del panel SuperAdmin: incluye actividad reciente y fecha del último pago. */
+  async getAllSchools(): Promise<
+    (SchoolView & { activity: { lastSeenAt: Date | null; active7d: number; active30d: number }; lastPaymentOn: Date | null })[]
+  > {
+    const [schools, activity] = await Promise.all([this.schoolRepository.findAll(), this.schoolRepository.activityBySchool()]);
+    return schools.map((school) => {
+      const a = activity.get(school.id);
+      return {
+        ...toView(school),
+        activity: { lastSeenAt: a?.lastSeenAt ?? null, active7d: a?.active7d ?? 0, active30d: a?.active30d ?? 0 },
+        lastPaymentOn: a?.lastPaymentOn ?? null,
+      };
+    });
   }
 
   async getSchoolById(schoolId: string): Promise<SchoolView> {

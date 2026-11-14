@@ -84,3 +84,28 @@ export const PLAN_READ_ONLY_MESSAGE =
 
 export const PLAN_BLOCKED_MESSAGE =
   'La suscripción de tu colegio venció y el acceso está suspendido. Contacta con administración para renovarla.';
+
+/** Suma meses a una fecha 'YYYY-MM-DD'; si el día no existe en el mes destino, usa el último (31/01 + 1 → 28/02). */
+export function addMonthsKey(dateKey: string, months: number): string {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  const target = new Date(Date.UTC(y, m - 1 + months, 1));
+  const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+  target.setUTCDate(Math.min(d, lastDay));
+  return target.toISOString().slice(0, 10);
+}
+
+/**
+ * Desde qué fecha corre una renovación:
+ *  - vigente, en gracia o en solo lectura → desde su vencimiento (los días usados se pagan; renovar antes no hace perder días).
+ *  - sin fecha (mensual indefinido) o ya bloqueado → desde hoy (hora de Lima).
+ */
+export function renewalBaseKey(planExpiresAt: Date | string | null | undefined, now: Date = new Date()): string {
+  const todayKey = getSchoolTimeParts(now).dateStr;
+  if (!planExpiresAt) return todayKey;
+  if (getPlanStatus(planExpiresAt, now).access === 'BLOCKED') return todayKey;
+  return dateOnlyKey(new Date(planExpiresAt));
+}
+
+/** Nueva fecha de vencimiento al pagar `months` meses. */
+export const renewedExpiryKey = (planExpiresAt: Date | string | null | undefined, months: number, now: Date = new Date()): string =>
+  addMonthsKey(renewalBaseKey(planExpiresAt, now), months);

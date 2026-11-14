@@ -13,11 +13,11 @@ export class UserService {
   async getAllUsers(
     schoolId: string,
     filters: Partial<UserFilterDto> = {},
-  ): Promise<PaginatedResult<Omit<User, 'passwordHash'>>> {
+  ): Promise<PaginatedResult<Omit<User, 'passwordHash' | 'lastSeenAt'>>> {
     return this.userRepository.findAllBySchool(schoolId, filters);
   }
 
-  async getUserById(userId: string, schoolId: string): Promise<Omit<User, 'passwordHash'>> {
+  async getUserById(userId: string, schoolId: string): Promise<Omit<User, 'passwordHash' | 'lastSeenAt'>> {
     const user = await this.userRepository.findById(userId, schoolId);
 
     if (!user) {
@@ -30,7 +30,7 @@ export class UserService {
   async createUser(
     schoolId: string,
     createUserDto: CreateUserDto,
-  ): Promise<Omit<User, 'passwordHash'> & { temporaryPassword: string | null }> {
+  ): Promise<Omit<User, 'passwordHash' | 'lastSeenAt'> & { temporaryPassword: string | null }> {
     if (createUserDto.email) {
       const existingEmail = await this.userRepository.findByEmail(createUserDto.email);
       if (existingEmail) {
@@ -63,7 +63,7 @@ export class UserService {
     userId: string,
     schoolId: string,
     updateUserDto: UpdateUserDto,
-  ): Promise<Omit<User, 'passwordHash'>> {
+  ): Promise<Omit<User, 'passwordHash' | 'lastSeenAt'>> {
     await this.getUserById(userId, schoolId);
     const user = await this.userRepository.update(userId, schoolId, updateUserDto);
     if (updateUserDto.role !== undefined) {
@@ -75,7 +75,7 @@ export class UserService {
   async deactivateUser(
     userId: string,
     schoolId: string,
-  ): Promise<Omit<User, 'passwordHash'>> {
+  ): Promise<Omit<User, 'passwordHash' | 'lastSeenAt'>> {
     await this.getUserById(userId, schoolId);
     const user = await this.userRepository.deactivate(userId, schoolId);
     invalidatePrincipalCache('user', userId);
@@ -85,7 +85,7 @@ export class UserService {
   async reactivateUser(
     userId: string,
     schoolId: string,
-  ): Promise<Omit<User, 'passwordHash'>> {
+  ): Promise<Omit<User, 'passwordHash' | 'lastSeenAt'>> {
     await this.getUserById(userId, schoolId);
     const user = await this.userRepository.reactivate(userId, schoolId);
     invalidatePrincipalCache('user', userId);

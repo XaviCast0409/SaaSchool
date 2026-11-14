@@ -24,6 +24,49 @@ export class SchoolRepository {
     });
   }
 
+  /**
+   * Actividad y último pago por colegio para el panel SuperAdmin:
+   * última actividad (personal, familias y alumnos) y cuentas activas en 7 y 30 días.
+   */
+  async activityBySchool(now: Date = new Date()): Promise<
+    Map<string, { lastSeenAt: Date | null; active7d: number; active30d: number; lastPaymentOn: Date | null }>
+  > {
+    const since7 = new Date(now.getTime() - 7 * 86_400_000);
+    const since30 = new Date(now.getTime() - 30 * 86_400_000);
+    const staff = { role: { not: 'SUPER_ADMIN' as const } };
+
+    const [userLast, user7, user30, studentLast, student7, student30, payments] = await Promise.all([
+      prisma.user.groupBy({ by: ['schoolId'], where: { ...staff, lastSeenAt: { not: null } }, _max: { lastSeenAt: true } }),
+      prisma.user.groupBy({ by: ['schoolId'], where: { ...staff, lastSeenAt: { gte: since7 } }, _count: { _all: true } }),
+      prisma.user.groupBy({ by: ['schoolId'], where: { ...staff, lastSeenAt: { gte: since30 } }, _count: { _all: true } }),
+      prisma.student.groupBy({ by: ['schoolId'], where: { lastSeenAt: { not: null } }, _max: { lastSeenAt: true } }),
+      prisma.student.groupBy({ by: ['schoolId'], where: { lastSeenAt: { gte: since7 } }, _count: { _all: true } }),
+      prisma.student.groupBy({ by: ['schoolId'], where: { lastSeenAt: { gte: since30 } }, _count: { _all: true } }),
+      prisma.subscriptionPayment.groupBy({ by: ['schoolId'], where: { voidedAt: null }, _max: { paidOn: true } }),
+    ]);
+
+    const result = new Map<string, { lastSeenAt: Date | null; active7d: number; active30d: number; lastPaymentOn: Date | null }>();
+    const entry = (schoolId: string) => {
+      let e = result.get(schoolId);
+      if (!e) {
+        e = { lastSeenAt: null, active7d: 0, active30d: 0, lastPaymentOn: null };
+        result.set(schoolId, e);
+      }
+      return e;
+    };
+
+    for (const row of [...userLast, ...studentLast]) {
+      const e = entry(row.schoolId);
+      const seen = row._max.lastSeenAt;
+      if (seen && (!e.lastSeenAt || seen > e.lastSeenAt)) e.lastSeenAt = seen;
+    }
+    for (const row of [...user7, ...student7]) entry(row.schoolId).active7d += row._count._all;
+    for (const row of [...user30, ...student30]) entry(row.schoolId).active30d += row._count._all;
+    for (const row of payments) entry(row.schoolId).lastPaymentOn = row._max.paidOn;
+
+    return result;
+  }
+
   async findById(schoolId: string): Promise<School | null> {
     return prisma.school.findUnique({
       where: { id: schoolId },

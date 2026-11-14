@@ -15,6 +15,8 @@ import {
   ExternalLink,
   Pencil,
   Key,
+  Wallet,
+  AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -23,6 +25,7 @@ import {
   useDeactivateSchool,
   useReactivateSchool,
   usePlanCatalog,
+  useBillingSummary,
 } from '../api/useSuperAdmin';
 import type { PlanStatus } from '@/features/schools/types';
 import { SchoolWithStats } from '../types';
@@ -30,6 +33,7 @@ import { CreateSchoolModal } from '../components/CreateSchoolModal';
 import { EditSchoolPlanModal } from '../components/EditSchoolPlanModal';
 import { EditSchoolInfoModal } from '../components/EditSchoolInfoModal';
 import { ResetAdminPasswordModal } from '../components/ResetAdminPasswordModal';
+import { SubscriptionPaymentsModal } from '../components/SubscriptionPaymentsModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -65,6 +69,28 @@ const PlanStatusBadge: React.FC<{ status?: PlanStatus }> = ({ status }) => {
   );
 };
 
+/** "hace 5 min", "hace 3 h", "hace 12 días" */
+const timeAgo = (iso: string | null | undefined, now = Date.now()): string | null => {
+  if (!iso) return null;
+  const minutes = Math.max(0, Math.round((now - new Date(iso).getTime()) / 60_000));
+  if (minutes < 60) return minutes <= 1 ? 'hace un momento' : `hace ${minutes} min`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `hace ${hours} h`;
+  const days = Math.round(hours / 24);
+  return `hace ${days} ${days === 1 ? 'día' : 'días'}`;
+};
+
+const DAY_MS = 86_400_000;
+/** Días sin actividad para considerar que un colegio se está enfriando */
+const INACTIVE_DAYS = 14;
+/** % del cupo de alumnos a partir del cual conviene ofrecer subir de plan */
+const QUOTA_WARN_PERCENT = 90;
+/** Días antes del vencimiento en que el colegio aparece en "Requiere atención" */
+const EXPIRY_WARN_DAYS = 15;
+
+type AttentionReason = { tone: 'danger' | 'warn' | 'info'; label: string };
+const TONE_RANK: Record<AttentionReason['tone'], number> = { danger: 0, warn: 1, info: 2 };
+
 export const SuperAdminPage: React.FC = () => {
   const navigate = useNavigate();
   const setImpersonatedSchool = useAuthStore((state) => state.setImpersonatedSchool);
@@ -75,6 +101,7 @@ export const SuperAdminPage: React.FC = () => {
   const [selectedSchoolForPlan, setSelectedSchoolForPlan] = useState<SchoolWithStats | null>(null);
   const [selectedSchoolForEdit, setSelectedSchoolForEdit] = useState<SchoolWithStats | null>(null);
   const [selectedSchoolForReset, setSelectedSchoolForReset] = useState<SchoolWithStats | null>(null);
+  const [selectedSchoolForPayments, setSelectedSchoolForPayments] = useState<SchoolWithStats | null>(null);
 
   const handleImpersonate = (school: SchoolWithStats) => {
     setImpersonatedSchool({
@@ -113,6 +140,46 @@ export const SuperAdminPage: React.FC = () => {
     .filter((s) => s.isActive && s.planStatus?.access !== 'BLOCKED')
     .reduce((acc, s) => acc + feeOf(s), 0);
   const overdueSchools = schools.filter((s) => s.isActive && s.planStatus && s.planStatus.access !== 'ACTIVE').length;
+  const { data: billing, isLoading: isBillingLoading } = useBillingSummary();
+
+  const quotaOf = (s: SchoolWithStats) => catalog?.plans[s.plan]?.studentQuota;
+  const quotaPercent = (s: SchoolWithStats) => {
+    const quota = quotaOf(s);
+    return quota ? Math.round(((s._count?.students || 0) / quota) * 100) : null;
+  };
+
+  /** Motivos por los que un colegio activo necesita una acción: cobrar, ofrecer upgrade o reactivar su uso */
+  const attentionReasons = (s: SchoolWithStats): AttentionReason[] => {
+    if (!s.isActive) return [];
+    const reasons: AttentionReason[] = [];
+    const st = s.planStatus;
+    if (st?.access === 'BLOCKED') reasons.push({ tone: 'danger', label: `Sin acceso · ${st.daysOverdue} d vencido` });
+    else if (st?.access === 'READ_ONLY') reasons.push({ tone: 'danger', label: `Solo lectura · ${st.daysOverdue} d vencido` });
+    else if (st?.access === 'GRACE') reasons.push({ tone: 'warn', label: `En gracia · ${st.daysOverdue} d vencido` });
+    else if (st?.daysUntilExpiry != null && st.daysUntilExpiry <= EXPIRY_WARN_DAYS)
+      reasons.push({ tone: 'warn', label: st.daysUntilExpiry === 0 ? 'Vence hoy' : `Vence en ${st.daysUntilExpiry} d` });
+
+    const pct = quotaPercent(s);
+    if (pct !== null && pct >= QUOTA_WARN_PERCENT) {
+      reasons.push({ tone: pct >= 100 ? 'danger' : 'info', label: `Cupo de alumnos al ${pct}%` });
+    }
+
+    // Los colegios recién creados todavía no tienen por qué tener uso
+    const isNew = !!s.createdAt && Date.now() - new Date(s.createdAt).getTime() < INACTIVE_DAYS * DAY_MS;
+    const lastSeen = s.activity?.lastSeenAt;
+    if (!isNew && (!lastSeen || Date.now() - new Date(lastSeen).getTime() > INACTIVE_DAYS * DAY_MS)) {
+      reasons.push({ tone: 'info', label: lastSeen ? `Sin uso desde ${formatPeruShortDate(lastSeen)}` : 'Sin uso registrado' });
+    }
+    return reasons;
+  };
+
+  const attentionSchools = schools
+    .map((s) => ({ school: s, reasons: attentionReasons(s) }))
+    .filter((x) => x.reasons.length > 0)
+    .sort(
+      (a, b) =>
+        Math.min(...a.reasons.map((r) => TONE_RANK[r.tone])) - Math.min(...b.reasons.map((r) => TONE_RANK[r.tone])),
+    );
 
   const handleToggleStatus = (school: SchoolWithStats) => {
     if (school.isActive) {
@@ -218,22 +285,70 @@ export const SuperAdminPage: React.FC = () => {
 
         <Card className="border-border bg-card shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Planes Activos</CardTitle>
-            <Sparkles className="w-4 h-4 text-primary" />
+            <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Cobrado este mes</CardTitle>
+            <Wallet className="w-4 h-4 text-primary" />
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {isBillingLoading ? (
               <Skeleton className="h-8 w-24" />
             ) : (
-              <div className="flex items-center gap-1.5 text-xs font-bold mt-1">
-                <Badge variant="outline" className="bg-muted">BASIC: {schools.filter((s) => s.plan === 'BASIC').length}</Badge>
-                <Badge variant="default" className="bg-primary text-primary-foreground">PRO: {schools.filter((s) => s.plan === 'PRO').length}</Badge>
-              </div>
+              <div className="text-2xl font-extrabold text-foreground">S/ {formatSoles(billing?.collectedThisMonth ?? 0)}</div>
             )}
-            <p className="text-[11px] text-muted-foreground mt-2">Distribución por paquete</p>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              {billing
+                ? `${billing.paymentsThisMonth} ${billing.paymentsThisMonth === 1 ? 'pago' : 'pagos'} · mes anterior S/ ${formatSoles(billing.collectedLastMonth)}`
+                : 'Pagos de suscripción registrados'}
+            </p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Requiere atención: vencimientos, cupo lleno y colegios sin uso */}
+      {!isLoading && attentionSchools.length > 0 && (
+        <Card className="border-border bg-card shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground">
+              <AlertTriangle className="w-4 h-4 text-amber-500" />
+              Requiere atención
+              <Badge variant="secondary" className="text-[10px]">
+                {attentionSchools.length}
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <ul className="divide-y divide-border">
+              {attentionSchools.map(({ school, reasons }) => (
+                <li key={school.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-6 py-3">
+                  <div className="min-w-0 space-y-1">
+                    <div className="text-sm font-semibold text-foreground truncate">{school.name}</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {reasons.map((r) => (
+                        <Badge
+                          key={r.label}
+                          variant={r.tone === 'danger' ? 'destructive' : r.tone === 'warn' ? 'warning' : 'secondary'}
+                          className="text-[10px] whitespace-nowrap"
+                        >
+                          {r.label}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex gap-1.5 shrink-0">
+                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setSelectedSchoolForPayments(school)}>
+                      <Wallet className="w-3.5 h-3.5 text-primary" />
+                      Registrar pago
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => setSelectedSchoolForPlan(school)}>
+                      <Sparkles className="w-3.5 h-3.5 text-primary" />
+                      Plan
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Main Table Section */}
       <div className="space-y-4">
@@ -280,6 +395,7 @@ export const SuperAdminPage: React.FC = () => {
                   <TableHead className="text-xs font-bold uppercase tracking-wider">Colegio / RUC</TableHead>
                   <TableHead className="text-xs font-bold uppercase tracking-wider">Plan Contratado</TableHead>
                   <TableHead className="text-xs font-bold uppercase tracking-wider">Usuarios / Alumnos</TableHead>
+                  <TableHead className="text-xs font-bold uppercase tracking-wider">Actividad</TableHead>
                   <TableHead className="text-xs font-bold uppercase tracking-wider">Vigencia Plan</TableHead>
                   <TableHead className="text-xs font-bold uppercase tracking-wider">Estado Acceso</TableHead>
                   <TableHead className="text-xs font-bold uppercase tracking-wider text-right">Acciones</TableHead>
@@ -289,7 +405,8 @@ export const SuperAdminPage: React.FC = () => {
                 {filteredSchools.length ? (
                   filteredSchools.map((item) => {
                     const isExpired = !!item.planStatus && item.planStatus.access !== 'ACTIVE';
-                    const quota = catalog?.plans[item.plan]?.studentQuota;
+                    const quota = quotaOf(item);
+                    const pct = quotaPercent(item);
                     const hasCustomFee = item.monthlyFee != null;
 
                     return (
@@ -331,8 +448,33 @@ export const SuperAdminPage: React.FC = () => {
                                 /{quota === null ? '∞' : quota ?? '—'} alumnos
                               </span>
                             </div>
+                            {pct !== null && (
+                              <div
+                                className="h-1.5 w-24 rounded-full bg-muted overflow-hidden"
+                                role="meter"
+                                aria-label="Uso del cupo de alumnos"
+                                aria-valuenow={pct}
+                                aria-valuemin={0}
+                                aria-valuemax={100}
+                              >
+                                <div
+                                  className={`h-full rounded-full ${pct >= 100 ? 'bg-destructive' : pct >= QUOTA_WARN_PERCENT ? 'bg-amber-500' : 'bg-primary'}`}
+                                  style={{ width: `${Math.min(pct, 100)}%` }}
+                                />
+                              </div>
+                            )}
                             <div className="text-[11px] text-muted-foreground">
                               {item._count?.users || 0} usuarios
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-0.5 whitespace-nowrap">
+                            <div className="text-xs text-foreground">
+                              {timeAgo(item.activity?.lastSeenAt) ?? <span className="text-muted-foreground">Sin actividad</span>}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground">
+                              {item.activity?.active7d ?? 0} activos (7 d) · {item.activity?.active30d ?? 0} (30 d)
                             </div>
                           </div>
                         </TableCell>
@@ -347,6 +489,9 @@ export const SuperAdminPage: React.FC = () => {
                           ) : (
                             <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">Mensual Indefinido</span>
                           )}
+                          <div className="text-[11px] text-muted-foreground mt-1 whitespace-nowrap">
+                            {item.lastPaymentOn ? `Último pago ${formatPeruShortDate(item.lastPaymentOn)}` : 'Sin pagos registrados'}
+                          </div>
                         </TableCell>
                         <TableCell>
                           {item.isActive ? (
@@ -405,6 +550,16 @@ export const SuperAdminPage: React.FC = () => {
 
                             <Button
                               size="sm"
+                              variant="outline"
+                              className="h-7 text-xs gap-1"
+                              onClick={() => setSelectedSchoolForPayments(item)}
+                            >
+                              <Wallet className="w-3.5 h-3.5 text-primary" />
+                              <span>Cobros</span>
+                            </Button>
+
+                            <Button
+                              size="sm"
                               variant={item.isActive ? 'ghost' : 'outline'}
                               className={`h-7 text-xs gap-1 ${
                                 item.isActive
@@ -424,7 +579,7 @@ export const SuperAdminPage: React.FC = () => {
                   })
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
+                    <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
                       No se encontraron colegios registrados con los filtros seleccionados.
                     </TableCell>
                   </TableRow>
@@ -452,6 +607,13 @@ export const SuperAdminPage: React.FC = () => {
         school={selectedSchoolForEdit}
         isOpen={!!selectedSchoolForEdit}
         onClose={() => setSelectedSchoolForEdit(null)}
+      />
+
+      <SubscriptionPaymentsModal
+        key={`pay-${selectedSchoolForPayments?.id ?? 'none'}`}
+        school={selectedSchoolForPayments}
+        isOpen={!!selectedSchoolForPayments}
+        onClose={() => setSelectedSchoolForPayments(null)}
       />
 
       <ResetAdminPasswordModal

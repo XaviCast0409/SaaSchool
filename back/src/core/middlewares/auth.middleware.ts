@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../../utils/jwt.util';
 import { AppError } from '../errors/app-error';
 import { assertPrincipalIsActive } from '../security/principal-status';
+import { touchLastSeen } from '../security/last-seen';
 import type { AuthenticatedUser } from '../interfaces/global.interfaces';
 
 /**
@@ -30,6 +31,7 @@ export const authMiddleware = async (request: Request, _response: Response, next
     role: decoded.role,
     email: decoded.email,
   };
+  touchLastSeen(request.user);
 
   next();
 };

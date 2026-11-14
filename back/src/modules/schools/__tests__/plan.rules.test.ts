@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { getPlanStatus, planAllowsWrites, studentQuotaFor, effectiveMonthlyFee } from '../plan.rules';
+import {
+  getPlanStatus,
+  planAllowsWrites,
+  studentQuotaFor,
+  effectiveMonthlyFee,
+  addMonthsKey,
+  renewedExpiryKey,
+} from '../plan.rules';
 
 // La fecha de vencimiento se guarda como medianoche UTC del día elegido
 const EXPIRES = new Date('2026-03-31T00:00:00.000Z');
@@ -61,5 +68,29 @@ describe('catálogo de planes', () => {
     expect(effectiveMonthlyFee({ plan: 'PRO', monthlyFee: null })).toBe(650);
     expect(effectiveMonthlyFee({ plan: 'PRO', monthlyFee: '520.50' })).toBe(520.5);
     expect(effectiveMonthlyFee({ plan: 'BASIC', monthlyFee: 0 })).toBe(0);
+  });
+});
+
+describe('renovación al registrar un pago', () => {
+  it('suma meses y ajusta al último día si el mes destino es más corto', () => {
+    expect(addMonthsKey('2026-01-15', 1)).toBe('2026-02-15');
+    expect(addMonthsKey('2026-01-31', 1)).toBe('2026-02-28');
+    expect(addMonthsKey('2028-01-31', 1)).toBe('2028-02-29');
+    expect(addMonthsKey('2026-11-30', 3)).toBe('2027-02-28');
+    expect(addMonthsKey('2026-03-31', 12)).toBe('2027-03-31');
+  });
+
+  it('renovar antes de vencer no hace perder días: corre desde el vencimiento', () => {
+    expect(renewedExpiryKey(EXPIRES, 1, limaNoon('2026-03-10'))).toBe('2026-04-30');
+  });
+
+  it('en gracia o solo lectura también corre desde el vencimiento (esos días se pagan)', () => {
+    expect(renewedExpiryKey(EXPIRES, 1, limaNoon('2026-04-05'))).toBe('2026-04-30');
+    expect(renewedExpiryKey(EXPIRES, 1, limaNoon('2026-04-20'))).toBe('2026-04-30');
+  });
+
+  it('ya bloqueado o sin fecha, corre desde hoy', () => {
+    expect(renewedExpiryKey(EXPIRES, 1, limaNoon('2026-06-10'))).toBe('2026-07-10');
+    expect(renewedExpiryKey(null, 2, limaNoon('2026-06-10'))).toBe('2026-08-10');
   });
 });
