@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
 
-export type CalendarKind = 'EVENT' | 'HOLIDAY' | 'HOMEWORK' | 'MEETING' | 'PAYMENT';
+export type CalendarKind = 'EVENT' | 'HOLIDAY' | 'HOMEWORK' | 'MEETING' | 'PAYMENT' | 'PERIOD';
 export type EventType = 'EXAM' | 'ACTIVITY' | 'MEETING' | 'CIVIC' | 'DEADLINE' | 'OTHER';
 
 export const EVENT_TYPE_LABEL: Record<EventType, string> = {
@@ -78,6 +78,15 @@ export const useDeleteEvent = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => (await api.delete(`/calendar/events/${id}`)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+  });
+};
+
+export const useImportOfficialDates = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { holidays: boolean; civic: boolean }) =>
+      (await api.post<{ data: { holidaysCreated: number; civicCreated: number } }>('/calendar/import-official', input)).data.data,
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 };

@@ -37,6 +37,7 @@ import {
   CalendarDays,
   Clock3,
   DoorOpen,
+  Activity,
 } from 'lucide-react';
 import { useFinanceAccess } from '@/features/payments/api/usePayments';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -244,6 +245,13 @@ export const DashboardLayout: React.FC = () => {
           icon: BookOpen,
           roles: ['TEACHER'],
           minPlan: 'BASIC',
+        },
+        {
+          label: 'Analítica y tutoría',
+          path: '/insights',
+          icon: Activity,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
+          minPlan: 'PRO',
         },
         {
           label: 'Avance y cierre',

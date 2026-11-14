@@ -109,6 +109,8 @@ export const ACTION_CATALOG: Record<string, { label: string; verb: string; categ
   PAYMENT_INSTRUCTIONS_UPDATED: { label: 'Datos de cobro', verb: 'actualizó los datos de cobro (Yape/Plin/cuentas)', category: 'PAGOS' },
   SCHEDULE_GENERATED: { label: 'Horario automático', verb: 'aplicó un horario generado automáticamente', category: 'ACADEMICO' },
   SCHEDULE_SAVED: { label: 'Horario de aula', verb: 'actualizó el horario de un aula', category: 'ACADEMICO' },
+  TUTORING_INTERVENTION_CREATED: { label: 'Plan de tutoría', verb: 'registró una intervención de tutoría', category: 'CONVIVENCIA' },
+  CALENDAR_OFFICIAL_IMPORTED: { label: 'Fechas oficiales', verb: 'cargó los feriados y fechas cívicas en el calendario', category: 'COLEGIO' },
   CALENDAR_EVENT_CREATED: { label: 'Evento del calendario', verb: 'creó un evento en el calendario', category: 'COLEGIO' },
   CALENDAR_EVENT_UPDATED: { label: 'Edición de evento', verb: 'editó un evento del calendario', category: 'COLEGIO' },
   CALENDAR_EVENT_DELETED: { label: 'Evento eliminado', verb: 'eliminó un evento del calendario', category: 'COLEGIO' },

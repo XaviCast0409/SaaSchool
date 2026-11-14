@@ -1,13 +1,15 @@
 import crypto from 'crypto';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma';
+import { getPeriodDateRange } from '../../utils/period-dates.util';
+import { periodCount, periodName } from '../academic/academic.context';
 import { env } from '../../config/env';
 import { parseSchoolDate, getSchoolTimeParts } from '../../utils/timezone.util';
 import { remainingBalance } from '../payments/payment.rules';
 import { classroomLabel, studentShortName } from '../automations/recipients';
 import { activeYear, isStaff, viewerStudentIds, type Viewer } from '../schedule/schedule.access';
 
-export type CalendarKind = 'EVENT' | 'HOLIDAY' | 'HOMEWORK' | 'MEETING' | 'PAYMENT';
+export type CalendarKind = 'EVENT' | 'HOLIDAY' | 'HOMEWORK' | 'MEETING' | 'PAYMENT' | 'PERIOD';
 
 export interface CalendarItem {
   id: string;
@@ -104,6 +106,23 @@ export async function collectCalendar(viewer: Viewer, from: string, to: string):
   // Feriados y días no laborables
   const holidays = await prisma.schoolHoliday.findMany({ where: { schoolId: viewer.schoolId, date: { gte: fromDate, lte: toDate } } });
   for (const h of holidays) items.push({ id: h.id, kind: 'HOLIDAY', title: h.name, date: dateKey(h.date) });
+
+  // Inicio y cierre de cada bimestre/trimestre (salen del año lectivo, sin cargarlos a mano)
+  const yearForPeriods = await prisma.academicYear.findFirst({
+    where: { schoolId: viewer.schoolId, isActive: true },
+    select: { id: true, startDate: true, endDate: true, periodType: true, periodsConfig: true },
+  });
+  if (yearForPeriods) {
+    const total = periodCount(yearForPeriods);
+    for (let p = 1; p <= total; p++) {
+      const range = getPeriodDateRange(yearForPeriods, p);
+      const name = periodName(yearForPeriods, p);
+      const start = dateKey(range.startDate);
+      const end = dateKey(range.endDate);
+      if (start >= from && start <= to) items.push({ id: `${yearForPeriods.id}-p${p}-start`, kind: 'PERIOD', title: `Inicio del ${name}`, date: start });
+      if (end >= from && end <= to) items.push({ id: `${yearForPeriods.id}-p${p}-end`, kind: 'PERIOD', title: `Cierre del ${name}`, date: end });
+    }
+  }
 
   // Tareas con fecha de entrega
   if (family && ctx && ctx.enrollments.length) {

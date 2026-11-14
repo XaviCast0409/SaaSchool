@@ -25,6 +25,7 @@ import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
 import { useParentPayments, useFinancialSummary } from '@/features/payments/api/usePayments';
 import { useGetAnnouncements } from '@/features/announcements/api/useAnnouncements';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ActionsPanel } from '@/features/insights/components/ActionsPanel';
 import { Button } from '@/components/ui/button';
 
 import { ParentPortalPage } from '@/features/parent/pages/ParentPortalPage';
@@ -119,6 +120,9 @@ export const DashboardPage: React.FC = () => {
           </p>
         </div>
       </div>
+
+      {/* Pendientes concretos para la Dirección y Secretaría */}
+      {(isAdmin || isAdministrative) && <ActionsPanel />}
 
       {/* Botonera de Acciones Rápidas Según el Rol */}
       <div className="space-y-3">

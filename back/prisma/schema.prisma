@@ -237,6 +237,7 @@ model School {
   holidays                  SchoolHoliday[]
   attendanceJustifications  AttendanceJustification[]
   attendanceAlerts          AttendanceAlert[]
+  tutoringInterventions     TutoringIntervention[]
   authorizedPickups         AuthorizedPickup[]
   courseAttendanceSessions  CourseAttendanceSession[]
   studyPlanCourses          StudyPlanCourse[]
@@ -310,6 +311,7 @@ model User {
   teacherAvailabilities  TeacherAvailability[]
   paymentReportsSent     PaymentReport[]         @relation("PaymentReportReporter")
   paymentReportsReviewed PaymentReport[]         @relation("PaymentReportReviewer")
+  tutoringInterventions  TutoringIntervention[]
   conclusionPhrases      ConclusionPhrase[]      @relation("ConclusionPhraseOwner")
   incidentsAuthored      StudentIncident[]       @relation("IncidentAuthor")
   periodStatusChanges    AcademicPeriodStatus[]  @relation("PeriodStatusChangedBy")
@@ -473,6 +475,7 @@ model Enrollment {
   incidents                StudentIncident[]
   attendanceJustifications AttendanceJustification[]
   attendanceAlerts         AttendanceAlert[]
+  tutoringInterventions    TutoringIntervention[]
   courseAttendanceRecords  CourseAttendanceRecord[]
   competencePeriodResults  CompetencePeriodResult[]
   periodReports            StudentPeriodReport[]
@@ -1714,4 +1717,32 @@ model PaymentReport {
 
   @@index([schoolId, status, createdAt])
   @@index([obligationId])
+}
+
+// ==========================================
+// Inteligencia para la Dirección (Fase 5)
+// ==========================================
+
+/// Intervención del plan de tutoría (entrevista, derivación, compromiso o seguimiento) sobre un
+/// estudiante. Información reservada: solo la ven la Dirección, el tutor del aula y quien la registró.
+model TutoringIntervention {
+  id           String    @id @default(uuid())
+  schoolId     String
+  enrollmentId String
+  authorId     String
+  type         String // ENTREVISTA_ESTUDIANTE | ENTREVISTA_FAMILIA | DERIVACION | COMPROMISO | SEGUIMIENTO | OTRO
+  date         DateTime  @db.Date
+  notes        String    @db.Text
+  agreements   String?   @db.Text
+  followUpDate DateTime? @db.Date
+  status       String    @default("OPEN") // OPEN | CLOSED
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  school     School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  author     User       @relation(fields: [authorId], references: [id])
+
+  @@index([schoolId, enrollmentId, date])
+  @@index([schoolId, status, followUpDate])
 }
