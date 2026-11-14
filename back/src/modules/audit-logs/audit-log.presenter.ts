@@ -70,6 +70,7 @@ export const ACTION_CATALOG: Record<string, { label: string; verb: string; categ
   STUDENT_DATA_EXPORTED: { label: 'Exportación de datos', verb: 'exportó los datos personales de un estudiante', category: 'MATRICULA' },
   CREDENTIALS_BULK_GENERATED: { label: 'Credenciales del aula', verb: 'generó credenciales de acceso para un aula', category: 'MATRICULA' },
   ENROLLMENT_CREATED: { label: 'Nueva matrícula', verb: 'matriculó a un estudiante', category: 'MATRICULA' },
+  ENROLLMENT_ROLLOVER: { label: 'Re-matrícula', verb: 'matriculó alumnos en el año siguiente', category: 'MATRICULA' },
   ENROLLMENT_UPDATED: { label: 'Cambio de matrícula', verb: 'modificó una matrícula', category: 'MATRICULA' },
   // Pagos
   PAYMENT_OBLIGATION_CREATED: { label: 'Nuevo cobro', verb: 'creó un cobro', category: 'PAGOS' },
@@ -88,6 +89,7 @@ export const ACTION_CATALOG: Record<string, { label: string; verb: string; categ
   FEE_SCHEDULE_CREATED: { label: 'Tarifario', verb: 'registró un tarifario de pensiones', category: 'PAGOS' },
   FEE_SCHEDULE_UPDATED: { label: 'Tarifario', verb: 'modificó un tarifario de pensiones', category: 'PAGOS' },
   FEE_SCHEDULE_DELETED: { label: 'Tarifario', verb: 'eliminó un tarifario de pensiones', category: 'PAGOS' },
+  FEE_SCHEDULE_MISSING_GENERATED: { label: 'Cuotas faltantes', verb: 'generó las cuotas faltantes del cronograma', category: 'PAGOS' },
   FEE_SCHEDULE_COPIED: { label: 'Tarifario', verb: 'copió el tarifario de otro año', category: 'PAGOS' },
   PAYMENT_ADJUSTMENT_CREATED: { label: 'Ajuste a cuota', verb: 'registró un descuento, mora o nota de crédito', category: 'PAGOS' },
   PAYMENT_ADJUSTMENT_VOIDED: { label: 'Ajuste anulado', verb: 'anuló un ajuste a una cuota', category: 'PAGOS' },

@@ -5,7 +5,7 @@ import {
   flexRender,
   type ColumnDef,
 } from '@tanstack/react-table';
-import { Search, UserCheck, ChevronDown, ChevronUp, Users, Filter, Accessibility, BookOpen, Pencil, FileText, QrCode, FileSpreadsheet, FileCheck2, KeyRound } from 'lucide-react';
+import { Search, UserCheck, ChevronDown, ChevronUp, Users, Filter, Accessibility, BookOpen, Pencil, FileText, QrCode, FileSpreadsheet, FileCheck2, KeyRound, Repeat2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Student } from '../types';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -46,6 +46,9 @@ interface StudentTableProps {
   onClassroomChange: (classroomId?: string) => void;
   onEducationLevelChange: (level?: 'INITIAL' | 'PRIMARY' | 'SECONDARY') => void;
   onExportNomina?: (classroomId?: string) => void;
+  /** Matrícula rápida (p. ej. en el año siguiente) sin volver a llenar la ficha */
+  onQuickEnroll?: (student: Student) => void;
+  quickEnrollLabel?: string;
 }
 
 export const StudentTable: React.FC<StudentTableProps> = ({
@@ -63,6 +66,8 @@ export const StudentTable: React.FC<StudentTableProps> = ({
   onClassroomChange,
   onEducationLevelChange,
   onExportNomina,
+  onQuickEnroll,
+  quickEnrollLabel = 'Matricular',
 }) => {
   const { user } = useAuthStore();
   const canManageStudents =
@@ -163,6 +168,18 @@ export const StudentTable: React.FC<StudentTableProps> = ({
               >
                 <Pencil className="w-3.5 h-3.5" />
                 <span>Editar</span>
+              </Button>
+            )}
+            {canManageStudents && onQuickEnroll && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 gap-1 text-xs text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/10 font-bold"
+                onClick={() => onQuickEnroll(student)}
+                title="Matrícula rápida sin volver a llenar la ficha"
+              >
+                <Repeat2 className="w-3.5 h-3.5" />
+                <span>{quickEnrollLabel}</span>
               </Button>
             )}
 
@@ -356,6 +373,19 @@ export const StudentTable: React.FC<StudentTableProps> = ({
                               >
                                 <Pencil className="w-3.5 h-3.5" />
                                 <span>Editar</span>
+                              </Button>
+                            )}
+
+                            {canManageStudents && onQuickEnroll && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2 gap-1 text-xs text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/10 font-bold"
+                                onClick={() => onQuickEnroll(student)}
+                                title="Matrícula rápida sin volver a llenar la ficha"
+                              >
+                                <Repeat2 className="w-3.5 h-3.5" />
+                                <span>{quickEnrollLabel}</span>
                               </Button>
                             )}
 

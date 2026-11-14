@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ArrowLeft, CalendarRange, Copy, Loader2, Pencil, Plus, Receipt, Trash2 } from 'lucide-react';
+import { ArrowLeft, CalendarRange, Copy, ListPlus, Loader2, Pencil, Plus, Receipt, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal';
@@ -19,7 +19,9 @@ import {
   useCopyFeeSchedules,
   useDeleteFeeSchedule,
   useFeeSchedules,
+  useGenerateMissing,
   useSaveFeeSchedule,
+  type GenerateMissingResult,
   type EducationLevel,
   type FeeSchedule,
 } from '../api/useFeeSchedules';
@@ -308,6 +310,28 @@ export const FeeSchedulesPage: React.FC = () => {
   const [copyOpen, setCopyOpen] = useState(false);
   const [deleting, setDeleting] = useState<FeeSchedule | null>(null);
   const remove = useDeleteFeeSchedule();
+  const generateMissing = useGenerateMissing();
+  const [missingPreview, setMissingPreview] = useState<GenerateMissingResult | null>(null);
+
+  const previewMissing = () =>
+    generateMissing.mutate(
+      { academicYearId: yearId, dryRun: true },
+      {
+        onSuccess: (r) => (r.cuotas === 0 ? toast.info(`Todas las matrículas de ${r.year} ya tienen su cronograma completo.`) : setMissingPreview(r)),
+        onError: (e) => toast.error(apiError(e, 'No se pudo calcular.')),
+      },
+    );
+  const confirmMissing = () =>
+    generateMissing.mutate(
+      { academicYearId: yearId, dryRun: false },
+      {
+        onSuccess: (r) => {
+          toast.success(`Se generaron ${r.cuotas} cuotas para ${r.withMissing} matrículas (${soles(r.total)}).`);
+          setMissingPreview(null);
+        },
+        onError: (e) => toast.error(apiError(e, 'No se pudieron generar las cuotas.')),
+      },
+    );
 
   useEffect(() => {
     if (!yearId && years.length > 0) setYearId((years.find((y) => y.isActive) ?? years[0]).id);
@@ -381,6 +405,17 @@ export const FeeSchedulesPage: React.FC = () => {
           </select>
           {canManage && (
             <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-xl text-xs font-bold gap-1.5"
+                onClick={previewMissing}
+                disabled={!yearId || schedules.length === 0}
+                isLoading={generateMissing.isPending && !missingPreview}
+                title="Crea las cuotas que les faltan a las matrículas de este año (p. ej. registradas antes de configurar el tarifario)"
+              >
+                <ListPlus className="w-3.5 h-3.5" /> Generar cuotas faltantes
+              </Button>
               <Button variant="outline" size="sm" className="rounded-xl text-xs font-bold gap-1.5" onClick={() => setCopyOpen(true)} disabled={!yearId}>
                 <Copy className="w-3.5 h-3.5" /> Copiar de otro año
               </Button>
@@ -514,6 +549,27 @@ export const FeeSchedulesPage: React.FC = () => {
         />
       )}
       <CopyModal open={copyOpen} onClose={() => setCopyOpen(false)} toYearId={yearId} years={yearOptions} />
+      <ConfirmDialog
+        isOpen={!!missingPreview}
+        onClose={() => setMissingPreview(null)}
+        variant="info"
+        title={`Generar cuotas faltantes de ${missingPreview?.year ?? ''}`}
+        description={
+          missingPreview
+            ? `Se crearán ${missingPreview.cuotas} cuotas por ${soles(missingPreview.total)} para ${missingPreview.withMissing} de ${missingPreview.enrollments} matrículas. No se duplica ningún periodo ni se recrean cuotas anuladas.`
+            : ''
+        }
+        details={
+          missingPreview && missingPreview.withoutFeeSchedule > 0 ? (
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              {missingPreview.withoutFeeSchedule} matrículas siguen sin cuotas porque su nivel no tiene tarifario.
+            </p>
+          ) : undefined
+        }
+        confirmText="Generar cuotas"
+        isLoading={generateMissing.isPending}
+        onConfirm={confirmMissing}
+      />
       <ConfirmDialog
         isOpen={!!deleting}
         onClose={() => setDeleting(null)}

@@ -6,6 +6,7 @@ import { formatDateOnly, getSchoolNow, getSchoolTimeParts, parseSchoolDate } fro
 import { AdjustmentService } from './adjustment.service';
 import {
   buildEnrollmentSchedule,
+  existingPeriodKey,
   pickFeeSchedule,
   scheduleTotal,
   validateFeeTerms,
@@ -119,7 +120,7 @@ export class FeeScheduleService {
     db: Db,
     schoolId: string,
     input: { academicYearId: string; classroomId: string; condition: string; enrollmentDate?: string; customPensionAmount?: unknown },
-  ): Promise<{ feeScheduleFound: boolean; items: PlannedObligation[]; total: number; warning: string | null; feeSchedule: ReturnType<typeof toPlain> | null }> {
+  ): Promise<{ feeScheduleFound: boolean; year: number; items: PlannedObligation[]; total: number; warning: string | null; feeSchedule: ReturnType<typeof toPlain> | null }> {
     const [year, classroom] = await Promise.all([
       db.academicYear.findFirst({ where: { id: input.academicYearId, schoolId }, select: { year: true } }),
       db.classroom.findFirst({ where: { id: input.classroomId, schoolId }, select: { educationLevel: true, grade: true } }),
@@ -134,10 +135,11 @@ export class FeeScheduleService {
     if (!fee) {
       return {
         feeScheduleFound: false,
+        year: year.year,
         items: [],
         total: 0,
         feeSchedule: null,
-        warning: `No hay tarifario de ${LEVEL_LABEL[classroom.educationLevel]} para el año ${year.year}: la matrícula se registra sin cuotas. Configúralo en Caja y tesorería → Tarifario.`,
+        warning: `No hay tarifario de ${LEVEL_LABEL[classroom.educationLevel]} para el año ${year.year}: la matrícula se registra sin cuotas. Configúralo en Tesorería → Tarifario y luego usa "Generar cuotas faltantes".`,
       };
     }
     const custom = input.customPensionAmount;
@@ -148,56 +150,125 @@ export class FeeScheduleService {
       enrollmentDate: input.enrollmentDate ?? getSchoolNow().dateStr,
       customPensionAmount: custom === null || custom === undefined ? null : String(custom),
     });
-    return { feeScheduleFound: true, items, total: scheduleTotal(items), warning: null, feeSchedule: toPlain(fee) };
+    return { feeScheduleFound: true, year: year.year, items, total: scheduleTotal(items), warning: null, feeSchedule: toPlain(fee) };
   }
 
   /**
-   * Genera el cronograma de una matrícula recién creada, dentro de su transacción. Las cuotas
-   * que ya existan para el mismo periodo (índice único parcial) se omiten.
+   * Cuotas del cronograma que le faltan a una matrícula. Un periodo cuenta como ocupado si ya tiene
+   * una cuota (aunque esté anulada: si tesorería la anuló a propósito no se vuelve a crear). Las
+   * cuotas antiguas sin periodo se reconocen por su concepto y vencimiento.
    */
-  async generateForEnrollmentInTx(tx: Prisma.TransactionClient, schoolId: string, enrollmentId: string): Promise<ScheduleResult> {
-    const enrollment = await tx.enrollment.findFirst({
+  private async missingInTx(db: Db, schoolId: string, enrollmentId: string) {
+    const enrollment = await db.enrollment.findFirst({
       where: { id: enrollmentId, schoolId },
       select: { id: true, academicYearId: true, classroomId: true, condition: true, enrollmentDate: true, customPensionAmount: true },
     });
     if (!enrollment) throw new AppError('Matrícula no encontrada.', 404);
-    const plan = await this.plan(tx, schoolId, {
+    const plan = await this.plan(db, schoolId, {
       academicYearId: enrollment.academicYearId,
       classroomId: enrollment.classroomId,
       condition: enrollment.condition,
       enrollmentDate: getSchoolTimeParts(enrollment.enrollmentDate).dateStr,
       customPensionAmount: enrollment.customPensionAmount,
     });
+    if (!plan.feeScheduleFound || plan.items.length === 0) return { plan, missing: [] as PlannedObligation[] };
+
+    const existing = await db.paymentObligation.findMany({
+      where: { enrollmentId, concept: { in: [...new Set(plan.items.map((i) => i.concept))] } },
+      select: { concept: true, period: true, dueDate: true },
+    });
+    const taken = new Set(
+      existing.map(
+        (e) => `${e.concept}:${existingPeriodKey({ concept: e.concept, period: e.period, dueDate: e.dueDate.toISOString().slice(0, 10) }, plan.year)}`,
+      ),
+    );
+    return { plan, missing: plan.items.filter((i) => !taken.has(`${i.concept}:${i.period}`)) };
+  }
+
+  /**
+   * Genera el cronograma de una matrícula dentro de su transacción (al matricular o al completar
+   * cuotas faltantes). Nunca duplica un periodo.
+   */
+  async generateForEnrollmentInTx(tx: Prisma.TransactionClient, schoolId: string, enrollmentId: string): Promise<ScheduleResult> {
+    const { plan, missing } = await this.missingInTx(tx, schoolId, enrollmentId);
     if (!plan.feeScheduleFound || plan.items.length === 0) {
       return { feeScheduleFound: plan.feeScheduleFound, created: 0, skipped: 0, total: 0, obligationIds: [], warning: plan.warning };
     }
-
-    const existing = await tx.paymentObligation.findMany({
-      where: { enrollmentId, status: { not: 'CANCELLED' }, period: { in: plan.items.map((i) => i.period) } },
-      select: { concept: true, period: true },
-    });
-    const taken = new Set(existing.map((e) => `${e.concept}:${e.period}`));
-    const rows = plan.items
-      .filter((i) => !taken.has(`${i.concept}:${i.period}`))
-      .map((i) => ({
-        id: randomUUID(),
-        schoolId,
-        enrollmentId,
-        title: i.title,
-        concept: i.concept,
-        period: i.period,
-        amountDue: i.amountDue,
-        originalAmount: i.amountDue,
-        dueDate: parseSchoolDate(i.dueDate),
-      }));
+    const rows = missing.map((i) => ({
+      id: randomUUID(),
+      schoolId,
+      enrollmentId,
+      title: i.title,
+      concept: i.concept,
+      period: i.period,
+      amountDue: i.amountDue,
+      originalAmount: i.amountDue,
+      dueDate: parseSchoolDate(i.dueDate),
+    }));
     if (rows.length > 0) await tx.paymentObligation.createMany({ data: rows, skipDuplicates: true });
+    const created = rows.length > 0 ? await tx.paymentObligation.findMany({ where: { id: { in: rows.map((r) => r.id) } }, select: { id: true } }) : [];
+    const createdIds = new Set(created.map((c) => c.id));
+    const createdRows = rows.filter((r) => createdIds.has(r.id));
     return {
       feeScheduleFound: true,
-      created: rows.length,
-      skipped: plan.items.length - rows.length,
-      total: scheduleTotal(rows),
-      obligationIds: rows.map((r) => r.id),
+      created: createdRows.length,
+      skipped: plan.items.length - createdRows.length,
+      total: scheduleTotal(createdRows),
+      obligationIds: createdRows.map((r) => r.id),
       warning: null,
+    };
+  }
+
+  /**
+   * Completa las cuotas que les faltan a las matrículas vigentes (REGISTERED) de un año: p. ej. las
+   * registradas antes de configurar el tarifario. Con `dryRun` solo cuenta lo que se crearía.
+   */
+  async generateMissing(schoolId: string, actorUserId: string, input: { academicYearId: string; classroomId?: string; dryRun: boolean }) {
+    const year = await prisma.academicYear.findFirst({ where: { id: input.academicYearId, schoolId }, select: { year: true } });
+    if (!year) throw new AppError('Año académico no encontrado.', 404);
+    const enrollments = await prisma.enrollment.findMany({
+      where: {
+        schoolId,
+        academicYearId: input.academicYearId,
+        enrollmentState: 'REGISTERED',
+        ...(input.classroomId ? { classroomId: input.classroomId } : {}),
+      },
+      select: { id: true },
+    });
+    let withMissing = 0;
+    let withoutFeeSchedule = 0;
+    let cuotas = 0;
+    let totalCents = 0;
+    let scholarshipsApplied = 0;
+    for (const e of enrollments) {
+      if (input.dryRun) {
+        const { plan, missing } = await this.missingInTx(prisma, schoolId, e.id);
+        if (!plan.feeScheduleFound) withoutFeeSchedule++;
+        if (missing.length > 0) {
+          withMissing++;
+          cuotas += missing.length;
+          totalCents += Math.round(scheduleTotal(missing) * 100);
+        }
+        continue;
+      }
+      const result = await prisma.$transaction((tx) => this.generateForEnrollmentInTx(tx, schoolId, e.id));
+      if (!result.feeScheduleFound) withoutFeeSchedule++;
+      if (result.created > 0) {
+        withMissing++;
+        cuotas += result.created;
+        totalCents += Math.round(result.total * 100);
+        scholarshipsApplied += await this.applyScholarships(schoolId, actorUserId, result);
+      }
+    }
+    return {
+      year: year.year,
+      dryRun: input.dryRun,
+      enrollments: enrollments.length,
+      withMissing,
+      withoutFeeSchedule,
+      cuotas,
+      total: totalCents / 100,
+      scholarshipsApplied,
     };
   }
 

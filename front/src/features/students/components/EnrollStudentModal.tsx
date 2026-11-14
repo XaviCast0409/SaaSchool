@@ -16,7 +16,8 @@ import {
   TemporaryCredentialsDialog,
   type TemporaryCredential,
 } from '@/components/ui/TemporaryCredentialsDialog';
-import { useRegisterFichaMatricula, useSiagieCatalogs } from '../api/useStudents';
+import { useRegisterFichaMatricula, useSiagieCatalogs, useStudents } from '../api/useStudents';
+import type { QuickEnrollStudent } from './QuickEnrollModal';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
 import { useAcademicYears } from '@/features/academic-years/api/useAcademicYears';
 import { useUsers } from '@/features/users/api/useUsers';
@@ -211,9 +212,11 @@ type EnrollWizardFormData = z.infer<typeof enrollWizardSchema>;
 interface EnrollStudentModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Si el DNI ya pertenece a un alumno del colegio, ofrece matricularlo sin volver a llenar la ficha */
+  onQuickEnroll?: (student: QuickEnrollStudent) => void;
 }
 
-export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, onClose }) => {
+export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, onClose, onQuickEnroll }) => {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [parentSearch, setParentSearch] = useState('');
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -260,6 +263,11 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
   const selectedYearId = watch('academicYearId');
   const selectedClassroomId = watch('classroomId');
   const selectedParentId = watch('existingParentId');
+
+  // ¿El documento ya pertenece a un alumno del colegio? (p. ej. matricularlo en el año siguiente)
+  const typedDocument = (watch('documentId') || '').trim();
+  const { data: sameDocument } = useStudents({ page: 1, limit: 5, search: typedDocument }, isOpen && step === 1 && typedDocument.length >= 8);
+  const existingStudent = (sameDocument?.data ?? []).find((s) => s.documentId === typedDocument) ?? null;
 
   const filteredParents = existingParents.filter(
     (p) =>
@@ -558,6 +566,35 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                     <p className="text-[10px] text-destructive mt-1 font-medium">{errors.documentId.message}</p>
                   )}
                 </div>
+
+                {existingStudent && (
+                  <div className="sm:col-span-2 p-3 rounded-xl border border-indigo-500/30 bg-indigo-500/10 text-xs text-indigo-800 dark:text-indigo-200 flex flex-wrap items-center justify-between gap-2">
+                    <span>
+                      <strong>
+                        {existingStudent.firstNames} {existingStudent.lastNamePaternal}
+                      </strong>{' '}
+                      ya está registrado en el colegio. No hace falta volver a llenar la ficha.
+                    </span>
+                    {onQuickEnroll && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="h-7 text-[11px] font-bold"
+                        onClick={() => {
+                          reset();
+                          setStep(1);
+                          onQuickEnroll({
+                            id: existingStudent.id,
+                            name: `${existingStudent.firstNames} ${existingStudent.lastNamePaternal}`,
+                            documentId: existingStudent.documentId,
+                          });
+                        }}
+                      >
+                        Matrícula rápida
+                      </Button>
+                    )}
+                  </div>
+                )}
 
                 <div>
                   <label className="text-xs font-semibold text-foreground block mb-1">

@@ -434,7 +434,9 @@ model AcademicYear {
   promotionRulesConfig  Json? // Overrides de reglas de situación final por nivel (ver promotion-rules.ts)
   startDate             DateTime
   endDate               DateTime
-  isActive              Boolean  @default(true)
+  isActive              Boolean  @default(true) // Año vigente: donde se opera (asistencia, notas, cobranza)
+  /// Año abierto para matricular (el siguiente), sin dejar de operar el vigente. Solo uno por colegio.
+  enrollmentOpen        Boolean  @default(false)
 
   school                School                 @relation(fields: [schoolId], references: [id])
   enrollments           Enrollment[]

@@ -51,6 +51,18 @@ feeScheduleRouter.post('/copy', requireFinance('manage'), async (req: Request, r
   res.status(200).json({ status: 'success', data: result });
 });
 
+// Completar cuotas faltantes de las matrículas de un año (con dryRun primero para confirmar)
+feeScheduleRouter.post('/generate-missing', requireFinance('manage'), async (req: Request, res: Response) => {
+  const input = z
+    .object({ academicYearId: uuid, classroomId: uuid.optional(), dryRun: z.boolean().default(true) })
+    .parse(req.body);
+  const result = await feeScheduleService.generateMissing(req.user!.schoolId, req.user!.userId, input);
+  if (!input.dryRun) {
+    recordAudit(req, { action: 'FEE_SCHEDULE_MISSING_GENERATED', entity: 'AcademicYear', entityId: input.academicYearId, after: result });
+  }
+  res.status(200).json({ status: 'success', data: result });
+});
+
 feeScheduleRouter.put('/:id', requireFinance('manage'), async (req: Request, res: Response) => {
   const id = uuid.parse(req.params.id);
   const dto = feeScheduleSchema.parse(req.body);

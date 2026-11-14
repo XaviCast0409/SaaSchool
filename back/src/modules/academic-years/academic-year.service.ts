@@ -64,8 +64,48 @@ export class AcademicYearService {
   async activateExclusively(schoolId: string, academicYearId: string): Promise<void> {
     await prisma.$transaction(async (tx) => {
       await tx.academicYear.updateMany({ where: { schoolId, id: { not: academicYearId }, isActive: true }, data: { isActive: false } });
-      await tx.academicYear.update({ where: { id: academicYearId }, data: { isActive: true } });
+      // El año que pasa a vigente deja de estar "en matrícula"
+      await tx.academicYear.update({ where: { id: academicYearId }, data: { isActive: true, enrollmentOpen: false } });
       await syncEnrollmentActiveFlags(tx, schoolId, academicYearId);
+    });
+  }
+
+  /**
+   * Qué pasaría al activar un año: cuántas matrículas del año vigente dejan de estar vigentes
+   * (asistencia, notas, cobranza y moras pasan a trabajar con el nuevo año).
+   */
+  async getActivationImpact(schoolId: string, academicYearId: string) {
+    const target = await this.getAcademicYearById(academicYearId, schoolId);
+    const current = await prisma.academicYear.findFirst({ where: { schoolId, isActive: true }, select: { id: true, year: true } });
+    const [willDeactivate, willActivate, pendingObligations] = await Promise.all([
+      prisma.enrollment.count({ where: { schoolId, isActive: true, NOT: { academicYearId } } }),
+      prisma.enrollment.count({ where: { schoolId, academicYearId, enrollmentState: 'REGISTERED' } }),
+      current
+        ? prisma.paymentObligation.count({
+            where: { schoolId, status: { in: ['PENDING', 'PARTIAL'] }, enrollment: { academicYearId: current.id } },
+          })
+        : Promise.resolve(0),
+    ]);
+    return {
+      targetYear: target.year,
+      currentYear: current?.year ?? null,
+      willDeactivate,
+      willActivate,
+      pendingObligationsOfCurrentYear: pendingObligations,
+      // Activar un año futuro antes de que termine el vigente suele ser un error: para matricular basta abrir la matrícula
+      isEarly: current ? target.year > current.year && new Date() < target.startDate : false,
+    };
+  }
+
+  /** Abre o cierra la matrícula de un año (solo uno abierto a la vez; el vigente no se "abre"). */
+  async setEnrollmentOpen(schoolId: string, academicYearId: string, open: boolean): Promise<AcademicYear> {
+    const year = await this.getAcademicYearById(academicYearId, schoolId);
+    if (open && year.isActive) {
+      throw new AppError('Este ya es el año vigente: se puede matricular en él sin abrir la matrícula.', 400);
+    }
+    return prisma.$transaction(async (tx) => {
+      if (open) await tx.academicYear.updateMany({ where: { schoolId, enrollmentOpen: true, NOT: { id: academicYearId } }, data: { enrollmentOpen: false } });
+      return tx.academicYear.update({ where: { id: academicYearId }, data: { enrollmentOpen: open } });
     });
   }
 

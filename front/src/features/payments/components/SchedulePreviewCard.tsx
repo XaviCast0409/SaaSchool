@@ -45,7 +45,7 @@ export const SchedulePreviewCard: React.FC<{ academicYearId?: string; classroomI
             <Link to="/payments/fee-schedules" target="_blank" className="underline font-semibold">
               Tarifario
             </Link>{' '}
-            y luego generar las cuotas desde Cobranzas.
+            y luego usar <strong>Generar cuotas faltantes</strong>.
           </p>
         </div>
       </div>

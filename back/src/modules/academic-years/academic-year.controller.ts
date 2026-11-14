@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { z } from 'zod';
 import { createAcademicYearSchema, updateAcademicYearSchema } from './academic-year.schema';
 import type { AcademicYearService } from './academic-year.service';
 import { recordAudit } from '../../utils/audit.util';
@@ -40,6 +41,19 @@ export class AcademicYearController {
       before: { isActive: before.isActive, year: before.year },
       after: updateDto,
     });
+    response.status(200).json({ status: 'success', data: academicYear });
+  };
+
+  activationImpact = async (request: Request, response: Response): Promise<void> => {
+    const impact = await this.academicYearService.getActivationImpact(request.user!.schoolId, request.params.id as string);
+    response.status(200).json({ status: 'success', data: impact });
+  };
+
+  setEnrollmentOpen = async (request: Request, response: Response): Promise<void> => {
+    const { open } = z.object({ open: z.boolean() }).parse(request.body);
+    const id = request.params.id as string;
+    const academicYear = await this.academicYearService.setEnrollmentOpen(request.user!.schoolId, id, open);
+    recordAudit(request, { action: 'ACADEMIC_YEAR_UPDATE', entity: 'AcademicYear', entityId: id, after: { matriculaAbierta: open } });
     response.status(200).json({ status: 'success', data: academicYear });
   };
 

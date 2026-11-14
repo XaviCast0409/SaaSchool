@@ -16,6 +16,8 @@ export interface AcademicYear {
   startDate: string;
   endDate: string;
   isActive: boolean;
+  /** Año abierto para matricular (el siguiente) sin dejar de operar el vigente */
+  enrollmentOpen?: boolean;
   periodType?: 'BIMESTER' | 'TRIMESTER';
   periodsConfig?: PeriodDateConfig[] | null;
   annualCalculationMode?: 'LAST_PERIOD' | 'AVERAGE';
@@ -110,4 +112,40 @@ export const useDeleteAcademicYear = () => {
       queryClient.invalidateQueries({ queryKey: ['academic-years'] });
     },
   });
+};
+
+export interface ActivationImpact {
+  targetYear: number;
+  currentYear: number | null;
+  willDeactivate: number;
+  willActivate: number;
+  pendingObligationsOfCurrentYear: number;
+  isEarly: boolean;
+}
+
+/** Qué pasa al activar un año (matrículas que dejan de estar vigentes) */
+export const useActivationImpact = (academicYearId: string | null) =>
+  useQuery({
+    queryKey: ['academic-years', 'activation-impact', academicYearId],
+    queryFn: async () => (await api.get<ApiResponse<ActivationImpact>>(`/academic-years/${academicYearId}/activation-impact`)).data.data,
+    enabled: !!academicYearId,
+    staleTime: 0,
+  });
+
+export const useSetEnrollmentOpen = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, open }: { id: string; open: boolean }) =>
+      (await api.patch<ApiResponse<AcademicYear>>(`/academic-years/${id}/enrollment-open`, { open })).data.data,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['academic-years'] }),
+  });
+};
+
+/** Año destino para matricular: el que tiene la matrícula abierta; si no, el siguiente al vigente. */
+export const pickEnrollmentTargetYear = (years: AcademicYear[]): AcademicYear | null => {
+  const open = years.find((y) => y.enrollmentOpen);
+  if (open) return open;
+  const active = years.find((y) => y.isActive);
+  if (!active) return null;
+  return [...years].filter((y) => y.year > active.year).sort((a, b) => a.year - b.year)[0] ?? null;
 };

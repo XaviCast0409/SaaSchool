@@ -8,12 +8,16 @@ import {
   Sparkles,
   Clock,
   CalendarDays,
+  DoorOpen,
+  DoorClosed,
 } from 'lucide-react';
 import {
   useAcademicYears,
   useCreateAcademicYear,
   useUpdateAcademicYear,
   useDeleteAcademicYear,
+  useActivationImpact,
+  useSetEnrollmentOpen,
   type AcademicYear,
   type PeriodDateConfig,
 } from '../api/useAcademicYears';
@@ -86,6 +90,21 @@ export const AcademicYearsPage: React.FC = () => {
   const { mutateAsync: createYear, isPending: isCreating } = useCreateAcademicYear();
   const { mutateAsync: updateYear, isPending: isUpdating } = useUpdateAcademicYear();
   const { mutateAsync: deleteYear } = useDeleteAcademicYear();
+  const setEnrollmentOpen = useSetEnrollmentOpen();
+
+  const toggleEnrollment = (ay: AcademicYear) =>
+    setEnrollmentOpen.mutate(
+      { id: ay.id, open: !ay.enrollmentOpen },
+      {
+        onSuccess: () =>
+          toast.success(
+            ay.enrollmentOpen
+              ? `Matrícula ${ay.year} cerrada.`
+              : `Matrícula ${ay.year} abierta: ya puedes matricular y re-matricular para ${ay.year} sin cambiar el año vigente.`,
+          ),
+        onError: (err: any) => toast.error(err?.response?.data?.message || 'No se pudo cambiar la matrícula.'),
+      },
+    );
 
   const activeYearObj = years.find((y) => y.isActive) || years[0] || null;
 
@@ -179,6 +198,7 @@ export const AcademicYearsPage: React.FC = () => {
   };
 
   const [yearToActivate, setYearToActivate] = useState<AcademicYear | null>(null);
+  const { data: impact, isLoading: impactLoading } = useActivationImpact(yearToActivate?.id ?? null);
 
   const handleConfirmActivate = async () => {
     if (!yearToActivate) return;
@@ -308,8 +328,13 @@ export const AcademicYearsPage: React.FC = () => {
                             ay.isActive ? 'bg-emerald-500 text-white' : 'text-muted-foreground'
                           }`}
                         >
-                          {ay.isActive ? 'Activo' : 'Inactivo / Cerrado'}
+                          {ay.isActive ? 'Vigente' : 'No vigente'}
                         </Badge>
+                        {ay.enrollmentOpen && (
+                          <Badge variant="outline" className="text-[10px] font-bold border-indigo-500/40 text-indigo-600 dark:text-indigo-300">
+                            Matrícula abierta
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -348,7 +373,18 @@ export const AcademicYearsPage: React.FC = () => {
                 </div>
 
                 {isAdmin && !ay.isActive && (
-                  <div className="pt-2 flex justify-end">
+                  <div className="pt-2 flex flex-wrap justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs gap-1 font-semibold"
+                      disabled={setEnrollmentOpen.isPending}
+                      onClick={() => toggleEnrollment(ay)}
+                      title="Permite matricular para este año sin dejar de operar el año vigente"
+                    >
+                      {ay.enrollmentOpen ? <DoorClosed className="w-3.5 h-3.5" /> : <DoorOpen className="w-3.5 h-3.5" />}
+                      <span>{ay.enrollmentOpen ? 'Cerrar matrícula' : 'Abrir matrícula'}</span>
+                    </Button>
                     <Button
                       variant="default"
                       size="sm"
@@ -536,7 +572,35 @@ export const AcademicYearsPage: React.FC = () => {
         onClose={() => setYearToActivate(null)}
         onConfirm={handleConfirmActivate}
         title={`Activar el año ${yearToActivate?.year ?? ''}`}
-        description={`El año ${activeYearObj?.isActive ? activeYearObj.year : 'actual'} dejará de estar activo. Todas las pantallas (matrícula, asistencia, notas, carga docente) pasarán a trabajar con ${yearToActivate?.year ?? ''}. Puedes volver a activar el año anterior cuando quieras: no se pierde ningún dato.`}
+        description={`El año ${activeYearObj?.isActive ? activeYearObj.year : 'actual'} dejará de ser el vigente. Asistencia, notas, carga docente, cobranza y moras pasarán a trabajar con ${yearToActivate?.year ?? ''}. Puedes volver a activar el año anterior cuando quieras: no se pierde ningún dato.`}
+        details={
+          impactLoading ? (
+            <p className="text-xs text-muted-foreground">Calculando impacto...</p>
+          ) : impact ? (
+            <div className="space-y-2 text-xs">
+              <ul className="space-y-1 text-foreground">
+                {impact.currentYear !== null && (
+                  <li>
+                    <strong>{impact.willDeactivate}</strong> matrículas de {impact.currentYear} dejarán de estar vigentes
+                    {impact.pendingObligationsOfCurrentYear > 0 && (
+                      <> (con <strong>{impact.pendingObligationsOfCurrentYear}</strong> cuotas pendientes que saldrán de moras y vencidas)</>
+                    )}
+                    .
+                  </li>
+                )}
+                <li>
+                  <strong>{impact.willActivate}</strong> matrículas de {impact.targetYear} pasarán a ser las vigentes.
+                </li>
+              </ul>
+              {impact.isEarly && (
+                <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-amber-800 dark:text-amber-300">
+                  {impact.targetYear} aún no empieza. Si solo quieres matricular para {impact.targetYear}, usa <strong>Abrir matrícula</strong> y
+                  mantén {impact.currentYear} como vigente.
+                </p>
+              )}
+            </div>
+          ) : null
+        }
         confirmText="Activar"
         variant="warning"
         isLoading={isUpdating}

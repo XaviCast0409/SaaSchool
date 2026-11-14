@@ -16,5 +16,7 @@ academicYearRouter.use(authMiddleware, tenantMiddleware);
 academicYearRouter.get('/', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'), academicYearController.getAll);
 academicYearRouter.post('/', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'), academicYearController.create);
 academicYearRouter.get('/:id', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'), academicYearController.getById);
+academicYearRouter.get('/:id/activation-impact', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'), academicYearController.activationImpact);
+academicYearRouter.patch('/:id/enrollment-open', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'), academicYearController.setEnrollmentOpen);
 academicYearRouter.patch('/:id', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'), academicYearController.update);
 academicYearRouter.delete('/:id', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'), academicYearController.delete);

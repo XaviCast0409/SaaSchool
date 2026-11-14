@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildEnrollmentSchedule,
+  existingPeriodKey,
   monthlyDueDate,
   periodForConcept,
   pickFeeSchedule,
@@ -130,5 +131,14 @@ describe('periodo de cuotas en lote', () => {
     expect(periodForConcept('MATRICULA', '2025-12-20', 2026)).toBe('MATRICULA-2026');
     expect(periodForConcept('CUOTA_INGRESO', '2026-02-01', 2026)).toBe('INGRESO-2026');
     expect(periodForConcept('UNIFORME', '2026-03-31', 2026)).toBeNull();
+  });
+});
+
+describe('cuotas existentes al completar el cronograma', () => {
+  it('usa el periodo guardado o lo deduce del concepto y vencimiento', () => {
+    expect(existingPeriodKey({ concept: 'PENSION', period: '2026-04', dueDate: '2026-05-02' }, 2026)).toBe('2026-04');
+    expect(existingPeriodKey({ concept: 'PENSION', period: null, dueDate: '2026-05-31' }, 2026)).toBe('2026-05');
+    expect(existingPeriodKey({ concept: 'MATRICULA', period: null, dueDate: '2025-12-15' }, 2026)).toBe('MATRICULA-2026');
+    expect(existingPeriodKey({ concept: 'UNIFORME', period: null, dueDate: '2026-03-01' }, 2026)).toBeNull();
   });
 });

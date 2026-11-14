@@ -98,6 +98,31 @@ export const useCopyFeeSchedules = () => {
   });
 };
 
+export interface GenerateMissingResult {
+  year: number;
+  dryRun: boolean;
+  enrollments: number;
+  withMissing: number;
+  withoutFeeSchedule: number;
+  cuotas: number;
+  total: number;
+  scholarshipsApplied: number;
+}
+
+/** Completa las cuotas que les faltan a las matrículas de un año (dryRun = solo contar). */
+export const useGenerateMissing = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { academicYearId: string; dryRun: boolean }) =>
+      (await api.post<{ data: GenerateMissingResult }>('/payments/fee-schedules/generate-missing', body)).data.data,
+    onSuccess: (r) => {
+      if (!r.dryRun) {
+        for (const key of ['payments-obligations', 'financial-summary', 'statement']) qc.invalidateQueries({ queryKey: [key] });
+      }
+    },
+  });
+};
+
 export const useSchedulePreview = (input: { academicYearId?: string; classroomId?: string; condition?: string }) =>
   useQuery({
     queryKey: ['schedule-preview', input],

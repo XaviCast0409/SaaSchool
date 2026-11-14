@@ -156,3 +156,11 @@ export function periodForConcept(concept: string, dueDate: string, academicYear:
   if (concept === 'CUOTA_INGRESO') return admissionPeriod(academicYear);
   return null;
 }
+
+/**
+ * Periodo que ocupa una cuota ya existente: su `period`, o el que le corresponde por concepto y
+ * vencimiento si es antigua o se creó a mano sin periodo. Sirve para no duplicar al completar.
+ */
+export function existingPeriodKey(ob: { concept: string; period: string | null; dueDate: string }, academicYear: number): string | null {
+  return ob.period ?? periodForConcept(ob.concept, ob.dueDate, academicYear);
+}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Users, UserPlus, QrCode, FileSpreadsheet, KeyRound, Upload } from 'lucide-react';
+import { Users, UserPlus, QrCode, FileSpreadsheet, KeyRound, Upload, Repeat2 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useStudents } from '../api/useStudents';
 import { StudentTable } from '../components/StudentTable';
@@ -11,6 +11,9 @@ import { BulkCredentialsModal } from '../components/BulkCredentialsModal';
 import { NominaImportModal } from '@/features/siagie/components/NominaImportModal';
 import { useGetActiveSchool } from '@/features/schools/api/useSchool';
 import { Button } from '@/components/ui/button';
+import { RolloverModal } from '../components/RolloverModal';
+import { QuickEnrollModal, type QuickEnrollStudent } from '../components/QuickEnrollModal';
+import { useAcademicYears, pickEnrollmentTargetYear } from '@/features/academic-years/api/useAcademicYears';
 
 export const StudentsPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -26,6 +29,10 @@ export const StudentsPage: React.FC = () => {
   const [isBulkCredentialsModalOpen, setIsBulkCredentialsModalOpen] = useState(false);
   const [isNominaImportOpen, setIsNominaImportOpen] = useState(false);
   const { data: school } = useGetActiveSchool();
+  const [isRolloverOpen, setIsRolloverOpen] = useState(false);
+  const [quickEnrollStudent, setQuickEnrollStudent] = useState<QuickEnrollStudent | null>(null);
+  const { data: years = [] } = useAcademicYears();
+  const targetYear = pickEnrollmentTargetYear(years);
 
   // Estados de paginación y filtros jerárquicos
   const [page, setPage] = useState(1);
@@ -111,6 +118,18 @@ export const StudentsPage: React.FC = () => {
             </Button>
           )}
 
+          {canManageStudents && targetYear && (
+            <Button
+              variant="outline"
+              onClick={() => setIsRolloverOpen(true)}
+              className="gap-2 shadow-sm border-indigo-500/30 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/10"
+              title={`Pasar a los alumnos del año vigente al año ${targetYear.year}`}
+            >
+              <Repeat2 className="w-4 h-4" />
+              <span>Re-matrícula {targetYear.year}</span>
+            </Button>
+          )}
+
           {canManageStudents && (
             <Button
               onClick={() => setIsEnrollModalOpen(true)}
@@ -158,6 +177,14 @@ export const StudentsPage: React.FC = () => {
             setEducationLevel(eL);
             setPage(1);
           }}
+          onQuickEnroll={(s) =>
+            setQuickEnrollStudent({
+              id: s.id,
+              name: `${s.firstNames} ${s.lastNamePaternal}`,
+              documentId: s.documentId,
+            })
+          }
+          quickEnrollLabel={targetYear ? `Matricular ${targetYear.year}` : 'Matricular'}
           onExportNomina={(cId) => {
             if (cId) setClassroomId(cId);
             setIsNominaModalOpen(true);
@@ -169,7 +196,15 @@ export const StudentsPage: React.FC = () => {
       <EnrollStudentModal
         isOpen={isEnrollModalOpen}
         onClose={() => setIsEnrollModalOpen(false)}
+        onQuickEnroll={(s) => {
+          setIsEnrollModalOpen(false);
+          setQuickEnrollStudent(s);
+        }}
       />
+
+      {/* Re-matrícula por aula y matrícula rápida de alumnos existentes */}
+      <RolloverModal isOpen={isRolloverOpen} onClose={() => setIsRolloverOpen(false)} />
+      <QuickEnrollModal student={quickEnrollStudent} onClose={() => setQuickEnrollStudent(null)} />
 
       {/* Modal de Carnets QR por Sección en A4 */}
       {isSectionQrModalOpen && (
