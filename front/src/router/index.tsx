@@ -138,6 +138,18 @@ const InsightsPage = lazy(() =>
 const GatePage = lazy(() =>
   import('@/features/family/pages/GatePage').then((m) => ({ default: m.GatePage })),
 );
+const SecretariatPage = lazy(() =>
+  import('@/features/secretariat/pages/SecretariatPage').then((m) => ({ default: m.SecretariatPage })),
+);
+const ProceduresPage = lazy(() =>
+  import('@/features/secretariat/pages/ProceduresPage').then((m) => ({ default: m.ProceduresPage })),
+);
+const PublicAdmissionPage = lazy(() =>
+  import('@/features/secretariat/pages/PublicAdmissionPage').then((m) => ({ default: m.PublicAdmissionPage })),
+);
+const PublicComplaintsBookPage = lazy(() =>
+  import('@/features/secretariat/pages/PublicComplaintsBookPage').then((m) => ({ default: m.PublicComplaintsBookPage })),
+);
 const AuditLogsPage = lazy(() =>
   import('@/features/audit-logs/pages/AuditLogsPage').then((m) => ({ default: m.AuditLogsPage })),
 );
@@ -205,6 +217,10 @@ export const AppRouter: React.FC = () => {
           {/* Rutas Públicas Legales (Ley 29733) */}
           <Route path="/privacidad" element={<PrivacyPolicyPage />} />
           <Route path="/terminos" element={<TermsPage />} />
+
+          {/* Formularios públicos del colegio (sin cuenta): admisión y Libro de Reclamaciones */}
+          <Route path="/admision/:schoolId" element={<PublicAdmissionPage />} />
+          <Route path="/reclamaciones/:schoolId" element={<PublicComplaintsBookPage />} />
 
           {/* Protected Dashboard Layout */}
           <Route
@@ -479,6 +495,22 @@ export const AppRouter: React.FC = () => {
               element={
                 <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER']}>
                   <TeacherResourcesPage />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/secretariat"
+              element={
+                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE']}>
+                  <SecretariatPage />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/procedures"
+              element={
+                <RoleGuard allowedRoles={['PARENT']}>
+                  <ProceduresPage />
                 </RoleGuard>
               }
             />

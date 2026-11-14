@@ -204,6 +204,13 @@ model School {
   receiptCounter             Int              @default(0) // Correlativo oficial de recibos (REC-XXXXXX)
   expenseCounter             Int              @default(0) // Correlativo de egresos de caja (EGR-XXXXXX)
   adjustmentCounter          Int              @default(0) // Correlativo de ajustes a cuotas (AJ-XXXXXX)
+  admissionsOpen             Boolean          @default(false) // Formulario público de admisión activo
+  admissionsYear             Int? // Año escolar al que postulan
+  admissionsMessage          String?          @db.Text // Texto de bienvenida / requisitos
+  ratificationOpen           Boolean          @default(false) // Ratificación de matrícula en línea activa
+  ratificationYear           Int?
+  ratificationDeadline       DateTime?        @db.Date
+  complaintCounter           Int              @default(0) // Correlativo del Libro de Reclamaciones
   lateFeeAnnualRate          Decimal?         @db.Decimal(6, 3) // Tasa anual de interés moratorio (%); tope legal: interbancaria BCRP
   lateFeeGraceDays           Int              @default(0) // Días de gracia antes de cobrar mora
   isActive                   Boolean          @default(true)
@@ -240,6 +247,10 @@ model School {
   tutoringInterventions     TutoringIntervention[]
   sharedResources           SharedResource[]
   rubrics                   Rubric[]
+  admissionApplications     AdmissionApplication[]
+  enrollmentRatifications   EnrollmentRatification[]
+  documentRequests          DocumentRequest[]
+  complaints                Complaint[]
   authorizedPickups         AuthorizedPickup[]
   courseAttendanceSessions  CourseAttendanceSession[]
   studyPlanCourses          StudyPlanCourse[]
@@ -296,40 +307,44 @@ model User {
   // Relaciones
   familyRelations        FamilyRelationship[]
   coursesTaught          CourseAssignment[]
-  tutoredClassrooms      Classroom[]             @relation("ClassroomTutor")
+  tutoredClassrooms      Classroom[]              @relation("ClassroomTutor")
   announcements          Announcement[]
   notifications          Notification[]
   pushSubscriptions      PushSubscription[]
-  authoredContents       CourseContent[]         @relation("AuthoredContents")
+  authoredContents       CourseContent[]          @relation("AuthoredContents")
   forumComments          ForumComment[]
   notificationPreference NotificationPreference?
-  parentConversations    Conversation[]          @relation("ConversationParent")
-  staffConversations     Conversation[]          @relation("ConversationStaff")
+  parentConversations    Conversation[]           @relation("ConversationParent")
+  staffConversations     Conversation[]           @relation("ConversationStaff")
   sentMessages           Message[]
   announcementResponses  AnnouncementResponse[]
-  meetingSlotsOwned      MeetingSlot[]           @relation("MeetingStaff")
-  meetingSlotsBooked     MeetingSlot[]           @relation("MeetingParent")
+  meetingSlotsOwned      MeetingSlot[]            @relation("MeetingStaff")
+  meetingSlotsBooked     MeetingSlot[]            @relation("MeetingParent")
   createdEvents          SchoolEvent[]
   teacherAvailabilities  TeacherAvailability[]
-  paymentReportsSent     PaymentReport[]         @relation("PaymentReportReporter")
-  paymentReportsReviewed PaymentReport[]         @relation("PaymentReportReviewer")
+  paymentReportsSent     PaymentReport[]          @relation("PaymentReportReporter")
+  paymentReportsReviewed PaymentReport[]          @relation("PaymentReportReviewer")
   tutoringInterventions  TutoringIntervention[]
   sharedResources        SharedResource[]
   rubrics                Rubric[]
-  conclusionPhrases      ConclusionPhrase[]      @relation("ConclusionPhraseOwner")
-  incidentsAuthored      StudentIncident[]       @relation("IncidentAuthor")
-  periodStatusChanges    AcademicPeriodStatus[]  @relation("PeriodStatusChangedBy")
-  paymentsCollected      PaymentTransaction[]    @relation("TransactionCollector")
-  paymentsVoided         PaymentTransaction[]    @relation("TransactionVoider")
-  obligationsCancelled   PaymentObligation[]     @relation("ObligationCanceller")
-  cashSessions           CashSession[]           @relation("CashSessionCashier")
-  cashSessionsReviewed   CashSession[]           @relation("CashSessionReviewer")
-  cashExpenses           CashExpense[]           @relation("CashExpenseRegistrar")
-  cashExpensesVoided     CashExpense[]           @relation("CashExpenseVoider")
-  adjustmentsCreated     ObligationAdjustment[]  @relation("AdjustmentCreator")
-  adjustmentsVoided      ObligationAdjustment[]  @relation("AdjustmentVoider")
-  scholarshipsCreated    Scholarship[]           @relation("ScholarshipCreator")
-  scholarshipsEnded      Scholarship[]           @relation("ScholarshipDeactivator")
+  ratificationsSigned    EnrollmentRatification[]
+  documentRequestsMade   DocumentRequest[]        @relation("DocumentRequestRequester")
+  documentRequestsDone   DocumentRequest[]        @relation("DocumentRequestHandler")
+  complaintsAnswered     Complaint[]
+  conclusionPhrases      ConclusionPhrase[]       @relation("ConclusionPhraseOwner")
+  incidentsAuthored      StudentIncident[]        @relation("IncidentAuthor")
+  periodStatusChanges    AcademicPeriodStatus[]   @relation("PeriodStatusChangedBy")
+  paymentsCollected      PaymentTransaction[]     @relation("TransactionCollector")
+  paymentsVoided         PaymentTransaction[]     @relation("TransactionVoider")
+  obligationsCancelled   PaymentObligation[]      @relation("ObligationCanceller")
+  cashSessions           CashSession[]            @relation("CashSessionCashier")
+  cashSessionsReviewed   CashSession[]            @relation("CashSessionReviewer")
+  cashExpenses           CashExpense[]            @relation("CashExpenseRegistrar")
+  cashExpensesVoided     CashExpense[]            @relation("CashExpenseVoider")
+  adjustmentsCreated     ObligationAdjustment[]   @relation("AdjustmentCreator")
+  adjustmentsVoided      ObligationAdjustment[]   @relation("AdjustmentVoider")
+  scholarshipsCreated    Scholarship[]            @relation("ScholarshipCreator")
+  scholarshipsEnded      Scholarship[]            @relation("ScholarshipDeactivator")
 
   @@unique([schoolId, documentId])
   @@index([schoolId, role])
@@ -370,7 +385,7 @@ model Student {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  school                 School                  @relation(fields: [schoolId], references: [id])
+  school                 School                   @relation(fields: [schoolId], references: [id])
   familyRelations        FamilyRelationship[]
   enrollments            Enrollment[]
   notifications          Notification[]
@@ -380,6 +395,9 @@ model Student {
   conversations          Conversation[]
   announcementResponses  AnnouncementResponse[]
   meetingSlots           MeetingSlot[]
+  admissionApplications  AdmissionApplication[]
+  ratifications          EnrollmentRatification[]
+  documentRequests       DocumentRequest[]
 
   @@unique([schoolId, documentType, documentId])
   @@index([schoolId, documentId])
@@ -1798,4 +1816,165 @@ model Rubric {
   author User   @relation(fields: [authorId], references: [id])
 
   @@index([schoolId, createdAt])
+}
+
+// ============================================================================
+// FASE 7: ADMISIÓN, RATIFICACIÓN, TRÁMITES Y LIBRO DE RECLAMACIONES
+// ============================================================================
+enum AdmissionStatus {
+  NEW
+  INTERVIEW
+  ADMITTED
+  ENROLLED
+  REJECTED
+  WITHDRAWN
+}
+
+model AdmissionApplication {
+  id                      String          @id @default(uuid())
+  schoolId                String
+  status                  AdmissionStatus @default(NEW)
+  targetYear              Int
+  educationLevel          EducationLevel
+  grade                   Int
+  studentFirstNames       String
+  studentLastNamePaternal String
+  studentLastNameMaternal String?
+  studentDocumentType     DocumentType    @default(DNI)
+  studentDocumentId       String
+  studentBirthDate        DateTime        @db.Date
+  studentGender           Gender
+  previousSchool          String?
+  guardianFirstName       String
+  guardianLastNames       String
+  guardianDocumentId      String?
+  guardianRelation        String
+  guardianPhone           String
+  guardianEmail           String?
+  familyNotes             String?         @db.Text
+  staffNotes              String?         @db.Text
+  interviewAt             DateTime?
+  consentAt               DateTime // Aceptación del tratamiento de datos (Ley 29733)
+  ipAddress               String?
+  studentId               String? // Alumno creado al convertir
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+
+  school  School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student Student? @relation(fields: [studentId], references: [id], onDelete: SetNull)
+
+  @@index([schoolId, status])
+  @@index([schoolId, studentDocumentId])
+}
+
+enum RatificationDecision {
+  CONFIRMED
+  DECLINED
+}
+
+model EnrollmentRatification {
+  id           String               @id @default(uuid())
+  schoolId     String
+  studentId    String
+  targetYear   Int
+  decision     RatificationDecision
+  comment      String?              @db.Text
+  ratifiedById String
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  school     School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student    Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  ratifiedBy User    @relation(fields: [ratifiedById], references: [id])
+
+  @@unique([studentId, targetYear])
+  @@index([schoolId, targetYear])
+}
+
+enum DocumentRequestType {
+  CONSTANCIA_ESTUDIOS
+  CONSTANCIA_MATRICULA
+  CONSTANCIA_CONDUCTA
+  CONSTANCIA_NO_ADEUDO
+  CERTIFICADO_ESTUDIOS
+  LIBRETA_NOTAS
+  OTRO
+}
+
+enum DocumentRequestStatus {
+  REQUESTED
+  IN_PROCESS
+  READY
+  DELIVERED
+  REJECTED
+}
+
+model DocumentRequest {
+  id            String                @id @default(uuid())
+  schoolId      String
+  studentId     String
+  requestedById String
+  type          DocumentRequestType
+  purpose       String?
+  copies        Int                   @default(1)
+  status        DocumentRequestStatus @default(REQUESTED)
+  debtHold      Boolean               @default(false) // Certificado retenido por deuda (único caso permitido, Ley 27665)
+  staffNote     String?               @db.Text
+  fileUrl       String? // Documento digital listo (/api/files/<id>)
+  handledById   String?
+  readyAt       DateTime?
+  deliveredAt   DateTime?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  school      School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student     Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  requestedBy User    @relation("DocumentRequestRequester", fields: [requestedById], references: [id])
+  handledBy   User?   @relation("DocumentRequestHandler", fields: [handledById], references: [id])
+
+  @@index([schoolId, status])
+  @@index([studentId])
+}
+
+enum ComplaintKind {
+  RECLAMO
+  QUEJA
+}
+
+enum ComplaintStatus {
+  OPEN
+  ANSWERED
+}
+
+model Complaint {
+  id              String          @id @default(uuid())
+  schoolId        String
+  code            String // RCL-2026-000001
+  kind            ComplaintKind
+  status          ComplaintStatus @default(OPEN)
+  consumerName    String
+  consumerDocType String
+  consumerDocId   String
+  consumerAddress String?
+  consumerPhone   String?
+  consumerEmail   String
+  isMinor         Boolean         @default(false)
+  guardianName    String?
+  itemType        String          @default("SERVICIO") // PRODUCTO | SERVICIO
+  itemDescription String
+  amount          String?
+  detail          String          @db.Text
+  request         String          @db.Text
+  dueDate         DateTime        @db.Date // Plazo legal de respuesta (15 días hábiles)
+  response        String?         @db.Text
+  respondedAt     DateTime?
+  respondedById   String?
+  ipAddress       String?
+  createdAt       DateTime        @default(now())
+
+  school      School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  respondedBy User?  @relation(fields: [respondedById], references: [id])
+
+  @@unique([schoolId, code])
+  @@index([schoolId, status])
 }

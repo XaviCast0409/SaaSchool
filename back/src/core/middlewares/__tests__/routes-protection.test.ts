@@ -11,7 +11,9 @@ const MODULES_DIR = join(__dirname, '../../../modules');
 const PUBLIC_ROUTE_FILES = new Set<string>([
   // Suscripción .ics: Google Calendar no envía token; se valida con firma HMAC en la URL
   'calendar/calendar-feed.routes.ts',
-  // agregar aquí rutas públicas intencionales, p. ej. 'admissions/admission.public.routes.ts'
+  // Formulario de admisión y Libro de Reclamaciones virtual (Indecopi): para personas sin cuenta
+  'secretariat/secretariat.public.routes.ts',
+  // agregar aquí otras rutas públicas intencionales
 ]);
 
 describe('protección de rutas', () => {

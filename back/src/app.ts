@@ -49,6 +49,8 @@ import { familyRouter } from './modules/family/family.routes';
 import { insightsRouter } from './modules/insights/insights.routes';
 import { teacherResourcesRouter } from './modules/teacher-resources/teacher-resources.routes';
 import { calendarFeedRouter } from './modules/calendar/calendar-feed.routes';
+import { secretariatRouter } from './modules/secretariat/secretariat.routes';
+import { secretariatPublicRouter } from './modules/secretariat/secretariat.public.routes';
 import { notificationPreferenceRouter } from './modules/notifications/notification-preference.routes';
 
 const app = express();
@@ -128,6 +130,9 @@ app.use(`${API_PREFIX}/payment-reports`, paymentReportRouter);
 app.use(`${API_PREFIX}/family`, familyRouter);
 app.use(`${API_PREFIX}/insights`, insightsRouter);
 app.use(`${API_PREFIX}/teacher-resources`, teacherResourcesRouter);
+app.use(`${API_PREFIX}/secretariat`, secretariatRouter);
+// Formularios públicos (admisión y Libro de Reclamaciones): sin sesión, con límite propio por IP
+app.use(`${API_PREFIX}/public/schools`, secretariatPublicRouter);
 // Pública con firma HMAC (suscripción .ics desde Google Calendar / iPhone)
 app.use(`${API_PREFIX}/calendar-feed`, fileContentRateLimiter, calendarFeedRouter);
 app.use(`${API_PREFIX}/uploads`, uploadRouter);

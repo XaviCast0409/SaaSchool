@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Users, UserPlus, QrCode, FileSpreadsheet, KeyRound, Upload } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useStudents } from '../api/useStudents';
@@ -29,7 +30,8 @@ export const StudentsPage: React.FC = () => {
   // Estados de paginación y filtros jerárquicos
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [search, setSearch] = useState('');
+  const [searchParams] = useSearchParams();
+  const [search, setSearch] = useState(() => searchParams.get('q') ?? '');
   const [classroomId, setClassroomId] = useState<string | undefined>(undefined);
   const [educationLevel, setEducationLevel] = useState<'INITIAL' | 'PRIMARY' | 'SECONDARY' | undefined>(undefined);
 
