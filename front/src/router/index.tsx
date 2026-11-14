@@ -126,6 +126,9 @@ const SchedulePage = lazy(() =>
 const CalendarPage = lazy(() =>
   import('@/features/calendar/pages/CalendarPage').then((m) => ({ default: m.CalendarPage })),
 );
+const InsightsPage = lazy(() =>
+  import('@/features/insights/pages/InsightsPage').then((m) => ({ default: m.InsightsPage })),
+);
 const GatePage = lazy(() =>
   import('@/features/family/pages/GatePage').then((m) => ({ default: m.GatePage })),
 );
@@ -452,6 +455,14 @@ export const AppRouter: React.FC = () => {
               element={
                 <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
                   <EvaluationCriteriaPage />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/insights"
+              element={
+                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER']}>
+                  <InsightsPage />
                 </RoleGuard>
               }
             />

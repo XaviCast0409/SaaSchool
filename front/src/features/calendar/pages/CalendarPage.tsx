@@ -16,6 +16,8 @@ import {
   Trash2,
   UserRound,
   CalendarDays,
+  Flag,
+  Landmark,
 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card } from '@/components/ui/card';
@@ -33,6 +35,7 @@ import {
   useCalendar,
   useCalendarFeedUrl,
   useDeleteEvent,
+  useImportOfficialDates,
   useSaveEvent,
   type CalendarItem,
   type EventInput,
@@ -48,16 +51,17 @@ const KIND_STYLE: Record<string, string> = {
   PAYMENT: 'bg-teal-500/10 text-teal-800 dark:text-teal-200',
   EXAM: 'bg-sky-500/15 text-sky-800 dark:text-sky-200',
   EVENT: 'bg-primary/10 text-primary',
+  PERIOD: 'bg-indigo-500/15 text-indigo-800 dark:text-indigo-200',
 };
 const styleOf = (i: CalendarItem) => (i.kind === 'EVENT' && i.eventType === 'EXAM' ? KIND_STYLE.EXAM : KIND_STYLE[i.kind]);
 
 const KindIcon: React.FC<{ item: CalendarItem; className?: string }> = ({ item, className }) => {
-  const Icon = item.kind === 'HOLIDAY' ? PartyPopper : item.kind === 'HOMEWORK' ? BookOpen : item.kind === 'MEETING' ? UserRound : item.kind === 'PAYMENT' ? CreditCard : CalendarDays;
+  const Icon = item.kind === 'PERIOD' ? Flag : item.kind === 'HOLIDAY' ? PartyPopper : item.kind === 'HOMEWORK' ? BookOpen : item.kind === 'MEETING' ? UserRound : item.kind === 'PAYMENT' ? CreditCard : CalendarDays;
   return <Icon className={className} aria-hidden />;
 };
 
 const kindLabel = (i: CalendarItem) =>
-  i.kind === 'HOLIDAY' ? 'Feriado' : i.kind === 'HOMEWORK' ? 'Tarea' : i.kind === 'MEETING' ? 'Entrevista' : i.kind === 'PAYMENT' ? 'Pago' : EVENT_TYPE_LABEL[i.eventType ?? 'OTHER'];
+  i.kind === 'PERIOD' ? 'Periodo académico' : i.kind === 'HOLIDAY' ? 'Feriado' : i.kind === 'HOMEWORK' ? 'Tarea' : i.kind === 'MEETING' ? 'Entrevista' : i.kind === 'PAYMENT' ? 'Pago' : EVENT_TYPE_LABEL[i.eventType ?? 'OTHER'];
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const ymd = (y: number, m: number, d: number) => `${y}-${pad(m)}-${pad(d)}`;
@@ -276,6 +280,8 @@ export const CalendarPage: React.FC = () => {
   const [editor, setEditor] = useState<{ initial: EventInput; id?: string } | null>(null);
   const [feedOpen, setFeedOpen] = useState(false);
   const del = useDeleteEvent();
+  const importOfficial = useImportOfficialDates();
+  const isManager = role === 'SCHOOL_ADMIN' || role === 'SUPER_ADMIN';
 
   const { start, end, cells } = useMemo(() => monthCells(ym.y, ym.m), [ym]);
   const { data: items = [], isLoading } = useCalendar(start, end);
@@ -315,6 +321,26 @@ export const CalendarPage: React.FC = () => {
         description="Evaluaciones, actividades, feriados, tareas, entrevistas y pagos en un solo lugar."
         actions={
           <>
+            {isManager && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                disabled={importOfficial.isPending}
+                onClick={() => {
+                  if (!window.confirm('Se agregarán los feriados nacionales (como días sin clases) y las fechas cívicas escolares del año lectivo. No se duplica lo que ya exista. ¿Continuar?')) return;
+                  importOfficial.mutate(
+                    { holidays: true, civic: true },
+                    {
+                      onSuccess: (r) => toast.success(`Listo: ${r.holidaysCreated} feriado(s) y ${r.civicCreated} fecha(s) cívica(s) agregados.`),
+                      onError: (e) => toast.error(apiErrorMessage(e)),
+                    },
+                  );
+                }}
+              >
+                <Landmark className="h-4 w-4" aria-hidden /> Cargar fechas oficiales
+              </Button>
+            )}
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setFeedOpen(true)}>
               <Rss className="h-4 w-4" aria-hidden /> En mi celular
             </Button>

@@ -10,6 +10,7 @@ import { parseSchoolDate } from '../../utils/timezone.util';
 import { deliver } from '../automations/delivery';
 import { activeYear, type Viewer } from '../schedule/schedule.access';
 import { collectCalendar, feedToken } from './calendar.service';
+import { civicDates, nationalHolidays, withinRange } from './official-dates';
 
 /** Calendario escolar: eventos del colegio y vista combinada por persona. */
 export const calendarRouter = Router();
@@ -150,4 +151,47 @@ calendarRouter.delete('/events/:id', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN
   await prisma.schoolEvent.delete({ where: { id } });
   recordAudit(req, { action: 'CALENDAR_EVENT_DELETED', entity: 'SchoolEvent', entityId: id, before: { titulo: event.title } });
   res.status(200).json({ status: 'success', data: { deleted: true } });
+});
+
+/**
+ * Precarga las fechas oficiales del año lectivo activo: feriados nacionales (como días sin clases)
+ * y fechas del calendario cívico escolar (como eventos). No duplica lo que ya exista.
+ */
+calendarRouter.post('/import-official', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'), async (req: Request, res: Response) => {
+  const dto = z.object({ holidays: z.boolean().default(true), civic: z.boolean().default(true) }).parse(req.body);
+  const viewer = viewerOf(req);
+  const year = await activeYear(viewer.schoolId);
+  if (!year) throw new AppError('No hay un año lectivo activo.', 400);
+  const start = year.startDate.toISOString().slice(0, 10);
+  const end = year.endDate.toISOString().slice(0, 10);
+  let holidaysCreated = 0;
+  let civicCreated = 0;
+
+  if (dto.holidays) {
+    const list = withinRange(nationalHolidays(year.year), start, end);
+    const existing = await prisma.schoolHoliday.findMany({ where: { schoolId: viewer.schoolId, date: { in: list.map((h) => parseSchoolDate(h.date)) } }, select: { date: true } });
+    const taken = new Set(existing.map((e) => e.date.toISOString().slice(0, 10)));
+    const fresh = list.filter((h) => !taken.has(h.date));
+    if (fresh.length) {
+      await prisma.schoolHoliday.createMany({ data: fresh.map((h) => ({ schoolId: viewer.schoolId, date: parseSchoolDate(h.date), name: h.name })), skipDuplicates: true });
+    }
+    holidaysCreated = fresh.length;
+  }
+  if (dto.civic) {
+    const list = withinRange(civicDates(year.year), start, end);
+    const existing = await prisma.schoolEvent.findMany({
+      where: { schoolId: viewer.schoolId, type: 'CIVIC', startDate: { in: list.map((c) => parseSchoolDate(c.date)) } },
+      select: { title: true, startDate: true },
+    });
+    const taken = new Set(existing.map((e) => `${e.startDate.toISOString().slice(0, 10)}|${e.title}`));
+    const fresh = list.filter((c) => !taken.has(`${c.date}|${c.name}`));
+    if (fresh.length) {
+      await prisma.schoolEvent.createMany({
+        data: fresh.map((c) => ({ schoolId: viewer.schoolId, title: c.name, type: 'CIVIC' as const, startDate: parseSchoolDate(c.date), visibleToFamilies: true, createdById: viewer.userId })),
+      });
+    }
+    civicCreated = fresh.length;
+  }
+  recordAudit(req, { action: 'CALENDAR_OFFICIAL_IMPORTED', entity: 'SchoolEvent', after: { feriados: holidaysCreated, fechasCivicas: civicCreated } });
+  res.status(200).json({ status: 'success', data: { holidaysCreated, civicCreated } });
 });
