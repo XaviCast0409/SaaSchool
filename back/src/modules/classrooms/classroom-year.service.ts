@@ -144,6 +144,17 @@ export class ClassroomYearService {
   async syncOnActivation(tx: Prisma.TransactionClient, schoolId: string, academicYearId: string): Promise<string[]> {
     const rows = await tx.classroomYear.findMany({ where: { schoolId, academicYearId } });
     if (rows.length === 0) return [];
+    // Si el año que se activa no tiene ningún tutor asignado (p. ej. un año que nunca se preparó),
+    // se conservan los tutores actuales de las aulas y se registran en ese año, en vez de borrarlos.
+    if (!rows.some((r) => r.tutorTeacherId)) {
+      const rooms = await tx.classroom.findMany({ where: { schoolId }, select: { id: true, tutorTeacherId: true } });
+      for (const r of rows) {
+        const tutor = rooms.find((c) => c.id === r.classroomId)?.tutorTeacherId ?? null;
+        await tx.classroom.update({ where: { id: r.classroomId }, data: { capacity: r.capacity } });
+        if (tutor) await tx.classroomYear.update({ where: { id: r.id }, data: { tutorTeacherId: tutor } });
+      }
+      return rows.filter((r) => rooms.find((c) => c.id === r.classroomId)?.tutorTeacherId).map((r) => r.classroomId);
+    }
     await tx.classroom.updateMany({ where: { schoolId }, data: { tutorTeacherId: null } });
     for (const r of rows) {
       await tx.classroom.update({ where: { id: r.classroomId }, data: { capacity: r.capacity, tutorTeacherId: r.tutorTeacherId } });
