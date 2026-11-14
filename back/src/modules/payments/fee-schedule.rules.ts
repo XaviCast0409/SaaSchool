@@ -164,3 +164,30 @@ export function periodForConcept(concept: string, dueDate: string, academicYear:
 export function existingPeriodKey(ob: { concept: string; period: string | null; dueDate: string }, academicYear: number): string | null {
   return ob.period ?? periodForConcept(ob.concept, ob.dueDate, academicYear);
 }
+
+/**
+ * Nuevo monto y vencimiento de una cuota pendiente del cronograma cuando se edita el tarifario.
+ * Pensión: pensión mensual y día de vencimiento nuevos (nunca antes del día de matrícula).
+ * Matrícula y cuota de ingreso: solo el monto. null si no cambia nada o el monto nuevo es 0
+ * (una cuota en cero se anula a mano, no se reprecia en silencio).
+ */
+export function repriceObligation(
+  ob: { concept: string; period: string | null; amountDue: Money; dueDate: string },
+  terms: FeeScheduleTerms,
+  enrollmentDate: string,
+): { amountDue: number; dueDate: string } | null {
+  let amount: Money;
+  let due = ob.dueDate;
+  if (ob.concept === 'PENSION' && ob.period && /^\d{4}-\d{2}$/.test(ob.period)) {
+    const [y, m] = ob.period.split('-').map(Number);
+    amount = terms.monthlyFee;
+    const computed = monthlyDueDate(y, m, terms.dueDay);
+    due = computed < enrollmentDate ? enrollmentDate : computed;
+  } else if (ob.concept === 'MATRICULA') amount = terms.enrollmentFee;
+  else if (ob.concept === 'CUOTA_INGRESO') amount = terms.admissionFee;
+  else return null;
+  const cents = toCents(amount);
+  if (cents <= 0) return null;
+  if (cents === toCents(ob.amountDue) && due === ob.dueDate) return null;
+  return { amountDue: fromCents(cents), dueDate: due };
+}

@@ -1,6 +1,9 @@
 import { AppError } from '../../core/errors/app-error';
 import { computeObligationStatus, validateNewPayment } from './payment.rules';
 import { periodForConcept } from './fee-schedule.rules';
+import { enrollmentsOfYear } from '../../utils/academic-year-scope';
+
+type EducationLevelCode = 'INITIAL' | 'PRIMARY' | 'SECONDARY';
 import { formatReceiptNumber, PAYMENT_METHOD_LABEL, voidBlockReason, type PaymentMethodCode } from './finance.rules';
 import { normalizeOperationNumber } from '../payment-reports/payment-report.rules';
 import { TRANSACTION_INCLUDE } from './payment.repository';
@@ -179,15 +182,30 @@ export class PaymentService {
     schoolId: string,
     bulkDto: BulkCreateObligationsDto,
     actor?: FinanceActor,
+    academicYearId?: string,
   ): Promise<{ count: number; skippedCount: number; totalMatriculados: number; scholarshipsApplied: number }> {
     // Buscar matrículas activas del colegio (filtrando por aula si se provee)
     const enrollments = await prisma.enrollment.findMany({
       where: {
         schoolId,
-        isActive: true,
+        // Matriculados del año elegido en la cabecera (o del vigente)
+        ...enrollmentsOfYear(academicYearId),
         ...(bulkDto.classroomId ? { classroomId: bulkDto.classroomId } : {}),
+        ...(bulkDto.educationLevel ? { classroom: { educationLevel: bulkDto.educationLevel } } : {}),
+        // Con montos por nivel, solo los niveles que tienen monto
+        ...(bulkDto.amountsByLevel && !bulkDto.educationLevel
+          ? {
+              classroom: {
+                educationLevel: {
+                  in: (Object.entries(bulkDto.amountsByLevel) as Array<[EducationLevelCode, number | null | undefined]>)
+                    .filter(([, v]) => v)
+                    .map(([k]) => k),
+                },
+              },
+            }
+          : {}),
       },
-      select: { id: true, customPensionAmount: true, academicYear: { select: { year: true } } },
+      select: { id: true, customPensionAmount: true, academicYear: { select: { year: true } }, classroom: { select: { educationLevel: true } } },
     });
 
     if (enrollments.length === 0) {
@@ -252,9 +270,11 @@ export class PaymentService {
           period: periodOf(enrollment),
         });
       } else {
+        const amount = bulkDto.amountsByLevel?.[enrollment.classroom.educationLevel as EducationLevelCode] ?? bulkDto.amountDue;
+        if (!amount) continue; // Nivel sin monto: no recibe el cargo
         itemsToCreate.push({
           enrollmentId: enrollment.id,
-          amountDue: bulkDto.amountDue,
+          amountDue: amount,
           period: periodOf(enrollment),
         });
       }
@@ -306,8 +326,29 @@ export class PaymentService {
       }
     }
 
+    // Cambiar el concepto (p. ej. pensión → otros): con motivo y sin cobros, porque mueve el dinero
+    // de un concepto a otro en los reportes. La cuota conserva su periodo (el lugar del cronograma
+    // de donde salió), así "Generar cuotas faltantes" no vuelve a crear ese mes.
+    const conceptChanges = updateDto.concept !== undefined && updateDto.concept !== before.concept;
+    if (conceptChanges) {
+      if (activePayments.length > 0) {
+        throw new AppError('Esta cuota ya tiene cobros. Para cambiar el concepto, primero anula los cobros.', 400);
+      }
+      if (!updateDto.reason || updateDto.reason.trim().length < 5) {
+        throw new AppError('Escribe el motivo del cambio de concepto (mínimo 5 caracteres).', 400);
+      }
+      if (before.period) {
+        const clash = await prisma.paymentObligation.findFirst({
+          where: { enrollmentId: before.enrollmentId, concept: updateDto.concept, period: before.period, status: { not: 'CANCELLED' }, NOT: { id: obligationId } },
+          select: { title: true },
+        });
+        if (clash) throw new AppError(`Este alumno ya tiene "${clash.title}" con ese concepto para el mismo periodo.`, 409);
+      }
+    }
+
     const after = await this.paymentRepository.updateObligation(obligationId, schoolId, {
       ...updateDto,
+      concept: conceptChanges ? updateDto.concept : undefined,
       amountDue: amountChanges ? updateDto.amountDue : undefined,
     });
     return { before, after };
@@ -700,8 +741,8 @@ export class PaymentService {
     };
   }
 
-  async getFinancialSummary(schoolId: string) {
-    return this.paymentRepository.getFinancialSummary(schoolId);
+  async getFinancialSummary(schoolId: string, academicYearId?: string) {
+    return this.paymentRepository.getFinancialSummary(schoolId, academicYearId);
   }
 
   async getDailyCashClose(schoolId: string, dateStr?: string) {

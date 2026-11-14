@@ -8,11 +8,21 @@ export const createObligationSchema = z.object({
   dueDate: z.string().min(1, 'Fecha de vencimiento requerida'),
 });
 
+const optionalAmount = z.preprocess(
+  (v) => (v === '' || v === null || v === undefined || Number.isNaN(v) ? undefined : Number(v)),
+  z.number().positive('El monto debe ser positivo').optional(),
+);
+
 export const bulkCreateObligationsSchema = z.object({
+  /** '' = todo el colegio, 'level:PRIMARY' = un nivel, o el id de un aula */
   classroomId: z.string().optional(),
   title: z.string().min(1, 'El título es requerido (ej: Pensión Marzo 2026)'),
   concept: z.string().min(1, 'El concepto es requerido (ej: PENSION, MATRICULA)'),
-  amountDue: z.coerce.number().positive('El monto debe ser un número positivo'),
+  amountDue: optionalAmount,
+  byLevel: z.boolean().default(false),
+  amountInitial: optionalAmount,
+  amountPrimary: optionalAmount,
+  amountSecondary: optionalAmount,
   dueDate: z.string().min(1, 'Fecha de vencimiento requerida'),
 });
 

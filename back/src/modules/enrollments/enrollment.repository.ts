@@ -6,9 +6,9 @@ import { feeScheduleService, type ScheduleResult } from '../payments/fee-schedul
 import type { CreateEnrollmentDto, UpdateEnrollmentDto } from './enrollment.schema';
 
 export class EnrollmentRepository {
-  async findAllBySchool(schoolId: string): Promise<Enrollment[]> {
+  async findAllBySchool(schoolId: string, academicYearId?: string): Promise<Enrollment[]> {
     return prisma.enrollment.findMany({
-      where: { schoolId },
+      where: { schoolId, ...(academicYearId ? { academicYearId } : {}) },
       include: {
         student: true,
         academicYear: true,

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/useAuthStore';
+import { useAcademicYearStore, YEAR_SCOPED_ROLES } from '../store/useAcademicYearStore';
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
@@ -17,6 +18,11 @@ api.interceptors.request.use(
     }
     if (user?.role === 'SUPER_ADMIN' && impersonatedSchool?.id) {
       config.headers['x-school-id'] = impersonatedSchool.id;
+    }
+    // Año elegido en el selector de la cabecera (solo personal; sin elegir = año vigente)
+    const { selectedYearId } = useAcademicYearStore.getState();
+    if (selectedYearId && user && YEAR_SCOPED_ROLES.includes(user.role)) {
+      config.headers['x-academic-year-id'] = selectedYearId;
     }
     return config;
   },

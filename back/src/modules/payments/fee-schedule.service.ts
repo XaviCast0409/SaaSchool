@@ -8,6 +8,7 @@ import {
   buildEnrollmentSchedule,
   existingPeriodKey,
   pickFeeSchedule,
+  repriceObligation,
   scheduleTotal,
   validateFeeTerms,
   type PlannedObligation,
@@ -81,12 +82,73 @@ export class FeeScheduleService {
     return toPlain(row);
   }
 
-  async update(schoolId: string, id: string, dto: FeeScheduleInput) {
+  async update(schoolId: string, id: string, dto: FeeScheduleInput, applyToPending = false) {
     const before = await prisma.feeSchedule.findFirst({ where: { id, schoolId } });
     if (!before) throw new AppError('Tarifario no encontrado.', 404);
     await this.validate(schoolId, dto, id);
     const after = await prisma.feeSchedule.update({ where: { id }, data: { ...dto, grade: dto.grade ?? null } });
-    return { before: toPlain(before), after: toPlain(after) };
+    const repriced = applyToPending ? await this.repricePending(schoolId, after) : 0;
+    return { before: toPlain(before), after: toPlain(after), repriced };
+  }
+
+  /**
+   * Lleva el tarifario editado a las cuotas pendientes que generó: solo las que no tienen cobros
+   * ni ajustes (descuentos, becas, moras), de matrículas vigentes de ese año y nivel (y grado).
+   * Si el tarifario es de todo el nivel, no toca los grados que tienen su propio tarifario. Las
+   * pensiones personalizadas (customPensionAmount) se respetan. No agrega ni quita meses.
+   */
+  private async repricePending(schoolId: string, fee: Awaited<ReturnType<typeof prisma.feeSchedule.update>>): Promise<number> {
+    const ownGrades =
+      fee.grade === null
+        ? (
+            await prisma.feeSchedule.findMany({
+              where: { schoolId, academicYearId: fee.academicYearId, educationLevel: fee.educationLevel, grade: { not: null } },
+              select: { grade: true },
+            })
+          ).map((g) => g.grade as number)
+        : [];
+    const obligations = await prisma.paymentObligation.findMany({
+      where: {
+        schoolId,
+        status: 'PENDING',
+        period: { not: null },
+        concept: { in: ['PENSION', 'MATRICULA', 'CUOTA_INGRESO'] },
+        transactions: { none: { status: 'ACTIVE' } },
+        adjustments: { none: { status: 'ACTIVE' } },
+        enrollment: {
+          academicYearId: fee.academicYearId,
+          enrollmentState: 'REGISTERED',
+          classroom: {
+            educationLevel: fee.educationLevel,
+            ...(fee.grade !== null ? { grade: fee.grade } : ownGrades.length ? { grade: { notIn: ownGrades } } : {}),
+          },
+        },
+      },
+      select: {
+        id: true,
+        concept: true,
+        period: true,
+        amountDue: true,
+        dueDate: true,
+        enrollment: { select: { enrollmentDate: true, customPensionAmount: true } },
+      },
+    });
+    let count = 0;
+    for (const ob of obligations) {
+      if (ob.concept === 'PENSION' && ob.enrollment.customPensionAmount !== null) continue;
+      const next = repriceObligation(
+        { concept: ob.concept, period: ob.period, amountDue: ob.amountDue, dueDate: ob.dueDate.toISOString().slice(0, 10) },
+        fee,
+        getSchoolTimeParts(ob.enrollment.enrollmentDate).dateStr,
+      );
+      if (!next) continue;
+      await prisma.paymentObligation.update({
+        where: { id: ob.id },
+        data: { amountDue: next.amountDue, originalAmount: next.amountDue, dueDate: parseSchoolDate(next.dueDate) },
+      });
+      count++;
+    }
+    return count;
   }
 
   /** Borrar el tarifario no toca las cuotas ya generadas. */
@@ -173,16 +235,16 @@ export class FeeScheduleService {
     });
     if (!plan.feeScheduleFound || plan.items.length === 0) return { plan, missing: [] as PlannedObligation[] };
 
+    // Los periodos no se repiten entre conceptos ('2026-03', 'MATRICULA-2026', 'INGRESO-2026'): una
+    // cuota reclasificada a otro concepto sigue ocupando su lugar del cronograma.
     const existing = await db.paymentObligation.findMany({
-      where: { enrollmentId, concept: { in: [...new Set(plan.items.map((i) => i.concept))] } },
+      where: { enrollmentId, OR: [{ period: { not: null } }, { concept: { in: [...new Set(plan.items.map((i) => i.concept))] } }] },
       select: { concept: true, period: true, dueDate: true },
     });
     const taken = new Set(
-      existing.map(
-        (e) => `${e.concept}:${existingPeriodKey({ concept: e.concept, period: e.period, dueDate: e.dueDate.toISOString().slice(0, 10) }, plan.year)}`,
-      ),
+      existing.map((e) => existingPeriodKey({ concept: e.concept, period: e.period, dueDate: e.dueDate.toISOString().slice(0, 10) }, plan.year)),
     );
-    return { plan, missing: plan.items.filter((i) => !taken.has(`${i.concept}:${i.period}`)) };
+    return { plan, missing: plan.items.filter((i) => !taken.has(i.period)) };
   }
 
   /**

@@ -54,6 +54,7 @@ const FeeScheduleModal: React.FC<{
   gradesByLevel: Record<EducationLevel, number[]>;
 }> = ({ open, onClose, academicYearId, editing, initialLevel, gradesByLevel }) => {
   const save = useSaveFeeSchedule();
+  const [applyToPending, setApplyToPending] = useState(false);
   const [f, setF] = useState<FormState>({
     educationLevel: initialLevel,
     grade: '',
@@ -67,6 +68,7 @@ const FeeScheduleModal: React.FC<{
 
   useEffect(() => {
     if (!open) return;
+    setApplyToPending(false);
     setF(
       editing
         ? {
@@ -101,6 +103,7 @@ const FeeScheduleModal: React.FC<{
     save.mutate(
       {
         id: editing?.id,
+        applyToPending: !!editing && applyToPending,
         body: {
           academicYearId,
           educationLevel: f.educationLevel,
@@ -114,8 +117,12 @@ const FeeScheduleModal: React.FC<{
         },
       },
       {
-        onSuccess: () => {
-          toast.success(editing ? 'Tarifario actualizado.' : 'Tarifario registrado.');
+        onSuccess: (r) => {
+          toast.success(
+            editing
+              ? `Tarifario actualizado${applyToPending ? ` · ${r.repriced ?? 0} cuotas pendientes actualizadas` : ''}.`
+              : 'Tarifario registrado.',
+          );
           onClose();
         },
         onError: (e) => toast.error(apiError(e, 'No se pudo guardar el tarifario.')),
@@ -130,7 +137,7 @@ const FeeScheduleModal: React.FC<{
       open={open}
       onClose={onClose}
       title={editing ? 'Editar tarifario' : 'Nuevo tarifario'}
-      description="Los cambios aplican a las matrículas que se registren desde ahora; las cuotas ya generadas no cambian."
+      description="Los montos aplican a las matrículas nuevas. Al editar, puedes llevarlos también a las cuotas pendientes ya generadas."
       size="lg"
       footer={
         <>
@@ -228,6 +235,18 @@ const FeeScheduleModal: React.FC<{
           </span>
           {nums.admissionFee > 0 && <span className="text-muted-foreground">+ {soles(nums.admissionFee)} si es ingresante</span>}
         </div>
+        {editing && (
+          <label className="flex items-start gap-2 rounded-xl border border-border p-3 cursor-pointer">
+            <input type="checkbox" checked={applyToPending} onChange={(e) => setApplyToPending(e.target.checked)} className="w-4 h-4 mt-0.5 rounded" />
+            <span>
+              <strong className="text-foreground">Actualizar también las cuotas pendientes ya generadas</strong>
+              <span className="block text-muted-foreground">
+                Cambia el monto (y el día de vencimiento de las pensiones) de las cuotas sin cobros, descuentos, becas ni moras de este nivel
+                {editing.grade !== null ? ' y grado' : ''}. Las pagadas, con ajustes o con pensión personalizada no se tocan. No agrega ni quita meses.
+              </span>
+            </span>
+          </label>
+        )}
         {errors.length > 0 && f.monthlyFee !== '' && <p className="text-[11px] text-destructive font-medium">{errors[0]}</p>}
       </div>
     </Modal>

@@ -73,6 +73,8 @@ export interface StudentFilterParams {
   educationLevel?: 'INITIAL' | 'PRIMARY' | 'SECONDARY';
   grade?: number;
   section?: string;
+  /** 'year' (por defecto): matriculados del año elegido; 'all': todos los alumnos del colegio */
+  scope?: 'year' | 'all';
 }
 
 export interface StudentsPaginatedResponse {

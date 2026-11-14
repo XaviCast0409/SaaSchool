@@ -140,6 +140,8 @@ export const studentFilterSchema = z.object({
   educationLevel: z.nativeEnum(EducationLevel).optional().or(emptyToUndefined),
   grade: z.coerce.number().int().optional().or(emptyToUndefined),
   section: z.string().optional().or(emptyToUndefined),
+  /** 'year' (por defecto): solo matriculados en el año elegido; 'all': directorio de todos los alumnos */
+  scope: z.enum(['year', 'all']).optional().or(emptyToUndefined),
 });
 
 /**
@@ -254,7 +256,10 @@ export const bulkCredentialsSchema = z.object({
 
 export type CreateStudentDto = z.infer<typeof createStudentSchema>;
 export type UpdateStudentDto = z.infer<typeof updateStudentSchema>;
-export type StudentFilterDto = z.infer<typeof studentFilterSchema>;
+export type StudentFilterDto = z.infer<typeof studentFilterSchema> & {
+  /** Año elegido en la cabecera (lo pone el controlador, no el cliente) */
+  academicYearId?: string;
+};
 export type RegisterFichaMatriculaDto = z.infer<typeof registerFichaMatriculaSchema>;
 export type NominaClassroomParamDto = z.infer<typeof nominaClassroomParamSchema>;
 export type BulkCredentialsDto = z.infer<typeof bulkCredentialsSchema>;

@@ -78,7 +78,7 @@ app.use(
       callback(new AppError('Origen no permitido', 403));
     },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-school-id'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-school-id', 'x-academic-year-id'],
     maxAge: 86400,
   }),
 );

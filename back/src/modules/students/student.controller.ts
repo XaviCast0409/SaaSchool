@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { selectedAcademicYearId } from '../../utils/academic-year-scope';
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
 import { recordAudit } from '../../utils/audit.util';
@@ -23,7 +24,8 @@ export class StudentController {
   getAll = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
     const queryFilters = studentFilterSchema.parse(request.query);
-    const result = await this.studentService.getAllStudents(schoolId, queryFilters);
+    const academicYearId = await selectedAcademicYearId(request);
+    const result = await this.studentService.getAllStudents(schoolId, { ...queryFilters, academicYearId });
 
     response.status(200).json({
       status: 'success',

@@ -354,7 +354,7 @@ export class AdjustmentService {
         concept: 'PENSION',
         status: { in: ['PENDING', 'PARTIAL'] },
         dueDate: { lt: today.dateObj },
-        enrollment: { isActive: true },
+        // Toda pensión vencida cuenta, aunque su año ya no sea el vigente (la deuda no prescribe al cambiar de año)
       },
       select: {
         id: true,

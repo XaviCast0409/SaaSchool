@@ -65,10 +65,10 @@ feeScheduleRouter.post('/generate-missing', requireFinance('manage'), async (req
 
 feeScheduleRouter.put('/:id', requireFinance('manage'), async (req: Request, res: Response) => {
   const id = uuid.parse(req.params.id);
-  const dto = feeScheduleSchema.parse(req.body);
-  const { before, after } = await feeScheduleService.update(req.user!.schoolId, id, dto);
-  recordAudit(req, { action: 'FEE_SCHEDULE_UPDATED', entity: 'FeeSchedule', entityId: id, before, after });
-  res.status(200).json({ status: 'success', data: after });
+  const { applyToPending, ...dto } = feeScheduleSchema.extend({ applyToPending: z.boolean().default(false) }).parse(req.body);
+  const { before, after, repriced } = await feeScheduleService.update(req.user!.schoolId, id, dto, applyToPending);
+  recordAudit(req, { action: 'FEE_SCHEDULE_UPDATED', entity: 'FeeSchedule', entityId: id, before, after: { ...after, cuotasActualizadas: repriced } });
+  res.status(200).json({ status: 'success', data: { ...after, repriced } });
 });
 
 feeScheduleRouter.delete('/:id', requireFinance('manage'), async (req: Request, res: Response) => {

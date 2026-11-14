@@ -40,6 +40,7 @@ export const BulkObligationModal: React.FC<BulkObligationModalProps> = ({ onClos
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<BulkCreateObligationsFormData>({
     resolver: zodResolver(bulkCreateObligationsSchema),
@@ -64,10 +65,26 @@ export const BulkObligationModal: React.FC<BulkObligationModalProps> = ({ onClos
     }
   };
 
+  const byLevel = watch('byLevel');
+  const scope = watch('classroomId') || '';
+
   const onSubmit = (data: BulkCreateObligationsFormData) => {
+    const scopeValue = data.classroomId?.trim() || '';
+    const amountsByLevel = data.byLevel
+      ? { INITIAL: data.amountInitial ?? null, PRIMARY: data.amountPrimary ?? null, SECONDARY: data.amountSecondary ?? null }
+      : null;
+    if (data.byLevel ? !Object.values(amountsByLevel!).some((v) => v) : !data.amountDue) {
+      toast.error(data.byLevel ? 'Ingresa el monto de al menos un nivel.' : 'Ingresa el monto a cobrar.');
+      return;
+    }
     const payload = {
-      ...data,
-      classroomId: data.classroomId?.trim() === '' ? undefined : data.classroomId,
+      title: data.title,
+      concept: data.concept,
+      dueDate: data.dueDate,
+      amountDue: data.byLevel ? null : data.amountDue,
+      amountsByLevel,
+      educationLevel: scopeValue.startsWith('level:') ? scopeValue.slice(6) : undefined,
+      classroomId: scopeValue && !scopeValue.startsWith('level:') ? scopeValue : undefined,
     };
     bulkCreate(payload, {
       onSuccess: (res) => {
@@ -149,6 +166,9 @@ export const BulkObligationModal: React.FC<BulkObligationModalProps> = ({ onClos
               className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-xs font-medium text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
             >
               <option value="">✨ TODO EL COLEGIO (Todos los matriculados)</option>
+              <option value="level:INITIAL">Todo Inicial</option>
+              <option value="level:PRIMARY">Toda Primaria</option>
+              <option value="level:SECONDARY">Toda Secundaria</option>
               {classrooms.map((c) => (
                 <option key={c.id} value={c.id}>
                   Sección: {c.grade}° {c.section} ({c.educationLevel})
@@ -180,15 +200,42 @@ export const BulkObligationModal: React.FC<BulkObligationModalProps> = ({ onClos
             <input type="hidden" {...register('title')} />
           )}
 
+          {/* Monto distinto por nivel (solo cuando el alcance es todo el colegio) */}
+          {!scope && (
+            <label className="flex items-center gap-2 text-xs font-semibold text-foreground cursor-pointer">
+              <input type="checkbox" {...register('byLevel')} className="w-4 h-4 rounded" />
+              Monto distinto por nivel (Inicial, Primaria, Secundaria)
+            </label>
+          )}
+          {!scope && byLevel && (
+            <div className="grid grid-cols-3 gap-2 rounded-lg border border-border bg-muted/20 p-3">
+              {(
+                [
+                  ['amountInitial', 'Inicial'],
+                  ['amountPrimary', 'Primaria'],
+                  ['amountSecondary', 'Secundaria'],
+                ] as const
+              ).map(([field, label]) => (
+                <div key={field} className="space-y-1">
+                  <label className="text-[11px] font-semibold text-foreground">{label} (S/)</label>
+                  <Input type="number" step="0.01" min="0" placeholder="No cobrar" {...register(field)} className="h-9 text-xs font-mono font-bold" />
+                </div>
+              ))}
+              <p className="col-span-3 text-[10px] text-muted-foreground">Deja vacío un nivel para no cobrarle este concepto.</p>
+            </div>
+          )}
+
           {/* Monto y Fecha Vencimiento */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase tracking-wide text-foreground">
-                Monto a Cobrar (S/)
-              </label>
-              <Input type="number" step="0.01" {...register('amountDue')} className="h-9 text-sm font-bold text-primary" />
-              {errors.amountDue && <p className="text-xs text-destructive">{errors.amountDue.message}</p>}
-            </div>
+            {!(byLevel && !scope) && (
+              <div className="space-y-1">
+                <label className="text-xs font-semibold uppercase tracking-wide text-foreground">
+                  Monto a Cobrar (S/)
+                </label>
+                <Input type="number" step="0.01" {...register('amountDue')} className="h-9 text-sm font-bold text-primary" />
+                {errors.amountDue && <p className="text-xs text-destructive">{errors.amountDue.message}</p>}
+              </div>
+            )}
 
             <div className="space-y-1">
               <label className="text-xs font-semibold uppercase tracking-wide text-foreground">

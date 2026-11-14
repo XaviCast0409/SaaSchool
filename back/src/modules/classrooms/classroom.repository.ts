@@ -1,3 +1,4 @@
+import { enrollmentsOfYear } from '../../utils/academic-year-scope';
 import { prisma } from '../../config/prisma';
 import type { Prisma, Classroom } from '@prisma/client';
 import type { CreateClassroomDto, UpdateClassroomDto } from './classroom.schema';
@@ -21,10 +22,10 @@ const ORDER: Prisma.ClassroomOrderByWithRelationInput[] = [{ educationLevel: 'as
 
 export class ClassroomRepository {
   /** Aulas con el número de alumnos matriculados vigentes (año activo). */
-  async findAllBySchool(schoolId: string): Promise<ClassroomWithStats[]> {
+  async findAllBySchool(schoolId: string, academicYearId?: string): Promise<ClassroomWithStats[]> {
     const [rooms, counts] = await Promise.all([
       prisma.classroom.findMany({ where: { schoolId }, include: CLASSROOM_INCLUDE, orderBy: ORDER }),
-      prisma.enrollment.groupBy({ by: ['classroomId'], where: { schoolId, isActive: true }, _count: { _all: true } }),
+      prisma.enrollment.groupBy({ by: ['classroomId'], where: { schoolId, ...enrollmentsOfYear(academicYearId) }, _count: { _all: true } }),
     ]);
     return rooms.map((r) => ({ ...r, enrolledCount: counts.find((c) => c.classroomId === r.id)?._count._all ?? 0 }));
   }

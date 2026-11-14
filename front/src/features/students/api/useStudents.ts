@@ -79,6 +79,7 @@ export const useStudents = (filters: StudentFilterParams = {}, enabledOverride?:
       if (filters.page) params.append('page', String(filters.page));
       if (filters.limit) params.append('limit', String(filters.limit));
       if (filters.search) params.append('search', filters.search);
+      if (filters.scope) params.append('scope', filters.scope);
       if (filters.classroomId) params.append('classroomId', filters.classroomId);
       if (filters.educationLevel) params.append('educationLevel', filters.educationLevel);
       if (filters.grade !== undefined) params.append('grade', String(filters.grade));

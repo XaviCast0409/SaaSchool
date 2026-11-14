@@ -67,13 +67,14 @@ export const useFeeSchedules = (academicYearId: string | undefined) =>
 export const useSaveFeeSchedule = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, body }: { id?: string; body: FeeScheduleBody }) =>
+    mutationFn: async ({ id, body, applyToPending }: { id?: string; body: FeeScheduleBody; applyToPending?: boolean }) =>
       id
-        ? (await api.put<{ data: FeeSchedule }>(`/payments/fee-schedules/${id}`, body)).data.data
-        : (await api.post<{ data: FeeSchedule }>('/payments/fee-schedules', body)).data.data,
-    onSuccess: () => {
+        ? (await api.put<{ data: FeeSchedule & { repriced: number } }>(`/payments/fee-schedules/${id}`, { ...body, applyToPending: !!applyToPending })).data.data
+        : (await api.post<{ data: FeeSchedule & { repriced?: number } }>('/payments/fee-schedules', body)).data.data,
+    onSuccess: (r) => {
       qc.invalidateQueries({ queryKey: [KEY] });
       qc.invalidateQueries({ queryKey: ['schedule-preview'] });
+      if (r.repriced) for (const key of ['payments-obligations', 'financial-summary', 'statement']) qc.invalidateQueries({ queryKey: [key] });
     },
   });
 };

@@ -4,6 +4,7 @@ import type { Prisma, Student } from '@prisma/client';
 import type { CreateStudentDto, UpdateStudentDto, StudentFilterDto, RegisterFichaMatriculaDto } from './student.schema';
 import type { PaginatedResult } from '../../core/interfaces/global.interfaces';
 import { AppError } from '../../core/errors/app-error';
+import { enrollmentsOfYear } from '../../utils/academic-year-scope';
 import { feeScheduleService, type ScheduleResult } from '../payments/fee-schedule.service';
 
 export class StudentRepository {
@@ -11,24 +12,30 @@ export class StudentRepository {
     schoolId: string,
     filters: StudentFilterDto = { page: 1, limit: 10 },
   ): Promise<PaginatedResult<Student>> {
-    const { page, limit, search, classroomId, educationLevel, grade, section } = filters;
+    const { page, limit, search, classroomId, educationLevel, grade, section, academicYearId, scope } = filters;
     const skip = (page - 1) * limit;
+    // Matrículas del año elegido en la cabecera (o las vigentes si no se eligió año)
+    const ofYear = enrollmentsOfYear(academicYearId);
+    const hasClassroomFilter = Boolean(classroomId || educationLevel || grade !== undefined || section);
 
     const where: Prisma.StudentWhereInput = {
       schoolId,
-      ...(classroomId
-        ? { enrollments: { some: { classroomId, isActive: true } } }
-        : {}),
-      ...(educationLevel || grade !== undefined || section
+      // Con año elegido, la lista es "matriculados en ese año" salvo que se pida el directorio completo
+      ...(hasClassroomFilter || (academicYearId && scope !== 'all')
         ? {
             enrollments: {
               some: {
-                isActive: true,
-                classroom: {
-                  ...(educationLevel ? { educationLevel } : {}),
-                  ...(grade !== undefined ? { grade } : {}),
-                  ...(section ? { section } : {}),
-                },
+                ...ofYear,
+                ...(classroomId ? { classroomId } : {}),
+                ...(educationLevel || grade !== undefined || section
+                  ? {
+                      classroom: {
+                        ...(educationLevel ? { educationLevel } : {}),
+                        ...(grade !== undefined ? { grade } : {}),
+                        ...(section ? { section } : {}),
+                      },
+                    }
+                  : {}),
               },
             },
           }
@@ -71,7 +78,7 @@ export class StudentRepository {
             },
           },
           enrollments: {
-            where: { isActive: true },
+            where: ofYear,
             include: {
               academicYear: true,
               classroom: {

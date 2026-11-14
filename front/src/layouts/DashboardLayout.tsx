@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { AcademicYearBanner, AcademicYearSwitcher } from '@/components/AcademicYearSwitcher';
 import {
   Wallet,
   Percent,
@@ -804,9 +805,13 @@ export const DashboardLayout: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
+            <AcademicYearSwitcher />
             <NotificationBell />
           </div>
         </header>
+
+        {/* Año que se está viendo (si no es el vigente) */}
+        <AcademicYearBanner />
 
         {/* Banner de activación de notificaciones en 2do plano para celulares */}
         <MobilePushBanner />

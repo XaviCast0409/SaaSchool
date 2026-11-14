@@ -35,13 +35,25 @@ export const createObligationSchema = z
     path: ['operationNumber'],
   });
 
-export const bulkCreateObligationsSchema = z.object({
-  classroomId: z.string().uuid('ID de aula inválido').optional().nullable().or(emptyToUndefined),
-  title: z.string().min(1, 'El título es requerido'),
-  concept: z.enum(PAYMENT_CONCEPTS),
-  amountDue: z.number().positive('El monto debe ser positivo'),
-  dueDate: z.string().min(1, 'Fecha de vencimiento requerida'),
-});
+const levelAmount = z.number().positive('El monto debe ser positivo').optional().nullable();
+
+export const bulkCreateObligationsSchema = z
+  .object({
+    classroomId: z.string().uuid('ID de aula inválido').optional().nullable().or(emptyToUndefined),
+    /** Solo un nivel (Inicial, Primaria o Secundaria) */
+    educationLevel: z.enum(['INITIAL', 'PRIMARY', 'SECONDARY']).optional().nullable().or(emptyToUndefined),
+    title: z.string().min(1, 'El título es requerido'),
+    concept: z.enum(PAYMENT_CONCEPTS),
+    /** Monto único (si no se usa el monto por nivel) */
+    amountDue: z.number().positive('El monto debe ser positivo').optional().nullable(),
+    /** Monto distinto por nivel; un nivel sin monto no recibe el cargo */
+    amountsByLevel: z.object({ INITIAL: levelAmount, PRIMARY: levelAmount, SECONDARY: levelAmount }).optional().nullable(),
+    dueDate: z.string().min(1, 'Fecha de vencimiento requerida'),
+  })
+  .refine((d) => Boolean(d.amountDue) || Boolean(d.amountsByLevel && Object.values(d.amountsByLevel).some((v) => v)), {
+    message: 'Ingresa el monto (o el monto de al menos un nivel).',
+    path: ['amountDue'],
+  });
 
 export const updateObligationSchema = z.object({
   title: z.string().min(1).optional(),
@@ -137,7 +149,10 @@ export const dailyCashCloseQuerySchema = z.object({
 export type CreateObligationDto = z.infer<typeof createObligationSchema>;
 export type BulkCreateObligationsDto = z.infer<typeof bulkCreateObligationsSchema>;
 export type UpdateObligationDto = z.infer<typeof updateObligationSchema>;
-export type ObligationFilterDto = z.infer<typeof obligationFilterSchema>;
+export type ObligationFilterDto = z.infer<typeof obligationFilterSchema> & {
+  /** Año elegido en la cabecera (lo pone el controlador) */
+  academicYearId?: string;
+};
 export type CreateTransactionDto = z.infer<typeof createTransactionSchema>;
 export type TransactionFilterDto = z.infer<typeof transactionFilterSchema>;
 export type OpenCashSessionDto = z.infer<typeof openCashSessionSchema>;

@@ -7,6 +7,17 @@ import { useUpdateObligation } from '../api/usePayments';
 import { apiError } from '../api/useCash';
 import type { PaymentObligation } from '../types';
 
+const CONCEPT_OPTIONS = [
+  { value: 'PENSION', label: 'Pensión' },
+  { value: 'MATRICULA', label: 'Matrícula' },
+  { value: 'CUOTA_INGRESO', label: 'Cuota de ingreso' },
+  { value: 'LIBROS_MATERIALES', label: 'Libros y materiales' },
+  { value: 'UNIFORME', label: 'Uniforme' },
+  { value: 'CARNET_AGENDA', label: 'Carné / agenda' },
+  { value: 'EXCURSION_EVENTO', label: 'Excursión / evento' },
+  { value: 'OTROS', label: 'Otros' },
+];
+
 interface EditObligationModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -23,6 +34,7 @@ export const EditObligationModal: React.FC<EditObligationModalProps> = ({
   const [amountDue, setAmountDue] = useState<string>('');
   const [dueDate, setDueDate] = useState<string>('');
   const [title, setTitle] = useState<string>('');
+  const [concept, setConcept] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
 
   useEffect(() => {
@@ -33,6 +45,7 @@ export const EditObligationModal: React.FC<EditObligationModalProps> = ({
         : '';
       setDueDate(formattedDate);
       setTitle(obligation.title);
+      setConcept(obligation.concept);
       setNotes(obligation.notes || '');
     }
   }, [obligation]);
@@ -58,6 +71,15 @@ export const EditObligationModal: React.FC<EditObligationModalProps> = ({
     }
 
     const amountChanged = numericAmount !== Number(obligation.amountDue);
+    const conceptChanged = concept !== obligation.concept;
+    if (conceptChanged && obligation.transactions.length > 0) {
+      toast.error('Esta cuota ya tiene cobros. Para cambiar el concepto, primero anula los cobros (botón Cobros).');
+      return;
+    }
+    if (conceptChanged && notes.trim().length < 5) {
+      toast.error('Escribe el motivo del cambio de concepto (mínimo 5 caracteres).');
+      return;
+    }
     if (amountChanged && obligation.transactions.length > 0) {
       toast.error('Esta cuota ya tiene cobros. Para cambiar el monto, primero anula los cobros (botón Cobros).');
       return;
@@ -74,6 +96,7 @@ export const EditObligationModal: React.FC<EditObligationModalProps> = ({
           amountDue: numericAmount,
           dueDate: new Date(dueDate).toISOString(),
           title: title.trim() || undefined,
+          concept: conceptChanged ? concept : undefined,
           // El motivo queda en la auditoría junto con el monto anterior y el nuevo
           reason: notes.trim() || null,
         },
@@ -116,7 +139,7 @@ export const EditObligationModal: React.FC<EditObligationModalProps> = ({
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
               <Tag className="w-3.5 h-3.5 text-primary" />
-              <span>Concepto de Cobro</span>
+              <span>Título de la cuota</span>
             </label>
             <Input
               value={title}
@@ -124,6 +147,27 @@ export const EditObligationModal: React.FC<EditObligationModalProps> = ({
               className="text-xs h-9 rounded-xl"
               required
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-foreground">Concepto</label>
+            <select
+              value={concept}
+              onChange={(e) => setConcept(e.target.value)}
+              className="w-full text-xs h-9 rounded-xl border border-input bg-background px-3 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            >
+              {!CONCEPT_OPTIONS.some((o) => o.value === obligation.concept) && <option value={obligation.concept}>{obligation.concept}</option>}
+              {CONCEPT_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+            {concept !== obligation.concept && (
+              <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                Se reclasifica en reportes y becas. Escribe el motivo abajo; si era una pensión del cronograma, ese mes no se vuelve a generar.
+              </p>
+            )}
           </div>
 
           {/* Monto y Fecha */}
@@ -168,7 +212,7 @@ export const EditObligationModal: React.FC<EditObligationModalProps> = ({
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
               <FileText className="w-3.5 h-3.5 text-muted-foreground" />
-              <span>Motivo del cambio (obligatorio si cambias el monto)</span>
+              <span>Motivo del cambio (obligatorio si cambias el monto o el concepto)</span>
             </label>
             <textarea
               rows={2}

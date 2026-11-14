@@ -1,3 +1,4 @@
+import { selectedAcademicYearId } from '../../utils/academic-year-scope';
 import { Request, Response } from 'express';
 import { bulkCreateClassroomsSchema, createClassroomSchema, updateClassroomSchema } from './classroom.schema';
 import type { ClassroomService } from './classroom.service';
@@ -7,7 +8,7 @@ export class ClassroomController {
   constructor(private readonly classroomService: ClassroomService) {}
 
   getAll = async (request: Request, response: Response): Promise<void> => {
-    const classrooms = await this.classroomService.getAllClassrooms(request.user!.schoolId);
+    const classrooms = await this.classroomService.getAllClassrooms(request.user!.schoolId, await selectedAcademicYearId(request));
     response.status(200).json({ status: 'success', data: classrooms });
   };
 

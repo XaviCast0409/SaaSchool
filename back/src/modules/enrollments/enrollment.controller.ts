@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { recordAudit } from '../../utils/audit.util';
+import { selectedAcademicYearId } from '../../utils/academic-year-scope';
 import { createEnrollmentSchema, schedulePreviewSchema, updateEnrollmentSchema } from './enrollment.schema';
 import type { EnrollmentService } from './enrollment.service';
 
@@ -8,7 +9,7 @@ export class EnrollmentController {
 
   getAll = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
-    const enrollments = await this.enrollmentService.getAllEnrollments(schoolId);
+    const enrollments = await this.enrollmentService.getAllEnrollments(schoolId, await selectedAcademicYearId(request));
     response.status(200).json({ status: 'success', data: enrollments });
   };
 

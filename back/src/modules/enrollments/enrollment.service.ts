@@ -8,8 +8,8 @@ import type { Enrollment } from '@prisma/client';
 export class EnrollmentService {
   constructor(private readonly enrollmentRepository: EnrollmentRepository) {}
 
-  async getAllEnrollments(schoolId: string): Promise<Enrollment[]> {
-    return this.enrollmentRepository.findAllBySchool(schoolId);
+  async getAllEnrollments(schoolId: string, academicYearId?: string): Promise<Enrollment[]> {
+    return this.enrollmentRepository.findAllBySchool(schoolId, academicYearId);
   }
 
   async getEnrollmentById(enrollmentId: string, schoolId: string): Promise<Enrollment> {

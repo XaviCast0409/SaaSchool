@@ -38,8 +38,8 @@ export class ClassroomService {
     }
   }
 
-  async getAllClassrooms(schoolId: string): Promise<ClassroomWithStats[]> {
-    return this.classroomRepository.findAllBySchool(schoolId);
+  async getAllClassrooms(schoolId: string, academicYearId?: string): Promise<ClassroomWithStats[]> {
+    return this.classroomRepository.findAllBySchool(schoolId, academicYearId);
   }
 
   async getClassroomById(classroomId: string, schoolId: string): Promise<ClassroomWithTutor> {

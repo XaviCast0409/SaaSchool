@@ -11,6 +11,7 @@ import { BulkCredentialsModal } from '../components/BulkCredentialsModal';
 import { NominaImportModal } from '@/features/siagie/components/NominaImportModal';
 import { useGetActiveSchool } from '@/features/schools/api/useSchool';
 import { Button } from '@/components/ui/button';
+import { useSelectedAcademicYear } from '@/components/AcademicYearSwitcher';
 import { RolloverModal } from '../components/RolloverModal';
 import { QuickEnrollModal, type QuickEnrollStudent } from '../components/QuickEnrollModal';
 import { useAcademicYears, pickEnrollmentTargetYear } from '@/features/academic-years/api/useAcademicYears';
@@ -42,7 +43,10 @@ export const StudentsPage: React.FC = () => {
   const [classroomId, setClassroomId] = useState<string | undefined>(undefined);
   const [educationLevel, setEducationLevel] = useState<'INITIAL' | 'PRIMARY' | 'SECONDARY' | undefined>(undefined);
 
+  const [scope, setScope] = useState<'year' | 'all'>('year');
+  const { selected: viewedYear } = useSelectedAcademicYear();
   const { data: response, isLoading, isError, refetch } = useStudents({
+    scope,
     page,
     limit,
     search,
@@ -61,7 +65,7 @@ export const StudentsPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <Users className="w-6 h-6 text-primary" />
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Directorio de Estudiantes
+              {scope === 'all' ? 'Directorio de Estudiantes' : `Estudiantes matriculados${viewedYear ? ` ${viewedYear.year}` : ''}`}
             </h1>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
@@ -140,6 +144,28 @@ export const StudentsPage: React.FC = () => {
             </Button>
           )}
         </div>
+      </div>
+
+      {/* Matriculados del año que se está viendo o todos los alumnos del colegio */}
+      <div className="inline-flex rounded-lg border border-border p-0.5 text-sm">
+        {(
+          [
+            ['year', `Matriculados ${viewedYear?.year ?? ''}`],
+            ['all', 'Todos los alumnos'],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => {
+              setScope(key);
+              setPage(1);
+            }}
+            className={`rounded-md px-3 py-1.5 font-semibold ${scope === key ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* Content */}

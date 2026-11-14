@@ -91,7 +91,7 @@ const StatementTab: React.FC = () => {
   const [mode, setMode] = useState<'student' | 'family'>('student');
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
-  const { data: studentsData } = useStudents({ page: 1, limit: 20, search: search || undefined }, mode === 'student' && search.trim().length >= 2);
+  const { data: studentsData } = useStudents({ page: 1, limit: 20, search: search || undefined, scope: 'all' }, mode === 'student' && search.trim().length >= 2);
   const { data: guardians = [] } = useGuardianSearch(mode === 'family' ? search : '');
   const student = useStudentStatement(mode === 'student' ? selected : null);
   const family = useFamilyStatement(mode === 'family' ? selected : null);

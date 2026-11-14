@@ -14,7 +14,6 @@ import {
 } from '../types';
 import type {
   CreateObligationFormData,
-  BulkCreateObligationsFormData,
   RegisterTransactionFormData,
 } from '../schemas/payment.schema';
 
@@ -146,11 +145,21 @@ export const useCreateObligation = () => {
 };
 
 /** Mutation para generación masiva de cronogramas */
+export interface BulkObligationsPayload {
+  title: string;
+  concept: string;
+  dueDate: string;
+  amountDue?: number | null;
+  amountsByLevel?: { INITIAL: number | null; PRIMARY: number | null; SECONDARY: number | null } | null;
+  educationLevel?: string;
+  classroomId?: string;
+}
+
 export const useBulkCreateObligations = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: BulkCreateObligationsFormData) => {
+    mutationFn: async (data: BulkObligationsPayload) => {
       const response = await api.post<{
         status: string;
         data: { count: number; skippedCount: number; totalMatriculados: number };
@@ -277,8 +286,9 @@ export interface UpdateObligationDto {
   amountDue?: number;
   dueDate?: string;
   title?: string;
+  concept?: string;
   notes?: string | null;
-  /** Obligatorio cuando cambia el monto. */
+  /** Obligatorio cuando cambia el monto o el concepto. */
   reason?: string | null;
 }
 

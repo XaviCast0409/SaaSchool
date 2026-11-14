@@ -266,7 +266,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
 
   // ¿El documento ya pertenece a un alumno del colegio? (p. ej. matricularlo en el año siguiente)
   const typedDocument = (watch('documentId') || '').trim();
-  const { data: sameDocument } = useStudents({ page: 1, limit: 5, search: typedDocument }, isOpen && step === 1 && typedDocument.length >= 8);
+  const { data: sameDocument } = useStudents({ page: 1, limit: 5, search: typedDocument, scope: 'all' }, isOpen && step === 1 && typedDocument.length >= 8);
   const existingStudent = (sameDocument?.data ?? []).find((s) => s.documentId === typedDocument) ?? null;
 
   const filteredParents = existingParents.filter(

@@ -1,3 +1,4 @@
+import { selectedAcademicYearId } from '../../utils/academic-year-scope';
 import { Request, Response } from 'express';
 import { recordAudit } from '../../utils/audit.util';
 import {
@@ -24,7 +25,8 @@ export class PaymentController {
   getAllObligations = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
     const filters = obligationFilterSchema.parse(request.query);
-    const result = await this.paymentService.getAllObligations(schoolId, filters);
+    const academicYearId = await selectedAcademicYearId(request);
+    const result = await this.paymentService.getAllObligations(schoolId, { ...filters, academicYearId });
     response.status(200).json({ status: 'success', data: result.data, meta: result.meta });
   };
 
@@ -72,7 +74,7 @@ export class PaymentController {
   bulkCreateObligations = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
     const bulkDto = bulkCreateObligationsSchema.parse(request.body);
-    const result = await this.paymentService.bulkCreateObligations(schoolId, bulkDto, actorOf(request));
+    const result = await this.paymentService.bulkCreateObligations(schoolId, bulkDto, actorOf(request), await selectedAcademicYearId(request));
     recordAudit(request, {
       action: 'PAYMENT_OBLIGATIONS_BULK_CREATED',
       entity: 'PaymentObligation',
@@ -184,7 +186,7 @@ export class PaymentController {
   /** GET /api/payments/summary — resumen financiero del colegio */
   getSummary = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
-    const summary = await this.paymentService.getFinancialSummary(schoolId);
+    const summary = await this.paymentService.getFinancialSummary(schoolId, await selectedAcademicYearId(request));
     response.status(200).json({ status: 'success', data: summary });
   };
 

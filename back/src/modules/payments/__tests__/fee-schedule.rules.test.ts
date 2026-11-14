@@ -5,6 +5,7 @@ import {
   monthlyDueDate,
   periodForConcept,
   pickFeeSchedule,
+  repriceObligation,
   scheduleTotal,
   shouldCancelOnWithdrawal,
   validateFeeTerms,
@@ -140,5 +141,27 @@ describe('cuotas existentes al completar el cronograma', () => {
     expect(existingPeriodKey({ concept: 'PENSION', period: null, dueDate: '2026-05-31' }, 2026)).toBe('2026-05');
     expect(existingPeriodKey({ concept: 'MATRICULA', period: null, dueDate: '2025-12-15' }, 2026)).toBe('MATRICULA-2026');
     expect(existingPeriodKey({ concept: 'UNIFORME', period: null, dueDate: '2026-03-01' }, 2026)).toBeNull();
+  });
+});
+
+describe('editar el tarifario actualiza cuotas pendientes', () => {
+  const t = { ...terms, monthlyFee: '480.00', enrollmentFee: '320', admissionFee: 0, dueDay: 15 };
+  it('pensión: monto y día nuevos; matrícula: solo monto', () => {
+    expect(repriceObligation({ concept: 'PENSION', period: '2026-04', amountDue: '450', dueDate: '2026-04-30' }, t, '2026-01-10')).toEqual({
+      amountDue: 480,
+      dueDate: '2026-04-15',
+    });
+    expect(repriceObligation({ concept: 'MATRICULA', period: 'MATRICULA-2026', amountDue: 300, dueDate: '2026-01-10' }, t, '2026-01-10')).toEqual({
+      amountDue: 320,
+      dueDate: '2026-01-10',
+    });
+  });
+  it('no adelanta el vencimiento antes de la matrícula', () => {
+    expect(repriceObligation({ concept: 'PENSION', period: '2026-08', amountDue: 450, dueDate: '2026-08-20' }, t, '2026-08-20')?.dueDate).toBe('2026-08-20');
+  });
+  it('sin cambios, monto cero u otros conceptos: no toca', () => {
+    expect(repriceObligation({ concept: 'PENSION', period: '2026-04', amountDue: 480, dueDate: '2026-04-15' }, t, '2026-01-10')).toBeNull();
+    expect(repriceObligation({ concept: 'CUOTA_INGRESO', period: 'INGRESO-2026', amountDue: 500, dueDate: '2026-01-10' }, t, '2026-01-10')).toBeNull();
+    expect(repriceObligation({ concept: 'UNIFORME', period: null, amountDue: 90, dueDate: '2026-03-01' }, t, '2026-01-10')).toBeNull();
   });
 });

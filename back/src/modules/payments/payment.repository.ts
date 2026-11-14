@@ -101,17 +101,18 @@ export class PaymentRepository {
     const limit = filters.limit || 10;
     const skip = (page - 1) * limit;
 
+    // Una deuda vencida sigue siendo deuda aunque su año ya no sea el vigente: "vencidas" no filtra
+    // por año vigente. El año lo decide el selector de la cabecera (cuotas de matrículas de ese año).
     const where: Prisma.PaymentObligationWhereInput = {
       schoolId,
       ...(filters.status ? { status: filters.status } : {}),
-      ...(filters.overdue
-        ? { status: { in: ['PENDING', 'PARTIAL'] }, dueDate: { lt: getSchoolNow().dateObj }, enrollment: { isActive: true } }
-        : {}),
+      ...(filters.overdue ? { status: { in: ['PENDING', 'PARTIAL'] }, dueDate: { lt: getSchoolNow().dateObj } } : {}),
       ...(filters.enrollmentId ? { enrollmentId: filters.enrollmentId } : {}),
-      ...(filters.classroomId
+      ...(filters.classroomId || filters.academicYearId
         ? {
             enrollment: {
-              classroomId: filters.classroomId,
+              ...(filters.classroomId ? { classroomId: filters.classroomId } : {}),
+              ...(filters.academicYearId ? { academicYearId: filters.academicYearId } : {}),
             },
           }
         : {}),
@@ -331,10 +332,10 @@ export class PaymentRepository {
   /**
    * Calcula el resumen financiero (recaudado, pendiente, vencido) del colegio.
    */
-  async getFinancialSummary(schoolId: string) {
+  async getFinancialSummary(schoolId: string, academicYearId?: string) {
     // Las pensiones anuladas (retiros y traslados) no cuentan como deuda ni como monto esperado
     const obligations = await prisma.paymentObligation.findMany({
-      where: { schoolId, status: { not: 'CANCELLED' } },
+      where: { schoolId, status: { not: 'CANCELLED' }, ...(academicYearId ? { enrollment: { academicYearId } } : {}) },
       include: { transactions: { where: { status: 'ACTIVE' }, select: { amountPaid: true } } },
     });
 
