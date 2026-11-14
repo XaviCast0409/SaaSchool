@@ -275,6 +275,7 @@ model School {
   cashExpenses              CashExpense[]
   obligationAdjustments     ObligationAdjustment[]
   scholarships              Scholarship[]
+  feeSchedules              FeeSchedule[]
 }
 
 model User {
@@ -443,6 +444,7 @@ model AcademicYear {
   timetableTemplates    TimetableTemplate[]
   teacherAvailabilities TeacherAvailability[]
   periodStatuses        AcademicPeriodStatus[]
+  feeSchedules          FeeSchedule[]
 }
 
 model Classroom {
@@ -517,6 +519,9 @@ model PaymentObligation {
   enrollmentId   String
   title          String // Ej: "Pensión Marzo 2026"
   concept        String // Ej: "PENSION", "MATRICULA"
+  /// Clave de periodo para no duplicar cuotas: '2026-03' (pensión), 'MATRICULA-2026', 'INGRESO-2026'.
+  /// Único por (enrollmentId, concept, period) entre las cuotas no anuladas (índice parcial en SQL).
+  period         String?
   amountDue      Decimal          @db.Decimal(10, 2)
   /// Monto original antes de ajustes (descuentos, becas, moras). amountDue es el monto vigente.
   originalAmount Decimal?         @db.Decimal(10, 2)
@@ -537,6 +542,31 @@ model PaymentObligation {
 
   @@index([schoolId, status])
   @@index([schoolId, dueDate])
+  @@index([enrollmentId, concept, period])
+}
+
+/// Tarifario de un año académico por nivel (y grado opcional): con él se genera el cronograma
+/// de cuotas al matricular. Una fila con grado tiene prioridad sobre la del nivel completo.
+model FeeSchedule {
+  id             String         @id @default(uuid())
+  schoolId       String
+  academicYearId String
+  educationLevel EducationLevel
+  grade          Int? // null = todo el nivel
+  enrollmentFee  Decimal        @default(0) @db.Decimal(10, 2) // Matrícula
+  admissionFee   Decimal        @default(0) @db.Decimal(10, 2) // Cuota de ingreso (solo INGRESANTE)
+  monthlyFee     Decimal        @db.Decimal(10, 2) // Pensión mensual
+  firstMonth     Int            @default(3) // 1-12: primer mes de pensión (marzo)
+  lastMonth      Int            @default(12) // 1-12: último mes de pensión (diciembre)
+  dueDay         Int            @default(31) // Día de vencimiento (si el mes es más corto, el último día)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  school       School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+
+  // Unicidad (año, nivel, grado) con grado NULL: índices parciales en la migración SQL
+  @@index([schoolId, academicYearId])
 }
 
 model PaymentTransaction {

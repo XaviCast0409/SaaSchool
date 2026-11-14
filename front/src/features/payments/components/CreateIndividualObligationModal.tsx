@@ -44,6 +44,7 @@ const CONCEPT_OPTIONS = [
   { value: 'LIBROS_MATERIALES', label: 'Libros y Materiales Educativos' },
   { value: 'UNIFORME', label: 'Uniforme Escolar' },
   { value: 'CARNET_AGENDA', label: 'Carnet / Agenda Escolar' },
+  { value: 'CUOTA_INGRESO', label: 'Cuota de Ingreso' },
   { value: 'EXCURSION_EVENTO', label: 'Excursión / Evento Extracurricular' },
 ];
 

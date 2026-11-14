@@ -20,6 +20,9 @@ const PaymentsPage = lazy(() =>
 const CashPage = lazy(() =>
   import('@/features/payments/pages/CashPage').then((m) => ({ default: m.CashPage })),
 );
+const FeeSchedulesPage = lazy(() =>
+  import('@/features/payments/pages/FeeSchedulesPage').then((m) => ({ default: m.FeeSchedulesPage })),
+);
 const BenefitsPage = lazy(() =>
   import('@/features/payments/pages/BenefitsPage').then((m) => ({ default: m.BenefitsPage })),
 );
@@ -389,6 +392,14 @@ export const AppRouter: React.FC = () => {
               element={
                 <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE']}>
                   <CashPage />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/payments/fee-schedules"
+              element={
+                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE']}>
+                  <FeeSchedulesPage />
                 </RoleGuard>
               }
             />

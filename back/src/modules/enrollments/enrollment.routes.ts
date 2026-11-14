@@ -14,6 +14,7 @@ export const enrollmentRouter = Router();
 enrollmentRouter.use(authMiddleware, tenantMiddleware);
 
 enrollmentRouter.get('/', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'), enrollmentController.getAll);
+enrollmentRouter.get('/schedule-preview', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'), enrollmentController.previewSchedule);
 enrollmentRouter.post('/', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'), enrollmentController.create);
 enrollmentRouter.get('/:id', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'), enrollmentController.getById);
 enrollmentRouter.patch('/:id', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'), enrollmentController.update);

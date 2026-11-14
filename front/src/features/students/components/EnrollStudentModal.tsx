@@ -23,6 +23,8 @@ import { useUsers } from '@/features/users/api/useUsers';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SchedulePreviewCard } from '@/features/payments/components/SchedulePreviewCard';
+import type { ScheduleResult } from '@/features/payments/api/useFeeSchedules';
 
 const enrollWizardSchema = z
   .object({
@@ -255,6 +257,8 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
   const parentMode = watch('parentMode');
   const hasDisability = watch('hasDisability');
   const condition = watch('condition');
+  const selectedYearId = watch('academicYearId');
+  const selectedClassroomId = watch('classroomId');
   const selectedParentId = watch('existingParentId');
 
   const filteredParents = existingParents.filter(
@@ -350,6 +354,14 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
               : undefined,
         },
       });
+
+      // Aviso del cronograma de cuotas generado (o de que no hay tarifario)
+      const schedule = (result as { schedule?: ScheduleResult } | undefined)?.schedule;
+      if (schedule?.warning) {
+        toast.warning(schedule.warning, { duration: 8000 });
+      } else if (schedule?.created) {
+        toast.info(`Se generaron ${schedule.created} cuotas por S/ ${schedule.total.toFixed(2)}.`);
+      }
 
       const creds: TemporaryCredential[] = [];
       if (result?.temporaryCredentials?.student) {
@@ -821,6 +833,9 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                   <span>¿El estudiante se encuentra repitiendo este grado?</span>
                 </label>
               </div>
+
+              {/* Cronograma de cuotas que se generará con el tarifario */}
+              <SchedulePreviewCard academicYearId={selectedYearId} classroomId={selectedClassroomId} condition={condition} />
 
               {/* Becas, Descuentos y Pensión Personalizada */}
               <div className="p-3.5 rounded-xl border border-border bg-muted/20 space-y-3">

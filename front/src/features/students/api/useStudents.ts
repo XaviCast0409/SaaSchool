@@ -138,6 +138,8 @@ export const useRegisterFichaMatricula = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['students'] });
       queryClient.invalidateQueries({ queryKey: ['enrollments'] });
+      queryClient.invalidateQueries({ queryKey: ['payments-obligations'] });
+      queryClient.invalidateQueries({ queryKey: ['financial-summary'] });
     },
   });
 };

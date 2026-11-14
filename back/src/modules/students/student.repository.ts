@@ -4,6 +4,7 @@ import type { Prisma, Student } from '@prisma/client';
 import type { CreateStudentDto, UpdateStudentDto, StudentFilterDto, RegisterFichaMatriculaDto } from './student.schema';
 import type { PaginatedResult } from '../../core/interfaces/global.interfaces';
 import { AppError } from '../../core/errors/app-error';
+import { feeScheduleService, type ScheduleResult } from '../payments/fee-schedule.service';
 
 export class StudentRepository {
   async findAllBySchool(
@@ -244,7 +245,7 @@ export class StudentRepository {
     data: RegisterFichaMatriculaDto,
     guardianPasswordHash: string,
     studentPasswordHash: string,
-  ): Promise<{ student: Student; enrollmentId: string }> {
+  ): Promise<{ student: Student; enrollmentId: string; schedule: ScheduleResult }> {
     return prisma.$transaction(async (tx) => {
       // 1. Verificar si ya existe estudiante con ese documento en el colegio
       let student = await tx.student.findFirst({
@@ -309,6 +310,8 @@ export class StudentRepository {
           repeatingGrade: data.enrollment.repeatingGrade,
         },
       });
+      // Cronograma de cuotas del tarifario, en la misma transacción
+      const schedule = await feeScheduleService.generateForEnrollmentInTx(tx, schoolId, enrollment.id);
 
       // 3. Manejo de Apoderado
       let parentUserId = data.guardian.existingUserId;
@@ -369,6 +372,7 @@ export class StudentRepository {
       return {
         student,
         enrollmentId: enrollment.id,
+        schedule,
       };
     });
   }

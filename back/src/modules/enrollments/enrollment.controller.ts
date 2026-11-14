@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { recordAudit } from '../../utils/audit.util';
-import { createEnrollmentSchema, updateEnrollmentSchema } from './enrollment.schema';
+import { createEnrollmentSchema, schedulePreviewSchema, updateEnrollmentSchema } from './enrollment.schema';
 import type { EnrollmentService } from './enrollment.service';
 
 export class EnrollmentController {
@@ -19,12 +19,20 @@ export class EnrollmentController {
     response.status(200).json({ status: 'success', data: enrollment });
   };
 
+  /** GET /api/enrollments/schedule-preview?academicYearId&classroomId&condition */
+  previewSchedule = async (request: Request, response: Response): Promise<void> => {
+    const input = schedulePreviewSchema.parse(request.query);
+    const preview = await this.enrollmentService.previewSchedule(request.user!.schoolId, input);
+    response.status(200).json({ status: 'success', data: preview });
+  };
+
   create = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
     const createEnrollmentDto = createEnrollmentSchema.parse(request.body);
     const enrollment = await this.enrollmentService.createEnrollment(
       schoolId,
       createEnrollmentDto,
+      request.user!.userId,
     );
     recordAudit(request, {
       action: 'ENROLLMENT_CREATED',
@@ -39,7 +47,7 @@ export class EnrollmentController {
     const schoolId = request.user!.schoolId;
     const id = request.params.id as string;
     const updateEnrollmentDto = updateEnrollmentSchema.parse(request.body);
-    const enrollment = await this.enrollmentService.updateEnrollment(id, schoolId, updateEnrollmentDto);
+    const enrollment = await this.enrollmentService.updateEnrollment(id, schoolId, updateEnrollmentDto, request.user!.userId);
     recordAudit(request, {
       action: 'ENROLLMENT_UPDATED',
       entity: 'Enrollment',

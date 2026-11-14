@@ -8,6 +8,7 @@ import { requireFinance } from './finance-access';
 import { cashRouter } from './cash.routes';
 import { adjustmentRouter } from './adjustment.routes';
 import { reportRouter } from './report.routes';
+import { feeScheduleRouter } from './fee-schedule.routes';
 
 const paymentRepository = new PaymentRepository();
 const paymentService = new PaymentService(paymentRepository);
@@ -41,6 +42,9 @@ paymentRouter.use('/cash', cashRouter);
 
 // Descuentos, becas, moras, notas de crédito y configuración de mora
 paymentRouter.use(adjustmentRouter);
+
+// Tarifario por año académico (cronograma que se genera al matricular)
+paymentRouter.use('/fee-schedules', feeScheduleRouter);
 
 // Estados de cuenta (alumno, familia, apoderado) y reportes financieros
 paymentRouter.use(reportRouter);

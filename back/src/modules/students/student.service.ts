@@ -15,6 +15,7 @@ import type {
 import type { Student } from '@prisma/client';
 import type { PaginatedResult } from '../../core/interfaces/global.interfaces';
 import { SIAGIE_CATALOGS } from './student.catalogs';
+import { feeScheduleService } from '../payments/fee-schedule.service';
 
 export const PLAN_STUDENT_QUOTAS: Record<string, number> = {
   BASIC: 150,
@@ -92,6 +93,7 @@ export class StudentService {
   async registerFichaMatricula(
     schoolId: string,
     dto: RegisterFichaMatriculaDto,
+    actorUserId?: string,
   ): Promise<Student> {
     // Validar cuotas de plan si el alumno no existe previamente en el colegio
     const existingStudent = await this.studentRepository.findByDocumentId(
@@ -128,10 +130,14 @@ export class StudentService {
       studentPasswordHash,
     );
 
+    // Becas vigentes de la matrícula sobre las cuotas recién generadas
+    const scholarshipsApplied = await feeScheduleService.applyScholarships(schoolId, actorUserId, result.schedule);
+
     // Retornar detalle completo del estudiante con credenciales temporales
     const student = await this.getStudentById(result.student.id, schoolId);
     return {
       ...student,
+      schedule: { ...result.schedule, scholarshipsApplied },
       temporaryCredentials: {
         student: { login: student.studentCode || student.documentId, password: studentTemporaryPassword },
         guardian: dto.guardian.newGuardian

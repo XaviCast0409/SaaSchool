@@ -1,5 +1,8 @@
 import { prisma } from '../../config/prisma';
 import type { Enrollment } from '@prisma/client';
+import { AppError } from '../../core/errors/app-error';
+import { getSchoolNow } from '../../utils/timezone.util';
+import { feeScheduleService, type ScheduleResult } from '../payments/fee-schedule.service';
 import type { CreateEnrollmentDto, UpdateEnrollmentDto } from './enrollment.schema';
 
 export class EnrollmentRepository {
@@ -25,25 +28,35 @@ export class EnrollmentRepository {
     });
   }
 
-  async create(schoolId: string, data: CreateEnrollmentDto): Promise<Enrollment> {
-    const year = await prisma.academicYear.findFirst({ where: { id: data.academicYearId, schoolId }, select: { isActive: true } });
-    // Regla: isActive = matrícula del año activo y registrada (ver syncEnrollmentActiveFlags)
-    return prisma.enrollment.create({
-      data: { ...data, schoolId, isActive: !!year?.isActive },
+  /** Crea la matrícula y, en la misma transacción, su cronograma de cuotas según el tarifario. */
+  async create(schoolId: string, data: CreateEnrollmentDto): Promise<{ enrollment: Enrollment; schedule: ScheduleResult }> {
+    return prisma.$transaction(async (tx) => {
+      const year = await tx.academicYear.findFirst({ where: { id: data.academicYearId, schoolId }, select: { isActive: true } });
+      if (!year) throw new AppError('Año académico no encontrado.', 404);
+      // Regla: isActive = matrícula del año activo y registrada (ver syncEnrollmentActiveFlags)
+      const enrollment = await tx.enrollment.create({
+        data: { ...data, schoolId, isActive: year.isActive },
+      });
+      const schedule = await feeScheduleService.generateForEnrollmentInTx(tx, schoolId, enrollment.id);
+      return { enrollment, schedule };
     });
   }
 
   async update(
     enrollmentId: string,
     schoolId: string,
-    data: UpdateEnrollmentDto,
+    input: UpdateEnrollmentDto,
     existingEnrollment?: Enrollment | null,
-  ): Promise<Enrollment> {
-    const isStateChange = data.enrollmentState === 'WITHDRAWN' || data.enrollmentState === 'TRANSFERRED';
+    actorUserId: string | null = null,
+  ): Promise<Enrollment & { cancelledObligations?: number }> {
     // isActive nunca lo decide el cliente: se deriva del estado y del año activo
-    const { isActive: _ignored, ...rest } = data as UpdateEnrollmentDto & { isActive?: boolean };
+    const { isActive: _ignored, stateChangeDate, ...rest } = input as UpdateEnrollmentDto & { isActive?: boolean };
     void _ignored;
-    data = rest;
+    const data: Omit<UpdateEnrollmentDto, 'stateChangeDate'> = rest;
+    const newState = data.enrollmentState;
+    // Solo al pasar de REGISTERED a retirado/trasladado (no al repetir el mismo estado)
+    const isStateChange =
+      (newState === 'WITHDRAWN' || newState === 'TRANSFERRED') && existingEnrollment?.enrollmentState !== newState;
     if (data.enrollmentState && existingEnrollment) {
       const year = await prisma.academicYear.findUnique({ where: { id: existingEnrollment.academicYearId }, select: { isActive: true } });
       (data as UpdateEnrollmentDto & { isActive?: boolean }).isActive = data.enrollmentState === 'REGISTERED' && !!year?.isActive;
@@ -106,19 +119,17 @@ export class EnrollmentRepository {
           data,
         });
 
-        // Cancelar automáticamente pensiones futuras pendientes por retiro o traslado
-        if (isStateChange) {
-          await tx.paymentObligation.updateMany({
-            where: {
-              schoolId,
-              enrollmentId,
-              status: 'PENDING',
-              dueDate: { gt: new Date() },
-            },
-            data: {
-              status: 'CANCELLED',
-            },
-          });
+        // Anular con motivo las cuotas que vencen después del retiro o traslado (la deuda anterior queda)
+        if (isStateChange && (newState === 'WITHDRAWN' || newState === 'TRANSFERRED')) {
+          const cancelledObligations = await feeScheduleService.cancelFutureInTx(
+            tx,
+            schoolId,
+            enrollmentId,
+            newState,
+            stateChangeDate ?? getSchoolNow().dateStr,
+            actorUserId,
+          );
+          return { ...updated, cancelledObligations };
         }
 
         return updated;

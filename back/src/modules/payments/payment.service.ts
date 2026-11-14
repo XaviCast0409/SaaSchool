@@ -1,5 +1,6 @@
 import { AppError } from '../../core/errors/app-error';
 import { computeObligationStatus, validateNewPayment } from './payment.rules';
+import { periodForConcept } from './fee-schedule.rules';
 import { formatReceiptNumber, PAYMENT_METHOD_LABEL, voidBlockReason, type PaymentMethodCode } from './finance.rules';
 import { normalizeOperationNumber } from '../payment-reports/payment-report.rules';
 import { TRANSACTION_INCLUDE } from './payment.repository';
@@ -186,7 +187,7 @@ export class PaymentService {
         isActive: true,
         ...(bulkDto.classroomId ? { classroomId: bulkDto.classroomId } : {}),
       },
-      select: { id: true, customPensionAmount: true },
+      select: { id: true, customPensionAmount: true, academicYear: { select: { year: true } } },
     });
 
     if (enrollments.length === 0) {
@@ -194,30 +195,47 @@ export class PaymentService {
     }
 
     const enrollmentIds = enrollments.map((e) => e.id);
+    const dueDateKey = bulkDto.dueDate.slice(0, 10);
+    // Pensión, matrícula y cuota de ingreso se deduplican por periodo (no por título, que es
+    // texto libre); los cargos extra (uniforme, excursión…) siguen deduplicándose por título.
+    const periodOf = (e: (typeof enrollments)[number]) => periodForConcept(bulkDto.concept, dueDateKey, e.academicYear.year);
+    const usesPeriod = periodOf(enrollments[0]) !== null;
 
-    // Buscar obligaciones ya creadas para este mismo título y concepto
     const existingObligations = await prisma.paymentObligation.findMany({
       where: {
         schoolId,
         enrollmentId: { in: enrollmentIds },
-        title: { equals: bulkDto.title, mode: 'insensitive' },
         concept: { equals: bulkDto.concept, mode: 'insensitive' },
         status: { not: 'CANCELLED' },
+        ...(usesPeriod
+          ? {
+              OR: [
+                { period: { in: [...new Set(enrollments.map((e) => periodOf(e) as string))] } },
+                // Cuotas antiguas o sueltas sin periodo: se reconocen por el título
+                { period: null, title: { equals: bulkDto.title, mode: 'insensitive' } },
+              ],
+            }
+          : { title: { equals: bulkDto.title, mode: 'insensitive' } }),
       },
-      select: { enrollmentId: true },
+      select: { enrollmentId: true, period: true },
     });
 
-    const existingEnrollmentIds = new Set(existingObligations.map((o) => o.enrollmentId));
-    const newEnrollments = enrollments.filter((e) => !existingEnrollmentIds.has(e.id));
+    const existingKeys = new Set(existingObligations.map((o) => `${o.enrollmentId}:${usesPeriod ? (o.period ?? 'title') : ''}`));
+    const isTaken = (e: (typeof enrollments)[number]) =>
+      usesPeriod ? existingKeys.has(`${e.id}:${periodOf(e)}`) || existingKeys.has(`${e.id}:title`) : existingKeys.has(`${e.id}:`);
+    const newEnrollments = enrollments.filter((e) => !isTaken(e));
+    const alreadyCount = enrollments.length - newEnrollments.length;
 
     if (newEnrollments.length === 0) {
       throw new AppError(
-        `Todas las matrículas seleccionadas (${enrollments.length}) ya tienen registrada la pensión "${bulkDto.title}".`,
+        usesPeriod
+          ? `Todas las matrículas seleccionadas (${enrollments.length}) ya tienen una cuota de este concepto para el periodo ${periodOf(enrollments[0])}.`
+          : `Todas las matrículas seleccionadas (${enrollments.length}) ya tienen registrada la cuota "${bulkDto.title}".`,
         400,
       );
     }
 
-    const itemsToCreate: Array<{ enrollmentId: string; amountDue: number }> = [];
+    const itemsToCreate: Array<{ enrollmentId: string; amountDue: number; period: string | null }> = [];
     let integralScholarshipCount = 0;
 
     for (const enrollment of newEnrollments) {
@@ -231,11 +249,13 @@ export class PaymentService {
         itemsToCreate.push({
           enrollmentId: enrollment.id,
           amountDue: customAmount,
+          period: periodOf(enrollment),
         });
       } else {
         itemsToCreate.push({
           enrollmentId: enrollment.id,
           amountDue: bulkDto.amountDue,
+          period: periodOf(enrollment),
         });
       }
     }
@@ -253,7 +273,7 @@ export class PaymentService {
 
     return {
       count: createdResult.count,
-      skippedCount: existingEnrollmentIds.size + integralScholarshipCount,
+      skippedCount: alreadyCount + integralScholarshipCount,
       totalMatriculados: enrollments.length,
       scholarshipsApplied,
     };

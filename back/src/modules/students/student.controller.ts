@@ -50,7 +50,7 @@ export class StudentController {
     const schoolId = request.user!.schoolId;
     const createStudentDto = createStudentSchema.parse(request.body);
     const student = await this.studentService.createStudent(schoolId, createStudentDto);
-    const { temporaryCredentials, ...after } = (student as any) || {};
+    const { temporaryCredentials, schedule, ...after } = (student as any) || {};
     recordAudit(request, {
       action: 'STUDENT_CREATED',
       entity: 'Student',
@@ -63,8 +63,8 @@ export class StudentController {
   registerFicha = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
     const dto = registerFichaMatriculaSchema.parse(request.body);
-    const student = await this.studentService.registerFichaMatricula(schoolId, dto);
-    const { temporaryCredentials, ...after } = (student as any) || {};
+    const student = await this.studentService.registerFichaMatricula(schoolId, dto, request.user!.userId);
+    const { temporaryCredentials, schedule, ...after } = (student as any) || {};
     recordAudit(request, {
       action: 'STUDENT_ENROLLED_FICHA',
       entity: 'Student',

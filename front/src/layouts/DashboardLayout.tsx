@@ -3,6 +3,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Wallet,
   Percent,
+  Receipt,
   BarChart3,
   GraduationCap,
   Users,
@@ -328,6 +329,13 @@ export const DashboardLayout: React.FC = () => {
           label: 'Caja diaria',
           path: '/payments/cash',
           icon: Wallet,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Tarifario',
+          path: '/payments/fee-schedules',
+          icon: Receipt,
           roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'],
           minPlan: 'BASIC',
         },

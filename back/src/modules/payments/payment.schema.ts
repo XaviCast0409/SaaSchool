@@ -6,6 +6,7 @@ const emptyToUndefined = z.literal('').transform(() => undefined);
 export const PAYMENT_CONCEPTS = [
   'PENSION',
   'MATRICULA',
+  'CUOTA_INGRESO',
   'LIBROS_MATERIALES',
   'UNIFORME',
   'CARNET_AGENDA',

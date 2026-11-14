@@ -221,7 +221,7 @@ export class PaymentRepository {
    */
   async bulkCreateObligations(
     schoolId: string,
-    items: Array<{ enrollmentId: string; amountDue: number }>,
+    items: Array<{ enrollmentId: string; amountDue: number; period?: string | null }>,
     data: { title: string; concept: string; dueDate: string },
   ): Promise<{ count: number; ids: string[] }> {
     if (items.length === 0) return { count: 0, ids: [] };
@@ -234,12 +234,17 @@ export class PaymentRepository {
         enrollmentId: item.enrollmentId,
         title: data.title,
         concept: data.concept,
+        period: item.period ?? null,
         amountDue: item.amountDue,
         originalAmount: item.amountDue,
         dueDate: new Date(data.dueDate),
       })),
+      // El índice único parcial (matrícula, concepto, periodo) evita duplicados en carreras
+      skipDuplicates: true,
     });
-    return { count: result.count, ids: rows.map((r) => r.id) };
+    // Con skipDuplicates algunas filas pueden no crearse: devolver solo las que existen
+    const created = await prisma.paymentObligation.findMany({ where: { id: { in: rows.map((r) => r.id) } }, select: { id: true } });
+    return { count: result.count, ids: created.map((r) => r.id) };
   }
 
   /**
