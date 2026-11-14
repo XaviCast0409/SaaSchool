@@ -1,3 +1,4 @@
+import { teacherHistoryService } from './teacher-history.service';
 import type { EducationLevel } from '@prisma/client';
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
@@ -77,6 +78,7 @@ export class TeachingLoadService {
       }
     }
     let updated = 0;
+    const effective = teacherHistoryService.effectiveToday(year);
     await prisma.$transaction(async (tx) => {
       for (const ch of changes) {
         const existing = await tx.courseAssignment.findFirst({
@@ -94,12 +96,16 @@ export class TeachingLoadService {
             throw new AppError(`"${name}" de ${c.grade}.° "${c.section}" ya tiene notas: no se puede dejar sin docente. Asigna otro docente.`, 409);
           }
           await tx.courseAssignment.update({ where: { id: existing.id }, data: { deletedAt: new Date() } });
+          await teacherHistoryService.close(tx, existing.id, effective);
         } else if (existing) {
           await tx.courseAssignment.update({ where: { id: existing.id }, data: { teacherId: ch.teacherId, deletedAt: null } });
+          // Historial: quién dicta el curso desde hoy (actas y libretas lo usan)
+          await teacherHistoryService.recordChange(tx, schoolId, existing.id, ch.teacherId, effective);
         } else {
-          await tx.courseAssignment.create({
+          const created = await tx.courseAssignment.create({
             data: { schoolId, academicYearId: year.id, classroomId: ch.classroomId, areaId: ch.areaId, teacherId: ch.teacherId },
           });
+          await teacherHistoryService.recordChange(tx, schoolId, created.id, ch.teacherId, effective);
         }
         updated += 1;
       }

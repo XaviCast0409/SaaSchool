@@ -1,3 +1,7 @@
+import { z } from 'zod';
+import { recordAudit } from '../../utils/audit.util';
+import { selectedAcademicYearId } from '../../utils/academic-year-scope';
+import { teacherReplacementService } from './teacher-replacement.service';
 import { Router } from 'express';
 import { authMiddleware, authorizeRoles } from '../../core/middlewares/auth.middleware';
 import { tenantMiddleware } from '../../core/middlewares/tenant.middleware';
@@ -31,6 +35,45 @@ router.patch('/courses/:areaId', ADMIN, c.renameCourse);
 
 // Carga docente
 router.get('/teaching-load', ADMIN, c.teachingLoad);
+
+// Reemplazo de docente a mitad de año (cursos, tutoría y contenidos en un paso, con historial)
+router.get('/teacher-replacements', ADMIN, async (req, res) => {
+  res.json({ status: 'success', data: await teacherReplacementService.list(req.user!.schoolId, await selectedAcademicYearId(req)) });
+});
+router.get('/teacher-replacements/preview/:teacherId', ADMIN, async (req, res) => {
+  const teacherId = z.string().uuid().parse(req.params.teacherId);
+  res.json({ status: 'success', data: await teacherReplacementService.preview(req.user!.schoolId, teacherId, await selectedAcademicYearId(req)) });
+});
+router.post('/teacher-replacements', ADMIN, async (req, res) => {
+  const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida (AAAA-MM-DD)');
+  const dto = z
+    .object({
+      outgoingTeacherId: z.string().uuid(),
+      incomingTeacherId: z.string().uuid(),
+      kind: z.enum(['PERMANENT', 'TEMPORARY']),
+      effectiveDate: date,
+      untilDate: date.nullable().optional(),
+      reason: z.string().trim().min(5, 'Escribe el motivo (mínimo 5 caracteres).').max(300),
+      outgoingAction: z.enum(['KEEP', 'REMOVE_FROM_YEAR', 'DEACTIVATE']).default('KEEP'),
+      copyRubrics: z.boolean().default(true),
+    })
+    .parse(req.body);
+  const result = await teacherReplacementService.execute(req.user!.schoolId, req.user!.userId, { ...dto, academicYearId: await selectedAcademicYearId(req) });
+  recordAudit(req, {
+    action: 'TEACHER_REPLACED',
+    entity: 'TeacherReplacement',
+    entityId: result.replacement.id,
+    after: { saliente: dto.outgoingTeacherId, entrante: dto.incomingTeacherId, tipo: dto.kind, desde: dto.effectiveDate, hasta: dto.untilDate ?? null, motivo: dto.reason, saliente_accion: dto.outgoingAction, ...result.transferred },
+  });
+  res.status(201).json({ status: 'success', data: result });
+});
+router.post('/teacher-replacements/:id/end', ADMIN, async (req, res) => {
+  const id = z.string().uuid().parse(req.params.id);
+  const { returnDate } = z.object({ returnDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() }).parse(req.body ?? {});
+  const result = await teacherReplacementService.endTemporary(req.user!.schoolId, req.user!.userId, id, returnDate);
+  recordAudit(req, { action: 'TEACHER_REPLACEMENT_ENDED', entity: 'TeacherReplacement', entityId: id, after: result });
+  res.json({ status: 'success', data: result });
+});
 router.put('/teaching-load', ADMIN, c.saveTeachingLoad);
 router.post('/teaching-load/whole-classroom', ADMIN, c.wholeClassroom);
 router.post('/teaching-load/copy', ADMIN, c.copyTeachingLoad);

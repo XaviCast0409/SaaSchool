@@ -1,3 +1,4 @@
+import { teacherHistoryService } from './teacher-history.service';
 import type { EducationLevel } from '@prisma/client';
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
@@ -58,6 +59,7 @@ export class ConsolidationService {
     ]);
 
     const planCodes = new Set(plan.filter((p) => p.area.kind !== 'WORKSHOP').map((p) => p.area.officialAreaCode));
+    const teacherLabels = await teacherHistoryService.labelsFor(official, year);
     const areas = CNEB_AREAS[level].filter((a) => planCodes.has(a.code));
     const consolidatedAreas = areas.map((area) => {
       const tributary = official.filter((a) => a.area.officialAreaCode === area.code);
@@ -80,7 +82,7 @@ export class ConsolidationService {
         name: a.area.name,
         officialCode: a.area.officialAreaCode,
         catalogKey: a.area.catalogKey,
-        teacherName: `${a.teacher.firstName} ${a.teacher.lastNamePaternal}`.trim(),
+        teacherName: teacherLabels.get(a.id) ?? `${a.teacher.firstName} ${a.teacher.lastNamePaternal}`.trim(),
         competences: a.area.competences
           .filter((c) => c.cnebNumber !== null)
           .sort((x, y) => (x.cnebNumber ?? 0) - (y.cnebNumber ?? 0))

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Users, GraduationCap, Shield, UserPlus, Building2, CalendarRange, UserMinus, UserCheck2, Repeat2 } from 'lucide-react';
+import { Users, GraduationCap, Shield, UserPlus, Building2, CalendarRange, UserMinus, UserCheck2, Repeat2, ArrowLeftRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSelectedAcademicYear } from '@/components/AcademicYearSwitcher';
 import { useSetStaffYear } from '../api/useUsers';
 import { RenewStaffModal } from '../components/RenewStaffModal';
+import { ReplaceTeacherModal } from '../components/ReplaceTeacherModal';
 import type { DirectoryUser } from '../types';
 import { StaffLoadPanel } from '../components/StaffLoadPanel';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -63,6 +64,7 @@ export const DirectoryPage: React.FC = () => {
   // Personal contratado en el año que se está viendo, o todo el personal del colegio
   const [yearScope, setYearScope] = useState<'year' | 'all'>('year');
   const [renewOpen, setRenewOpen] = useState(false);
+  const [replacing, setReplacing] = useState<DirectoryUser | null>(null);
   const { selected: viewedYear, current: currentYear } = useSelectedAcademicYear();
   const setStaffYear = useSetStaffYear();
 
@@ -97,6 +99,19 @@ export const DirectoryPage: React.FC = () => {
     if (!isAdmin || !viewedYear || !u.isActive) return null;
     const hired = !!u.staffYears && u.staffYears.length > 0;
     return (
+      <>
+      {u.role === 'TEACHER' && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setReplacing(u)}
+          className="h-7 px-2 text-xs text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 font-bold"
+          title="Pasar sus cursos y tutoría a otro docente (renuncia, licencia)"
+        >
+          <ArrowLeftRight className="w-3.5 h-3.5 mr-1" />
+          Reemplazar
+        </Button>
+      )}
       <Button
         variant="ghost"
         size="sm"
@@ -108,6 +123,7 @@ export const DirectoryPage: React.FC = () => {
         {hired ? <UserMinus className="w-3.5 h-3.5 mr-1" /> : <UserCheck2 className="w-3.5 h-3.5 mr-1" />}
         {hired ? `Quitar de ${viewedYear.year}` : `Contratar ${viewedYear.year}`}
       </Button>
+      </>
     );
   };
 
@@ -229,6 +245,7 @@ export const DirectoryPage: React.FC = () => {
         </>
       )}
 
+      {replacing && <ReplaceTeacherModal teacher={replacing} onClose={() => setReplacing(null)} />}
       {renewOpen && viewedYear && currentYear && (
         <RenewStaffModal fromYear={currentYear} toYear={viewedYear} onClose={() => setRenewOpen(false)} />
       )}

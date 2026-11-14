@@ -278,6 +278,8 @@ model School {
   feeSchedules              FeeSchedule[]
   classroomYears            ClassroomYear[]
   staffYears                StaffYear[]
+  teacherReplacements       TeacherReplacement[]
+  courseAssignmentTeachers  CourseAssignmentTeacher[]
 }
 
 model User {
@@ -308,48 +310,53 @@ model User {
   school School @relation(fields: [schoolId], references: [id])
 
   // Relaciones
-  familyRelations        FamilyRelationship[]
-  coursesTaught          CourseAssignment[]
-  tutoredClassrooms      Classroom[]              @relation("ClassroomTutor")
-  announcements          Announcement[]
-  notifications          Notification[]
-  pushSubscriptions      PushSubscription[]
-  authoredContents       CourseContent[]          @relation("AuthoredContents")
-  forumComments          ForumComment[]
-  notificationPreference NotificationPreference?
-  parentConversations    Conversation[]           @relation("ConversationParent")
-  staffConversations     Conversation[]           @relation("ConversationStaff")
-  sentMessages           Message[]
-  announcementResponses  AnnouncementResponse[]
-  meetingSlotsOwned      MeetingSlot[]            @relation("MeetingStaff")
-  meetingSlotsBooked     MeetingSlot[]            @relation("MeetingParent")
-  createdEvents          SchoolEvent[]
-  teacherAvailabilities  TeacherAvailability[]
-  paymentReportsSent     PaymentReport[]          @relation("PaymentReportReporter")
-  paymentReportsReviewed PaymentReport[]          @relation("PaymentReportReviewer")
-  tutoringInterventions  TutoringIntervention[]
-  sharedResources        SharedResource[]
-  rubrics                Rubric[]
-  ratificationsSigned    EnrollmentRatification[]
-  documentRequestsMade   DocumentRequest[]        @relation("DocumentRequestRequester")
-  documentRequestsDone   DocumentRequest[]        @relation("DocumentRequestHandler")
-  complaintsAnswered     Complaint[]
-  conclusionPhrases      ConclusionPhrase[]       @relation("ConclusionPhraseOwner")
-  incidentsAuthored      StudentIncident[]        @relation("IncidentAuthor")
-  periodStatusChanges    AcademicPeriodStatus[]   @relation("PeriodStatusChangedBy")
-  paymentsCollected      PaymentTransaction[]     @relation("TransactionCollector")
-  paymentsVoided         PaymentTransaction[]     @relation("TransactionVoider")
-  obligationsCancelled   PaymentObligation[]      @relation("ObligationCanceller")
-  cashSessions           CashSession[]            @relation("CashSessionCashier")
-  cashSessionsReviewed   CashSession[]            @relation("CashSessionReviewer")
-  cashExpenses           CashExpense[]            @relation("CashExpenseRegistrar")
-  cashExpensesVoided     CashExpense[]            @relation("CashExpenseVoider")
-  adjustmentsCreated     ObligationAdjustment[]   @relation("AdjustmentCreator")
-  adjustmentsVoided      ObligationAdjustment[]   @relation("AdjustmentVoider")
-  scholarshipsCreated    Scholarship[]            @relation("ScholarshipCreator")
-  scholarshipsEnded      Scholarship[]            @relation("ScholarshipDeactivator")
-  tutoredClassroomYears  ClassroomYear[]          @relation("ClassroomYearTutor")
-  staffYears             StaffYear[]
+  familyRelations         FamilyRelationship[]
+  coursesTaught           CourseAssignment[]
+  tutoredClassrooms       Classroom[]               @relation("ClassroomTutor")
+  announcements           Announcement[]
+  notifications           Notification[]
+  pushSubscriptions       PushSubscription[]
+  authoredContents        CourseContent[]           @relation("AuthoredContents")
+  forumComments           ForumComment[]
+  notificationPreference  NotificationPreference?
+  parentConversations     Conversation[]            @relation("ConversationParent")
+  staffConversations      Conversation[]            @relation("ConversationStaff")
+  sentMessages            Message[]
+  announcementResponses   AnnouncementResponse[]
+  meetingSlotsOwned       MeetingSlot[]             @relation("MeetingStaff")
+  meetingSlotsBooked      MeetingSlot[]             @relation("MeetingParent")
+  createdEvents           SchoolEvent[]
+  teacherAvailabilities   TeacherAvailability[]
+  paymentReportsSent      PaymentReport[]           @relation("PaymentReportReporter")
+  paymentReportsReviewed  PaymentReport[]           @relation("PaymentReportReviewer")
+  tutoringInterventions   TutoringIntervention[]
+  sharedResources         SharedResource[]
+  rubrics                 Rubric[]
+  ratificationsSigned     EnrollmentRatification[]
+  documentRequestsMade    DocumentRequest[]         @relation("DocumentRequestRequester")
+  documentRequestsDone    DocumentRequest[]         @relation("DocumentRequestHandler")
+  complaintsAnswered      Complaint[]
+  conclusionPhrases       ConclusionPhrase[]        @relation("ConclusionPhraseOwner")
+  incidentsAuthored       StudentIncident[]         @relation("IncidentAuthor")
+  periodStatusChanges     AcademicPeriodStatus[]    @relation("PeriodStatusChangedBy")
+  paymentsCollected       PaymentTransaction[]      @relation("TransactionCollector")
+  paymentsVoided          PaymentTransaction[]      @relation("TransactionVoider")
+  obligationsCancelled    PaymentObligation[]       @relation("ObligationCanceller")
+  cashSessions            CashSession[]             @relation("CashSessionCashier")
+  cashSessionsReviewed    CashSession[]             @relation("CashSessionReviewer")
+  cashExpenses            CashExpense[]             @relation("CashExpenseRegistrar")
+  cashExpensesVoided      CashExpense[]             @relation("CashExpenseVoider")
+  adjustmentsCreated      ObligationAdjustment[]    @relation("AdjustmentCreator")
+  adjustmentsVoided       ObligationAdjustment[]    @relation("AdjustmentVoider")
+  scholarshipsCreated     Scholarship[]             @relation("ScholarshipCreator")
+  scholarshipsEnded       Scholarship[]             @relation("ScholarshipDeactivator")
+  tutoredClassroomYears   ClassroomYear[]           @relation("ClassroomYearTutor")
+  staffYears              StaffYear[]
+  courseAssignmentHistory CourseAssignmentTeacher[] @relation("CourseAssignmentTeacherHistory")
+  replacementsOutgoing    TeacherReplacement[]      @relation("ReplacementOutgoing")
+  replacementsIncoming    TeacherReplacement[]      @relation("ReplacementIncoming")
+  replacementsCreated     TeacherReplacement[]      @relation("ReplacementCreator")
+  replacementsEnded       TeacherReplacement[]      @relation("ReplacementEnder")
 
   @@unique([schoolId, documentId])
   @@index([schoolId, role])
@@ -453,6 +460,7 @@ model AcademicYear {
   feeSchedules          FeeSchedule[]
   classroomYears        ClassroomYear[]
   staffYears            StaffYear[]
+  teacherReplacements   TeacherReplacement[]
 }
 
 model Classroom {
@@ -592,6 +600,67 @@ model StaffYear {
   academicYear AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
 
   @@unique([userId, academicYearId])
+  @@index([schoolId, academicYearId])
+}
+
+/// Historial de quién dictó cada curso y desde/hasta cuándo (CourseAssignment.teacherId es el actual).
+/// Sirve para que actas y libretas muestren a cada docente en los periodos que le tocaron.
+model CourseAssignmentTeacher {
+  id                 String    @id @default(uuid())
+  schoolId           String
+  courseAssignmentId String
+  teacherId          String
+  fromDate           DateTime  @db.Date
+  toDate             DateTime? @db.Date // null = docente actual
+  replacementId      String?
+  createdAt          DateTime  @default(now())
+
+  school           School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  courseAssignment CourseAssignment    @relation(fields: [courseAssignmentId], references: [id], onDelete: Cascade)
+  teacher          User                @relation("CourseAssignmentTeacherHistory", fields: [teacherId], references: [id])
+  replacement      TeacherReplacement? @relation(fields: [replacementId], references: [id], onDelete: SetNull)
+
+  @@index([courseAssignmentId])
+  @@index([schoolId, teacherId])
+}
+
+enum TeacherReplacementKind {
+  PERMANENT // Renuncia, término de contrato
+  TEMPORARY // Licencia o descanso: al terminar, los cursos vuelven al titular
+}
+
+enum TeacherReplacementStatus {
+  ACTIVE
+  ENDED
+}
+
+/// Reemplazo de un docente por otro a mitad de año: pasa cursos, tutoría y contenidos en un solo paso.
+model TeacherReplacement {
+  id                String                   @id @default(uuid())
+  schoolId          String
+  academicYearId    String
+  outgoingTeacherId String
+  incomingTeacherId String
+  kind              TeacherReplacementKind
+  status            TeacherReplacementStatus @default(ACTIVE)
+  effectiveDate     DateTime                 @db.Date
+  untilDate         DateTime?                @db.Date // Fin previsto del reemplazo temporal
+  reason            String
+  /// Qué se transfirió: { assignmentIds, tutorClassroomIds, contentIds, rubricIds }
+  detail            Json
+  createdById       String
+  endedAt           DateTime?
+  endedById         String?
+  createdAt         DateTime                 @default(now())
+
+  school       School                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear              @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  outgoing     User                      @relation("ReplacementOutgoing", fields: [outgoingTeacherId], references: [id])
+  incoming     User                      @relation("ReplacementIncoming", fields: [incomingTeacherId], references: [id])
+  createdBy    User                      @relation("ReplacementCreator", fields: [createdById], references: [id])
+  endedBy      User?                     @relation("ReplacementEnder", fields: [endedById], references: [id])
+  history      CourseAssignmentTeacher[]
+
   @@index([schoolId, academicYearId])
 }
 
@@ -843,6 +912,7 @@ model CourseAssignment {
   criteria                 CourseAssignmentCriterion[]
   scheduleBlocks           ScheduleBlock[]
   periodResults            CompetencePeriodResult[]
+  teacherHistory           CourseAssignmentTeacher[]
 
   @@unique([academicYearId, classroomId, areaId])
   @@index([schoolId, teacherId])
@@ -1202,6 +1272,8 @@ model CourseContent {
   schoolId           String
   courseAssignmentId String
   teacherId          String
+  /// Quien lo creó, si el contenido pasó a otro docente por un reemplazo (teacherId es el docente a cargo)
+  originalTeacherId  String?
   bimester           Int // 1, 2, 3, 4
   contentType        ContentType
   title              String

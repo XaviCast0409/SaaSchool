@@ -70,7 +70,8 @@ export class CourseContentService {
     }
 
     const isAdmin = user.role === 'SCHOOL_ADMIN' || user.role === 'SUPER_ADMIN' || user.role === 'ADMINISTRATIVE';
-    if (!isAdmin && content.teacherId !== user.id) {
+    // El autor o el docente que hoy tiene el curso (p. ej. tras un reemplazo)
+    if (!isAdmin && content.teacherId !== user.id && content.courseAssignment.teacherId !== user.id) {
       throw new AppError('No tienes permisos para eliminar esta publicación.', 403);
     }
 
@@ -274,7 +275,7 @@ export class CourseContentService {
       user.role === 'ADMINISTRATIVE';
 
     if (isStaff) {
-      if (user.role === 'TEACHER' && content.teacherId !== user.id) {
+      if (user.role === 'TEACHER' && content.teacherId !== user.id && content.courseAssignment.teacherId !== user.id) {
         throw new AppError('No tienes permisos para ver entregas de otro docente.', 403);
       }
 
@@ -358,7 +359,7 @@ export class CourseContentService {
       throw new AppError('No tienes permisos para calificar entregas.', 403);
     }
 
-    if (user.role === 'TEACHER' && submission.courseContent.teacherId !== user.id) {
+    if (user.role === 'TEACHER' && submission.courseContent.teacherId !== user.id && submission.courseContent.courseAssignment.teacherId !== user.id) {
       throw new AppError('Solo el docente asignado o la Dirección pueden calificar esta tarea.', 403);
     }
 

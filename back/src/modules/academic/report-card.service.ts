@@ -1,3 +1,4 @@
+import { teacherHistoryService } from './teacher-history.service';
 import type { EducationLevel } from '@prisma/client';
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
@@ -106,6 +107,8 @@ export class ReportCardService {
       select: { areaId: true, order: true },
     });
     const orderOf = (areaId: string) => planOrder.find((p) => p.areaId === areaId)?.order ?? 999;
+    // Con reemplazos de docente, cada uno aparece con los periodos que dictó
+    const teacherLabels = await teacherHistoryService.labelsFor(assignments, year);
     assignments.sort((a, b) => orderOf(a.areaId) - orderOf(b.areaId) || a.area.name.localeCompare(b.area.name, 'es'));
     const [courseResults, criterionGrades] = await Promise.all([
       prisma.competencePeriodResult.findMany({
@@ -155,7 +158,7 @@ export class ReportCardService {
         name: isRemainderKey(a.area.catalogKey) ? 'Otras competencias del área' : a.area.name,
         kind: a.area.kind,
         areaCode: a.area.kind === 'WORKSHOP' ? 'WORKSHOP' : a.area.officialAreaCode ?? 'OTHER',
-        teacher: `${a.teacher.firstName} ${a.teacher.lastNamePaternal}`.trim(),
+        teacher: teacherLabels.get(a.id) ?? `${a.teacher.firstName} ${a.teacher.lastNamePaternal}`.trim(),
         criteria,
         average,
       };
