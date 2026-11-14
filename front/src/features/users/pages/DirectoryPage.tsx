@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Users, GraduationCap, Shield, UserPlus, Building2 } from 'lucide-react';
+import { Users, GraduationCap, Shield, UserPlus, Building2, CalendarRange } from 'lucide-react';
+import { StaffLoadPanel } from '../components/StaffLoadPanel';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useUsers } from '../api/useUsers';
 import { UserTable } from '../components/UserTable';
@@ -7,7 +8,7 @@ import { UserFormModal } from '../components/UserFormModal';
 import { Button } from '@/components/ui/button';
 import type { UserRole } from '../types';
 
-type TabKey = 'ALL_STAFF' | 'TEACHER' | 'ADMINISTRATIVE' | 'SCHOOL_ADMIN';
+type TabKey = 'ALL_STAFF' | 'TEACHER' | 'ADMINISTRATIVE' | 'SCHOOL_ADMIN' | 'YEAR_LOAD';
 
 interface Tab {
   key: TabKey;
@@ -41,6 +42,12 @@ const TABS: Tab[] = [
     icon: Shield,
     description: 'Directores, coordinadores académicos y administradores generales.',
   },
+  {
+    key: 'YEAR_LOAD',
+    label: 'Carga del año',
+    icon: CalendarRange,
+    description: 'Docentes con cursos o tutoría en el año elegido en la cabecera, y quiénes aún no tienen carga.',
+  },
 ];
 
 export const DirectoryPage: React.FC = () => {
@@ -49,7 +56,7 @@ export const DirectoryPage: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const userQueryParams =
-    activeTab === 'ALL_STAFF'
+    activeTab === 'ALL_STAFF' || activeTab === 'YEAR_LOAD'
       ? { staffOnly: true }
       : { role: activeTab as UserRole };
 
@@ -129,7 +136,9 @@ export const DirectoryPage: React.FC = () => {
       </div>
 
       {/* Content */}
-      {isError ? (
+      {activeTab === 'YEAR_LOAD' ? (
+        <StaffLoadPanel />
+      ) : isError ? (
         <div className="p-6 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive text-center space-y-3">
           <p className="font-semibold">Error al cargar el personal institucional.</p>
           <Button variant="outline" size="sm" onClick={() => refetch()}>

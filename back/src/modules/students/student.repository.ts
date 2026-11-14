@@ -1,3 +1,4 @@
+import { classroomYearService } from '../classrooms/classroom-year.service';
 import { dateOnlyKey, getSchoolNow } from '../../utils/timezone.util';
 import { prisma } from '../../config/prisma';
 import type { Prisma, Student } from '@prisma/client';
@@ -301,6 +302,7 @@ export class StudentRepository {
       }
 
       // Crear Matrícula (vigente solo si el año es el activo)
+      await classroomYearService.assertOpen(tx, schoolId, data.enrollment.classroomId, data.enrollment.academicYearId);
       const enrollmentYear = await tx.academicYear.findFirst({
         where: { id: data.enrollment.academicYearId, schoolId },
         select: { isActive: true },

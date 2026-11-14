@@ -8,7 +8,11 @@ export class ClassroomController {
   constructor(private readonly classroomService: ClassroomService) {}
 
   getAll = async (request: Request, response: Response): Promise<void> => {
-    const classrooms = await this.classroomService.getAllClassrooms(request.user!.schoolId, await selectedAcademicYearId(request));
+    const classrooms = await this.classroomService.getAllClassrooms(
+      request.user!.schoolId,
+      await selectedAcademicYearId(request),
+      request.query.includeClosed === 'true',
+    );
     response.status(200).json({ status: 'success', data: classrooms });
   };
 

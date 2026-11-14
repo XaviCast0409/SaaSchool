@@ -21,14 +21,37 @@ interface SingleClassroomResponse {
   data: Classroom;
 }
 
-export const useClassrooms = (enabled = true) => {
+/** Aulas del año que se está viendo. Con `includeClosed`, también las secciones no abiertas ese año. */
+export const useClassrooms = (enabled = true, includeClosed = false) => {
   return useQuery({
-    queryKey: ['classrooms'],
+    queryKey: ['classrooms', { includeClosed }],
     enabled,
     queryFn: async () => {
-      const response = await api.get<ClassroomsResponse>('/classrooms');
+      const response = await api.get<ClassroomsResponse>('/classrooms', { params: includeClosed ? { includeClosed: 'true' } : undefined });
       return response.data.data;
     },
+  });
+};
+
+/** Abre, cierra o ajusta (vacantes y tutor) una sección en un año. */
+export const useSetClassroomYear = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, academicYearId, body }: { id: string; academicYearId: string; body: { open: boolean; capacity?: number; tutorTeacherId?: string | null } }) =>
+      (await api.put(`/classrooms/${id}/years/${academicYearId}`, body)).data.data,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['classrooms'] });
+      queryClient.invalidateQueries({ queryKey: ['rollover-candidates'] });
+    },
+  });
+};
+
+export const useCopyClassroomYear = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { fromAcademicYearId: string; toAcademicYearId: string; includeTutors: boolean }) =>
+      (await api.post<{ data: { copied: number; skipped: number } }>('/classrooms/copy-year', body)).data.data,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['classrooms'] }),
   });
 };
 
@@ -93,3 +116,12 @@ export const useBulkCreateClassrooms = () => {
     },
   });
 };
+
+/** Secciones abiertas en un año concreto (p. ej. el año destino al matricular), sin depender del año que se está viendo. */
+export const useClassroomsForYear = (academicYearId?: string) =>
+  useQuery({
+    queryKey: ['classrooms', 'year', academicYearId],
+    enabled: !!academicYearId,
+    queryFn: async () =>
+      (await api.get<ClassroomsResponse>('/classrooms', { headers: { 'x-academic-year-id': academicYearId! } })).data.data,
+  });

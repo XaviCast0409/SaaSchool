@@ -1,11 +1,14 @@
 import React, { useMemo, useState } from 'react';
-import { Pencil, Plus, School as SchoolIcon, Trash2, Users } from 'lucide-react';
+import { Copy, DoorClosed, DoorOpen, Pencil, Plus, School as SchoolIcon, Trash2, Users } from 'lucide-react';
+import { useSelectedAcademicYear } from '@/components/AcademicYearSwitcher';
 import { toast } from 'sonner';
 import {
   useBulkCreateClassrooms,
   useClassrooms,
   useCreateClassroom,
+  useCopyClassroomYear,
   useDeleteClassroom,
+  useSetClassroomYear,
   useUpdateClassroom,
   type CreateClassroomPayload,
 } from '../api/useClassrooms';
@@ -65,8 +68,15 @@ export const ClassroomsPage: React.FC = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [toDelete, setToDelete] = useState<Classroom | null>(null);
+  const [showClosed, setShowClosed] = useState(false);
+  const [copyOpen, setCopyOpen] = useState(false);
+  const { selected: viewedYear, current: currentYear, isOtherYear, years } = useSelectedAcademicYear();
+  const setSection = useSetClassroomYear();
 
-  const { data: classrooms = [], isLoading, isError, refetch } = useClassrooms();
+  const { data: allRooms = [], isLoading, isError, refetch } = useClassrooms(true, isAdmin);
+  // Las secciones cerradas en el año que se está viendo solo se muestran si se pide
+  const classrooms = showClosed ? allRooms : allRooms.filter((c) => c.openInYear !== false);
+  const closedCount = allRooms.filter((c) => c.openInYear === false).length;
   const { data: users = [] } = useUsers('TEACHER');
   const createClassroom = useCreateClassroom();
   const updateClassroom = useUpdateClassroom();
@@ -77,7 +87,7 @@ export const ClassroomsPage: React.FC = () => {
     return users
       .filter((u) => u.isActive !== false)
       .map((u) => {
-        const room = classrooms.find((c) => c.tutorTeacherId === u.id);
+        const room = allRooms.find((c) => c.openInYear !== false && c.tutorTeacherId === u.id);
         return {
           id: u.id,
           name: `${u.lastNamePaternal} ${u.lastNameMaternal ?? ''}`.trim() + `, ${u.firstName}`,
@@ -86,7 +96,7 @@ export const ClassroomsPage: React.FC = () => {
         };
       })
       .sort((a, b) => a.name.localeCompare(b.name, 'es'));
-  }, [users, classrooms]);
+  }, [users, allRooms]);
 
   const levelRooms = classrooms.filter((c) => c.educationLevel === level);
   const byGrade = LEVEL_GRADES[level].map((g) => ({ grade: g, rooms: levelRooms.filter((c) => c.grade === g) }));
@@ -94,11 +104,25 @@ export const ClassroomsPage: React.FC = () => {
 
   const changeTutor = async (c: Classroom, tutorTeacherId: string | null) => {
     try {
-      await updateClassroom.mutateAsync({ id: c.id, payload: { tutorTeacherId } });
+      // En un año que no es el vigente, el tutor es el de la sección de ese año (no cambia el actual)
+      if (isOtherYear && viewedYear) await setSection.mutateAsync({ id: c.id, academicYearId: viewedYear.id, body: { open: true, tutorTeacherId } });
+      else await updateClassroom.mutateAsync({ id: c.id, payload: { tutorTeacherId } });
       const t = teachers.find((x) => x.id === tutorTeacherId);
-      toast.success(t ? `${t.name} es ahora tutor(a) de ${roomLabel(c)}.` : `${roomLabel(c)} quedó sin tutor(a).`);
+      const yearTxt = isOtherYear && viewedYear ? ` en ${viewedYear.year}` : '';
+      toast.success(t ? `${t.name} será tutor(a) de ${roomLabel(c)}${yearTxt}.` : `${roomLabel(c)} quedó sin tutor(a)${yearTxt}.`);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || 'No se pudo cambiar el tutor.');
+    }
+  };
+
+  const toggleOpen = async (c: Classroom) => {
+    if (!viewedYear) return;
+    const open = c.openInYear === false;
+    try {
+      await setSection.mutateAsync({ id: c.id, academicYearId: viewedYear.id, body: { open } });
+      toast.success(`${roomLabel(c)} ${open ? 'abierta' : 'cerrada'} en ${viewedYear.year}.`);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'No se pudo cambiar la sección.');
     }
   };
 
@@ -106,9 +130,12 @@ export const ClassroomsPage: React.FC = () => {
     <div className="max-w-6xl pb-10">
       <PageHeader
         title="Aulas y secciones"
-        description="Crea las secciones de cada grado y asigna su tutor(a). Cada docente puede ser tutor de una sola aula."
+        description={`Secciones abiertas en ${viewedYear?.year ?? 'el año'}, con sus vacantes y tutor(a) de ese año. Cada docente puede ser tutor de una sola sección por año.`}
         actions={isAdmin && (
           <>
+            {years.length > 1 && (
+              <Button variant="outline" onClick={() => setCopyOpen(true)}><Copy className="mr-1 h-4 w-4" />Copiar secciones de otro año</Button>
+            )}
             <Button variant="outline" onClick={() => setBulkOpen(true)}>Crear varias aulas</Button>
             <Button onClick={() => { setEditing(null); setFormOpen(true); }}><Plus className="mr-1 h-4 w-4" />Nueva aula</Button>
           </>
@@ -117,6 +144,12 @@ export const ClassroomsPage: React.FC = () => {
 
       <Tabs<Level> value={level} onChange={setLevel} className="mb-4"
         items={(['INITIAL', 'PRIMARY', 'SECONDARY'] as Level[]).map((l) => ({ value: l, label: `${LEVEL_LABEL[l]} (${counts(l)})` }))} />
+      {isAdmin && closedCount > 0 && (
+        <label className="mb-4 flex w-fit items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+          <input type="checkbox" checked={showClosed} onChange={(e) => setShowClosed(e.target.checked)} className="h-4 w-4 rounded" />
+          {closedCount === 1 ? 'Mostrar la sección no abierta' : `Mostrar las ${closedCount} secciones no abiertas`} en {viewedYear?.year}
+        </label>
+      )}
 
       {isLoading ? (
         <Skeleton className="h-64 w-full" />
@@ -138,14 +171,23 @@ export const ClassroomsPage: React.FC = () => {
                   const enrolled = c.enrolledCount ?? 0;
                   const pct = c.capacity > 0 ? Math.round((enrolled / c.capacity) * 100) : 0;
                   return (
-                    <div key={c.id} className="rounded-lg border border-border p-3">
+                    <div key={c.id} className={cn('rounded-lg border border-border p-3', c.openInYear === false && 'border-dashed opacity-70')}>
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <p className="text-base font-semibold">Sección "{c.section}"</p>
-                          <p className="text-xs text-muted-foreground">Turno {SHIFT_LABEL[c.shift as Shift].toLowerCase()}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Turno {SHIFT_LABEL[c.shift as Shift].toLowerCase()}
+                            {c.openInYear === false && <span className="ml-1 font-semibold text-amber-700 dark:text-amber-400">· No abierta en {viewedYear?.year}</span>}
+                          </p>
                         </div>
                         {isAdmin && (
                           <div className="flex">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" disabled={setSection.isPending}
+                              title={c.openInYear === false ? `Abrir en ${viewedYear?.year}` : `Cerrar en ${viewedYear?.year}`}
+                              aria-label={c.openInYear === false ? `Abrir ${roomLabel(c)} en ${viewedYear?.year}` : `Cerrar ${roomLabel(c)} en ${viewedYear?.year}`}
+                              onClick={() => toggleOpen(c)}>
+                              {c.openInYear === false ? <DoorOpen className="h-4 w-4 text-emerald-600" /> : <DoorClosed className="h-4 w-4" />}
+                            </Button>
                             <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`Editar ${roomLabel(c)}`} onClick={() => { setEditing(c); setFormOpen(true); }}><Pencil className="h-4 w-4" /></Button>
                             <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" aria-label={`Eliminar ${roomLabel(c)}`} onClick={() => setToDelete(c)}><Trash2 className="h-4 w-4" /></Button>
                           </div>
@@ -183,11 +225,17 @@ export const ClassroomsPage: React.FC = () => {
           classroom={editing}
           defaultLevel={level}
           teachers={teachers}
-          isSaving={createClassroom.isPending || updateClassroom.isPending}
+          isSaving={createClassroom.isPending || updateClassroom.isPending || setSection.isPending}
           onClose={() => setFormOpen(false)}
           onSubmit={async (payload) => {
             try {
-              if (editing) {
+              if (editing && isOtherYear && viewedYear) {
+                // Vacantes y tutor son del año que se está viendo; nombre, turno y grado son del aula
+                const { capacity, tutorTeacherId, ...room } = payload;
+                await updateClassroom.mutateAsync({ id: editing.id, payload: room });
+                await setSection.mutateAsync({ id: editing.id, academicYearId: viewedYear.id, body: { open: true, capacity, tutorTeacherId } });
+                toast.success(`${roomLabel({ ...editing, ...payload } as Classroom)} actualizada para ${viewedYear.year}.`);
+              } else if (editing) {
                 await updateClassroom.mutateAsync({ id: editing.id, payload });
                 toast.success(`${roomLabel({ ...editing, ...payload } as Classroom)} actualizada.`);
               } else {
@@ -202,6 +250,14 @@ export const ClassroomsPage: React.FC = () => {
         />
       )}
       {bulkOpen && <BulkCreateModal defaultLevel={level} onClose={() => setBulkOpen(false)} />}
+      {copyOpen && viewedYear && (
+        <CopySectionsModal
+          toYear={viewedYear}
+          years={years.filter((y) => y.id !== viewedYear.id)}
+          defaultFromId={currentYear && currentYear.id !== viewedYear.id ? currentYear.id : undefined}
+          onClose={() => setCopyOpen(false)}
+        />
+      )}
 
       <ConfirmDialog
         isOpen={!!toDelete}
@@ -357,6 +413,42 @@ const BulkCreateModal: React.FC<{ defaultLevel: Level; onClose: () => void }> = 
           </p>
         )}
         <p className="text-xs text-muted-foreground">Los tutores se asignan después, en cada aula.</p>
+      </div>
+    </Modal>
+  );
+};
+
+/** Copia las secciones (vacantes y, si se quiere, tutores) de otro año al que se está viendo. */
+const CopySectionsModal: React.FC<{
+  toYear: { id: string; year: number };
+  years: Array<{ id: string; year: number }>;
+  defaultFromId?: string;
+  onClose: () => void;
+}> = ({ toYear, years, defaultFromId, onClose }) => {
+  const copy = useCopyClassroomYear();
+  const [fromId, setFromId] = useState(defaultFromId ?? years[0]?.id ?? '');
+  const [includeTutors, setIncludeTutors] = useState(false);
+  return (
+    <Modal open onClose={onClose} title={`Copiar secciones a ${toYear.year}`}
+      description="Se abren en este año las secciones del año de origen que aún no están abiertas, con sus mismas vacantes."
+      footer={<>
+        <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+        <Button disabled={!fromId || copy.isPending} onClick={() => copy.mutate({ fromAcademicYearId: fromId, toAcademicYearId: toYear.id, includeTutors }, {
+          onSuccess: (r) => { toast.success(r.copied ? `Se abrieron ${r.copied} secciones en ${toYear.year}.` : 'No había secciones nuevas que copiar.'); onClose(); },
+          onError: (err: any) => toast.error(err?.response?.data?.message || 'No se pudo copiar.'),
+        })}>Copiar</Button>
+      </>}>
+      <div className="space-y-3 text-sm">
+        <label className="block space-y-1">
+          <span className="font-medium">Desde el año</span>
+          <Select value={fromId} onChange={(e) => setFromId(e.target.value)} className="w-full">
+            {years.map((y) => <option key={y.id} value={y.id}>{y.year}</option>)}
+          </Select>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" checked={includeTutors} onChange={(e) => setIncludeTutors(e.target.checked)} className="h-4 w-4 rounded" />
+          Copiar también los tutores
+        </label>
       </div>
     </Modal>
   );

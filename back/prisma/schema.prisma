@@ -276,6 +276,7 @@ model School {
   obligationAdjustments     ObligationAdjustment[]
   scholarships              Scholarship[]
   feeSchedules              FeeSchedule[]
+  classroomYears            ClassroomYear[]
 }
 
 model User {
@@ -346,6 +347,7 @@ model User {
   adjustmentsVoided      ObligationAdjustment[]   @relation("AdjustmentVoider")
   scholarshipsCreated    Scholarship[]            @relation("ScholarshipCreator")
   scholarshipsEnded      Scholarship[]            @relation("ScholarshipDeactivator")
+  tutoredClassroomYears  ClassroomYear[]          @relation("ClassroomYearTutor")
 
   @@unique([schoolId, documentId])
   @@index([schoolId, role])
@@ -447,6 +449,7 @@ model AcademicYear {
   teacherAvailabilities TeacherAvailability[]
   periodStatuses        AcademicPeriodStatus[]
   feeSchedules          FeeSchedule[]
+  classroomYears        ClassroomYear[]
 }
 
 model Classroom {
@@ -467,6 +470,7 @@ model Classroom {
   periodStatuses AcademicPeriodStatus[]
   scheduleBlocks ScheduleBlock[]
   events         SchoolEvent[]
+  years          ClassroomYear[]
 
   @@unique([schoolId, educationLevel, grade, section, shift])
   @@index([schoolId, educationLevel, grade])
@@ -545,6 +549,29 @@ model PaymentObligation {
   @@index([schoolId, status])
   @@index([schoolId, dueDate])
   @@index([enrollmentId, concept, period])
+}
+
+/// Sección abierta en un año académico, con su capacidad y tutor de ese año. Permite preparar el año
+/// siguiente (secciones, vacantes y tutores) sin tocar el vigente. Al activar un año, su capacidad y
+/// tutor se copian al aula (Classroom), que sigue siendo la fuente para la operación diaria.
+model ClassroomYear {
+  id             String   @id @default(uuid())
+  schoolId       String
+  classroomId    String
+  academicYearId String
+  capacity       Int      @default(30)
+  tutorTeacherId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  school       School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classroom    Classroom    @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  tutorTeacher User?        @relation("ClassroomYearTutor", fields: [tutorTeacherId], references: [id], onDelete: SetNull)
+
+  // Un docente es tutor de una sola sección por año: índice parcial en la migración SQL
+  @@unique([classroomId, academicYearId])
+  @@index([schoolId, academicYearId])
 }
 
 /// Tarifario de un año académico por nivel (y grado opcional): con él se genera el cronograma

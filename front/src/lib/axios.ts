@@ -21,7 +21,8 @@ api.interceptors.request.use(
     }
     // Año elegido en el selector de la cabecera (solo personal; sin elegir = año vigente)
     const { selectedYearId } = useAcademicYearStore.getState();
-    if (selectedYearId && user && YEAR_SCOPED_ROLES.includes(user.role)) {
+    // Una petición puede pedir otro año explícitamente (p. ej. aulas del año destino al matricular)
+    if (selectedYearId && user && YEAR_SCOPED_ROLES.includes(user.role) && !config.headers['x-academic-year-id']) {
       config.headers['x-academic-year-id'] = selectedYearId;
     }
     return config;

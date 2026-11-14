@@ -10,7 +10,9 @@ import {
   CalendarDays,
   DoorOpen,
   DoorClosed,
+  ClipboardCheck,
 } from 'lucide-react';
+import { FinalSituationModal } from '../components/FinalSituationModal';
 import {
   useAcademicYears,
   useCreateAcademicYear,
@@ -198,6 +200,7 @@ export const AcademicYearsPage: React.FC = () => {
   };
 
   const [yearToActivate, setYearToActivate] = useState<AcademicYear | null>(null);
+  const [finalYear, setFinalYear] = useState<AcademicYear | null>(null);
   const { data: impact, isLoading: impactLoading } = useActivationImpact(yearToActivate?.id ?? null);
 
   const handleConfirmActivate = async () => {
@@ -371,6 +374,21 @@ export const AcademicYearsPage: React.FC = () => {
                     <span>Fin: <strong className="text-foreground">{formatDateDisplay(ay.endDate)}</strong></span>
                   </div>
                 </div>
+
+                {isAdmin && ay.isActive && (
+                  <div className="pt-2 flex justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs gap-1 font-semibold"
+                      onClick={() => setFinalYear(ay)}
+                      title="Calcula con las notas quién es promovido, va a recuperación o permanece, y lo guarda para la re-matrícula"
+                    >
+                      <ClipboardCheck className="w-3.5 h-3.5" />
+                      <span>Registrar situación final</span>
+                    </Button>
+                  </div>
+                )}
 
                 {isAdmin && !ay.isActive && (
                   <div className="pt-2 flex flex-wrap justify-end gap-2">
@@ -567,6 +585,7 @@ export const AcademicYearsPage: React.FC = () => {
           </div>
         </div>
       )}
+      <FinalSituationModal year={finalYear} onClose={() => setFinalYear(null)} />
       <ConfirmDialog
         isOpen={!!yearToActivate}
         onClose={() => setYearToActivate(null)}

@@ -46,7 +46,7 @@ export class RolloverService {
     const studentIds = enrollments.map((e) => e.student.id);
     const today = getSchoolNow().dateObj;
 
-    const [already, ratifications, overdue, classrooms, targetCounts] = await Promise.all([
+    const [already, ratifications, overdue, allClassrooms, targetCounts, targetSections] = await Promise.all([
       prisma.enrollment.findMany({
         where: { schoolId, academicYearId: to.id, studentId: { in: studentIds } },
         select: { studentId: true, classroom: { select: { educationLevel: true, grade: true, section: true } } },
@@ -74,7 +74,15 @@ export class RolloverService {
         where: { schoolId, academicYearId: to.id, enrollmentState: 'REGISTERED' },
         _count: { _all: true },
       }),
+      prisma.classroomYear.findMany({ where: { schoolId, academicYearId: to.id }, select: { classroomId: true, capacity: true } }),
     ]);
+    // Solo las secciones abiertas en el año destino (si ya las definió), con sus vacantes de ese año
+    const classrooms =
+      targetSections.length === 0
+        ? allClassrooms
+        : allClassrooms
+            .filter((c) => targetSections.some((s) => s.classroomId === c.id))
+            .map((c) => ({ ...c, capacity: targetSections.find((s) => s.classroomId === c.id)!.capacity }));
 
     const alreadyBy = new Map(already.map((a) => [a.studentId, a.classroom]));
     const ratBy = new Map(ratifications.map((r) => [r.studentId, r.decision]));

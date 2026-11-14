@@ -22,6 +22,7 @@ const FLAG: Partial<Record<RolloverFlag, { label: string; cls: string }>> = {
   NO_RATIFICATION: { label: 'Sin ratificar', cls: 'bg-muted text-muted-foreground' },
   RECOVERY: { label: 'Recuperación', cls: 'bg-amber-500/15 text-amber-700 dark:text-amber-400' },
   REPEATS: { label: 'Repite', cls: 'bg-amber-500/15 text-amber-700 dark:text-amber-400' },
+  NO_FINAL_SITUATION: { label: 'Sin situación final', cls: 'bg-muted text-muted-foreground' },
   NO_TARGET_CLASSROOM: { label: 'Sin aula destino', cls: 'bg-destructive/15 text-destructive' },
 };
 
@@ -351,8 +352,9 @@ export const RolloverModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
                 </table>
               </div>
               <p className="text-[10px] text-muted-foreground">
-                El aula propuesta es el grado siguiente en la misma sección y turno. Marca <strong>Repite</strong> para quien permanece en el grado
-                y cambia su aula. La deuda no bloquea la matrícula: se muestra para que Dirección decida.
+                El aula propuesta es el grado siguiente en la misma sección y turno, entre las secciones abiertas en {data?.toYear.year}. Quien
+                tiene situación final "permanece" se propone repitiendo; si falta la situación final, regístrala en <strong>Años lectivos</strong>{' '}
+                o marca <strong>Repite</strong> y cambia su aula. La deuda no bloquea la matrícula: se muestra para que Dirección decida.
               </p>
             </>
           )}

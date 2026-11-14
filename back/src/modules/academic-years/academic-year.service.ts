@@ -1,3 +1,5 @@
+import { classroomYearService } from '../classrooms/classroom-year.service';
+import { TeachingLoadService } from '../academic/teaching-load.service';
 import type { AcademicYear, Prisma } from '@prisma/client';
 import { AppError } from '../../core/errors/app-error';
 import { prisma } from '../../config/prisma';
@@ -62,12 +64,16 @@ export class AcademicYearService {
 
   /** Activa un año, desactiva los demás y recalcula qué matrículas están vigentes. */
   async activateExclusively(schoolId: string, academicYearId: string): Promise<void> {
-    await prisma.$transaction(async (tx) => {
+    const tutored = await prisma.$transaction(async (tx) => {
       await tx.academicYear.updateMany({ where: { schoolId, id: { not: academicYearId }, isActive: true }, data: { isActive: false } });
       // El año que pasa a vigente deja de estar "en matrícula"
       await tx.academicYear.update({ where: { id: academicYearId }, data: { isActive: true, enrollmentOpen: false } });
       await syncEnrollmentActiveFlags(tx, schoolId, academicYearId);
+      // Vacantes y tutores preparados para este año pasan a las aulas
+      return classroomYearService.syncOnActivation(tx, schoolId, academicYearId);
     });
+    const load = new TeachingLoadService();
+    for (const classroomId of tutored) await load.syncTutorTransversal(schoolId, classroomId);
   }
 
   /**
@@ -128,6 +134,9 @@ export class AcademicYearService {
     }
     validatePeriods(createDto);
     const created = await this.academicYearRepository.create(schoolId, createDto);
+    // El año nuevo empieza con las mismas secciones que el vigente (sin tutores: se asignan después)
+    const activeYear = await prisma.academicYear.findFirst({ where: { schoolId, isActive: true }, select: { id: true } });
+    if (activeYear) await classroomYearService.copyYear(schoolId, activeYear.id, created.id, false);
     // Si el colegio aún no tiene año activo, el primero se activa; si no, solo cuando se pide expresamente.
     const hasActive = await prisma.academicYear.count({ where: { schoolId, isActive: true } });
     if (createDto.isActive === true || hasActive === 0) {

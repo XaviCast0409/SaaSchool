@@ -4,7 +4,7 @@ import { UserCheck } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { useAcademicYears, pickEnrollmentTargetYear } from '@/features/academic-years/api/useAcademicYears';
-import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
+import { useClassroomsForYear } from '@/features/classrooms/api/useClassrooms';
 import { SchedulePreviewCard } from '@/features/payments/components/SchedulePreviewCard';
 import { classroomLabel, useRollover, type EnrollmentCondition } from '@/features/enrollments/api/useRollover';
 
@@ -23,9 +23,9 @@ const selectCls =
  */
 export const QuickEnrollModal: React.FC<{ student: QuickEnrollStudent | null; onClose: () => void }> = ({ student, onClose }) => {
   const { data: years = [] } = useAcademicYears();
-  const { data: classrooms = [] } = useClassrooms();
   const rollover = useRollover();
   const [yearId, setYearId] = useState('');
+  const { data: classrooms = [] } = useClassroomsForYear(yearId || undefined);
   const [classroomId, setClassroomId] = useState('');
   const [condition, setCondition] = useState<EnrollmentCondition>('CONTINUO');
   const [repeatingGrade, setRepeatingGrade] = useState(false);
@@ -110,7 +110,7 @@ export const QuickEnrollModal: React.FC<{ student: QuickEnrollStudent | null; on
             <option value="">-- Elige aula --</option>
             {classrooms.map((c) => (
               <option key={c.id} value={c.id}>
-                {classroomLabel(c)}
+                {classroomLabel(c)} ({c.enrolledCount ?? 0}/{c.capacity})
               </option>
             ))}
           </select>

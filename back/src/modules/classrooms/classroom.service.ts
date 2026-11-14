@@ -1,3 +1,4 @@
+import { classroomYearService } from './classroom-year.service';
 import type { Classroom, EducationLevel } from '@prisma/client';
 import { AppError } from '../../core/errors/app-error';
 import { prisma } from '../../config/prisma';
@@ -38,8 +39,8 @@ export class ClassroomService {
     }
   }
 
-  async getAllClassrooms(schoolId: string, academicYearId?: string): Promise<ClassroomWithStats[]> {
-    return this.classroomRepository.findAllBySchool(schoolId, academicYearId);
+  async getAllClassrooms(schoolId: string, academicYearId?: string, includeClosed = false): Promise<ClassroomWithStats[]> {
+    return this.classroomRepository.findAllBySchool(schoolId, academicYearId, includeClosed);
   }
 
   async getClassroomById(classroomId: string, schoolId: string): Promise<ClassroomWithTutor> {
@@ -52,6 +53,7 @@ export class ClassroomService {
     await this.assertSlotFree(schoolId, { educationLevel: dto.educationLevel, grade: dto.grade, section: dto.section, shift: dto.shift });
     await this.validateTutorTeacher(schoolId, dto.tutorTeacherId);
     const result = await this.classroomRepository.create(schoolId, dto);
+    await classroomYearService.openNewClassroom(schoolId, result.id);
     if (dto.tutorTeacherId) await teachingLoad.syncTutorTransversal(schoolId, result.id);
     return result;
   }
@@ -68,7 +70,8 @@ export class ClassroomService {
           skipped.push(label(slot));
           continue;
         }
-        await this.classroomRepository.create(schoolId, { ...slot, capacity: dto.capacity, tutorTeacherId: null });
+        const room = await this.classroomRepository.create(schoolId, { ...slot, capacity: dto.capacity, tutorTeacherId: null });
+        await classroomYearService.openNewClassroom(schoolId, room.id);
         created.push(label(slot));
       }
     }
@@ -107,6 +110,8 @@ export class ClassroomService {
     if (dto.tutorTeacherId !== undefined) await this.validateTutorTeacher(schoolId, dto.tutorTeacherId, classroomId);
 
     const updated = await this.classroomRepository.update(classroomId, schoolId, dto);
+    // La sección del año vigente sigue al aula (vacantes y tutor)
+    if (dto.capacity !== undefined || dto.tutorTeacherId !== undefined) await classroomYearService.mirrorFromClassroom(schoolId, classroomId);
     if (dto.tutorTeacherId) await teachingLoad.syncTutorTransversal(schoolId, classroomId);
     return updated;
   }

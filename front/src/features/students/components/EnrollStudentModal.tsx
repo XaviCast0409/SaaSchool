@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/TemporaryCredentialsDialog';
 import { useRegisterFichaMatricula, useSiagieCatalogs, useStudents } from '../api/useStudents';
 import type { QuickEnrollStudent } from './QuickEnrollModal';
-import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
+import { useClassroomsForYear } from '@/features/classrooms/api/useClassrooms';
 import { useAcademicYears } from '@/features/academic-years/api/useAcademicYears';
 import { useUsers } from '@/features/users/api/useUsers';
 import { toast } from 'sonner';
@@ -223,7 +223,6 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
   const [tempCredentials, setTempCredentials] = useState<TemporaryCredential[] | null>(null);
 
   const { data: catalogs } = useSiagieCatalogs();
-  const { data: classrooms = [] } = useClassrooms();
   const { data: academicYears = [] } = useAcademicYears();
   const { data: existingParents = [] } = useUsers('PARENT');
 
@@ -261,6 +260,8 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
   const hasDisability = watch('hasDisability');
   const condition = watch('condition');
   const selectedYearId = watch('academicYearId');
+  // Secciones abiertas en el año elegido en la ficha
+  const { data: classrooms = [] } = useClassroomsForYear(selectedYearId || undefined);
   const selectedClassroomId = watch('classroomId');
   const selectedParentId = watch('existingParentId');
 

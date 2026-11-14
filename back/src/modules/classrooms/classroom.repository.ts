@@ -1,3 +1,4 @@
+import { classroomYearService } from './classroom-year.service';
 import { enrollmentsOfYear } from '../../utils/academic-year-scope';
 import { prisma } from '../../config/prisma';
 import type { Prisma, Classroom } from '@prisma/client';
@@ -16,18 +17,38 @@ const CLASSROOM_INCLUDE = {
 } as const;
 
 export type ClassroomWithTutor = Prisma.ClassroomGetPayload<{ include: typeof CLASSROOM_INCLUDE }>;
-export type ClassroomWithStats = ClassroomWithTutor & { enrolledCount: number };
+export type ClassroomWithStats = ClassroomWithTutor & { enrolledCount: number; openInYear: boolean; academicYearId: string | null };
 
 const ORDER: Prisma.ClassroomOrderByWithRelationInput[] = [{ educationLevel: 'asc' }, { grade: 'asc' }, { section: 'asc' }, { shift: 'asc' }];
 
 export class ClassroomRepository {
-  /** Aulas con el número de alumnos matriculados vigentes (año activo). */
-  async findAllBySchool(schoolId: string, academicYearId?: string): Promise<ClassroomWithStats[]> {
-    const [rooms, counts] = await Promise.all([
+  /**
+   * Aulas del año elegido (o del vigente) con sus matriculados, vacantes y tutor de ese año. Si el
+   * año ya definió sus secciones, solo devuelve las abiertas (salvo `includeClosed`).
+   */
+  async findAllBySchool(schoolId: string, academicYearId?: string, includeClosed = false): Promise<ClassroomWithStats[]> {
+    const yearId = await classroomYearService.resolveYearId(schoolId, academicYearId);
+    const [rooms, counts, sections] = await Promise.all([
       prisma.classroom.findMany({ where: { schoolId }, include: CLASSROOM_INCLUDE, orderBy: ORDER }),
       prisma.enrollment.groupBy({ by: ['classroomId'], where: { schoolId, ...enrollmentsOfYear(academicYearId) }, _count: { _all: true } }),
+      yearId ? classroomYearService.sectionsOf(schoolId, yearId) : Promise.resolve([]),
     ]);
-    return rooms.map((r) => ({ ...r, enrolledCount: counts.find((c) => c.classroomId === r.id)?._count._all ?? 0 }));
+    const hasSections = sections.length > 0;
+    const isCurrent = !academicYearId;
+    return rooms
+      .map((r) => {
+        const sec = sections.find((s) => s.classroomId === r.id);
+        return {
+          ...r,
+          capacity: sec?.capacity ?? r.capacity,
+          tutorTeacherId: sec ? sec.tutorTeacherId : isCurrent ? r.tutorTeacherId : null,
+          tutorTeacher: sec ? sec.tutorTeacher : isCurrent ? r.tutorTeacher : null,
+          openInYear: !hasSections || !!sec,
+          academicYearId: yearId,
+          enrolledCount: counts.find((c) => c.classroomId === r.id)?._count._all ?? 0,
+        };
+      })
+      .filter((r) => includeClosed || r.openInYear);
   }
 
   async findById(classroomId: string, schoolId: string): Promise<ClassroomWithTutor | null> {

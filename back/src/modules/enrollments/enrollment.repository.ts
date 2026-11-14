@@ -1,3 +1,4 @@
+import { classroomYearService } from '../classrooms/classroom-year.service';
 import { prisma } from '../../config/prisma';
 import type { Enrollment } from '@prisma/client';
 import { AppError } from '../../core/errors/app-error';
@@ -33,6 +34,7 @@ export class EnrollmentRepository {
     return prisma.$transaction(async (tx) => {
       const year = await tx.academicYear.findFirst({ where: { id: data.academicYearId, schoolId }, select: { isActive: true } });
       if (!year) throw new AppError('Año académico no encontrado.', 404);
+      await classroomYearService.assertOpen(tx, schoolId, data.classroomId, data.academicYearId);
       // Regla: isActive = matrícula del año activo y registrada (ver syncEnrollmentActiveFlags)
       const enrollment = await tx.enrollment.create({
         data: { ...data, schoolId, isActive: year.isActive },
