@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Download, ListChecks, Loader2, Upload } from 'lucide-react';
+import { ArrowLeft, Download, ListChecks, Loader2, Smartphone, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/ui/page-header';
 import { Tabs } from '@/components/ui/tabs';
@@ -68,6 +68,7 @@ export const GradebookPage: React.FC = () => {
           <Select aria-label="Periodo" value={period} onChange={(e) => setParams({ period: e.target.value })}>
             {Array.from({ length: data.periodCount }, (_, i) => i + 1).map((n) => <option key={n} value={n}>Periodo {n}</option>)}
           </Select>
+          <Button asChild variant="outline" size="sm"><Link to={`/gradebook/${data.assignment.id}/quick?period=${period}`}><Smartphone className="mr-1 h-4 w-4" />Registro rápido</Link></Button>
           {data.canEdit && <Button variant="outline" size="sm" onClick={() => setCriteriaOpen(true)}><ListChecks className="mr-1 h-4 w-4" />Criterios</Button>}
           {data.canEdit && (data.periodStatus === 'OPEN' || data.isCorrection) && (
             <Button variant="outline" size="sm" disabled={importHomework.isPending} onClick={() => importHomework.mutate({ courseAssignmentId: data.assignment.id, periodNumber: period })}>
