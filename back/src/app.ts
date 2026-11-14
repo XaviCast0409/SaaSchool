@@ -52,6 +52,7 @@ import { calendarFeedRouter } from './modules/calendar/calendar-feed.routes';
 import { secretariatRouter } from './modules/secretariat/secretariat.routes';
 import { secretariatPublicRouter } from './modules/secretariat/secretariat.public.routes';
 import { notificationPreferenceRouter } from './modules/notifications/notification-preference.routes';
+import { platformRouter } from './modules/platform/platform.routes';
 
 const app = express();
 
@@ -107,6 +108,7 @@ app.use(`${API_PREFIX}/files`, fileContentRateLimiter, fileRouter);
 app.use(API_PREFIX, apiRateLimiter);
 
 app.use(`${API_PREFIX}/schools`, schoolRouter);
+app.use(`${API_PREFIX}/platform`, platformRouter);
 app.use(`${API_PREFIX}/users`, userRouter);
 app.use(`${API_PREFIX}/students`, studentRouter);
 app.use(`${API_PREFIX}/academic-years`, academicYearRouter);

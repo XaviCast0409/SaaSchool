@@ -264,6 +264,7 @@ model School {
   automationSettings        SchoolAutomationSetting[]
   notificationPreferences   NotificationPreference[]
   subscriptionPayments      SubscriptionPayment[]
+  internalNotes             SchoolNote[]
   conversations             Conversation[]
   messages                  Message[]
   announcementResponses     AnnouncementResponse[]
@@ -2169,4 +2170,43 @@ model SubscriptionPayment {
 
   @@index([schoolId, paidOn])
   @@index([paidOn])
+}
+
+/// Nota interna del equipo de la plataforma sobre un colegio (no la ve el colegio).
+model SchoolNote {
+  id          String   @id @default(uuid())
+  schoolId    String
+  body        String   @db.Text
+  pinned      Boolean  @default(false)
+  authorId    String
+  authorEmail String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id])
+
+  @@index([schoolId, createdAt])
+}
+
+enum PlatformAnnouncementLevel {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+/// Aviso de la plataforma para todos los colegios (mantenimiento, novedades). Lo publica SUPER_ADMIN.
+model PlatformAnnouncement {
+  id             String                    @id @default(uuid())
+  title          String
+  message        String                    @db.Text
+  level          PlatformAnnouncementLevel @default(INFO)
+  audience       String[] // Roles que lo ven: SCHOOL_ADMIN, ADMINISTRATIVE, TEACHER, PARENT, STUDENT
+  startsAt       DateTime
+  endsAt         DateTime?
+  isActive       Boolean                   @default(true)
+  createdByEmail String?
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+
+  @@index([isActive, startsAt])
 }

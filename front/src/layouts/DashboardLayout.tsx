@@ -50,6 +50,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useGetActiveSchool } from '@/features/schools/api/useSchool';
 import { PlanStatusBanner, PlanBlockedScreen } from '@/features/schools/components/PlanStatusBanner';
+import { PlatformAnnouncementsBanner } from '@/features/super-admin/components/PlatformAnnouncementsBanner';
 import { SchoolSettingsModal } from '@/features/schools/components/SchoolSettingsModal';
 import { ChangePasswordModal } from '@/features/auth/components/ChangePasswordModal';
 import { ConsentGate } from '@/features/legal/components/ConsentGate';
@@ -119,6 +120,8 @@ export const DashboardLayout: React.FC = () => {
       title: 'Plataforma SaaS',
       items: [
         { label: 'Torre de Control SaaS', path: '/super-admin', icon: ShieldCheck, roles: ['SUPER_ADMIN'], minPlan: 'BASIC' },
+        { label: 'Avisos a colegios', path: '/super-admin/announcements', icon: Megaphone, roles: ['SUPER_ADMIN'], minPlan: 'BASIC' },
+        { label: 'Salud del sistema', path: '/super-admin/health', icon: Activity, roles: ['SUPER_ADMIN'], minPlan: 'BASIC' },
       ],
     },
   ];
@@ -684,7 +687,10 @@ export const DashboardLayout: React.FC = () => {
                 <div className="space-y-0.5">
                   {section.items.map((item) => {
                     const Icon = item.icon;
-                    const isActive = location.pathname === item.path;
+                    // La ficha de un colegio cuelga de la Torre de Control
+                    const isActive =
+                      location.pathname === item.path ||
+                      (item.path === '/super-admin' && location.pathname.startsWith('/super-admin/schools/'));
                     return (
                       <Link
                         key={item.path}
@@ -818,6 +824,9 @@ export const DashboardLayout: React.FC = () => {
 
         {/* Vencimiento del plan: próximo a vencer, en gracia o en solo lectura */}
         <PlanStatusBanner school={school} role={userRole} />
+
+        {/* Avisos de la plataforma (mantenimiento, novedades) */}
+        {!isSuperAdmin && <PlatformAnnouncementsBanner />}
 
         {/* Año que se está viendo (si no es el vigente) */}
         <AcademicYearBanner />

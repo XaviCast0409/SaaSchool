@@ -68,6 +68,15 @@ const EvaluationCriteriaPage = lazy(() =>
 const SuperAdminPage = lazy(() =>
   import('@/features/super-admin/pages/SuperAdminPage').then((m) => ({ default: m.SuperAdminPage })),
 );
+const SchoolDetailPage = lazy(() =>
+  import('@/features/super-admin/pages/SchoolDetailPage').then((m) => ({ default: m.SchoolDetailPage })),
+);
+const PlatformAnnouncementsPage = lazy(() =>
+  import('@/features/super-admin/pages/PlatformAnnouncementsPage').then((m) => ({ default: m.PlatformAnnouncementsPage })),
+);
+const PlatformHealthPage = lazy(() =>
+  import('@/features/super-admin/pages/PlatformHealthPage').then((m) => ({ default: m.PlatformHealthPage })),
+);
 const StudentCoursesPage = lazy(() =>
   import('@/features/course-contents/pages/StudentCoursesPage').then((m) => ({ default: m.StudentCoursesPage })),
 );
@@ -602,6 +611,30 @@ export const AppRouter: React.FC = () => {
               element={
                 <RoleGuard allowedRoles={['SUPER_ADMIN']}>
                   <SuperAdminPage />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/super-admin/schools/:schoolId"
+              element={
+                <RoleGuard allowedRoles={['SUPER_ADMIN']}>
+                  <SchoolDetailPage />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/super-admin/announcements"
+              element={
+                <RoleGuard allowedRoles={['SUPER_ADMIN']}>
+                  <PlatformAnnouncementsPage />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/super-admin/health"
+              element={
+                <RoleGuard allowedRoles={['SUPER_ADMIN']}>
+                  <PlatformHealthPage />
                 </RoleGuard>
               }
             />

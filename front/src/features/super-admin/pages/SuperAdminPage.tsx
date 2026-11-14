@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   ShieldCheck,
   Building2,
@@ -320,7 +320,12 @@ export const SuperAdminPage: React.FC = () => {
               {attentionSchools.map(({ school, reasons }) => (
                 <li key={school.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-6 py-3">
                   <div className="min-w-0 space-y-1">
-                    <div className="text-sm font-semibold text-foreground truncate">{school.name}</div>
+                    <Link
+                      to={`/super-admin/schools/${school.id}`}
+                      className="block text-sm font-semibold text-foreground truncate hover:text-primary hover:underline"
+                    >
+                      {school.name}
+                    </Link>
                     <div className="flex flex-wrap gap-1.5">
                       {reasons.map((r) => (
                         <Badge
@@ -419,7 +424,9 @@ export const SuperAdminPage: React.FC = () => {
                               ) : (
                                 <Building2 className="w-4 h-4 text-primary" />
                               )}
-                              <span>{item.name}</span>
+                              <Link to={`/super-admin/schools/${item.id}`} className="hover:text-primary hover:underline">
+                                {item.name}
+                              </Link>
                             </div>
                             <div className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5 font-mono">
                               <span>RUC: {item.documentId}</span>

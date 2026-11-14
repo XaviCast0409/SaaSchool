@@ -3,6 +3,7 @@ import { ZodError } from 'zod';
 import * as Sentry from '@sentry/node';
 import { AppError } from '../errors/app-error';
 import { env } from '../../config/env';
+import { recordServerError } from '../observability/recent-errors';
 
 interface ErrorResponse {
   status: 'error' | 'fail';
@@ -17,7 +18,7 @@ interface ErrorResponse {
  */
 export const globalErrorHandler = (
   error: Error,
-  _request: Request,
+  request: Request,
   response: Response,
   _next: NextFunction,
 ): void => {
@@ -96,6 +97,7 @@ export const globalErrorHandler = (
   }
 
   console.error('💥 ERROR NO CONTROLADO:', error);
+  recordServerError({ method: request.method, path: request.originalUrl, message: error.message });
 
   const errorResponse: ErrorResponse = {
     status: 'error',
