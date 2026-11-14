@@ -15,6 +15,7 @@ schoolRouter.use(authMiddleware);
 // Rutas administrativas de Colegios
 schoolRouter.get('/', authorizeRoles('SUPER_ADMIN'), schoolController.getAll);
 schoolRouter.post('/', authorizeRoles('SUPER_ADMIN'), schoolController.create);
+schoolRouter.get('/plans', authorizeRoles('SUPER_ADMIN'), schoolController.getPlans);
 schoolRouter.get('/:id', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT'), schoolController.getById);
 schoolRouter.patch('/:id/reactivate', authorizeRoles('SUPER_ADMIN'), schoolController.reactivate);
 schoolRouter.patch('/:id', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'), schoolController.update);

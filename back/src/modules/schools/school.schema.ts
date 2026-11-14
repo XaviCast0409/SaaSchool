@@ -21,6 +21,8 @@ export const createSchoolSchema = z.object({
   district: z.string().optional().nullable().or(emptyToUndefined),
   plan: z.enum(['BASIC', 'PRO', 'ENTERPRISE']).optional(),
   planExpiresAt: z.string().optional().nullable().or(emptyToUndefined),
+  // Mensualidad pactada en soles; null = precio de lista del plan
+  monthlyFee: z.number().min(0, 'La mensualidad no puede ser negativa').max(100000).nullable().optional(),
   // Datos opcionales para crear el usuario Administrador Inicial en el onboarding
   adminEmail: z.string().email('Email de administrador inválido').optional().nullable().or(emptyToUndefined),
   adminPassword: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres').optional().nullable().or(emptyToUndefined),

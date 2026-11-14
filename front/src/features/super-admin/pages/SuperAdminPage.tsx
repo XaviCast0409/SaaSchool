@@ -22,7 +22,9 @@ import {
   useGetAllSchools,
   useDeactivateSchool,
   useReactivateSchool,
+  usePlanCatalog,
 } from '../api/useSuperAdmin';
+import type { PlanStatus } from '@/features/schools/types';
 import { SchoolWithStats } from '../types';
 import { CreateSchoolModal } from '../components/CreateSchoolModal';
 import { EditSchoolPlanModal } from '../components/EditSchoolPlanModal';
@@ -36,16 +38,31 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatPeruShortDate } from '@/lib/dateUtils';
 
-const PLAN_PRICES: Record<string, number> = {
-  BASIC: 400,
-  PRO: 650,
-  ENTERPRISE: 1200,
-};
+const formatSoles = (n: number) => n.toLocaleString('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
-const PLAN_STUDENT_QUOTAS: Record<string, number> = {
-  BASIC: 150,
-  PRO: 500,
-  ENTERPRISE: Infinity,
+/** Etiqueta del estado de vigencia del plan (gracia → solo lectura → sin acceso) */
+const PlanStatusBadge: React.FC<{ status?: PlanStatus }> = ({ status }) => {
+  if (!status) return null;
+  const { access, daysUntilExpiry, daysOverdue } = status;
+  if (access === 'ACTIVE') {
+    if (daysUntilExpiry === null || daysUntilExpiry > 15) return null;
+    return (
+      <Badge variant="outline" className="text-[10px] whitespace-nowrap border-amber-500/40 text-amber-700 dark:text-amber-300">
+        {daysUntilExpiry === 0 ? 'Vence hoy' : `Vence en ${daysUntilExpiry} d`}
+      </Badge>
+    );
+  }
+  const label =
+    access === 'GRACE'
+      ? `En gracia · ${daysOverdue} d vencido`
+      : access === 'READ_ONLY'
+        ? `Solo lectura · ${daysOverdue} d vencido`
+        : `Sin acceso · ${daysOverdue} d vencido`;
+  return (
+    <Badge variant={access === 'GRACE' ? 'outline' : 'destructive'} className="text-[10px] whitespace-nowrap">
+      {label}
+    </Badge>
+  );
 };
 
 export const SuperAdminPage: React.FC = () => {
@@ -71,6 +88,9 @@ export const SuperAdminPage: React.FC = () => {
   };
 
   const { data: schools = [], isLoading } = useGetAllSchools();
+  const { data: catalog } = usePlanCatalog();
+  const listPrice = (plan: string) => catalog?.plans[plan as keyof typeof catalog.plans]?.monthlyPrice ?? 0;
+  const feeOf = (s: SchoolWithStats) => s.effectiveMonthlyFee ?? listPrice(s.plan);
   const { mutate: deactivateSchool, isPending: isDeactivating } = useDeactivateSchool();
   const { mutate: reactivateSchool, isPending: isReactivating } = useReactivateSchool();
 
@@ -88,9 +108,11 @@ export const SuperAdminPage: React.FC = () => {
   const totalSchools = schools.length;
   const activeSchools = schools.filter((s) => s.isActive).length;
   const totalStudentsInPlatform = schools.reduce((acc, s) => acc + (s._count?.students || 0), 0);
+  // Solo cuentan los colegios que hoy pueden usar la plataforma, con su mensualidad pactada
   const estimatedMRR = schools
-    .filter((s) => s.isActive)
-    .reduce((acc, s) => acc + (PLAN_PRICES[s.plan] || 400), 0);
+    .filter((s) => s.isActive && s.planStatus?.access !== 'BLOCKED')
+    .reduce((acc, s) => acc + feeOf(s), 0);
+  const overdueSchools = schools.filter((s) => s.isActive && s.planStatus && s.planStatus.access !== 'ACTIVE').length;
 
   const handleToggleStatus = (school: SchoolWithStats) => {
     if (school.isActive) {
@@ -167,7 +189,13 @@ export const SuperAdminPage: React.FC = () => {
                 S/ {estimatedMRR.toFixed(2)}
               </div>
             )}
-            <p className="text-[11px] text-muted-foreground mt-1">Ingresos recurrentes mensuales</p>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              {overdueSchools > 0 ? (
+                <span className="text-destructive font-semibold">{overdueSchools} con plan vencido</span>
+              ) : (
+                'Ingresos recurrentes mensuales'
+              )}
+            </p>
           </CardContent>
         </Card>
 
@@ -228,9 +256,12 @@ export const SuperAdminPage: React.FC = () => {
               className="rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
             >
               <option value="ALL">Todos los Planes</option>
-              <option value="BASIC">Plan BASIC (S/ 400/mes)</option>
-              <option value="PRO">Plan PRO (S/ 650/mes)</option>
-              <option value="ENTERPRISE">Plan ENTERPRISE (S/ 1,200/mes)</option>
+              {(['BASIC', 'PRO', 'ENTERPRISE'] as const).map((plan) => (
+                <option key={plan} value={plan}>
+                  Plan {plan}
+                  {catalog ? ` (S/ ${formatSoles(listPrice(plan))}/mes)` : ''}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -257,7 +288,9 @@ export const SuperAdminPage: React.FC = () => {
               <TableBody>
                 {filteredSchools.length ? (
                   filteredSchools.map((item) => {
-                    const isExpired = item.planExpiresAt && new Date(item.planExpiresAt) < new Date();
+                    const isExpired = !!item.planStatus && item.planStatus.access !== 'ACTIVE';
+                    const quota = catalog?.plans[item.plan]?.studentQuota;
+                    const hasCustomFee = item.monthlyFee != null;
 
                     return (
                       <TableRow key={item.id} className="hover:bg-muted/30 transition-colors">
@@ -280,17 +313,22 @@ export const SuperAdminPage: React.FC = () => {
                         <TableCell>
                           <Badge
                             variant={item.plan === 'PRO' ? 'default' : item.plan === 'ENTERPRISE' ? 'success' : 'secondary'}
-                            className="font-bold text-[10px]"
+                            className="font-bold text-[10px] whitespace-nowrap"
                           >
-                            {item.plan} (S/ {PLAN_PRICES[item.plan] || 400}/mes)
+                            {item.plan} (S/ {formatSoles(feeOf(item))}/mes)
                           </Badge>
+                          {hasCustomFee && (
+                            <div className="text-[10px] text-muted-foreground mt-0.5">
+                              Precio pactado · lista S/ {formatSoles(listPrice(item.plan))}
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell>
                           <div className="space-y-0.5">
                             <div className="text-xs font-medium text-foreground">
                               <strong>{item._count?.students || 0}</strong>
                               <span className="text-muted-foreground text-[11px]">
-                                /{PLAN_STUDENT_QUOTAS[item.plan] === Infinity ? '∞' : PLAN_STUDENT_QUOTAS[item.plan]} alumnos
+                                /{quota === null ? '∞' : quota ?? '—'} alumnos
                               </span>
                             </div>
                             <div className="text-[11px] text-muted-foreground">
@@ -300,9 +338,12 @@ export const SuperAdminPage: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           {item.planExpiresAt ? (
-                            <span className={`text-xs ${isExpired ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
-                              {formatPeruShortDate(item.planExpiresAt)}
-                            </span>
+                            <div className="flex flex-col items-start gap-1">
+                              <span className={`text-xs ${isExpired ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
+                                {formatPeruShortDate(item.planExpiresAt)}
+                              </span>
+                              <PlanStatusBadge status={item.planStatus} />
+                            </div>
                           ) : (
                             <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">Mensual Indefinido</span>
                           )}
@@ -401,6 +442,7 @@ export const SuperAdminPage: React.FC = () => {
       />
 
       <EditSchoolPlanModal
+        key={selectedSchoolForPlan?.id ?? 'none'}
         school={selectedSchoolForPlan}
         isOpen={!!selectedSchoolForPlan}
         onClose={() => setSelectedSchoolForPlan(null)}

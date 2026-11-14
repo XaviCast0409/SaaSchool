@@ -2,7 +2,7 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { Sparkles, X, Save, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
-import { useUpdateSchoolPlan } from '../api/useSuperAdmin';
+import { useUpdateSchoolPlan, usePlanCatalog } from '../api/useSuperAdmin';
 import { SchoolWithStats } from '../types';
 import { SubscriptionPlan } from '@/features/schools/types';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,11 @@ interface EditSchoolPlanModalProps {
 interface PlanFormValues {
   plan: SubscriptionPlan;
   planExpiresAt: string;
+  monthlyFee: string;
 }
+
+const PLAN_ORDER: SubscriptionPlan[] = ['BASIC', 'PRO', 'ENTERPRISE'];
+const formatSoles = (n: number) => n.toLocaleString('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
 export const EditSchoolPlanModal: React.FC<EditSchoolPlanModalProps> = ({
   school,
@@ -25,13 +29,18 @@ export const EditSchoolPlanModal: React.FC<EditSchoolPlanModalProps> = ({
   onClose,
 }) => {
   const { mutate: updatePlan, isPending } = useUpdateSchoolPlan();
+  const { data: catalog } = usePlanCatalog();
 
-  const { register, handleSubmit } = useForm<PlanFormValues>({
+  // El padre monta este modal con key={school.id}, así los valores iniciales siempre son del colegio elegido
+  const { register, handleSubmit, watch } = useForm<PlanFormValues>({
     defaultValues: {
       plan: school?.plan || 'BASIC',
       planExpiresAt: school?.planExpiresAt ? school.planExpiresAt.split('T')[0] : '',
+      monthlyFee: school?.monthlyFee != null ? String(school.monthlyFee) : '',
     },
   });
+  const selectedPlan = watch('plan');
+  const listPrice = catalog?.plans[selectedPlan]?.monthlyPrice;
 
   if (!isOpen || !school) return null;
 
@@ -40,7 +49,8 @@ export const EditSchoolPlanModal: React.FC<EditSchoolPlanModalProps> = ({
       {
         id: school.id,
         plan: values.plan,
-        planExpiresAt: values.planExpiresAt || undefined,
+        planExpiresAt: values.planExpiresAt || null,
+        monthlyFee: values.monthlyFee.trim() === '' ? null : Number(values.monthlyFee),
       },
       {
         onSuccess: () => {
@@ -88,10 +98,36 @@ export const EditSchoolPlanModal: React.FC<EditSchoolPlanModalProps> = ({
               {...register('plan')}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-xs font-bold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer shadow-sm"
             >
-              <option value="BASIC">Plan BASIC (S/ 400/mes - Fase 1)</option>
-              <option value="PRO">Plan PRO (S/ 650/mes - Fase 2)</option>
-              <option value="ENTERPRISE">Plan ENTERPRISE (S/ 1,200/mes - Todo Incluido)</option>
+              {PLAN_ORDER.map((plan) => {
+                const info = catalog?.plans[plan];
+                return (
+                  <option key={plan} value={plan}>
+                    {info
+                      ? `Plan ${plan} (S/ ${formatSoles(info.monthlyPrice)}/mes · ${info.studentQuota ? `${info.studentQuota} alumnos` : 'alumnos ilimitados'})`
+                      : `Plan ${plan}`}
+                  </option>
+                );
+              })}
             </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold uppercase tracking-wide text-foreground">
+              Mensualidad pactada (S/)
+            </label>
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder={listPrice != null ? `Precio de lista: ${formatSoles(listPrice)}` : 'Precio de lista'}
+              {...register('monthlyFee', {
+                validate: (v) => v.trim() === '' || Number(v) >= 0 || 'La mensualidad no puede ser negativa',
+              })}
+              className="h-9 text-xs"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Déjala vacía para cobrar el precio de lista del plan. Úsala para descuentos o precios especiales.
+            </p>
           </div>
 
           <div className="space-y-1.5">
@@ -102,6 +138,12 @@ export const EditSchoolPlanModal: React.FC<EditSchoolPlanModalProps> = ({
             <Input type="date" {...register('planExpiresAt')} className="h-9 text-xs" />
             <p className="text-[11px] text-muted-foreground">
               Deja la fecha vacía si el plan es de cobro mensual indefinido.
+              {catalog && (
+                <>
+                  {' '}Al vencer: {catalog.graceDays} días de gracia, luego solo lectura y desde el día{' '}
+                  {catalog.readOnlyUntilDay + 1} sin acceso.
+                </>
+              )}
             </p>
           </div>
 

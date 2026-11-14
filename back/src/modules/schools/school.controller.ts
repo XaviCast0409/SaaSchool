@@ -3,6 +3,14 @@ import { recordAudit } from '../../utils/audit.util';
 import { createSchoolSchema, updateSchoolSchema } from './school.schema';
 import type { SchoolService } from './school.service';
 import { AppError } from '../../core/errors/app-error';
+import {
+  PLAN_CATALOG,
+  PLAN_GRACE_DAYS,
+  PLAN_READ_ONLY_UNTIL_DAY,
+  getPlanStatus,
+  planAllowsWrites,
+  PLAN_READ_ONLY_MESSAGE,
+} from './plan.rules';
 
 export class SchoolController {
   constructor(private readonly schoolService: SchoolService) {}
@@ -10,6 +18,17 @@ export class SchoolController {
   getAll = async (_request: Request, response: Response): Promise<void> => {
     const schools = await this.schoolService.getAllSchools();
     response.status(200).json({ status: 'success', data: schools });
+  };
+
+  getPlans = async (_request: Request, response: Response): Promise<void> => {
+    response.status(200).json({
+      status: 'success',
+      data: {
+        plans: PLAN_CATALOG,
+        graceDays: PLAN_GRACE_DAYS,
+        readOnlyUntilDay: PLAN_READ_ONLY_UNTIL_DAY,
+      },
+    });
   };
 
   getById = async (request: Request, response: Response): Promise<void> => {
@@ -40,10 +59,17 @@ export class SchoolController {
 
     const updateSchoolDto = updateSchoolSchema.parse(request.body);
 
-    // RESTRICCIÓN DE SEGURIDAD: Solo SUPER_ADMIN puede modificar el plan o fecha de expiración
+    // RESTRICCIÓN DE SEGURIDAD: Solo SUPER_ADMIN puede modificar el plan, vencimiento o mensualidad
     if (user.role !== 'SUPER_ADMIN') {
       delete updateSchoolDto.plan;
       delete updateSchoolDto.planExpiresAt;
+      delete updateSchoolDto.monthlyFee;
+
+      // Esta ruta no pasa por tenantMiddleware: aplicar aquí la solo lectura por plan vencido
+      const current = await this.schoolService.getSchoolById(id);
+      if (!planAllowsWrites(getPlanStatus(current.planExpiresAt).access)) {
+        throw new AppError(PLAN_READ_ONLY_MESSAGE, 403);
+      }
     }
 
     const school = await this.schoolService.updateSchool(id, updateSchoolDto);

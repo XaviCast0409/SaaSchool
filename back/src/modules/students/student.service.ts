@@ -1,5 +1,6 @@
 import { getSchoolNow } from '../../utils/timezone.util';
 import { AppError } from '../../core/errors/app-error';
+import { studentQuotaFor } from '../schools/plan.rules';
 import { prisma } from '../../config/prisma';
 import { hashPassword } from '../../utils/hash.util';
 import { generateTemporaryPassword } from '../../utils/password.util';
@@ -17,11 +18,6 @@ import type { PaginatedResult } from '../../core/interfaces/global.interfaces';
 import { SIAGIE_CATALOGS } from './student.catalogs';
 import { feeScheduleService } from '../payments/fee-schedule.service';
 
-export const PLAN_STUDENT_QUOTAS: Record<string, number> = {
-  BASIC: 150,
-  PRO: 500,
-  ENTERPRISE: Infinity,
-};
 
 export class StudentService {
   constructor(private readonly studentRepository: StudentRepository) {}
@@ -54,7 +50,7 @@ export class StudentService {
       this.studentRepository.getSchoolPlan(schoolId),
     ]);
 
-    const maxQuota = PLAN_STUDENT_QUOTAS[schoolPlan] ?? 150;
+    const maxQuota = studentQuotaFor(schoolPlan);
     if (currentCount >= maxQuota) {
       throw new AppError(
         `Límite de alumnos alcanzado (${currentCount}/${maxQuota}) para el Plan ${schoolPlan}. Por favor solicita la actualización a un plan superior para registrar más alumnos.`,
@@ -107,7 +103,7 @@ export class StudentService {
         this.studentRepository.getSchoolPlan(schoolId),
       ]);
 
-      const maxQuota = PLAN_STUDENT_QUOTAS[schoolPlan] ?? 150;
+      const maxQuota = studentQuotaFor(schoolPlan);
       if (currentCount >= maxQuota) {
         throw new AppError(
           `Límite de alumnos alcanzado (${currentCount}/${maxQuota}) para el Plan ${schoolPlan}. Actualiza tu suscripción para matricular nuevos alumnos.`,

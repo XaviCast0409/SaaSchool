@@ -3,7 +3,7 @@ import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
 import { getActiveYear } from '../academic/academic.context';
 import { gradeLabel, isValidGrade } from '../academic/cneb.catalog';
-import { PLAN_STUDENT_QUOTAS } from '../students/student.service';
+import { studentQuotaFor } from '../schools/plan.rules';
 import { parseNomina, type NominaFile, type NominaRow } from './nomina.parser';
 
 export type StudentAction = 'CREATE' | 'UPDATE' | 'NONE' | 'ERROR' | 'DUPLICATE';
@@ -195,7 +195,7 @@ export class NominaService {
       prisma.student.count({ where: { schoolId } }),
       prisma.school.findUnique({ where: { id: schoolId }, select: { plan: true } }),
     ]);
-    const quota = PLAN_STUDENT_QUOTAS[school?.plan ?? 'BASIC'] ?? 150;
+    const quota = studentQuotaFor(school?.plan ?? 'BASIC');
     if (current + createStudents > quota) {
       blocking.push(`Tu plan permite ${quota} alumnos: ya tienes ${current} y el listado agrega ${createStudents}. Actualiza tu plan o importa menos aulas.`);
     }

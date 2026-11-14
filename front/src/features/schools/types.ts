@@ -1,5 +1,16 @@
 export type SubscriptionPlan = 'BASIC' | 'PRO' | 'ENTERPRISE';
 
+/** Ciclo de un plan vencido: vigente → gracia → solo lectura → bloqueado (lo calcula el back). */
+export type PlanAccess = 'ACTIVE' | 'GRACE' | 'READ_ONLY' | 'BLOCKED';
+
+export interface PlanStatus {
+  access: PlanAccess;
+  daysUntilExpiry: number | null;
+  daysOverdue: number;
+  readOnlyFrom: string | null;
+  blockedFrom: string | null;
+}
+
 export interface School {
   id: string;
   modularCode?: string | null;
@@ -15,6 +26,9 @@ export interface School {
   district?: string | null;
   plan: SubscriptionPlan;
   planExpiresAt?: string | null;
+  monthlyFee?: number | null; // Mensualidad pactada; null = precio de lista
+  effectiveMonthlyFee?: number;
+  planStatus?: PlanStatus;
   isActive: boolean;
   blockCertificatesOnOverdue?: boolean;
   brandColor?: string | null;

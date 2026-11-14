@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../errors/app-error';
 import { prisma } from '../../config/prisma';
 import type { SubscriptionPlan } from '@prisma/client';
+import { getPlanStatus, PLAN_BLOCKED_MESSAGE } from '../../modules/schools/plan.rules';
 
 /**
  * Middleware para restringir endpoints según el Plan de Suscripción contratado por el colegio.
@@ -30,12 +31,9 @@ export const requirePlan = (...allowedPlans: SubscriptionPlan[]) => {
         throw new AppError('La institución escolar no se encuentra activa', 403);
       }
 
-      // Verificar vencimiento del plan
-      if (school.planExpiresAt && new Date() > new Date(school.planExpiresAt)) {
-        throw new AppError(
-          'La suscripción de tu colegio ha vencido. Por favor contacta con administración para renovarla.',
-          403
-        );
+      // Vencimiento: en gracia todo sigue igual; la solo lectura la aplica tenantMiddleware
+      if (getPlanStatus(school.planExpiresAt).access === 'BLOCKED') {
+        throw new AppError(PLAN_BLOCKED_MESSAGE, 403);
       }
 
       // Verificar si el plan contratado está en la lista de planes permitidos

@@ -20,6 +20,24 @@ export const useGetAllSchools = (enabled: boolean = true) => {
   });
 };
 
+export interface PlanCatalog {
+  plans: Record<SubscriptionPlan, { label: string; monthlyPrice: number; studentQuota: number | null }>;
+  graceDays: number;
+  readOnlyUntilDay: number;
+}
+
+/** Catálogo de planes (precio de lista y cupo de alumnos) definido en el back */
+export const usePlanCatalog = () => {
+  return useQuery({
+    queryKey: ['superadmin-plan-catalog'],
+    queryFn: async () => {
+      const response = await api.get<{ status: string; data: PlanCatalog }>('/schools/plans');
+      return response.data.data;
+    },
+    staleTime: Infinity,
+  });
+};
+
 /** Hook para dar de alta un nuevo colegio cliente con su Administrador Inicial */
 export const useCreateSchool = () => {
   const queryClient = useQueryClient();
@@ -40,16 +58,27 @@ export const useUpdateSchoolPlan = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, plan, planExpiresAt }: { id: string; plan?: SubscriptionPlan; planExpiresAt?: string }) => {
+    mutationFn: async ({
+      id,
+      plan,
+      planExpiresAt,
+      monthlyFee,
+    }: {
+      id: string;
+      plan?: SubscriptionPlan;
+      planExpiresAt?: string | null;
+      monthlyFee?: number | null;
+    }) => {
       const response = await api.patch<{ status: string; data: SchoolWithStats }>(`/schools/${id}`, {
         plan,
         planExpiresAt,
+        monthlyFee,
       });
       return response.data.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['superadmin-schools'] });
-      queryClient.invalidateQueries({ queryKey: ['active-school'] });
+      queryClient.invalidateQueries({ queryKey: ['school'] });
     },
   });
 };

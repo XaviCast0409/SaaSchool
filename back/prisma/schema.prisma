@@ -187,6 +187,7 @@ model School {
   district                   String?
   plan                       SubscriptionPlan @default(BASIC) // Plan contratado (BASIC, PRO, ENTERPRISE)
   planExpiresAt              DateTime? // Fecha límite de vigencia del plan
+  monthlyFee                 Decimal?         @db.Decimal(10, 2) // Mensualidad pactada (S/); vacío = precio de lista del plan
   offeredLevels              EducationLevel[] @default([PRIMARY, SECONDARY]) // Niveles que opera el colegio
   blockCertificatesOnOverdue Boolean          @default(false) @map("blockGradesOnOverdue") // Retención SOLO de constancias/certificados por deuda vencida (Ley 27665)
   brandColor                 String? // Color primario de marca del colegio en HEX (#RRGGBB)

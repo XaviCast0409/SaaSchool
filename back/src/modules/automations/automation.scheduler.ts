@@ -3,6 +3,7 @@ import { getSchoolNow } from '../../utils/timezone.util';
 import { limaWeekday } from '../attendance/attendance.rules';
 import { AUTOMATION_JOBS, planAllows } from './automation.registry';
 import { isJobDue } from './automation.rules';
+import { getPlanStatus, planAllowsWrites } from '../schools/plan.rules';
 import { buildContext, runJobOnce } from './automation.runner';
 
 /**
@@ -22,10 +23,13 @@ export function initAutomationScheduler(): () => void {
       const weekday = limaWeekday();
       const nowTime = `${String(now.hour).padStart(2, '0')}:${String(now.minute).padStart(2, '0')}`;
 
-      const schools = await prisma.school.findMany({
-        where: { isActive: true, OR: [{ planExpiresAt: null }, { planExpiresAt: { gt: new Date() } }] },
-        select: { id: true, name: true, plan: true },
-      });
+      // Las automatizaciones siguen en los días de gracia y se detienen en solo lectura
+      const schools = (
+        await prisma.school.findMany({
+          where: { isActive: true },
+          select: { id: true, name: true, plan: true, planExpiresAt: true },
+        })
+      ).filter((s) => planAllowsWrites(getPlanStatus(s.planExpiresAt).access));
       if (schools.length === 0) return;
 
       const [settings, holidays, todaysRuns] = await Promise.all([

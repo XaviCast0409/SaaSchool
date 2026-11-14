@@ -49,6 +49,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useGetActiveSchool } from '@/features/schools/api/useSchool';
+import { PlanStatusBanner, PlanBlockedScreen } from '@/features/schools/components/PlanStatusBanner';
 import { SchoolSettingsModal } from '@/features/schools/components/SchoolSettingsModal';
 import { ChangePasswordModal } from '@/features/auth/components/ChangePasswordModal';
 import { ConsentGate } from '@/features/legal/components/ConsentGate';
@@ -562,6 +563,11 @@ export const DashboardLayout: React.FC = () => {
 
   const canManageSchool = isImpersonating || userRole === 'SCHOOL_ADMIN';
 
+  // Plan vencido hace más del periodo de solo lectura: sin acceso (soporte sí entra)
+  if (school?.planStatus?.access === 'BLOCKED' && !isSuperAdmin) {
+    return <PlanBlockedScreen school={school} onLogout={logout} />;
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row">
       {/* Mobile Top Bar */}
@@ -809,6 +815,9 @@ export const DashboardLayout: React.FC = () => {
             <NotificationBell />
           </div>
         </header>
+
+        {/* Vencimiento del plan: próximo a vencer, en gracia o en solo lectura */}
+        <PlanStatusBanner school={school} role={userRole} />
 
         {/* Año que se está viendo (si no es el vigente) */}
         <AcademicYearBanner />
