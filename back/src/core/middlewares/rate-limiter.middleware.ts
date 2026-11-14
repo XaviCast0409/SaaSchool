@@ -80,3 +80,13 @@ export const scanRateLimiter = rateLimit({
   },
   message: { status: 'fail', message: 'Demasiados escaneos en poco tiempo. Espera unos segundos.' },
 });
+
+/** Formularios públicos (admisión, Libro de Reclamaciones): pocos envíos por IP para frenar spam. */
+export const publicFormRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 15,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  keyGenerator: (request) => `form:${ipKey(request)}`,
+  message: { status: 'fail', message: 'Recibimos varios envíos desde esta red. Intenta nuevamente en una hora.' },
+});

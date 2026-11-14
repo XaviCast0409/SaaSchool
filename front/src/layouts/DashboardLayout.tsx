@@ -39,6 +39,8 @@ import {
   DoorOpen,
   Activity,
   Library,
+  Inbox,
+  FileText,
 } from 'lucide-react';
 import { useFinanceAccess } from '@/features/payments/api/usePayments';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -205,6 +207,13 @@ export const DashboardLayout: React.FC = () => {
           path: '/directory',
           icon: Users,
           roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Secretaría',
+          path: '/secretariat',
+          icon: Inbox,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'],
           minPlan: 'BASIC',
         },
         {
@@ -431,6 +440,13 @@ export const DashboardLayout: React.FC = () => {
           label: 'Mis Pagos y Pensiones',
           path: '/payments',
           icon: CreditCard,
+          roles: ['PARENT'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Trámites',
+          path: '/procedures',
+          icon: FileText,
           roles: ['PARENT'],
           minPlan: 'BASIC',
         },
