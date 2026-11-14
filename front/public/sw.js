@@ -1,10 +1,68 @@
 // Service Worker para Notificaciones Web Push en Segundo Plano (Mobile & Desktop)
+// ---------------------------------------------------------------------------
+// Uso sin conexión: la app abre sin señal (p. ej. el registro rápido de notas en el aula).
+// - Navegación: primero red (siempre la versión nueva); sin red, la última copia de index.html.
+// - /assets/*: archivos con hash en el nombre, se sirven desde caché (nunca cambian).
+// - /api/* nunca se guarda en caché: los datos sin conexión los maneja la app (IndexedDB).
+// ---------------------------------------------------------------------------
+const SHELL_CACHE = 'saaschool-shell-v1';
+const SHELL_FILES = ['/', '/index.html', '/manifest.webmanifest', '/favicon.svg', '/icon-192.png'];
+
 self.addEventListener('install', (event) => {
-  self.skipWaiting();
+  event.waitUntil(
+    caches
+      .open(SHELL_CACHE)
+      .then((cache) => cache.addAll(SHELL_FILES))
+      .catch(() => undefined)
+      .then(() => self.skipWaiting()),
+  );
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('saaschool-shell-') && k !== SHELL_CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim()),
+  );
+});
+
+self.addEventListener('fetch', (event) => {
+  const request = event.request;
+  if (request.method !== 'GET') return;
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
+
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(SHELL_CACHE).then((cache) => cache.put('/index.html', copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match('/index.html').then((cached) => cached || Response.error())),
+    );
+    return;
+  }
+
+  if (url.pathname.startsWith('/assets/')) {
+    event.respondWith(
+      caches.match(request).then(
+        (cached) =>
+          cached ||
+          fetch(request).then((response) => {
+            if (response.ok) {
+              const copy = response.clone();
+              caches.open(SHELL_CACHE).then((cache) => cache.put(request, copy));
+            }
+            return response;
+          }),
+      ),
+    );
+  }
 });
 
 // Evento PUSH: Se activa en 2do plano cuando el servidor envía una notificación

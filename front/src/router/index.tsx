@@ -126,6 +126,12 @@ const SchedulePage = lazy(() =>
 const CalendarPage = lazy(() =>
   import('@/features/calendar/pages/CalendarPage').then((m) => ({ default: m.CalendarPage })),
 );
+const TeacherResourcesPage = lazy(() =>
+  import('@/features/teacher-resources/pages/TeacherResourcesPage').then((m) => ({ default: m.TeacherResourcesPage })),
+);
+const QuickGradePage = lazy(() =>
+  import('@/features/academic/pages/QuickGradePage').then((m) => ({ default: m.QuickGradePage })),
+);
 const InsightsPage = lazy(() =>
   import('@/features/insights/pages/InsightsPage').then((m) => ({ default: m.InsightsPage })),
 );
@@ -324,6 +330,16 @@ export const AppRouter: React.FC = () => {
               }
             />
             <Route
+              path="/gradebook/:assignmentId/quick"
+              element={
+                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER']}>
+                  <PlanGuard minPlan="PRO">
+                    <QuickGradePage />
+                  </PlanGuard>
+                </RoleGuard>
+              }
+            />
+            <Route
               path="/gradebook/:assignmentId"
               element={
                 <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER']}>
@@ -455,6 +471,14 @@ export const AppRouter: React.FC = () => {
               element={
                 <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
                   <EvaluationCriteriaPage />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/teacher-resources"
+              element={
+                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER']}>
+                  <TeacherResourcesPage />
                 </RoleGuard>
               }
             />

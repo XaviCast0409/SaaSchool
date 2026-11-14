@@ -47,6 +47,7 @@ import { calendarRouter } from './modules/calendar/calendar.routes';
 import { paymentReportRouter } from './modules/payment-reports/payment-report.routes';
 import { familyRouter } from './modules/family/family.routes';
 import { insightsRouter } from './modules/insights/insights.routes';
+import { teacherResourcesRouter } from './modules/teacher-resources/teacher-resources.routes';
 import { calendarFeedRouter } from './modules/calendar/calendar-feed.routes';
 import { notificationPreferenceRouter } from './modules/notifications/notification-preference.routes';
 
@@ -126,6 +127,7 @@ app.use(`${API_PREFIX}/calendar`, calendarRouter);
 app.use(`${API_PREFIX}/payment-reports`, paymentReportRouter);
 app.use(`${API_PREFIX}/family`, familyRouter);
 app.use(`${API_PREFIX}/insights`, insightsRouter);
+app.use(`${API_PREFIX}/teacher-resources`, teacherResourcesRouter);
 // Pública con firma HMAC (suscripción .ics desde Google Calendar / iPhone)
 app.use(`${API_PREFIX}/calendar-feed`, fileContentRateLimiter, calendarFeedRouter);
 app.use(`${API_PREFIX}/uploads`, uploadRouter);

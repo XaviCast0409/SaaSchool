@@ -18,3 +18,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <App />
   </React.StrictMode>,
 );
+
+// Registrar el service worker desde el inicio (solo en producción) para que la app abra sin señal.
+// En desarrollo no se registra para no interferir con la recarga en caliente de Vite.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => undefined);
+  });
+}

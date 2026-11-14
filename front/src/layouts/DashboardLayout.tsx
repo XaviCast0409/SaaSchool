@@ -38,6 +38,7 @@ import {
   Clock3,
   DoorOpen,
   Activity,
+  Library,
 } from 'lucide-react';
 import { useFinanceAccess } from '@/features/payments/api/usePayments';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -244,6 +245,13 @@ export const DashboardLayout: React.FC = () => {
           path: '/my-courses',
           icon: BookOpen,
           roles: ['TEACHER'],
+          minPlan: 'BASIC',
+        },
+        {
+          label: 'Recursos docentes',
+          path: '/teacher-resources',
+          icon: Library,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'],
           minPlan: 'BASIC',
         },
         {
