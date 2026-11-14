@@ -43,6 +43,14 @@ describe('historial de docentes', () => {
     expect(teacherLabel(spans, bimesters, 'X')).toBe('Ana Pérez (I) · Luis Ríos (II) · Ana Pérez (III–IV)');
   });
 
+  it('tramos seguidos del mismo docente se unen', () => {
+    const spans = [
+      { teacherName: 'Lucía Flores', fromDate: '2026-03-01', toDate: '2026-11-13' },
+      { teacherName: 'Lucía Flores', fromDate: '2026-11-14', toDate: null },
+    ];
+    expect(teacherLabel(spans, bimesters, 'X')).toBe('Lucía Flores');
+  });
+
   it('un cambio antes de empezar clases no aparece', () => {
     const spans = [
       { teacherName: 'Ana Pérez', fromDate: '2026-01-01', toDate: '2026-02-20' },

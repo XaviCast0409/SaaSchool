@@ -48,7 +48,15 @@ const ddmm = (date: string) => `${date.slice(8, 10)}/${date.slice(5, 7)}`;
  * Se omiten tramos que no tocan ningún periodo (p. ej. un cambio antes de empezar las clases).
  */
 export function teacherLabel(spans: TeacherSpan[], periods: PeriodRange[], fallbackName: string): string {
-  const sorted = [...spans].sort((a, b) => a.fromDate.localeCompare(b.fromDate));
+  // Tramos seguidos del mismo docente cuentan como uno (p. ej. una suplencia anulada el mismo día)
+  const sorted = [...spans]
+    .sort((a, b) => a.fromDate.localeCompare(b.fromDate))
+    .reduce<TeacherSpan[]>((acc, s) => {
+      const last = acc[acc.length - 1];
+      if (last && last.teacherName === s.teacherName) last.toDate = s.toDate;
+      else acc.push({ ...s });
+      return acc;
+    }, []);
   if (sorted.length <= 1) return sorted[0]?.teacherName ?? fallbackName;
   if (periods.length > 0) {
     const parts = sorted

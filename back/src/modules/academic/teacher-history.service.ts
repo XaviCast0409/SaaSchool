@@ -16,8 +16,17 @@ export class TeacherHistoryService {
     const open = await db.courseAssignmentTeacher.findFirst({ where: { courseAssignmentId, toDate: null }, orderBy: { fromDate: 'desc' } });
     if (open && open.teacherId === teacherId) return;
     if (open) {
-      if (iso(open.fromDate) >= effectiveDate) await db.courseAssignmentTeacher.delete({ where: { id: open.id } });
-      else await db.courseAssignmentTeacher.update({ where: { id: open.id }, data: { toDate: parseSchoolDate(dayBefore(effectiveDate)) } });
+      if (iso(open.fromDate) >= effectiveDate) {
+        await db.courseAssignmentTeacher.delete({ where: { id: open.id } });
+        // Si el tramo anterior (cerrado el día antes) es de este mismo docente, se reabre en vez de duplicarlo
+        const previous = await db.courseAssignmentTeacher.findFirst({ where: { courseAssignmentId }, orderBy: { fromDate: 'desc' } });
+        if (previous && previous.teacherId === teacherId && previous.toDate && iso(previous.toDate) === dayBefore(effectiveDate)) {
+          await db.courseAssignmentTeacher.update({ where: { id: previous.id }, data: { toDate: null } });
+          return;
+        }
+      } else {
+        await db.courseAssignmentTeacher.update({ where: { id: open.id }, data: { toDate: parseSchoolDate(dayBefore(effectiveDate)) } });
+      }
     }
     await db.courseAssignmentTeacher.create({
       data: { schoolId, courseAssignmentId, teacherId, fromDate: parseSchoolDate(effectiveDate), replacementId: replacementId ?? null },
