@@ -4,6 +4,27 @@ import { Camera, RefreshCw, VideoOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
+function describeCameraError(err: unknown): string {
+  const errString = String(
+    (err as { name?: string; message?: string })?.message
+      ? `${(err as { name?: string }).name ?? ''} ${(err as { message: string }).message}`
+      : err ?? ''
+  );
+
+  if (/NotAllowedError|Permission|denied/i.test(errString)) {
+    return 'Permiso denegado: El navegador bloqueó el acceso a la cámara. Haz clic en el ícono de candado o cámara en la barra de direcciones y activa "Permitir".';
+  }
+  if (/NotFoundError|DevicesNotFoundError|OverconstrainedError/i.test(errString)) {
+    return 'No se encontró ninguna cámara disponible en este equipo.';
+  }
+  if (/NotReadableError|TrackStartError|AbortError|Timeout|concurrent|Could not start/i.test(errString)) {
+    return 'La cámara está en uso por otra app o pestaña (Zoom, Meet, otra cámara abierta). Ciérrala y reintenta.';
+  }
+  // Mostrar el detalle técnico para poder diagnosticar casos raros
+  const detail = errString.trim().slice(0, 160);
+  return `Error al inicializar la cámara. Revisa la configuración de tu navegador.${detail ? ` (${detail})` : ''}`;
+}
+
 interface CameraQrScannerProps {
   onScan: (code: string) => void;
   isActive: boolean;
@@ -16,19 +37,29 @@ export const CameraQrScanner: React.FC<CameraQrScannerProps> = ({
   isProcessing = false,
 }) => {
   const [cameras, setCameras] = useState<CameraDevice[]>([]);
+  // Cámara elegida a mano por el usuario. Vacío = dejar que el navegador elija la trasera.
   const [selectedCameraId, setSelectedCameraId] = useState<string>('');
+  // Cámara realmente en uso (solo para mostrar en el selector; no reinicia el escáner).
+  const [activeCameraId, setActiveCameraId] = useState<string>('');
   const [status, setStatus] = useState<'idle' | 'requesting' | 'scanning' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [retryTrigger, setRetryTrigger] = useState(0);
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
-  const runningCameraIdRef = useRef<string | null>(null);
   const lastScanRef = useRef<{ code: string; timestamp: number } | null>(null);
   const onScanRef = useRef(onScan);
   onScanRef.current = onScan;
+  // Cola de operaciones de cámara: en móviles la cámara es exclusiva, así que
+  // nunca puede haber un start() en curso mientras otro intenta abrirla.
+  const opQueueRef = useRef<Promise<void>>(Promise.resolve());
+
+  const enqueue = useCallback((fn: () => Promise<void>) => {
+    const next = opQueueRef.current.then(fn, fn);
+    opQueueRef.current = next.catch(() => undefined);
+    return next;
+  }, []);
 
   const stopScanner = useCallback(async () => {
-    runningCameraIdRef.current = null;
     if (scannerRef.current) {
       try {
         if (scannerRef.current.isScanning) {
@@ -45,54 +76,39 @@ export const CameraQrScanner: React.FC<CameraQrScannerProps> = ({
 
   useEffect(() => {
     if (!isActive) {
-      stopScanner();
+      enqueue(stopScanner);
       setStatus('idle');
       return;
     }
 
-    let isMounted = true;
+    let cancelled = false;
+    setStatus('requesting');
+    setErrorMessage(null);
 
-    async function initCamera() {
-      setStatus('requesting');
-      setErrorMessage(null);
+    enqueue(async () => {
+      if (cancelled) return;
+
+      if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+        setStatus('error');
+        setErrorMessage('El navegador no permite usar la cámara en esta página (se requiere HTTPS).');
+        return;
+      }
+
+      await stopScanner();
+      if (cancelled) return;
+
+      const scanner = new Html5Qrcode('qr-reader-viewport', { verbose: false });
+      scannerRef.current = scanner;
+
+      // Sin elección manual, pedir la cámara trasera por facingMode (ideal, no exacto):
+      // el navegador elige el lente principal en móviles y cae a la webcam en PC.
+      const source: string | MediaTrackConstraints = selectedCameraId
+        ? selectedCameraId
+        : { facingMode: 'environment' };
 
       try {
-        const devices = await Html5Qrcode.getCameras();
-        if (!isMounted) return;
-
-        if (!devices || devices.length === 0) {
-          setStatus('error');
-          setErrorMessage('No se detectó ninguna cámara web o sensor óptico en este dispositivo.');
-          return;
-        }
-
-        setCameras(devices);
-
-        // Si no hay seleccionada o la actual no existe en la lista, elegir cámara preferente
-        let targetCameraId = selectedCameraId;
-        const exists = devices.some((d) => d.id === targetCameraId);
-        if (!targetCameraId || !exists) {
-          // Preferir cámara trasera en móviles o primera cámara web
-          const rearCam = devices.find((d) => /back|rear|environment|trasera/i.test(d.label));
-          targetCameraId = (rearCam || devices[0]).id;
-          setSelectedCameraId(targetCameraId);
-        }
-
-        // Si ya está corriendo con esta cámara, no volver a iniciar
-        if (runningCameraIdRef.current === targetCameraId && scannerRef.current?.isScanning) {
-          setStatus('scanning');
-          return;
-        }
-
-        // Detener cámara anterior antes de iniciar nueva
-        await stopScanner();
-        if (!isMounted) return;
-
-        const scanner = new Html5Qrcode('qr-reader-viewport');
-        scannerRef.current = scanner;
-
         await scanner.start(
-          targetCameraId,
+          source,
           {
             fps: 12,
             qrbox: (viewfinderWidth, viewfinderHeight) => {
@@ -123,39 +139,46 @@ export const CameraQrScanner: React.FC<CameraQrScannerProps> = ({
             // Ignorar errores de escaneo cuadro por cuadro
           }
         );
-
-        if (isMounted) {
-          runningCameraIdRef.current = targetCameraId;
-          setStatus('scanning');
-        }
       } catch (err: unknown) {
-        if (!isMounted) return;
+        await stopScanner();
+        if (cancelled) return;
         setStatus('error');
-
-        const errString = String((err as { message?: string })?.message || err || '');
-        if (/NotAllowedError|Permission|denied/i.test(errString)) {
-          setErrorMessage(
-            'Permiso denegado: El navegador bloqueó el acceso a la cámara. Haz clic en el ícono de candado o cámara en la barra de direcciones y activa "Permitir".'
-          );
-        } else if (/NotFoundError|DevicesNotFoundError/i.test(errString)) {
-          setErrorMessage('No se encontró ninguna cámara conectada a este equipo.');
-        } else if (/NotReadableError|TrackStartError|concurrent/i.test(errString)) {
-          setErrorMessage(
-            'La cámara está en uso por otra ventana o aplicación (Zoom, Meet, etc.). Ciérrala y reintenta.'
-          );
-        } else {
-          setErrorMessage('Error al inicializar la cámara. Revisa la configuración de tu navegador.');
-        }
+        setErrorMessage(describeCameraError(err));
+        return;
       }
-    }
 
-    initCamera();
+      if (cancelled) {
+        await stopScanner();
+        return;
+      }
+
+      setStatus('scanning');
+
+      try {
+        setActiveCameraId(scanner.getRunningTrackSettings().deviceId ?? '');
+      } catch {
+        // Algunos navegadores no exponen la configuración del track
+      }
+
+      // Listar cámaras sin volver a abrir la cámara (el permiso ya está concedido).
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        if (cancelled) return;
+        setCameras(
+          devices
+            .filter((d) => d.kind === 'videoinput' && d.deviceId)
+            .map((d) => ({ id: d.deviceId, label: d.label }))
+        );
+      } catch {
+        // Sin lista de cámaras: el selector simplemente no se muestra
+      }
+    });
 
     return () => {
-      isMounted = false;
-      stopScanner();
+      cancelled = true;
+      enqueue(stopScanner);
     };
-  }, [isActive, selectedCameraId, retryTrigger, stopScanner]);
+  }, [isActive, selectedCameraId, retryTrigger, stopScanner, enqueue]);
 
   return (
     <div className="flex flex-col items-center w-full space-y-3">
@@ -238,10 +261,7 @@ export const CameraQrScanner: React.FC<CameraQrScannerProps> = ({
             <Button
               size="sm"
               variant="outline"
-              onClick={() => {
-                runningCameraIdRef.current = null;
-                setRetryTrigger((c) => c + 1);
-              }}
+              onClick={() => setRetryTrigger((c) => c + 1)}
               className="h-8 text-xs gap-1.5"
             >
               <RefreshCw className="w-3.5 h-3.5" />
@@ -256,7 +276,7 @@ export const CameraQrScanner: React.FC<CameraQrScannerProps> = ({
         <div className="flex items-center gap-2 text-xs">
           <Camera className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
           <select
-            value={selectedCameraId}
+            value={selectedCameraId || activeCameraId}
             onChange={(e) => setSelectedCameraId(e.target.value)}
             className="h-7 text-xs rounded-lg border border-border bg-background px-2 text-foreground font-medium focus:ring-1 focus:ring-primary outline-none"
           >
