@@ -18,4 +18,6 @@ export interface DirectoryUser {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  /** Contratación en el año que se está viendo (vacío = no contratado ese año) */
+  staffYears?: Array<{ position: string | null }>;
 }

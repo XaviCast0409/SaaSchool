@@ -73,6 +73,7 @@ export const ACTION_CATALOG: Record<string, { label: string; verb: string; categ
   ENROLLMENT_ROLLOVER: { label: 'Re-matrícula', verb: 'matriculó alumnos en el año siguiente', category: 'MATRICULA' },
   CLASSROOM_YEAR_UPDATED: { label: 'Secciones del año', verb: 'actualizó las secciones de un año (vacantes y tutores)', category: 'ACADEMICO' },
   FINAL_SITUATIONS_SAVED: { label: 'Situación final', verb: 'registró la situación final de los estudiantes', category: 'ACADEMICO' },
+  STAFF_YEAR_UPDATED: { label: 'Personal del año', verb: 'actualizó el personal contratado de un año', category: 'USUARIOS' },
   ENROLLMENT_UPDATED: { label: 'Cambio de matrícula', verb: 'modificó una matrícula', category: 'MATRICULA' },
   // Pagos
   PAYMENT_OBLIGATION_CREATED: { label: 'Nuevo cobro', verb: 'creó un cobro', category: 'PAGOS' },

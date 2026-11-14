@@ -33,6 +33,8 @@ interface UserTableProps {
   isLoading: boolean;
   /** Opción para subpaneles si fuera necesario */
   showStudentLinks?: boolean;
+  /** Acciones extra por fila (p. ej. contratar para un año) */
+  renderExtraActions?: (user: DirectoryUser) => React.ReactNode;
 }
 
 const ROLE_CONFIG: Record<string, { label: string; badgeClass: string }> = {
@@ -57,6 +59,7 @@ const ROLE_CONFIG: Record<string, { label: string; badgeClass: string }> = {
 export const UserTable: React.FC<UserTableProps> = ({
   users,
   isLoading,
+  renderExtraActions,
 }) => {
   const { user: currentUser } = useAuthStore();
   const isAdmin = currentUser?.role === 'SCHOOL_ADMIN' || currentUser?.role === 'SUPER_ADMIN';
@@ -192,6 +195,8 @@ export const UserTable: React.FC<UserTableProps> = ({
                 Restablecer Clave
               </Button>
             )}
+
+            {renderExtraActions?.(user)}
 
             {/* Toggle Activo/Inactivo (Solo Admins) */}
             {isAdmin &&

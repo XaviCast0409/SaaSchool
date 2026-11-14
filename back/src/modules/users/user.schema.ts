@@ -71,8 +71,13 @@ export const userFilterSchema = z.object({
     .union([z.boolean(), z.string().transform((val) => val === 'true')])
     .optional(),
   search: z.string().optional().or(emptyToUndefined),
+  /** 'year': solo el personal contratado en el año elegido en la cabecera; 'all': todo el personal */
+  yearScope: z.enum(['year', 'all']).optional().or(emptyToUndefined),
 });
 
 export type CreateUserDto = z.infer<typeof createUserSchema>;
 export type UpdateUserDto = z.infer<typeof updateUserSchema>;
-export type UserFilterDto = z.infer<typeof userFilterSchema>;
+export type UserFilterDto = z.infer<typeof userFilterSchema> & {
+  /** Año para marcar quién está contratado (lo pone el controlador) */
+  staffYearId?: string;
+};

@@ -22,6 +22,61 @@ userRouter.use(authMiddleware, tenantMiddleware);
 // CRUD de usuarios (Profesores, Padres, Admin)
 userRouter.get('/', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'), userController.getAll);
 userRouter.post('/', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'), userController.create);
+// Contratación por año: incluir o quitar a una persona del personal de un año
+userRouter.put('/:id/years/:academicYearId', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'), async (req: Request, res: Response) => {
+  const schoolId = req.user!.schoolId;
+  const id = z.string().uuid().parse(req.params.id);
+  const academicYearId = z.string().uuid().parse(req.params.academicYearId);
+  const { hired, position } = z.object({ hired: z.boolean(), position: z.string().trim().max(120).nullable().optional() }).parse(req.body);
+  const [person, year] = await Promise.all([
+    prisma.user.findFirst({ where: { id, schoolId }, select: { id: true, role: true, isActive: true, firstName: true, lastNamePaternal: true } }),
+    prisma.academicYear.findFirst({ where: { id: academicYearId, schoolId }, select: { id: true, year: true } }),
+  ]);
+  if (!person || !['SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'].includes(person.role)) throw new AppError('Personal no encontrado.', 404);
+  if (!year) throw new AppError('Año académico no encontrado.', 404);
+  if (hired) {
+    if (!person.isActive) throw new AppError('Esta persona está desactivada. Reactívala antes de contratarla para un año.', 400);
+    await prisma.staffYear.upsert({
+      where: { userId_academicYearId: { userId: id, academicYearId } },
+      create: { schoolId, userId: id, academicYearId, position: position ?? null },
+      update: position !== undefined ? { position } : {},
+    });
+  } else {
+    // No se quita del año a quien tiene carga docente o tutoría en ese año
+    const [load, tutor] = await Promise.all([
+      prisma.courseAssignment.count({ where: { teacherId: id, academicYearId, deletedAt: null } }),
+      prisma.classroomYear.count({ where: { tutorTeacherId: id, academicYearId } }),
+    ]);
+    if (load > 0 || tutor > 0) {
+      throw new AppError(`${person.firstName} ${person.lastNamePaternal} tiene ${load} cursos${tutor ? ' y una tutoría' : ''} en ${year.year}. Quítale primero esa carga.`, 409);
+    }
+    await prisma.staffYear.deleteMany({ where: { userId: id, academicYearId } });
+  }
+  recordAudit(req, { action: 'STAFF_YEAR_UPDATED', entity: 'User', entityId: id, after: { anio: year.year, contratado: hired, cargo: position ?? null } });
+  res.status(200).json({ status: 'success', data: { hired } });
+});
+
+// Renovar personal: contratar en el año destino a quienes estaban en el año de origen
+userRouter.post('/staff-years/copy', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'), async (req: Request, res: Response) => {
+  const schoolId = req.user!.schoolId;
+  const dto = z
+    .object({ fromAcademicYearId: z.string().uuid(), toAcademicYearId: z.string().uuid(), userIds: z.array(z.string().uuid()).optional() })
+    .refine((d) => d.fromAcademicYearId !== d.toAcademicYearId, { message: 'Elige años distintos.' })
+    .parse(req.body);
+  const years = await prisma.academicYear.count({ where: { schoolId, id: { in: [dto.fromAcademicYearId, dto.toAcademicYearId] } } });
+  if (years !== 2) throw new AppError('Año académico no encontrado.', 404);
+  const source = await prisma.staffYear.findMany({
+    where: { schoolId, academicYearId: dto.fromAcademicYearId, user: { isActive: true }, ...(dto.userIds ? { userId: { in: dto.userIds } } : {}) },
+    select: { userId: true, position: true },
+  });
+  const result = await prisma.staffYear.createMany({
+    data: source.map((s) => ({ schoolId, userId: s.userId, academicYearId: dto.toAcademicYearId, position: s.position })),
+    skipDuplicates: true,
+  });
+  recordAudit(req, { action: 'STAFF_YEAR_UPDATED', entity: 'AcademicYear', entityId: dto.toAcademicYearId, after: { renovadosDesde: dto.fromAcademicYearId, contratados: result.count } });
+  res.status(200).json({ status: 'success', data: { hired: result.count, skipped: source.length - result.count } });
+});
+
 // Personal del año elegido en la cabecera (o del vigente): carga docente y tutoría de cada docente
 userRouter.get('/staff-load', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'), async (req: Request, res: Response) => {
   const schoolId = req.user!.schoolId;
@@ -32,7 +87,13 @@ userRouter.get('/staff-load', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADM
   const year = await prisma.academicYear.findUniqueOrThrow({ where: { id: yearId }, select: { id: true, year: true, isActive: true } });
   const [teachers, assignments, sections] = await Promise.all([
     prisma.user.findMany({
-      where: { schoolId, role: 'TEACHER', isActive: true },
+      // Docentes contratados ese año (si el año ya tiene personal registrado)
+      where: {
+        schoolId,
+        role: 'TEACHER',
+        isActive: true,
+        ...((await prisma.staffYear.count({ where: { schoolId, academicYearId: year.id } })) > 0 ? { staffYears: { some: { academicYearId: year.id } } } : {}),
+      },
       select: { id: true, firstName: true, lastNamePaternal: true, lastNameMaternal: true, email: true },
       orderBy: [{ lastNamePaternal: 'asc' }, { firstName: 'asc' }],
     }),

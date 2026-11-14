@@ -17,6 +17,8 @@ export interface CreateUserPayload {
   documentType?: string;
   documentId?: string;
   cellphone?: string;
+  /** Personal: años para los que queda contratado (por defecto, el vigente) */
+  academicYearIds?: string[];
 }
 
 export interface UserQueryParams {
@@ -26,6 +28,8 @@ export interface UserQueryParams {
   limit?: number;
   page?: number;
   search?: string;
+  /** 'year': personal contratado en el año elegido en la cabecera; 'all': todo el personal */
+  yearScope?: 'year' | 'all';
 }
 
 export const useUsers = (roleOrParams?: UserRole | UserQueryParams) => {
@@ -45,6 +49,7 @@ export const useUsers = (roleOrParams?: UserRole | UserQueryParams) => {
       else searchParams.append('limit', '500');
       if (queryParams.page) searchParams.append('page', String(queryParams.page));
       if (queryParams.search) searchParams.append('search', queryParams.search);
+      if (queryParams.yearScope) searchParams.append('yearScope', queryParams.yearScope);
 
       const queryString = searchParams.toString();
       const response = await api.get<UsersResponse>(`/users${queryString ? `?${queryString}` : ''}`);
@@ -83,6 +88,32 @@ export const useResetUserPassword = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+};
+
+/** Contratar o quitar a una persona del personal de un año. */
+export const useSetStaffYear = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ userId, academicYearId, hired, position }: { userId: string; academicYearId: string; hired: boolean; position?: string | null }) =>
+      (await api.put(`/users/${userId}/years/${academicYearId}`, { hired, position })).data.data,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['staff-load'] });
+    },
+  });
+};
+
+/** Renovar: contratar en el año destino al personal del año de origen. */
+export const useCopyStaffYear = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { fromAcademicYearId: string; toAcademicYearId: string; userIds?: string[] }) =>
+      (await api.post<{ data: { hired: number; skipped: number } }>('/users/staff-years/copy', body)).data.data,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['staff-load'] });
     },
   });
 };

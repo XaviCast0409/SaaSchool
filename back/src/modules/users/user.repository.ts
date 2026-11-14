@@ -32,7 +32,7 @@ export class UserRepository {
     schoolId: string,
     filters: Partial<UserFilterDto> = {},
   ): Promise<PaginatedResult<PublicUser>> {
-    const { page = 1, limit = 500, role, roles, staffOnly, search } = filters;
+    const { page = 1, limit = 500, role, roles, staffOnly, search, yearScope, staffYearId } = filters;
     const skip = (page - 1) * limit;
 
     let roleFilter: Prisma.UserWhereInput['role'] = undefined;
@@ -50,6 +50,8 @@ export class UserRepository {
     const where: Prisma.UserWhereInput = {
       schoolId,
       ...(roleFilter ? { role: roleFilter } : {}),
+      // Personal contratado en el año elegido
+      ...(yearScope === 'year' && staffYearId ? { staffYears: { some: { academicYearId: staffYearId } } } : {}),
       ...(search
         ? {
             OR: [
@@ -68,7 +70,10 @@ export class UserRepository {
         where,
         skip,
         take: limit,
-        select: USER_PUBLIC_SELECT,
+        select: {
+          ...USER_PUBLIC_SELECT,
+          ...(staffYearId ? { staffYears: { where: { academicYearId: staffYearId }, select: { position: true } } } : {}),
+        },
         orderBy: [{ lastNamePaternal: 'asc' }, { firstName: 'asc' }],
       }),
       prisma.user.count({ where }),

@@ -277,6 +277,7 @@ model School {
   scholarships              Scholarship[]
   feeSchedules              FeeSchedule[]
   classroomYears            ClassroomYear[]
+  staffYears                StaffYear[]
 }
 
 model User {
@@ -348,6 +349,7 @@ model User {
   scholarshipsCreated    Scholarship[]            @relation("ScholarshipCreator")
   scholarshipsEnded      Scholarship[]            @relation("ScholarshipDeactivator")
   tutoredClassroomYears  ClassroomYear[]          @relation("ClassroomYearTutor")
+  staffYears             StaffYear[]
 
   @@unique([schoolId, documentId])
   @@index([schoolId, role])
@@ -450,6 +452,7 @@ model AcademicYear {
   periodStatuses        AcademicPeriodStatus[]
   feeSchedules          FeeSchedule[]
   classroomYears        ClassroomYear[]
+  staffYears            StaffYear[]
 }
 
 model Classroom {
@@ -571,6 +574,24 @@ model ClassroomYear {
 
   // Un docente es tutor de una sola sección por año: índice parcial en la migración SQL
   @@unique([classroomId, academicYearId])
+  @@index([schoolId, academicYearId])
+}
+
+/// Personal contratado para un año académico (docentes, administrativos y Dirección). Permite tener
+/// registrado al personal del año siguiente antes de que empiece, sin mezclarlo con el del vigente.
+model StaffYear {
+  id             String   @id @default(uuid())
+  schoolId       String
+  userId         String
+  academicYearId String
+  position       String? // Cargo o función en ese año (p. ej. "Docente de Matemática", "Coordinadora")
+  createdAt      DateTime @default(now())
+
+  school       School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, academicYearId])
   @@index([schoolId, academicYearId])
 }
 

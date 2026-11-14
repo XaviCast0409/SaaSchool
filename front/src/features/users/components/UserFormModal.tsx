@@ -6,6 +6,7 @@ import { createUserSchema, type CreateUserFormData } from '../schemas/user.schem
 import { useCreateUser } from '../api/useCreateUser';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useSelectedAcademicYear } from '@/components/AcademicYearSwitcher';
 import {
   TemporaryCredentialsDialog,
   type TemporaryCredential,
@@ -41,9 +42,15 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PAR
   });
 
   const selectedRole = watch('role');
+  const isStaff = selectedRole !== 'PARENT';
+
+  // Años para los que se contrata (por defecto, el que se está viendo); solo vigente y siguientes
+  const { years, current, selected: viewedYear } = useSelectedAcademicYear();
+  const hireYears = [...years].filter((y) => !current || y.year >= current.year).sort((a, b) => a.year - b.year);
+  const [yearIds, setYearIds] = useState<string[]>(() => (viewedYear ? [viewedYear.id] : []));
 
   const onSubmit = (data: CreateUserFormData) => {
-    createUser(data, {
+    createUser({ ...data, ...(isStaff && yearIds.length ? { academicYearIds: yearIds } : {}) }, {
       onSuccess: (createdUser) => {
         if (createdUser.temporaryPassword) {
           setTempCredentials([
@@ -174,6 +181,28 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PAR
               <Input placeholder="Ej: 987654321" {...register('cellphone')} />
             </div>
           </div>
+
+          {/* Años de contratación (personal) */}
+          {isStaff && hireYears.length > 1 && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold uppercase tracking-wide text-foreground">Contratado para</label>
+              <div className="flex flex-wrap gap-3 text-sm">
+                {hireYears.map((y) => (
+                  <label key={y.id} className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 rounded"
+                      checked={yearIds.includes(y.id)}
+                      onChange={(e) => setYearIds((ids) => (e.target.checked ? [...ids, y.id] : ids.filter((i) => i !== y.id)))}
+                    />
+                    {y.year}
+                    {y.isActive ? ' (vigente)' : ''}
+                  </label>
+                ))}
+              </div>
+              <p className="text-[11px] text-muted-foreground">Si se contrata desde ahora para el año siguiente, marca solo ese año.</p>
+            </div>
+          )}
 
           {/* Contraseña */}
           <div className="space-y-1.5">

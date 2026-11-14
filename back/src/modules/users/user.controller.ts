@@ -1,3 +1,6 @@
+import { z } from 'zod';
+import { prisma } from '../../config/prisma';
+import { selectedAcademicYearId } from '../../utils/academic-year-scope';
 import { Request, Response } from 'express';
 import { recordAudit } from '../../utils/audit.util';
 import { createUserSchema, updateUserSchema, userFilterSchema } from './user.schema';
@@ -10,7 +13,13 @@ export class UserController {
   getAll = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
     const queryFilters = userFilterSchema.parse(request.query);
-    const result = await this.userService.getAllUsers(schoolId, queryFilters);
+    // Para el personal: año elegido en la cabecera (o el vigente) para saber quién está contratado
+    const isStaffQuery = queryFilters.staffOnly || queryFilters.yearScope || (queryFilters.role && queryFilters.role !== 'PARENT');
+    const staffYearId = isStaffQuery
+      ? ((await selectedAcademicYearId(request)) ??
+        (await prisma.academicYear.findFirst({ where: { schoolId, isActive: true }, select: { id: true } }))?.id)
+      : undefined;
+    const result = await this.userService.getAllUsers(schoolId, { ...queryFilters, staffYearId });
 
     response.status(200).json({
       status: 'success',
@@ -29,7 +38,15 @@ export class UserController {
   create = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
     const createUserDto = createUserSchema.parse(request.body);
+    const { academicYearIds } = z.object({ academicYearIds: z.array(z.string().uuid()).max(5).optional() }).parse(request.body);
     const user = await this.userService.createUser(schoolId, createUserDto);
+    // Personal: queda contratado en los años elegidos (por defecto, el vigente)
+    if (user.role === 'SCHOOL_ADMIN' || user.role === 'ADMINISTRATIVE' || user.role === 'TEACHER') {
+      const years = academicYearIds?.length
+        ? await prisma.academicYear.findMany({ where: { schoolId, id: { in: academicYearIds } }, select: { id: true } })
+        : await prisma.academicYear.findMany({ where: { schoolId, isActive: true }, select: { id: true } });
+      await prisma.staffYear.createMany({ data: years.map((y) => ({ schoolId, userId: user.id, academicYearId: y.id })), skipDuplicates: true });
+    }
     recordAudit(request, {
       action: 'USER_CREATED',
       entity: 'User',
