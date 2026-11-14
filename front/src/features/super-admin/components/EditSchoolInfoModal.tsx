@@ -25,6 +25,7 @@ interface SchoolInfoFormValues {
   province: string;
   district: string;
   logoUrl: string;
+  slug: string;
 }
 
 export const EditSchoolInfoModal: React.FC<EditSchoolInfoModalProps> = ({
@@ -55,6 +56,7 @@ export const EditSchoolInfoModal: React.FC<EditSchoolInfoModalProps> = ({
         province: school.province || 'LIMA',
         district: school.district || '',
         logoUrl: school.logoUrl || '',
+        slug: school.slug || '',
       });
     }
   }, [school, reset]);
@@ -67,6 +69,9 @@ export const EditSchoolInfoModal: React.FC<EditSchoolInfoModalProps> = ({
     Object.entries(data).forEach(([key, val]) => {
       sanitized[key] = typeof val === 'string' && val.trim() === '' ? null : val;
     });
+    // El código del colegio no se puede borrar: vacío = se mantiene el actual
+    if (sanitized.slug === null) delete sanitized.slug;
+    else sanitized.slug = String(sanitized.slug).trim().toLowerCase();
 
     updateSchool(
       {
@@ -168,6 +173,30 @@ export const EditSchoolInfoModal: React.FC<EditSchoolInfoModalProps> = ({
                   placeholder="https://res.cloudinary.com/..."
                   className="h-9 text-xs"
                 />
+              </div>
+
+              <div className="space-y-1 sm:col-span-2">
+                <label className="text-xs font-semibold text-foreground">Código del colegio (página de ingreso)</label>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-muted-foreground font-mono shrink-0">{window.location.origin}/c/</span>
+                  <Input
+                    {...register('slug', {
+                      pattern: {
+                        value: /^$|^[a-zA-Z0-9](?:[a-zA-Z0-9-]{1,38})[a-zA-Z0-9]$/,
+                        message: 'De 3 a 40 caracteres: letras, números y guiones (sin espacios ni tildes).',
+                      },
+                    })}
+                    placeholder="innova"
+                    className="h-9 text-xs font-mono lowercase"
+                  />
+                </div>
+                {errors.slug ? (
+                  <p className="text-xs text-destructive">{errors.slug.message}</p>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground">
+                    Si lo cambias, los enlaces y QR que el colegio ya compartió dejarán de funcionar.
+                  </p>
+                )}
               </div>
             </div>
           </div>

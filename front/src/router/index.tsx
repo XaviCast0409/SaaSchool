@@ -2,6 +2,8 @@ import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
 import { LoginPage } from '@/features/auth/pages/LoginPage';
+import { SchoolCodePage } from '@/features/auth/pages/SchoolCodePage';
+import { SchoolLoginPage } from '@/features/auth/pages/SchoolLoginPage';
 import { DashboardLayout } from '@/layouts/DashboardLayout';
 import { PrivacyPolicyPage } from '@/features/legal/pages/PrivacyPolicyPage';
 import { TermsPage } from '@/features/legal/pages/TermsPage';
@@ -216,9 +218,26 @@ export const AppRouter: React.FC = () => {
     <BrowserRouter>
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          {/* Public Route */}
+          {/* Ingreso: primero el código del colegio, luego la página propia de ese colegio */}
           <Route
             path="/login"
+            element={
+              <PublicRoute>
+                <SchoolCodePage />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/c/:code"
+            element={
+              <PublicRoute>
+                <SchoolLoginPage />
+              </PublicRoute>
+            }
+          />
+          {/* Ingreso general sin código (administración de la plataforma y accesos de prueba) */}
+          <Route
+            path="/login/general"
             element={
               <PublicRoute>
                 <LoginPage />

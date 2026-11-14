@@ -214,6 +214,10 @@ model School {
   complaintCounter           Int              @default(0) // Correlativo del Libro de Reclamaciones
   lateFeeAnnualRate          Decimal?         @db.Decimal(6, 3) // Tasa anual de interés moratorio (%); tope legal: interbancaria BCRP
   lateFeeGraceDays           Int              @default(0) // Días de gracia antes de cobrar mora
+  slug                       String?          @unique // Código del colegio para su página de ingreso (/c/<slug>)
+  loginBackgroundUrl         String? // Imagen de fondo de la página de ingreso (/api/files/<id>)
+  loginTitle                 String? // Título de bienvenida en la página de ingreso
+  loginMessage               String?          @db.Text // Mensaje o aviso del colegio en la página de ingreso
   isActive                   Boolean          @default(true)
   createdAt                  DateTime         @default(now())
   updatedAt                  DateTime         @updatedAt

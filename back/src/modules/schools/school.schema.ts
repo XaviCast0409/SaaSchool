@@ -1,6 +1,20 @@
 import { z } from 'zod';
+import { isValidSlug, normalizeSlug, SLUG_INVALID_MESSAGE } from './school-slug.rules';
 
 const emptyToUndefined = z.literal('').transform(() => undefined);
+
+/** Código del colegio para su página de ingreso; vacío al crear = se genera desde el nombre. */
+const slugField = z.string().transform(normalizeSlug).refine(isValidSlug, SLUG_INVALID_MESSAGE);
+
+/** Texto opcional de la página de ingreso: vacío = se borra. */
+const optionalText = (max: number, label: string) =>
+  z
+    .string()
+    .trim()
+    .max(max, `${label} no puede superar ${max} caracteres`)
+    .transform((v) => v || null)
+    .nullable()
+    .optional();
 
 export const createSchoolSchema = z.object({
   name: z.string().min(3, 'El nombre del colegio es requerido'),
@@ -23,6 +37,7 @@ export const createSchoolSchema = z.object({
   planExpiresAt: z.string().optional().nullable().or(emptyToUndefined),
   // Mensualidad pactada en soles; null = precio de lista del plan
   monthlyFee: z.number().min(0, 'La mensualidad no puede ser negativa').max(100000).nullable().optional(),
+  slug: slugField.optional().or(emptyToUndefined),
   // Datos opcionales para crear el usuario Administrador Inicial en el onboarding
   adminEmail: z.string().email('Email de administrador inválido').optional().nullable().or(emptyToUndefined),
   adminPassword: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres').optional().nullable().or(emptyToUndefined),
@@ -75,6 +90,14 @@ export const updateSchoolSchema = createSchoolSchema
     messagingStartTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Hora inválida (HH:mm)').optional(),
     messagingEndTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Hora inválida (HH:mm)').optional(),
     whatsappCountryCode: z.string().regex(/^\d{1,4}$/, 'Prefijo inválido (solo números, p. ej. 51)').optional(),
+    // Página de ingreso del colegio
+    loginBackgroundUrl: z
+      .string()
+      .regex(/^\/api\/files\/[0-9a-f-]{36}$/i, 'Imagen de fondo inválida')
+      .nullable()
+      .optional(),
+    loginTitle: optionalText(80, 'El título'),
+    loginMessage: optionalText(500, 'El mensaje'),
   })
   .partial()
   .refine((v) => !v.messagingStartTime || !v.messagingEndTime || v.messagingStartTime < v.messagingEndTime, {

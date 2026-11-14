@@ -147,6 +147,9 @@ async function main(): Promise<void> {
   const school = await prisma.school.create({
     data: {
       name: 'Innova Academy',
+      slug: 'innova',
+      loginTitle: 'Bienvenidos a Innova Academy',
+      loginMessage: 'Matrículas 2027 abiertas. Ingresa con tu correo, DNI o código de estudiante.',
       documentId: '20609876543',
       modularCode: '0725881',
       localCode: '345678',

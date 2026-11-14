@@ -40,6 +40,10 @@ export interface School {
   messagingStartTime?: string;
   messagingEndTime?: string;
   whatsappCountryCode?: string;
+  slug?: string | null; // Código del colegio para su página de ingreso (/c/<slug>)
+  loginBackgroundUrl?: string | null;
+  loginTitle?: string | null;
+  loginMessage?: string | null;
 }
 
 export interface UpdateSchoolPayload {
@@ -63,4 +67,8 @@ export interface UpdateSchoolPayload {
   messagingStartTime?: string;
   messagingEndTime?: string;
   whatsappCountryCode?: string;
+  slug?: string;
+  loginBackgroundUrl?: string | null;
+  loginTitle?: string | null;
+  loginMessage?: string | null;
 }

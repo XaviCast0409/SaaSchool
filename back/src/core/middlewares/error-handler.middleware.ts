@@ -59,7 +59,9 @@ export const globalErrorHandler = (
 
       let customMessage = 'Ya existe un registro en la plataforma con ese valor único.';
 
-      if (targetFields.some((f) => f.includes('documentId') || f.includes('documentNumber'))) {
+      if (targetFields.some((f) => f.includes('slug'))) {
+        customMessage = 'Ese código de colegio ya está en uso. Elige otro.';
+      } else if (targetFields.some((f) => f.includes('documentId') || f.includes('documentNumber'))) {
         customMessage = 'El DNI / Número de Documento ingresado ya pertenece a otro estudiante o apoderado registrado.';
       } else if (targetFields.some((f) => f.includes('studentCode') || f.includes('siagieCode'))) {
         customMessage = 'El Código SIAGIE ingresado ya pertenece a otro estudiante registrado.';

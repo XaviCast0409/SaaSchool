@@ -4,6 +4,8 @@ import { PASSWORD_POLICY_REGEX, PASSWORD_POLICY_MESSAGE } from '../../utils/pass
 export const loginSchema = z.object({
   email: z.string().trim().min(3, 'Ingresa tu correo, DNI o código de estudiante').max(120),
   password: z.string().min(1, 'Contraseña requerida').max(200),
+  // Código del colegio (página /c/<código>): limita la búsqueda de la cuenta a ese colegio
+  schoolSlug: z.string().trim().toLowerCase().max(40).optional(),
 });
 
 export const changePasswordSchema = z.object({

@@ -64,6 +64,8 @@ export class SchoolController {
       delete updateSchoolDto.plan;
       delete updateSchoolDto.planExpiresAt;
       delete updateSchoolDto.monthlyFee;
+      // El código del colegio va impreso en enlaces y QR compartidos: solo la plataforma lo cambia
+      delete updateSchoolDto.slug;
 
       // Esta ruta no pasa por tenantMiddleware: aplicar aquí la solo lectura por plan vencido
       const current = await this.schoolService.getSchoolById(id);

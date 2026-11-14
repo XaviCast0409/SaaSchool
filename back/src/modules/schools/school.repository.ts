@@ -5,6 +5,7 @@ import { AppError } from '../../core/errors/app-error';
 import { hashPassword } from '../../utils/hash.util';
 import { generateTemporaryPassword, PASSWORD_POLICY_REGEX } from '../../utils/password.util';
 import { invalidatePrincipalCache } from '../../core/security/principal-status';
+import { slugify, slugCandidates } from './school-slug.rules';
 
 /**
  * SchoolRepository: Acceso a datos del modelo School.
@@ -81,6 +82,23 @@ export class SchoolRepository {
     });
   }
 
+  /** Primer código libre entre base, base-2, base-3... */
+  async findAvailableSlug(base: string): Promise<string> {
+    const candidates = slugCandidates(base);
+    const taken = await prisma.school.findMany({ where: { slug: { in: candidates } }, select: { slug: true } });
+    const used = new Set(taken.map((s) => s.slug));
+    const free = candidates.find((c) => !used.has(c));
+    return free ?? `${base}-${Date.now().toString(36)}`;
+  }
+
+  /** Imagen subida por el propio colegio (para el fondo de su página de ingreso). */
+  async findSchoolImage(fileId: string, schoolId: string): Promise<{ id: string; mimeType: string } | null> {
+    return prisma.storedFile.findFirst({
+      where: { id: fileId, schoolId, deletedAt: null },
+      select: { id: true, mimeType: true },
+    });
+  }
+
   async create(data: CreateSchoolDto): Promise<School> {
     const {
       planExpiresAt,
@@ -91,14 +109,19 @@ export class SchoolRepository {
       adminLastNameMaternal,
       adminDocumentId,
       adminCellphone,
+      slug,
       ...schoolData
     } = data;
+
+    // Código de la página de ingreso: el indicado o uno libre derivado del nombre
+    const finalSlug = slug ?? (await this.findAvailableSlug(slugify(schoolData.name)));
 
     return prisma.$transaction(async (tx) => {
       // 1. Crear el colegio cliente
       const school = await tx.school.create({
         data: {
           ...schoolData,
+          slug: finalSlug,
           ...(planExpiresAt ? { planExpiresAt: new Date(planExpiresAt) } : {}),
         },
       });

@@ -11,6 +11,7 @@ import {
   apiRateLimiter,
   ipFloodRateLimiter,
   fileContentRateLimiter,
+  loginPageRateLimiter,
 } from './core/middlewares/rate-limiter.middleware';
 
 import { authRouter } from './modules/auth/auth.routes';
@@ -53,6 +54,7 @@ import { secretariatRouter } from './modules/secretariat/secretariat.routes';
 import { secretariatPublicRouter } from './modules/secretariat/secretariat.public.routes';
 import { notificationPreferenceRouter } from './modules/notifications/notification-preference.routes';
 import { platformRouter } from './modules/platform/platform.routes';
+import { schoolLoginPageRouter } from './modules/schools/school-login-page.routes';
 
 const app = express();
 
@@ -104,6 +106,9 @@ app.use(`${API_PREFIX}/auth`, authIpRateLimiter, authRouter);
 
 // Archivos: la descarga firmada no lleva token, por eso tiene su propio limitador
 app.use(`${API_PREFIX}/files`, fileContentRateLimiter, fileRouter);
+
+// Página de ingreso de cada colegio (pública): va antes del límite general para no agotar el cupo por IP
+app.use(`${API_PREFIX}/public/login-pages`, loginPageRateLimiter, schoolLoginPageRouter);
 
 app.use(API_PREFIX, apiRateLimiter);
 

@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { X, School as SchoolIcon, Save, Loader2, Lock, ShieldAlert, Palette, RotateCcw, CalendarCheck, MessagesSquare } from 'lucide-react';
 import { useGetActiveSchool, useUpdateSchool } from '../api/useSchool';
 import { toast } from 'sonner';
+import { LoginPageSettingsSection } from './LoginPageSettingsSection';
 
 interface SchoolSettingsModalProps {
   isOpen: boolean;
@@ -28,6 +29,9 @@ interface SchoolFormValues {
   messagingStartTime: string;
   messagingEndTime: string;
   whatsappCountryCode: string;
+  loginBackgroundUrl: string;
+  loginTitle: string;
+  loginMessage: string;
 }
 
 export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
@@ -40,6 +44,11 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
   const { register, handleSubmit, reset, watch, setValue } = useForm<SchoolFormValues>();
   const logoUrlValue = watch('logoUrl');
   const brandColorValue = watch('brandColor');
+  const loginPageValues = {
+    loginBackgroundUrl: watch('loginBackgroundUrl') ?? '',
+    loginTitle: watch('loginTitle') ?? '',
+    loginMessage: watch('loginMessage') ?? '',
+  };
 
   useEffect(() => {
     if (school) {
@@ -62,6 +71,9 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
         messagingStartTime: school.messagingStartTime ?? '07:00',
         messagingEndTime: school.messagingEndTime ?? '18:00',
         whatsappCountryCode: school.whatsappCountryCode ?? '51',
+        loginBackgroundUrl: school.loginBackgroundUrl ?? '',
+        loginTitle: school.loginTitle ?? '',
+        loginMessage: school.loginMessage ?? '',
       });
     }
   }, [school, reset]);
@@ -98,6 +110,10 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
         sanitizedPayload.notifyAbsencesToFamilies = Boolean(values.notifyAbsencesToFamilies);
       }
       sanitizedPayload.messagingEnabled = Boolean(values.messagingEnabled);
+      // Página de ingreso: un campo vacío se borra (null), no se ignora
+      sanitizedPayload.loginBackgroundUrl = values.loginBackgroundUrl?.trim() || null;
+      sanitizedPayload.loginTitle = values.loginTitle?.trim() || null;
+      sanitizedPayload.loginMessage = values.loginMessage?.trim() || null;
       await updateSchool(sanitizedPayload);
       toast.success('🏫 Datos y configuración de la institución guardados correctamente.');
       onClose();
@@ -484,6 +500,15 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
                 Fuera del horario de atención (y fines de semana) los mensajes de las familias se guardan, pero no suenan en el celular del docente.
               </p>
             </div>
+
+            <LoginPageSettingsSection
+              slug={school?.slug}
+              schoolName={school?.name ?? 'tu colegio'}
+              brandColor={brandColorValue}
+              values={loginPageValues}
+              register={register}
+              setValue={setValue}
+            />
 
             {/* Plan de Suscripción Contratado (Solo Lectura) */}
             <div className="p-4 rounded-xl bg-secondary/40 border border-border space-y-1.5 shadow-sm">

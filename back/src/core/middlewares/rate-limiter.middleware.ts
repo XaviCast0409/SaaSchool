@@ -54,6 +54,16 @@ export const ipFloodRateLimiter = rateLimit({
   message: { status: 'fail', message: 'Demasiadas solicitudes desde esta red. Intenta más tarde.' },
 });
 
+/** Página de ingreso de cada colegio (sin sesión): todo un colegio puede abrirla desde la misma red. */
+export const loginPageRateLimiter = rateLimit({
+  windowMs: FIFTEEN_MINUTES,
+  limit: 2000,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  keyGenerator: ipKey,
+  message: { status: 'fail', message: 'Demasiadas solicitudes desde esta red. Intenta más tarde.' },
+});
+
 /** Descarga de archivos firmados (sin token Bearer). */
 export const fileContentRateLimiter = rateLimit({
   windowMs: FIFTEEN_MINUTES,

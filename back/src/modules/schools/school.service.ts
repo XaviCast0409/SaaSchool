@@ -3,6 +3,7 @@ import type { SchoolRepository } from './school.repository';
 import type { CreateSchoolDto, UpdateSchoolDto } from './school.schema';
 import type { School } from '@prisma/client';
 import { getPlanStatus, effectiveMonthlyFee, type PlanStatus } from './plan.rules';
+import { extractStoredFileId } from '../files/file-storage.service';
 
 /** Colegio tal como lo devuelve la API: mensualidad como número y estado de su plan. */
 export type SchoolView = Omit<School, 'monthlyFee'> & {
@@ -56,6 +57,14 @@ export class SchoolService {
 
   async updateSchool(schoolId: string, updateSchoolDto: UpdateSchoolDto): Promise<SchoolView> {
     await this.findOrFail(schoolId);
+    if (updateSchoolDto.loginBackgroundUrl) {
+      // El fondo se publica sin sesión: solo se acepta una imagen subida por este mismo colegio
+      const fileId = extractStoredFileId(updateSchoolDto.loginBackgroundUrl);
+      const file = fileId ? await this.schoolRepository.findSchoolImage(fileId, schoolId) : null;
+      if (!file || !/^image\/(png|jpeg|webp)$/.test(file.mimeType)) {
+        throw new AppError('La imagen de fondo debe ser una foto JPG, PNG o WEBP subida desde la plataforma.', 400);
+      }
+    }
     return toView(await this.schoolRepository.update(schoolId, updateSchoolDto));
   }
 

@@ -13,6 +13,8 @@ const PUBLIC_ROUTE_FILES = new Set<string>([
   'calendar/calendar-feed.routes.ts',
   // Formulario de admisión y Libro de Reclamaciones virtual (Indecopi): para personas sin cuenta
   'secretariat/secretariat.public.routes.ts',
+  // Página de ingreso de cada colegio: se ve antes de iniciar sesión (solo marca pública del colegio)
+  'schools/school-login-page.routes.ts',
   // agregar aquí otras rutas públicas intencionales
 ]);
 

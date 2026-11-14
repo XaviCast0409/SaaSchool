@@ -152,6 +152,13 @@ export const LoginPage: React.FC = () => {
               </Link>
               .
             </p>
+
+            <p className="text-center text-[11px] text-muted-foreground">
+              ¿Eres del colegio?{' '}
+              <Link to="/login?cambiar=1" className="text-primary hover:underline font-medium">
+                Ingresa con el código de tu colegio
+              </Link>
+            </p>
           </form>
 
           {/* Quick Demo Accesses from Seed Data */}

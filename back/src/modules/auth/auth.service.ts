@@ -44,7 +44,16 @@ export class AuthService {
   async login(loginDto: LoginDto): Promise<AuthResponse> {
     const identifier = loginDto.email.trim();
 
-    const users = await this.authRepository.findUsersByIdentifier(identifier);
+    // Ingreso desde la página del colegio: la cuenta se busca solo dentro de ese colegio.
+    // Sin código, el comportamiento es el de siempre (búsqueda en toda la plataforma).
+    let schoolId: string | undefined;
+    if (loginDto.schoolSlug) {
+      const found = await this.authRepository.findActiveSchoolIdBySlug(loginDto.schoolSlug);
+      if (!found) throw new AppError('El código del colegio no es válido. Verifícalo con tu colegio.', 404);
+      schoolId = found;
+    }
+
+    const users = await this.authRepository.findUsersByIdentifier(identifier, schoolId);
     if (users.length > 1) {
       throw new AppError('Este documento está asociado a más de una cuenta. Ingresa con tu correo electrónico.', 409);
     }
@@ -52,7 +61,7 @@ export class AuthService {
       return this.loginUser(users[0], loginDto.password);
     }
 
-    const students = await this.authRepository.findStudentsByIdentifier(identifier);
+    const students = await this.authRepository.findStudentsByIdentifier(identifier, schoolId);
     if (students.length > 1) {
       throw new AppError(
         'Este documento está registrado en más de un colegio. Ingresa con tu código de estudiante SIAGIE (14 dígitos).',

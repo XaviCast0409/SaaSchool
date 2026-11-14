@@ -2,22 +2,32 @@ import { prisma } from '../../config/prisma';
 import type { User, Student } from '@prisma/client';
 
 export class AuthRepository {
-  /** Devuelve hasta 2 usuarios que coincidan (para detectar ambigüedad entre colegios). */
-  async findUsersByIdentifier(identifier: string): Promise<User[]> {
+  /** Colegio activo por su código (página de ingreso /c/<código>). */
+  async findActiveSchoolIdBySlug(slug: string): Promise<string | null> {
+    const school = await prisma.school.findFirst({ where: { slug, isActive: true }, select: { id: true } });
+    return school?.id ?? null;
+  }
+
+  /**
+   * Devuelve hasta 2 usuarios que coincidan (para detectar ambigüedad entre colegios).
+   * Con `schoolId` la búsqueda se limita a ese colegio.
+   */
+  async findUsersByIdentifier(identifier: string, schoolId?: string): Promise<User[]> {
     const clean = identifier.trim();
     return prisma.user.findMany({
       where: {
+        ...(schoolId ? { schoolId } : {}),
         OR: [{ email: { equals: clean, mode: 'insensitive' } }, { documentId: clean }],
       },
       take: 2,
     });
   }
 
-  /** Devuelve hasta 2 estudiantes que coincidan por DNI o código SIAGIE. */
-  async findStudentsByIdentifier(identifier: string): Promise<Student[]> {
+  /** Devuelve hasta 2 estudiantes que coincidan por DNI o código SIAGIE (opcionalmente en un colegio). */
+  async findStudentsByIdentifier(identifier: string, schoolId?: string): Promise<Student[]> {
     const clean = identifier.trim();
     return prisma.student.findMany({
-      where: { OR: [{ documentId: clean }, { studentCode: clean }] },
+      where: { ...(schoolId ? { schoolId } : {}), OR: [{ documentId: clean }, { studentCode: clean }] },
       take: 2,
     });
   }

@@ -36,7 +36,9 @@ api.interceptors.response.use(
   (error) => {
     const status = error.response?.status;
 
-    if (status === 401) {
+    // Un 401 del propio login es "credenciales inválidas": se muestra en el formulario, sin redirigir
+    const isLoginRequest = String(error.config?.url ?? '').endsWith('/auth/login');
+    if (status === 401 && !isLoginRequest) {
       useAuthStore.getState().logout();
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
