@@ -18,6 +18,7 @@ import { authRouter } from './modules/auth/auth.routes';
 import { schoolRouter } from './modules/schools/school.routes';
 import { userRouter } from './modules/users/user.routes';
 import { studentRouter } from './modules/students/student.routes';
+import { studentImportRouter } from './modules/student-import/student-import.routes';
 import { academicYearRouter } from './modules/academic-years/academic-year.routes';
 import { classroomRouter } from './modules/classrooms/classroom.routes';
 import { enrollmentRouter } from './modules/enrollments/enrollment.routes';
@@ -122,6 +123,8 @@ app.use(`${API_PREFIX}/schools`, schoolRouter);
 app.use(`${API_PREFIX}/platform`, platformRouter);
 app.use(`${API_PREFIX}/users`, userRouter);
 app.use(`${API_PREFIX}/media`, profileMediaRouter);
+// Antes de /students: si no, /students/import/template caería en /students/:id
+app.use(`${API_PREFIX}/students/import`, studentImportRouter);
 app.use(`${API_PREFIX}/students`, studentRouter);
 app.use(`${API_PREFIX}/academic-years`, academicYearRouter);
 app.use(`${API_PREFIX}/classrooms`, classroomRouter);

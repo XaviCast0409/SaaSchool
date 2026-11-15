@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useUrlFilters } from '@/lib/useUrlFilters';
-import { Users, UserPlus, QrCode, FileSpreadsheet, KeyRound, Upload, Repeat2 } from 'lucide-react';
+import { Users, UserPlus, QrCode, FileSpreadsheet, KeyRound, Upload, Repeat2, FileUp } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useStudents } from '../api/useStudents';
 import { StudentTable } from '../components/StudentTable';
@@ -8,6 +8,7 @@ import { EnrollStudentModal } from '../components/EnrollStudentModal';
 import { SectionQrCardsModal } from '../components/SectionQrCardsModal';
 import { NominaSiagieModal } from '../components/NominaSiagieModal';
 import { BulkCredentialsModal } from '../components/BulkCredentialsModal';
+import { StudentImportModal } from '../components/StudentImportModal';
 import { NominaImportModal } from '@/features/siagie/components/NominaImportModal';
 import { useGetActiveSchool } from '@/features/schools/api/useSchool';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,7 @@ export const StudentsPage: React.FC = () => {
   const [isNominaModalOpen, setIsNominaModalOpen] = useState(false);
   const [isBulkCredentialsModalOpen, setIsBulkCredentialsModalOpen] = useState(false);
   const [isNominaImportOpen, setIsNominaImportOpen] = useState(false);
+  const [isStudentImportOpen, setIsStudentImportOpen] = useState(false);
   const { data: school } = useGetActiveSchool();
   const [isRolloverOpen, setIsRolloverOpen] = useState(false);
   const [quickEnrollStudent, setQuickEnrollStudent] = useState<QuickEnrollStudent | null>(null);
@@ -88,6 +90,18 @@ export const StudentsPage: React.FC = () => {
             >
               <KeyRound className="w-4 h-4" />
               <span>Credenciales de acceso</span>
+            </Button>
+          )}
+
+          {canManageStudents && (
+            <Button
+              variant="outline"
+              onClick={() => setIsStudentImportOpen(true)}
+              className="gap-2 shadow-sm"
+              title="Cargar alumnos, matrículas y apoderados desde la plantilla Excel"
+            >
+              <FileUp className="w-4 h-4" />
+              <span>Carga masiva (Excel)</span>
             </Button>
           )}
 
@@ -256,6 +270,7 @@ export const StudentsPage: React.FC = () => {
       )}
 
       <NominaImportModal open={isNominaImportOpen} onClose={() => setIsNominaImportOpen(false)} />
+      <StudentImportModal open={isStudentImportOpen} onClose={() => setIsStudentImportOpen(false)} />
 
       {/* Modal de Credenciales de Acceso Masivas */}
       <BulkCredentialsModal
