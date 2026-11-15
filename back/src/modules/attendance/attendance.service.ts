@@ -1,4 +1,5 @@
 import { prisma } from '../../config/prisma';
+import { LEVEL_LABEL } from '../academic/cneb.catalog';
 import { AppError } from '../../core/errors/app-error';
 import { getSchoolNow, getSchoolTimeParts, parseSchoolDate } from '../../utils/timezone.util';
 import { sendWebPushNotification } from '../../utils/web-push.util';
@@ -79,10 +80,8 @@ export class AttendanceService {
 
     const check = isSchoolDay(dateStr, activeYear, holidaysMap);
     if (!check.isSchoolDay) {
-      throw new AppError(
-        'No se puede registrar asistencia en un día no lectivo (fin de semana, feriado o fuera del año escolar).',
-        400,
-      );
+      // Mensaje concreto: fin de semana, qué feriado o fuera de qué año escolar
+      throw new AppError(check.message || 'No se puede registrar asistencia en un día no lectivo.', 400);
     }
   }
 
@@ -393,7 +392,7 @@ export class AttendanceService {
     );
 
     const studentFullName = `${enrollment.student.firstNames} ${enrollment.student.lastNamePaternal} ${enrollment.student.lastNameMaternal || ''}`.trim();
-    const classroomName = `${enrollment.classroom.grade}° "${enrollment.classroom.section}" - ${enrollment.classroom.educationLevel}`;
+    const classroomName = `${enrollment.classroom.grade}° "${enrollment.classroom.section}" - ${LEVEL_LABEL[enrollment.classroom.educationLevel]}`;
 
     const isAutoCloseAbsence = existing?.origin === 'AUTO_CLOSE' && existing.status === 'ABSENT_UNJUSTIFIED';
     if (existing && !isAutoCloseAbsence) {
@@ -937,7 +936,7 @@ export class AttendanceService {
     return enrollments.map((e) => {
       const s = e.student;
       const fullName = `${s.firstNames} ${s.lastNamePaternal} ${s.lastNameMaternal || ''}`.trim();
-      const classroom = `${e.classroom.grade}° "${e.classroom.section}" - ${e.classroom.educationLevel}`;
+      const classroom = `${e.classroom.grade}° "${e.classroom.section}" - ${LEVEL_LABEL[e.classroom.educationLevel]}`;
       return {
         studentCode: s.studentCode ?? null,
         documentId: s.documentId,
@@ -1017,7 +1016,7 @@ export class AttendanceService {
         id: student?.id,
         fullName: `${student?.firstNames} ${student?.lastNamePaternal} ${student?.lastNameMaternal || ''}`.trim(),
         documentId: student?.documentId,
-        classroom: `${enrollment.classroom.grade}° "${enrollment.classroom.section}" - ${enrollment.classroom.educationLevel}`,
+        classroom: `${enrollment.classroom.grade}° "${enrollment.classroom.section}" - ${LEVEL_LABEL[enrollment.classroom.educationLevel]}`,
         educationLevel: enrollment.classroom.educationLevel,
       },
       todayAttendance: attendance

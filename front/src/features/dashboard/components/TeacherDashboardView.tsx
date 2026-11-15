@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatEducationLevel } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import {
   BookOpen,
@@ -137,7 +138,7 @@ export const TeacherDashboardView: React.FC = () => {
             {isTutor && tutorClassroom && (
               <Badge variant="outline" className="text-xs font-bold border-emerald-500/30 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 gap-1">
                 <School className="w-3 h-3" />
-                <span>Docente Tutor: {tutorClassroom.grade}° "{tutorClassroom.section}" • {tutorClassroom.educationLevel}</span>
+                <span>Docente Tutor: {tutorClassroom.grade}° "{tutorClassroom.section}" • {formatEducationLevel(tutorClassroom.educationLevel)}</span>
               </Badge>
             )}
           </div>

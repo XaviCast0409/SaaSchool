@@ -34,3 +34,28 @@ export function countUnread(
 ): number {
   return messages.filter((m) => m.senderId !== myId && (!lastReadAt || m.createdAt > lastReadAt)).length;
 }
+
+/** Roles del personal que pueden usar el chat interno. */
+export const STAFF_CHAT_ROLES = ['SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'] as const;
+
+/**
+ * Participantes de un chat interno en orden estable (el id menor primero) y su clave única,
+ * para que A→B y B→A sean siempre la misma conversación.
+ */
+export function staffPair(a: string, b: string): { first: string; second: string; key: string } {
+  const [first, second] = a < b ? [a, b] : [b, a];
+  return { first, second, key: `${first}:${second}` };
+}
+
+/** Una conversación está archivada si la archivé y no llegó nada después. */
+export function isArchived(archivedAt: Date | null, lastMessageAt: Date): boolean {
+  return Boolean(archivedAt && archivedAt >= lastMessageAt);
+}
+
+/** Grupo en la pestaña "Equipo" según el rol de la otra persona. */
+export function staffGroupOf(role: string): 'Dirección' | 'Secretaría' | 'Docentes' | 'Otros' {
+  if (role === 'SCHOOL_ADMIN' || role === 'SUPER_ADMIN') return 'Dirección';
+  if (role === 'ADMINISTRATIVE') return 'Secretaría';
+  if (role === 'TEACHER') return 'Docentes';
+  return 'Otros';
+}

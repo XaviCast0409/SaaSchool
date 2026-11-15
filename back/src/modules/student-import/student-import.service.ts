@@ -1,3 +1,5 @@
+import { classroomYearService } from '../classrooms/classroom-year.service';
+import { prisma } from '../../config/prisma';
 import { randomBytes } from 'crypto';
 import type { Prisma, RelationshipType } from '@prisma/client';
 import { AppError } from '../../core/errors/app-error';
@@ -315,6 +317,19 @@ export class StudentImportService {
     const quota = studentQuotaFor(school?.plan ?? 'BASIC');
     if (currentStudents + createStudents > quota) {
       blocking.push(`El plan del colegio permite ${quota} alumnos: ya tiene ${currentStudents} y el archivo agrega ${createStudents}. Sube el plan o carga menos alumnos.`);
+    }
+    // Vacantes: matrículas nuevas por sección frente a sus vacantes libres
+    const newByClassroom = new Map<string, number>();
+    for (const decision of decisions) {
+      if (decision.plan.enrollmentAction === 'CREATE' && decision.classroomId) {
+        newByClassroom.set(decision.classroomId, (newByClassroom.get(decision.classroomId) ?? 0) + 1);
+      }
+    }
+    for (const [classroomId, adding] of newByClassroom) {
+      const v = await classroomYearService.vacancyOf(prisma, schoolId, classroomId, year.id);
+      if (v.capacity > 0 && v.enrolled + adding > v.capacity) {
+        blocking.push(`${v.label}: tiene ${v.free} vacante(s) libre(s) y el archivo agrega ${adding} alumno(s). Aumenta las vacantes en Aulas o reparte a los alumnos en otra sección.`);
+      }
     }
     const notes: string[] = [];
     if (read.missingOptionalColumns.length) notes.push(`El archivo no trae estas columnas opcionales (se cargan vacías): ${read.missingOptionalColumns.join(', ')}.`);

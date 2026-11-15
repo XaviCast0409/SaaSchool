@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatEducationLevel } from '@/lib/utils';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Layers, X, Save, School, Calendar } from 'lucide-react';
@@ -171,7 +172,7 @@ export const BulkObligationModal: React.FC<BulkObligationModalProps> = ({ onClos
               <option value="level:SECONDARY">Toda Secundaria</option>
               {classrooms.map((c) => (
                 <option key={c.id} value={c.id}>
-                  Sección: {c.grade}° {c.section} ({c.educationLevel})
+                  Sección: {c.grade}° {c.section} ({formatEducationLevel(c.educationLevel)})
                 </option>
               ))}
             </select>

@@ -9,6 +9,8 @@ const ipKey = (request: Request): string => `ip:${ipKeyGenerator(request.ip ?? '
 export const loginRateLimiter = rateLimit({
   windowMs: FIFTEEN_MINUTES,
   limit: 10,
+  // Solo cuentan los intentos fallidos: entrar bien varias veces (equipo compartido) no bloquea
+  skipSuccessfulRequests: true,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   keyGenerator: (request) =>

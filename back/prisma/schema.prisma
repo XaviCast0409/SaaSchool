@@ -1711,20 +1711,35 @@ model AnnouncementResponse {
 }
 
 /// Conversación privada entre un apoderado y un miembro del personal sobre un alumno.
+/// FAMILY: apoderado ↔ personal sobre un alumno. STAFF: chat interno entre dos miembros del personal.
+enum ConversationKind {
+  FAMILY
+  STAFF
+}
+
 model Conversation {
-  id               String    @id @default(uuid())
+  id               String           @id @default(uuid())
   schoolId         String
-  studentId        String
+  kind             ConversationKind @default(FAMILY)
+  /// Solo en FAMILY: alumno del que trata la conversación
+  studentId        String?
+  /// En FAMILY es el apoderado; en STAFF, el participante con el id menor
   parentId         String
+  /// En FAMILY es el personal; en STAFF, el participante con el id mayor
   staffId          String
-  lastMessageAt    DateTime  @default(now())
+  /// Solo en STAFF: "<idMenor>:<idMayor>", evita duplicar el chat entre dos personas
+  staffPairKey     String?          @unique
+  lastMessageAt    DateTime         @default(now())
   lastMessageText  String?
   parentLastReadAt DateTime?
   staffLastReadAt  DateTime?
-  createdAt        DateTime  @default(now())
+  /// Archivado por cada participante; un mensaje nuevo lo devuelve a la bandeja
+  parentArchivedAt DateTime?
+  staffArchivedAt  DateTime?
+  createdAt        DateTime         @default(now())
 
   school   School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  student  Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student  Student?  @relation(fields: [studentId], references: [id], onDelete: Cascade)
   parent   User      @relation("ConversationParent", fields: [parentId], references: [id], onDelete: Cascade)
   staff    User      @relation("ConversationStaff", fields: [staffId], references: [id], onDelete: Cascade)
   messages Message[]

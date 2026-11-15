@@ -3,6 +3,7 @@ import './core/zod-es';
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
+import { buildOriginMatcher } from './core/security/cors.rules';
 
 import { env } from './config/env';
 import { AppError } from './core/errors/app-error';
@@ -72,14 +73,13 @@ app.disable('x-powered-by');
 // ============================================================================
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 
-const allowedOrigins = env.CORS_ORIGINS.split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+// Admite comodines para los subdominios de los colegios: https://*.kipuxedu.com
+const isAllowedOrigin = buildOriginMatcher(env.CORS_ORIGINS.split(','));
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || isAllowedOrigin(origin)) {
         callback(null, true);
         return;
       }

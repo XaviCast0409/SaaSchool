@@ -47,6 +47,31 @@ export class ClassroomYearService {
     );
   }
 
+  /**
+   * Vacantes de una sección en un año: capacidad de la sección (o del aula si el año no definió
+   * secciones) y matrículas vigentes (estado REGISTERED; isActive solo vale para el año activo).
+   */
+  async vacancyOf(db: Db, schoolId: string, classroomId: string, academicYearId: string) {
+    const [section, room, enrolled] = await Promise.all([
+      db.classroomYear.findUnique({ where: { classroomId_academicYearId: { classroomId, academicYearId } }, select: { capacity: true } }),
+      db.classroom.findFirst({ where: { id: classroomId, schoolId }, select: { capacity: true, educationLevel: true, grade: true, section: true } }),
+      db.enrollment.count({ where: { schoolId, classroomId, academicYearId, enrollmentState: 'REGISTERED' } }),
+    ]);
+    const capacity = section?.capacity ?? room?.capacity ?? 0;
+    return { capacity, enrolled, free: Math.max(0, capacity - enrolled), label: room ? label(room) : 'la sección' };
+  }
+
+  /** Impide matricular por encima de las vacantes de la sección. */
+  async assertHasVacancy(db: Db, schoolId: string, classroomId: string, academicYearId: string, adding = 1): Promise<void> {
+    const v = await this.vacancyOf(db, schoolId, classroomId, academicYearId);
+    if (v.capacity > 0 && v.enrolled + adding > v.capacity) {
+      throw new AppError(
+        `${v.label} no tiene vacantes libres (${v.enrolled} matriculados para ${v.capacity} vacantes). Aumenta las vacantes en Aulas o elige otra sección.`,
+        409,
+      );
+    }
+  }
+
   /** Abre, cierra o ajusta (vacantes y tutor) una sección en un año. */
   async setSection(
     schoolId: string,

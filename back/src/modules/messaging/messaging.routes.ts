@@ -5,6 +5,8 @@ import { tenantMiddleware } from '../../core/middlewares/tenant.middleware';
 import { MAX_MESSAGE_LENGTH } from './messaging.rules';
 import {
   getContacts,
+  getStaffContacts,
+  setArchived,
   getMessages,
   listConversations,
   markRead,
@@ -32,6 +34,10 @@ messagingRouter.get('/contacts', async (req: Request, res: Response) => {
   res.status(200).json({ status: 'success', data: await getContacts(me(req), q) });
 });
 
+messagingRouter.get('/staff-contacts', async (req: Request, res: Response) => {
+  res.status(200).json({ status: 'success', data: await getStaffContacts(me(req)) });
+});
+
 messagingRouter.get('/conversations', async (req: Request, res: Response) => {
   res.status(200).json({ status: 'success', data: await listConversations(me(req)) });
 });
@@ -41,7 +47,8 @@ messagingRouter.get('/unread-count', async (req: Request, res: Response) => {
 });
 
 messagingRouter.post('/conversations', async (req: Request, res: Response) => {
-  const body = z.object({ studentId: uuid, counterpartId: uuid }).parse(req.body);
+  // Sin alumno = chat interno entre dos miembros del personal
+  const body = z.object({ studentId: uuid.optional(), counterpartId: uuid }).parse(req.body);
   res.status(201).json({ status: 'success', data: await openConversation(me(req), body) });
 });
 
@@ -60,4 +67,10 @@ messagingRouter.post('/conversations/:id/messages', async (req: Request, res: Re
 messagingRouter.post('/conversations/:id/read', async (req: Request, res: Response) => {
   const { id } = z.object({ id: uuid }).parse(req.params);
   res.status(200).json({ status: 'success', data: await markRead(me(req), id) });
+});
+
+messagingRouter.post('/conversations/:id/archive', async (req: Request, res: Response) => {
+  const { id } = z.object({ id: uuid }).parse(req.params);
+  const { archived } = z.object({ archived: z.boolean() }).parse(req.body);
+  res.status(200).json({ status: 'success', data: await setArchived(me(req), id, archived) });
 });

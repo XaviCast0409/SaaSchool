@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import { schoolLoginUrl } from '@/lib/schoolDomain';
 import type { UseFormRegister, UseFormSetValue } from 'react-hook-form';
 import { Copy, ExternalLink, ImagePlus, Loader2, LogIn, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -27,7 +28,7 @@ export const LoginPageSettingsSection: React.FC<Props> = ({ slug, schoolName, br
   const fileRef = useRef<HTMLInputElement>(null);
   const upload = useUploadVoucher();
   const { data: preview } = useResolvedFileUrl(values.loginBackgroundUrl || null);
-  const link = slug ? `${window.location.origin}/c/${slug}` : null;
+  const link = slug ? schoolLoginUrl(slug) : null;
   const brand = brandColor || '#4F46E5';
 
   const onFile = (file: File | undefined) => {

@@ -13,6 +13,7 @@ import { PlanGuard } from '@/components/ui/PlanGuard';
 import { PageLoader } from '@/components/ui/PageLoader';
 import { NoAccessPage, NotFoundPage } from '@/components/ui/StatusPages';
 import { SectionTabsLayout } from '@/layouts/SectionTabsLayout';
+import { currentSchoolSlug } from '@/lib/schoolDomain';
 
 const DashboardPage = lazy(() =>
   import('@/features/dashboard/pages/DashboardPage').then((m) => ({ default: m.DashboardPage })),
@@ -230,14 +231,26 @@ export const AppRouter: React.FC = () => {
       <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Web de marketing de KIPUX (pública) */}
-          <Route path="/" element={<LandingPage />} />
+          {/* En el subdominio de un colegio la portada es su página de ingreso, no la web de KIPUX */}
+          <Route
+            path="/"
+            element={
+              currentSchoolSlug ? (
+                <PublicRoute>
+                  <SchoolLoginPage codeOverride={currentSchoolSlug} />
+                </PublicRoute>
+              ) : (
+                <LandingPage />
+              )
+            }
+          />
 
           {/* Ingreso: primero el código del colegio, luego la página propia de ese colegio */}
           <Route
             path="/login"
             element={
               <PublicRoute>
-                <SchoolCodePage />
+                {currentSchoolSlug ? <SchoolLoginPage codeOverride={currentSchoolSlug} /> : <SchoolCodePage />}
               </PublicRoute>
             }
           />

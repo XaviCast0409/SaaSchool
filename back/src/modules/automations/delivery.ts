@@ -49,7 +49,9 @@ export interface DeliveryResult {
 }
 
 export function frontendUrl(): string {
-  return (env.FRONTEND_URL || env.CORS_ORIGINS.split(',')[0] || '').trim().replace(/\/$/, '');
+  // Un comodín (https://*.dominio) no sirve como enlace: se usa el primer origen exacto
+  const firstExact = env.CORS_ORIGINS.split(',').map((o) => o.trim()).find((o) => o && !o.includes('*'));
+  return (env.FRONTEND_URL || firstExact || '').trim().replace(/\/$/, '');
 }
 
 export function renderEmailHtml(schoolName: string, content: EmailContent, link?: string): string {

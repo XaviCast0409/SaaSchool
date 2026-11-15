@@ -14,8 +14,10 @@ import { KipuxLogo } from '@/components/brand/KipuxLogo';
 const DEFAULT_BRAND = '#4F46E5';
 
 /** Página de ingreso propia de cada colegio: su fondo, logo, color y mensaje. */
-export const SchoolLoginPage: React.FC = () => {
-  const { code: rawCode = '' } = useParams<{ code: string }>();
+export const SchoolLoginPage: React.FC<{ codeOverride?: string }> = ({ codeOverride }) => {
+  const { code: routeCode = '' } = useParams<{ code: string }>();
+  // En el subdominio del colegio (santaelena.kipuxedu.com) el código viene del nombre del servidor
+  const rawCode = codeOverride ?? routeCode;
   const code = normalizeSchoolCode(rawCode);
   const navigate = useNavigate();
   const { data: page, isLoading, error: pageError } = useSchoolLoginPage(code);
@@ -205,6 +207,7 @@ export const SchoolLoginPage: React.FC = () => {
             </p>
           </form>
 
+          {!codeOverride && (
           <button
             type="button"
             onClick={changeSchool}
@@ -212,6 +215,7 @@ export const SchoolLoginPage: React.FC = () => {
           >
             <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden /> ¿No es tu colegio? Cambiar de colegio
           </button>
+          )}
 
           <div className="mt-3 flex items-center justify-center gap-2 text-xs text-muted-foreground">
             <span>Con la tecnología de</span>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatEducationLevel } from '@/lib/utils';
 import { SchoolLogo } from '@/features/schools/components/SchoolLetterhead';
 import {
   X,
@@ -118,7 +119,7 @@ export const StudentCertificateDocument: React.FC<{
             , se encuentra debidamente <strong>MATRICULADO(A)</strong> en el Año Lectivo{' '}
             <strong>{cert.enrollment?.academicYear}</strong>, cursando el{' '}
             <strong>{cert.enrollment?.grade}° Grado</strong> del Nivel{' '}
-            <strong>{cert.enrollment?.educationLevel}</strong>, Sección "
+            <strong>{formatEducationLevel(cert.enrollment?.educationLevel)}</strong>, Sección "
             <strong>{cert.enrollment?.section}</strong>", Turno{' '}
             <strong>{cert.enrollment?.shift}</strong>.
           </p>

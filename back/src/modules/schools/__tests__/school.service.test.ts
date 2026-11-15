@@ -42,6 +42,8 @@ describe('SchoolService - createSchool validation (P4, P5)', () => {
         documentId: '20987654321',
         adminEmail: 'director@existente.pe',
         adminPassword: 'Password123!',
+        adminFirstName: 'Ana',
+        adminLastNamePaternal: 'Paz',
       } as any),
     ).rejects.toThrow(new AppError('Ese correo ya está registrado en la plataforma.', 409));
   });
@@ -56,6 +58,20 @@ describe('SchoolService - createSchool validation (P4, P5)', () => {
         adminEmail: 'director@nuevo.pe',
       } as any),
     ).rejects.toThrow(new AppError('Indica la contraseña inicial del director.', 400));
+  });
+
+  it('rejects a director without first name or paternal last name', async () => {
+    vi.mocked(mockRepo.findByDocumentId!).mockResolvedValue(null);
+
+    await expect(
+      service.createSchool({
+        name: 'Nuevo Colegio',
+        documentId: '20987654321',
+        adminEmail: 'director@nuevo.pe',
+        adminPassword: 'Password123!',
+        adminFirstName: 'Ana',
+      } as any),
+    ).rejects.toThrow(new AppError('Indica el nombre y el apellido paterno del director.', 400));
   });
 
   it('creates school successfully when validations pass', async () => {
@@ -75,6 +91,8 @@ describe('SchoolService - createSchool validation (P4, P5)', () => {
       documentId: '20987654321',
       adminEmail: 'director@nuevo.pe',
       adminPassword: 'Password123!',
+      adminFirstName: 'Ana',
+      adminLastNamePaternal: 'Paz',
     } as any);
 
     expect(result.id).toBe('sch-new');

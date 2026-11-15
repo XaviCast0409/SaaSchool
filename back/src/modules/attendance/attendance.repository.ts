@@ -1,4 +1,5 @@
 import { prisma } from '../../config/prisma';
+import { LEVEL_LABEL } from '../academic/cneb.catalog';
 import { AppError } from '../../core/errors/app-error';
 import { monthRangeUTC, parseSchoolDate } from '../../utils/timezone.util';
 import { formatFullName } from '../../utils/name.util';
@@ -432,7 +433,7 @@ export class AttendanceRepository {
       throw new AppError('Aula no encontrada', 404);
     }
 
-    const classroomName = `${classroom.grade}° "${classroom.section}" - ${classroom.educationLevel}`;
+    const classroomName = `${classroom.grade}° "${classroom.section}" - ${LEVEL_LABEL[classroom.educationLevel]}`;
 
     const [enrollments, attendances] = await Promise.all([
       prisma.enrollment.findMany({

@@ -26,3 +26,25 @@ describe('mensajería', () => {
     expect(countUnread(msgs, 'yo', t('2026-11-10T11:30:00Z'))).toBe(1);
   });
 });
+
+import { staffPair, isArchived, staffGroupOf } from '../messaging.rules';
+
+describe('chat interno del personal', () => {
+  it('A→B y B→A son la misma conversación', () => {
+    expect(staffPair('b-id', 'a-id')).toEqual({ first: 'a-id', second: 'b-id', key: 'a-id:b-id' });
+    expect(staffPair('a-id', 'b-id').key).toBe(staffPair('b-id', 'a-id').key);
+  });
+
+  it('archivada solo si no llegó nada después de archivarla', () => {
+    const t = new Date('2026-11-15T10:00:00Z');
+    expect(isArchived(null, t)).toBe(false);
+    expect(isArchived(new Date('2026-11-15T11:00:00Z'), t)).toBe(true);
+    expect(isArchived(new Date('2026-11-15T09:00:00Z'), t)).toBe(false);
+  });
+
+  it('agrupa por cargo', () => {
+    expect(staffGroupOf('SCHOOL_ADMIN')).toBe('Dirección');
+    expect(staffGroupOf('ADMINISTRATIVE')).toBe('Secretaría');
+    expect(staffGroupOf('TEACHER')).toBe('Docentes');
+  });
+});

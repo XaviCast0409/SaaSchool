@@ -2,7 +2,21 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ArrowLeft, Check, CheckCheck, Clock, Loader2, MessageSquarePlus, MessagesSquare, Search, Send } from 'lucide-react';
+import {
+  Archive,
+  ArchiveRestore,
+  ArrowLeft,
+  Check,
+  CheckCheck,
+  ChevronDown,
+  Clock,
+  Loader2,
+  MessageSquarePlus,
+  MessagesSquare,
+  Search,
+  Send,
+  Users,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -13,54 +27,185 @@ import { formatPeruDate, formatPeruTime, getPeruToday } from '@/lib/dateUtils';
 import { useAuthStore } from '@/store/useAuthStore';
 import { apiErrorMessage } from '@/features/academic/api';
 import {
+  useArchiveConversation,
   useConversation,
   useConversations,
   useMarkConversationRead,
   useMessageContacts,
   useOpenConversation,
   useSendMessage,
+  useTeamContacts,
+  type ConversationKind,
   type ConversationSummary,
+  type StaffGroup,
 } from '../api/useMessages';
 
 const MAX_LENGTH = 2000;
+const STAFF_GROUP_ORDER: StaffGroup[] = ['Dirección', 'Secretaría', 'Docentes', 'Otros'];
+const NO_CLASSROOM = 'Sin aula asignada';
+
+type Filter = 'all' | 'unread' | 'archived';
 
 function shortWhen(iso: string): string {
   const day = new Date(iso).toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
   return day === getPeruToday() ? formatPeruTime(iso) : formatPeruDate(iso, { day: '2-digit', month: 'short' });
 }
 
-/** Selector para iniciar una conversación nueva. */
-const NewConversationModal: React.FC<{ open: boolean; onClose: () => void; onOpened: (id: string) => void }> = ({ open, onClose, onOpened }) => {
+const normalize = (text: string) =>
+  text
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase();
+
+/** Texto con el que se busca una conversación: persona, alumno y aula. */
+const searchableText = (c: ConversationSummary) =>
+  normalize([c.counterpart.name, c.counterpart.roleLabel, c.student?.name, c.student?.classroom].filter(Boolean).join(' '));
+
+interface ConversationGroup {
+  key: string;
+  label: string;
+  items: ConversationSummary[];
+  unread: number;
+}
+
+/** Familias: por aula (las aulas con mensajes sin leer primero). Equipo: por cargo. */
+function groupConversations(items: ConversationSummary[], kind: ConversationKind): ConversationGroup[] {
+  const map = new Map<string, ConversationSummary[]>();
+  for (const c of items) {
+    const key = kind === 'STAFF' ? c.counterpart.group : c.student?.classroom ?? NO_CLASSROOM;
+    map.set(key, [...(map.get(key) ?? []), c]);
+  }
+  const groups = [...map.entries()].map(([key, list]) => ({
+    key,
+    label: key,
+    items: list,
+    unread: list.reduce((s, c) => s + c.unread, 0),
+  }));
+  if (kind === 'STAFF') {
+    return groups.sort((a, b) => STAFF_GROUP_ORDER.indexOf(a.key as StaffGroup) - STAFF_GROUP_ORDER.indexOf(b.key as StaffGroup));
+  }
+  return groups.sort(
+    (a, b) =>
+      Number(b.unread > 0) - Number(a.unread > 0) ||
+      Number(a.key === NO_CLASSROOM) - Number(b.key === NO_CLASSROOM) ||
+      a.label.localeCompare(b.label, 'es', { numeric: true }),
+  );
+}
+
+/** Selector para iniciar una conversación nueva: con una familia o con alguien del equipo. */
+const NewConversationModal: React.FC<{
+  open: boolean;
+  isStaff: boolean;
+  initialMode: ConversationKind;
+  onClose: () => void;
+  onOpened: (id: string, kind: ConversationKind) => void;
+}> = ({ open, isStaff, initialMode, onClose, onOpened }) => {
+  const [mode, setMode] = useState<ConversationKind>(initialMode);
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
+  useEffect(() => {
+    if (open) {
+      setMode(isStaff ? initialMode : 'FAMILY');
+      setSearch('');
+    }
+  }, [open, initialMode, isStaff]);
   useEffect(() => {
     const t = setTimeout(() => setDebounced(search), 300);
     return () => clearTimeout(t);
   }, [search]);
-  const { data, isLoading } = useMessageContacts(debounced, open);
+  const { data, isLoading } = useMessageContacts(debounced, open && mode === 'FAMILY');
+  const team = useTeamContacts(open && isStaff && mode === 'STAFF');
   const openConv = useOpenConversation();
 
-  const start = (studentId: string, counterpartId: string) =>
+  const start = (counterpartId: string, studentId?: string) =>
     openConv.mutate(
       { studentId, counterpartId },
-      { onSuccess: (c) => { onOpened(c.id); onClose(); }, onError: (e) => toast.error(apiErrorMessage(e)) },
+      {
+        onSuccess: (c) => {
+          onOpened(c.id, studentId ? 'FAMILY' : 'STAFF');
+          onClose();
+        },
+        onError: (e) => toast.error(apiErrorMessage(e)),
+      },
     );
+
+  const teamGroups = useMemo(() => {
+    const q = normalize(search.trim());
+    const list = (team.data ?? []).filter((p) => !q || normalize(`${p.name} ${p.roleLabel} ${p.detail ?? ''}`).includes(q));
+    return STAFF_GROUP_ORDER.map((g) => ({ group: g, people: list.filter((p) => p.group === g) })).filter((g) => g.people.length);
+  }, [team.data, search]);
 
   return (
     <Modal open={open} onClose={onClose} title="Nuevo mensaje" description="Elige con quién quieres conversar." size="md">
-      {data?.kind === 'STAFF' && (
+      {isStaff && (
+        <div className="mb-3 grid grid-cols-2 gap-1 rounded-lg bg-muted p-1" role="tablist" aria-label="Tipo de conversación">
+          {(['FAMILY', 'STAFF'] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              role="tab"
+              aria-selected={mode === m}
+              onClick={() => {
+                setMode(m);
+                setSearch('');
+              }}
+              className={cn(
+                'rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
+                mode === m ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {m === 'FAMILY' ? 'Una familia' : 'Mi equipo'}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {isStaff && (
         <div className="relative mb-3">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" aria-hidden />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar alumno por nombre o DNI"
+            placeholder={mode === 'FAMILY' ? 'Buscar alumno por nombre o DNI' : 'Buscar por nombre, cargo o aula'}
             className="pl-9"
-            aria-label="Buscar alumno"
+            aria-label={mode === 'FAMILY' ? 'Buscar alumno' : 'Buscar persona del equipo'}
           />
         </div>
       )}
-      {isLoading ? (
+
+      {mode === 'STAFF' ? (
+        team.isLoading ? (
+          <div className="space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
+        ) : teamGroups.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No encontramos a nadie del equipo con ese nombre.</p>
+        ) : (
+          <div className="max-h-[50vh] space-y-4 overflow-y-auto">
+            {teamGroups.map((g) => (
+              <div key={g.group}>
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{g.group}</p>
+                <ul className="divide-y divide-border rounded-lg border border-border">
+                  {g.people.map((p) => (
+                    <li key={p.id}>
+                      <button
+                        type="button"
+                        disabled={openConv.isPending}
+                        onClick={() => start(p.id)}
+                        className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-muted/60 disabled:opacity-60"
+                      >
+                        <UserAvatar name={p.name} src={p.avatarUrl} />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground">{p.name}</p>
+                          <p className="truncate text-xs text-muted-foreground">{p.detail ?? p.roleLabel}</p>
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )
+      ) : isLoading ? (
         <div className="space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
       ) : data?.kind === 'PARENT' ? (
         data.children.length === 0 ? (
@@ -76,7 +221,7 @@ const NewConversationModal: React.FC<{ open: boolean; onClose: () => void; onOpe
                       <button
                         type="button"
                         disabled={openConv.isPending}
-                        onClick={() => start(child.student.id, c.id)}
+                        onClick={() => start(c.id, child.student.id)}
                         className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-muted/60 disabled:opacity-60"
                       >
                         <UserAvatar name={c.name} src={c.avatarUrl} />
@@ -116,7 +261,7 @@ const NewConversationModal: React.FC<{ open: boolean; onClose: () => void; onOpe
                         variant="outline"
                         className="h-7 text-xs"
                         disabled={openConv.isPending}
-                        onClick={() => start(s.student.id, c.id)}
+                        onClick={() => start(c.id, s.student.id)}
                       >
                         {c.name} <span className="ml-1 text-muted-foreground">({c.roleLabel.toLowerCase()})</span>
                       </Button>
@@ -132,51 +277,108 @@ const NewConversationModal: React.FC<{ open: boolean; onClose: () => void; onOpe
   );
 };
 
+const ConversationRow: React.FC<{ c: ConversationSummary; selected: boolean; showClassroom: boolean; onSelect: (id: string) => void }> = ({
+  c,
+  selected,
+  showClassroom,
+  onSelect,
+}) => {
+  const subtitle =
+    c.kind === 'STAFF'
+      ? c.counterpart.roleLabel
+      : [c.counterpart.roleLabel, c.student?.name, showClassroom ? c.student?.classroom : null].filter(Boolean).join(' · ');
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => onSelect(c.id)}
+        className={cn('flex w-full items-start gap-3 px-3 py-3 text-left transition-colors hover:bg-muted/50', selected && 'bg-primary/5')}
+        aria-current={selected}
+      >
+        <UserAvatar name={c.counterpart.name} src={c.counterpart.avatarUrl} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className={cn('truncate text-sm', c.unread ? 'font-semibold text-foreground' : 'font-medium text-foreground')}>{c.counterpart.name}</p>
+            <span className="shrink-0 text-xs text-muted-foreground">{shortWhen(c.lastMessageAt)}</span>
+          </div>
+          <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className={cn('truncate text-xs', c.unread ? 'text-foreground' : 'text-muted-foreground')}>{c.lastMessageText ?? 'Sin mensajes todavía'}</p>
+            {c.unread > 0 && (
+              <span className="shrink-0 rounded-full bg-primary px-1.5 py-0.5 text-xs font-bold text-primary-foreground" aria-label={`${c.unread} sin leer`}>
+                {c.unread}
+              </span>
+            )}
+          </div>
+        </div>
+      </button>
+    </li>
+  );
+};
+
 const ConversationList: React.FC<{
-  items: ConversationSummary[] | undefined;
+  items: ConversationSummary[];
+  kind: ConversationKind;
+  grouped: boolean;
   loading: boolean;
+  emptyText: string;
   selectedId: string | null;
   onSelect: (id: string) => void;
-}> = ({ items, loading, selectedId, onSelect }) => {
+}> = ({ items, kind, grouped, loading, emptyText, selectedId, onSelect }) => {
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   if (loading) return <div className="space-y-2 p-3">{[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-14 w-full" />)}</div>;
-  if (!items || items.length === 0)
+  if (items.length === 0) return <div className="p-6 text-center text-sm text-muted-foreground">{emptyText}</div>;
+
+  if (!grouped) {
     return (
-      <div className="p-6 text-center text-sm text-muted-foreground">
-        Aún no tienes conversaciones. Pulsa <strong>Nuevo mensaje</strong> para empezar.
-      </div>
+      <ul className="divide-y divide-border">
+        {items.map((c) => (
+          <ConversationRow key={c.id} c={c} selected={selectedId === c.id} showClassroom onSelect={onSelect} />
+        ))}
+      </ul>
     );
+  }
+
+  const toggle = (key: string) =>
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+
   return (
-    <ul className="divide-y divide-border">
-      {items.map((c) => (
-        <li key={c.id}>
-          <button
-            type="button"
-            onClick={() => onSelect(c.id)}
-            className={cn('flex w-full items-start gap-3 px-3 py-3 text-left transition-colors hover:bg-muted/50', selectedId === c.id && 'bg-primary/5')}
-            aria-current={selectedId === c.id}
-          >
-            <UserAvatar name={c.counterpart.name} src={c.counterpart.avatarUrl} />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-baseline justify-between gap-2">
-                <p className={cn('truncate text-sm', c.unread ? 'font-semibold text-foreground' : 'font-medium text-foreground')}>{c.counterpart.name}</p>
-                <span className="shrink-0 text-xs text-muted-foreground">{shortWhen(c.lastMessageAt)}</span>
-              </div>
-              <p className="truncate text-xs text-muted-foreground">
-                {c.counterpart.roleLabel} · {c.student.name}
-              </p>
-              <div className="flex items-center justify-between gap-2">
-                <p className={cn('truncate text-xs', c.unread ? 'text-foreground' : 'text-muted-foreground')}>{c.lastMessageText ?? 'Sin mensajes todavía'}</p>
-                {c.unread > 0 && (
-                  <span className="shrink-0 rounded-full bg-primary px-1.5 py-0.5 text-xs font-bold text-primary-foreground" aria-label={`${c.unread} sin leer`}>
-                    {c.unread}
-                  </span>
-                )}
-              </div>
-            </div>
-          </button>
-        </li>
-      ))}
-    </ul>
+    <div>
+      {groupConversations(items, kind).map((g) => {
+        const isCollapsed = collapsed.has(g.key);
+        return (
+          <section key={g.key} aria-label={g.label}>
+            <button
+              type="button"
+              onClick={() => toggle(g.key)}
+              aria-expanded={!isCollapsed}
+              className="sticky top-0 z-10 flex w-full items-center justify-between gap-2 border-b border-border bg-muted/80 px-3 py-1.5 text-left backdrop-blur"
+            >
+              <span className="flex min-w-0 items-center gap-1.5">
+                <ChevronDown className={cn('h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform', isCollapsed && '-rotate-90')} aria-hidden />
+                <span className="truncate text-xs font-semibold text-foreground">{g.label}</span>
+                <span className="text-xs text-muted-foreground">({g.items.length})</span>
+              </span>
+              {g.unread > 0 && (
+                <span className="shrink-0 rounded-full bg-primary px-1.5 text-xs font-bold text-primary-foreground">{g.unread}</span>
+              )}
+            </button>
+            {!isCollapsed && (
+              <ul className="divide-y divide-border">
+                {g.items.map((c) => (
+                  <ConversationRow key={c.id} c={c} selected={selectedId === c.id} showClassroom={false} onSelect={onSelect} />
+                ))}
+              </ul>
+            )}
+          </section>
+        );
+      })}
+    </div>
   );
 };
 
@@ -184,6 +386,7 @@ const ChatPanel: React.FC<{ conversationId: string; onBack: () => void }> = ({ c
   const { data, isLoading } = useConversation(conversationId);
   const send = useSendMessage(conversationId);
   const markRead = useMarkConversationRead();
+  const archive = useArchiveConversation();
   const [text, setText] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const lastCount = useRef(0);
@@ -231,6 +434,22 @@ const ChatPanel: React.FC<{ conversationId: string; onBack: () => void }> = ({ c
   }
   const { conversation } = data;
   const otherRead = conversation.otherLastReadAt ? new Date(conversation.otherLastReadAt) : null;
+  const subtitle =
+    conversation.kind === 'STAFF'
+      ? `${conversation.counterpart.roleLabel} · chat interno del equipo`
+      : `${conversation.counterpart.roleLabel}${conversation.student ? ` · sobre ${conversation.student.name}` : ''}`;
+
+  const toggleArchive = () =>
+    archive.mutate(
+      { id: conversationId, archived: !conversation.archived },
+      {
+        onSuccess: () => {
+          toast.success(conversation.archived ? 'Conversación devuelta a la bandeja.' : 'Conversación archivada. Volverá si recibes un mensaje nuevo.');
+          if (!conversation.archived) onBack();
+        },
+        onError: (e) => toast.error(apiErrorMessage(e)),
+      },
+    );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -239,12 +458,22 @@ const ChatPanel: React.FC<{ conversationId: string; onBack: () => void }> = ({ c
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <UserAvatar name={conversation.counterpart.name} src={conversation.counterpart.avatarUrl} />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-foreground">{conversation.counterpart.name}</p>
-          <p className="truncate text-xs text-muted-foreground">
-            {conversation.counterpart.roleLabel} · sobre {conversation.student.name}
-          </p>
+          <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 shrink-0 gap-1.5 text-xs"
+          onClick={toggleArchive}
+          disabled={archive.isPending}
+          aria-label={conversation.archived ? 'Devolver a la bandeja' : 'Archivar conversación'}
+          title={conversation.archived ? 'Devolver a la bandeja' : 'Archivar conversación'}
+        >
+          {conversation.archived ? <ArchiveRestore className="h-4 w-4" aria-hidden /> : <Archive className="h-4 w-4" aria-hidden />}
+          <span className="hidden sm:inline">{conversation.archived ? 'Desarchivar' : 'Archivar'}</span>
+        </Button>
       </div>
 
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-muted/20 px-3 py-4">
@@ -317,39 +546,176 @@ const ChatPanel: React.FC<{ conversationId: string; onBack: () => void }> = ({ c
 
 export const MessagesPage: React.FC = () => {
   const { user } = useAuthStore();
+  const isStaff = user?.role !== 'PARENT';
   const [params, setParams] = useSearchParams();
   const selectedId = params.get('c');
+  const tab: ConversationKind = isStaff && params.get('tab') === 'equipo' ? 'STAFF' : 'FAMILY';
+  const [filter, setFilter] = useState<Filter>('all');
+  const [childId, setChildId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
   const [newOpen, setNewOpen] = useState(false);
   const { data, isLoading, error } = useConversations();
 
-  const select = (id: string | null) => {
+  const all = data ?? [];
+  const unreadBy = (kind: ConversationKind) => all.filter((c) => c.kind === kind && !c.archived).reduce((s, c) => s + c.unread, 0);
+
+  // Hijos con conversaciones (para el filtro de apoderados con varios hijos)
+  const children = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of all) if (c.student) map.set(c.student.id, c.student.name);
+    return [...map.entries()].map(([id, name]) => ({ id, name }));
+  }, [all]);
+
+  const visible = useMemo(() => {
+    const q = normalize(search.trim());
+    return all.filter(
+      (c) =>
+        c.kind === tab &&
+        // Una conversación abierta sin mensajes solo se muestra mientras está seleccionada
+        (c.lastMessageText !== null || c.id === selectedId) &&
+        (filter === 'archived' ? c.archived : !c.archived) &&
+        (filter !== 'unread' || c.unread > 0) &&
+        (!childId || c.student?.id === childId) &&
+        (!q || searchableText(c).includes(q)),
+    );
+  }, [all, tab, filter, childId, search, selectedId]);
+  const archivedCount = all.filter((c) => c.kind === tab && c.archived).length;
+
+  const update = (changes: Record<string, string | null>, replace = false) => {
     const next = new URLSearchParams(params);
-    if (id) next.set('c', id);
-    else next.delete('c');
-    setParams(next, { replace: !id });
+    for (const [k, v] of Object.entries(changes)) {
+      if (v) next.set(k, v);
+      else next.delete(k);
+    }
+    setParams(next, { replace });
   };
+  const select = (id: string | null) => update({ c: id }, !id);
+  const switchTab = (kind: ConversationKind) => {
+    setFilter('all');
+    update({ tab: kind === 'STAFF' ? 'equipo' : null, c: null }, true);
+  };
+
+  // Al abrir un enlace a una conversación (p. ej. desde una notificación), mostrar su pestaña
+  useEffect(() => {
+    if (!selectedId || !isStaff) return;
+    const conv = all.find((c) => c.id === selectedId);
+    if (conv && conv.kind !== tab) update({ tab: conv.kind === 'STAFF' ? 'equipo' : null }, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId, all.length]);
 
   if (error) {
     return <EmptyState icon={<MessagesSquare className="h-6 w-6" />} title="Mensajería no disponible" description={apiErrorMessage(error)} />;
   }
 
+  const emptyText = search
+    ? 'Ninguna conversación coincide con tu búsqueda.'
+    : filter === 'unread'
+      ? 'No tienes mensajes sin leer aquí. 🎉'
+      : filter === 'archived'
+        ? 'No tienes conversaciones archivadas.'
+        : tab === 'STAFF'
+          ? 'Aún no conversas con tu equipo. Pulsa Nuevo y elige «Mi equipo».'
+          : 'Aún no tienes conversaciones. Pulsa Nuevo para empezar.';
+
   return (
     <div className="-m-4 flex h-[calc(100dvh-4rem)] flex-col md:m-0 md:h-[calc(100dvh-8rem)]">
       <div className="flex min-h-0 flex-1 overflow-hidden border-border bg-card md:rounded-xl md:border">
         <aside className={cn('flex w-full flex-col border-r border-border md:w-80 lg:w-96', selectedId && 'hidden md:flex')}>
-          <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-3">
-            <div>
-              <h1 className="text-base font-semibold text-foreground">Mensajes</h1>
-              <p className="text-xs text-muted-foreground">
-                {user?.role === 'PARENT' ? 'Conversa con el tutor y los docentes de tus hijos' : 'Conversaciones privadas con las familias'}
-              </p>
+          <div className="space-y-2.5 border-b border-border px-3 py-3">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h1 className="text-base font-semibold text-foreground">Mensajes</h1>
+                <p className="text-xs text-muted-foreground">
+                  {isStaff ? 'Familias y equipo del colegio, cada uno en su lugar' : 'Conversa con el tutor y los docentes de tus hijos'}
+                </p>
+              </div>
+              <Button size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setNewOpen(true)}>
+                <MessageSquarePlus className="h-3.5 w-3.5" aria-hidden /> Nuevo
+              </Button>
             </div>
-            <Button size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setNewOpen(true)}>
-              <MessageSquarePlus className="h-3.5 w-3.5" aria-hidden /> Nuevo
-            </Button>
+
+            {isStaff && (
+              <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1" role="tablist" aria-label="Bandejas">
+                {(['FAMILY', 'STAFF'] as const).map((k) => {
+                  const n = unreadBy(k);
+                  return (
+                    <button
+                      key={k}
+                      type="button"
+                      role="tab"
+                      aria-selected={tab === k}
+                      onClick={() => switchTab(k)}
+                      className={cn(
+                        'flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold transition-colors',
+                        tab === k ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                      )}
+                    >
+                      {k === 'FAMILY' ? <MessagesSquare className="h-3.5 w-3.5" aria-hidden /> : <Users className="h-3.5 w-3.5" aria-hidden />}
+                      {k === 'FAMILY' ? 'Familias' : 'Equipo'}
+                      {n > 0 && <span className="rounded-full bg-primary px-1.5 text-[11px] font-bold text-primary-foreground">{n}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" aria-hidden />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={tab === 'STAFF' ? 'Buscar por nombre o cargo' : isStaff ? 'Buscar apoderado, alumno o aula' : 'Buscar docente'}
+                className="h-9 pl-9 text-sm"
+                aria-label="Buscar conversación"
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-1.5" aria-label="Filtros">
+              {([
+                ['all', 'Todas'],
+                ['unread', 'Sin leer'],
+                ['archived', `Archivadas${archivedCount ? ` (${archivedCount})` : ''}`],
+              ] as const).map(([f, label]) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => setFilter(f)}
+                  aria-pressed={filter === f}
+                  className={cn(
+                    'rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors',
+                    filter === f ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+              {!isStaff && children.length > 1 && (
+                <select
+                  value={childId ?? ''}
+                  onChange={(e) => setChildId(e.target.value || null)}
+                  className="h-6 rounded-full border border-border bg-background px-2 text-xs text-foreground"
+                  aria-label="Filtrar por hijo"
+                >
+                  <option value="">Todos mis hijos</option>
+                  {children.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <ConversationList items={data} loading={isLoading} selectedId={selectedId} onSelect={select} />
+            <ConversationList
+              items={visible}
+              kind={tab}
+              grouped={isStaff && !search}
+              loading={isLoading}
+              emptyText={emptyText}
+              selectedId={selectedId}
+              onSelect={select}
+            />
           </div>
         </aside>
         <section className={cn('min-w-0 flex-1 flex-col', selectedId ? 'flex' : 'hidden md:flex')}>
@@ -364,7 +730,13 @@ export const MessagesPage: React.FC = () => {
           )}
         </section>
       </div>
-      <NewConversationModal open={newOpen} onClose={() => setNewOpen(false)} onOpened={(id) => select(id)} />
+      <NewConversationModal
+        open={newOpen}
+        isStaff={isStaff}
+        initialMode={tab}
+        onClose={() => setNewOpen(false)}
+        onOpened={(id, kind) => update({ c: id, tab: kind === 'STAFF' ? 'equipo' : null })}
+      />
     </div>
   );
 };

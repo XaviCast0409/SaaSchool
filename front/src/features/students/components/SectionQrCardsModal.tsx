@@ -176,7 +176,7 @@ export const SectionQrCardsModal: React.FC<SectionQrCardsModalProps> = ({
   const activeClassroom = classrooms.find((c) => c.id === selectedClassroomId);
 
   const classroomLabel = activeClassroom
-    ? `${activeClassroom.grade}° "${activeClassroom.section}" - ${activeClassroom.educationLevel}`
+    ? `${activeClassroom.grade}° "${activeClassroom.section}" - ${formatEducationLevel(activeClassroom.educationLevel)}`
     : 'Sección Seleccionada';
 
   const { print, isPrinting } = usePrint({

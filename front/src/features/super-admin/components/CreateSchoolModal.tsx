@@ -1,4 +1,5 @@
 import React from 'react';
+import { schoolLoginUrl } from '@/lib/schoolDomain';
 import { useForm } from 'react-hook-form';
 import {
   School as SchoolIcon,
@@ -82,7 +83,7 @@ export const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({ isOpen, on
 
   const copyCredentials = () => {
     if (!createdData) return;
-    const loginUrl = `${window.location.origin}/c/${createdData.school.slug}`;
+    const loginUrl = schoolLoginUrl(createdData.school.slug);
     const text = [
       `¡Bienvenido a KIPUX!`,
       `Aquí tienes los datos de acceso para tu colegio:`,
@@ -151,10 +152,10 @@ export const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({ isOpen, on
                 <span className="text-xs font-semibold text-muted-foreground">Enlace directo de ingreso:</span>
                 <div className="flex items-center gap-2">
                   <p className="font-mono text-xs text-primary bg-background p-2 rounded-lg border border-border flex-1 truncate">
-                    {`${window.location.origin}/c/${createdData.school.slug}`}
+                    {schoolLoginUrl(createdData.school.slug)}
                   </p>
                   <a
-                    href={`/c/${createdData.school.slug}`}
+                    href={schoolLoginUrl(createdData.school.slug)}
                     target="_blank"
                     rel="noreferrer"
                     className="p-2 rounded-lg border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"

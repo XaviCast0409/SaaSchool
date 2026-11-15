@@ -1,4 +1,5 @@
 import { CourseContentRepository } from './course-content.repository';
+import { LEVEL_LABEL } from '../academic/cneb.catalog';
 import type {
   CreateCourseContentDto,
   SupervisionFilterDto,
@@ -25,7 +26,7 @@ export class CourseContentService {
       assignment: {
         id: assignment.id,
         areaName: assignment.area.name,
-        classroomLabel: `${assignment.classroom.grade}° "${assignment.classroom.section}" - ${assignment.classroom.educationLevel}`,
+        classroomLabel: `${assignment.classroom.grade}° "${assignment.classroom.section}" - ${LEVEL_LABEL[assignment.classroom.educationLevel]}`,
         teacher: assignment.teacher,
       },
       bimester: bimester || null,

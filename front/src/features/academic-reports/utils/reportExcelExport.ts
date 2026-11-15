@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs';
+import { formatEducationLevel } from '@/lib/utils';
 import { addSchoolLogoToWorkbook } from '@/lib/excelLogo';
 import {
   ConsolidatedGradesReportData,
@@ -845,7 +846,7 @@ export const exportMeritGradeExcel = async (data: MeritGradeReportData): Promise
 
   safeMerge(ws, 4, 3, 4, lastCol - 2);
   const subCell = ws.getCell(4, 3);
-  subCell.value = `${periodNumber}° BIMESTRE ${year} | Nivel: ${educationLevel} - ${grade}° Grado`;
+  subCell.value = `${periodNumber}° BIMESTRE ${year} | Nivel: ${formatEducationLevel(educationLevel)} - ${grade}° Grado`;
   subCell.font = { bold: true, size: 9.5, color: { argb: 'FF475569' } };
   subCell.alignment = { horizontal: 'center' };
 
@@ -1895,7 +1896,7 @@ export const exportStudentBirthdaysExcel = async (
     ws.getCell(currentRow, 8).value = s.gender;
     ws.getCell(currentRow, 8).alignment = { horizontal: 'center' };
 
-    ws.getCell(currentRow, 9).value = `${s.classroomLabel} (${s.educationLevel})`;
+    ws.getCell(currentRow, 9).value = `${s.classroomLabel} (${formatEducationLevel(s.educationLevel)})`;
     ws.getCell(currentRow, 9).alignment = { horizontal: 'center' };
 
     for (let c = 1; c <= lastCol; c++) {

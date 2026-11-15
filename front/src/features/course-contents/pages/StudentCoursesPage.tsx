@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { formatEducationLevel } from '@/lib/utils';
 import { useSearchParams } from 'react-router-dom';
 import {
   GraduationCap,
@@ -156,7 +157,7 @@ export const StudentCoursesPage: React.FC = () => {
     return (
       <StudentCourseDetailView
         assignment={selectedCourse}
-        classroomLabel={`${classroom.grade}° "${classroom.section}" • ${classroom.educationLevel}`}
+        classroomLabel={`${classroom.grade}° "${classroom.section}" • ${formatEducationLevel(classroom.educationLevel)}`}
         onBack={() => {
           setSelectedCourse(null);
           if (searchParams.has('courseId') || searchParams.has('assignmentId')) {
@@ -182,7 +183,7 @@ export const StudentCoursesPage: React.FC = () => {
             </Badge>
             {classroom && (
               <Badge variant="outline" className="text-xs font-bold">
-                {classroom.grade}° "{classroom.section}" • {classroom.educationLevel}
+                {classroom.grade}° "{classroom.section}" • {formatEducationLevel(classroom.educationLevel)}
               </Badge>
             )}
           </div>

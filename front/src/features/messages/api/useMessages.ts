@@ -1,13 +1,28 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
 
+export type ConversationKind = 'FAMILY' | 'STAFF';
+export type StaffGroup = 'Dirección' | 'Secretaría' | 'Docentes' | 'Otros';
+
+export interface Counterpart {
+  id: string;
+  name: string;
+  role: string;
+  roleLabel: string;
+  group: StaffGroup;
+  avatarUrl?: string | null;
+}
+
 export interface ConversationSummary {
   id: string;
-  student: { id: string; name: string };
-  counterpart: { id: string; name: string; roleLabel: string; avatarUrl?: string | null };
+  kind: ConversationKind;
+  /** null en el chat interno del personal */
+  student: { id: string; name: string; classroom: string | null } | null;
+  counterpart: Counterpart;
   lastMessageAt: string;
   lastMessageText: string | null;
   unread: number;
+  archived: boolean;
 }
 
 export interface ChatMessage {
@@ -21,13 +36,25 @@ export interface ChatMessage {
 export interface ConversationDetail {
   conversation: {
     id: string;
-    student: { id: string; name: string };
-    counterpart: { id: string; name: string; roleLabel: string; isActive: boolean; avatarUrl?: string | null };
+    kind: ConversationKind;
+    student: { id: string; name: string } | null;
+    counterpart: Counterpart & { isActive: boolean };
     otherLastReadAt: string | null;
+    archived: boolean;
     officeHours: { start: string; end: string } | null;
   };
   messages: ChatMessage[];
   hasMore: boolean;
+}
+
+/** Persona del personal con quien abrir un chat interno. */
+export interface TeamContact {
+  id: string;
+  name: string;
+  avatarUrl?: string | null;
+  roleLabel: string;
+  group: StaffGroup;
+  detail: string | null;
 }
 
 export interface StaffContact {
@@ -83,7 +110,8 @@ export const useMessageContacts = (search: string, enabled: boolean) =>
 export const useOpenConversation = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { studentId: string; counterpartId: string }) =>
+    // Sin studentId = chat interno con otra persona del personal
+    mutationFn: async (input: { studentId?: string; counterpartId: string }) =>
       (await api.post<{ data: { id: string } }>('/messages/conversations', input)).data.data,
     onSuccess: () => qc.invalidateQueries({ queryKey: [...KEY, 'conversations'] }),
   });
@@ -115,6 +143,25 @@ export const useMarkConversationRead = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [...KEY, 'conversations'] });
       qc.invalidateQueries({ queryKey: [...KEY, 'unread'] });
+    },
+  });
+};
+
+export const useTeamContacts = (enabled: boolean) =>
+  useQuery({
+    queryKey: [...KEY, 'team-contacts'],
+    enabled,
+    queryFn: async () => (await api.get<{ data: TeamContact[] }>('/messages/staff-contacts')).data.data,
+  });
+
+export const useArchiveConversation = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { id: string; archived: boolean }) =>
+      (await api.post(`/messages/conversations/${input.id}/archive`, { archived: input.archived })).data,
+    onSuccess: (_res, input) => {
+      qc.invalidateQueries({ queryKey: [...KEY, 'conversations'] });
+      qc.invalidateQueries({ queryKey: [...KEY, 'conversation', input.id] });
     },
   });
 };

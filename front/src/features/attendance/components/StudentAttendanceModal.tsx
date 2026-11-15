@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatEducationLevel } from '@/lib/utils';
 import {
   X,
   User,
@@ -78,7 +79,7 @@ export const StudentAttendanceModal: React.FC<StudentAttendanceModalProps> = ({
                       <span className="bg-muted px-2 py-0.5 rounded">SIAGIE: {detail.studentCode}</span>
                     )}
                     <span className="bg-primary/10 text-primary font-sans font-semibold px-2 py-0.5 rounded">
-                      {detail.grade} {detail.section} ({detail.educationLevel})
+                      {detail.grade} {detail.section} ({formatEducationLevel(detail.educationLevel)})
                     </span>
                   </div>
                 </div>

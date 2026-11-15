@@ -1,4 +1,5 @@
 import { confirmDialog } from '@/components/ui/confirm';
+import { schoolLoginUrl } from '@/lib/schoolDomain';
 import React, { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
@@ -162,7 +163,7 @@ export const SchoolDetailPage: React.FC = () => {
                 <span className="text-xs font-mono font-bold bg-muted px-2 py-0.5 rounded text-primary">{school.slug}</span>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Enlace público: <span className="font-mono">{`${window.location.origin}/c/${school.slug}`}</span>
+                Enlace público: <span className="font-mono">{schoolLoginUrl(school.slug)}</span>
               </p>
             </div>
           </div>
@@ -171,7 +172,7 @@ export const SchoolDetailPage: React.FC = () => {
             variant="outline"
             className="text-xs gap-1.5 shrink-0"
             onClick={() => {
-              navigator.clipboard.writeText(`${window.location.origin}/c/${school.slug}`);
+              navigator.clipboard.writeText(schoolLoginUrl(school.slug ?? ""));
               toast.success('Enlace de ingreso copiado al portapapeles.');
             }}
           >

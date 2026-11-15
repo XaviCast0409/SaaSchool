@@ -1,4 +1,5 @@
 import { classroomYearService } from '../classrooms/classroom-year.service';
+import { LEVEL_LABEL } from '../academic/cneb.catalog';
 import { dateOnlyKey, getSchoolNow } from '../../utils/timezone.util';
 import { prisma } from '../../config/prisma';
 import type { Prisma, Student } from '@prisma/client';
@@ -362,6 +363,7 @@ export class StudentRepository {
 
       // Crear Matrícula (vigente solo si el año es el activo)
       await classroomYearService.assertOpen(tx, schoolId, data.enrollment.classroomId, data.enrollment.academicYearId);
+      await classroomYearService.assertHasVacancy(tx, schoolId, data.enrollment.classroomId, data.enrollment.academicYearId);
       const enrollmentYear = await tx.academicYear.findFirst({
         where: { id: data.enrollment.academicYearId, schoolId },
         select: { isActive: true },
@@ -655,7 +657,7 @@ export class StudentRepository {
                 section: activeEnrollment.classroom.section,
                 educationLevel: activeEnrollment.classroom.educationLevel,
                 shift: activeEnrollment.classroom.shift,
-                label: `${activeEnrollment.classroom.grade}° "${activeEnrollment.classroom.section}" - ${activeEnrollment.classroom.educationLevel}`,
+                label: `${activeEnrollment.classroom.grade}° "${activeEnrollment.classroom.section}" - ${LEVEL_LABEL[activeEnrollment.classroom.educationLevel]}`,
                 tutor: activeEnrollment.classroom.tutorTeacher
                   ? {
                       fullName: `${activeEnrollment.classroom.tutorTeacher.firstName} ${activeEnrollment.classroom.tutorTeacher.lastNamePaternal}`,
@@ -789,7 +791,7 @@ export class StudentRepository {
               section: activeEnrollment.classroom.section,
               educationLevel: activeEnrollment.classroom.educationLevel,
               shift: activeEnrollment.classroom.shift,
-              label: `${activeEnrollment.classroom.grade}° "${activeEnrollment.classroom.section}" - ${activeEnrollment.classroom.educationLevel}`,
+              label: `${activeEnrollment.classroom.grade}° "${activeEnrollment.classroom.section}" - ${LEVEL_LABEL[activeEnrollment.classroom.educationLevel]}`,
               tutor: activeEnrollment.classroom.tutorTeacher
                 ? {
                     fullName: `${activeEnrollment.classroom.tutorTeacher.firstName} ${activeEnrollment.classroom.tutorTeacher.lastNamePaternal}`,

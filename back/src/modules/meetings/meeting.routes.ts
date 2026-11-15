@@ -175,6 +175,14 @@ meetingRouter.post('/slots/:id/book', authorizeRoles('PARENT'), async (req: Requ
   const contacts = await staffContactsForStudent(schoolId, dto.studentId);
   if (!contacts.some((c) => c.id === slot.staffId)) throw new AppError('Este docente no enseña a tu hijo(a).', 403);
   if (!hasMinimumNotice(slot.startsAt, MIN_NOTICE_HOURS)) throw new AppError(`Reserva con al menos ${MIN_NOTICE_HOURS} horas de anticipación.`, 400);
+  // Una sola entrevista pendiente por familia, alumno y docente: deja horarios libres para las demás familias
+  const pending = await prisma.meetingSlot.findFirst({
+    where: { schoolId, staffId: slot.staffId, bookedByParentId: parentId, studentId: dto.studentId, status: 'BOOKED', startsAt: { gt: new Date() } },
+    select: { startsAt: true },
+  });
+  if (pending) {
+    throw new AppError(`Ya tienes una entrevista reservada con este docente el ${formatLimaDateTime(pending.startsAt)}. Cancélala si necesitas otro horario.`, 409);
+  }
 
   const updated = await prisma.meetingSlot.updateMany({
     where: { id, schoolId, status: 'AVAILABLE' },

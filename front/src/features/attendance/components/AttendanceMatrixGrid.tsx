@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatEducationLevel } from '@/lib/utils';
 import {
   FileSpreadsheet,
   School,
@@ -105,7 +106,7 @@ export const AttendanceMatrixGrid: React.FC<AttendanceMatrixGridProps> = ({
 
   const activeClassroom = classrooms.find((c) => c.id === classroomId);
   const classroomLabel = activeClassroom
-    ? `${activeClassroom.grade}° ${activeClassroom.section} (${activeClassroom.educationLevel})`
+    ? `${activeClassroom.grade}° ${activeClassroom.section} (${formatEducationLevel(activeClassroom.educationLevel)})`
     : undefined;
 
   // Conteos por nivel de riesgo para los chips de filtro
@@ -168,7 +169,7 @@ export const AttendanceMatrixGrid: React.FC<AttendanceMatrixGridProps> = ({
               <option value="">— Todas las Secciones —</option>
               {availableClassrooms.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.grade}° {c.section} ({c.educationLevel})
+                  {c.grade}° {c.section} ({formatEducationLevel(c.educationLevel)})
                   {c.tutorTeacherId === user?.id ? ' • Su Aula Tutoriada' : isTeacher && !isTutor ? ' (Consulta)' : ''}
                 </option>
               ))}

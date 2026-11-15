@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatEducationLevel } from '@/lib/utils';
 import { StudentBirthdaysReportData } from '../../types';
 import { ReportHeader } from '../shared/ReportHeader';
 import { ReportFooter } from '../shared/ReportFooter';
@@ -86,7 +87,7 @@ export const StudentBirthdaysReport: React.FC<StudentBirthdaysReportProps> = ({ 
                     {student.gender}
                   </td>
                   <td className="border border-foreground/50 p-1.5 text-center font-medium text-xs">
-                    {student.classroomLabel} ({student.educationLevel})
+                    {student.classroomLabel} ({formatEducationLevel(student.educationLevel)})
                   </td>
                 </tr>
               ))}

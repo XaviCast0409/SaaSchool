@@ -63,6 +63,10 @@ export class SchoolService {
       if (!createSchoolDto.adminPassword) {
         throw new AppError('Indica la contraseña inicial del director.', 400);
       }
+      // Nombre y apellido reales: aparecen en libretas, constancias y mensajes a las familias
+      if (!createSchoolDto.adminFirstName?.trim() || !createSchoolDto.adminLastNamePaternal?.trim()) {
+        throw new AppError('Indica el nombre y el apellido paterno del director.', 400);
+      }
       const existingUser = await this.schoolRepository.findUserByEmail(createSchoolDto.adminEmail);
       if (existingUser) {
         throw new AppError('Ese correo ya está registrado en la plataforma.', 409);

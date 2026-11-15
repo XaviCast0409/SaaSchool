@@ -1,4 +1,5 @@
 import { prisma } from '../../config/prisma';
+import { LEVEL_LABEL } from '../academic/cneb.catalog';
 import { Prisma } from '@prisma/client';
 import type { CreateCourseContentDto, SupervisionFilterDto } from './course-content.schema';
 
@@ -476,7 +477,7 @@ export class CourseContentRepository {
         courses: t.coursesTaught.map((c) => ({
           assignmentId: c.id,
           areaName: c.area.name,
-          classroomLabel: `${c.classroom.grade}° "${c.classroom.section}" - ${c.classroom.educationLevel}`,
+          classroomLabel: `${c.classroom.grade}° "${c.classroom.section}" - ${LEVEL_LABEL[c.classroom.educationLevel]}`,
           contentsCount: c._count.contents,
         })),
       };

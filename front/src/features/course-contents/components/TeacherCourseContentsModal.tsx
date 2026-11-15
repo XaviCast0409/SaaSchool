@@ -1,4 +1,5 @@
 import { confirmDialog } from '@/components/ui/confirm';
+import { formatEducationLevel } from '@/lib/utils';
 import React, { useState, useMemo } from 'react';
 import {
   X,
@@ -121,7 +122,7 @@ export const TeacherCourseContentsModal: React.FC<TeacherCourseContentsModalProp
                     {theme.category}
                   </Badge>
                   <Badge variant="secondary" className="text-xs font-bold py-0 h-4">
-                    {assignment.grade}° "{assignment.section}" • {assignment.educationLevel}
+                    {assignment.grade}° "{assignment.section}" • {formatEducationLevel(assignment.educationLevel)}
                   </Badge>
                   <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
                     <Cloud className="w-3 h-3" />

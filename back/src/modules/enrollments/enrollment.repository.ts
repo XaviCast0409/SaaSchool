@@ -35,6 +35,7 @@ export class EnrollmentRepository {
       const year = await tx.academicYear.findFirst({ where: { id: data.academicYearId, schoolId }, select: { isActive: true } });
       if (!year) throw new AppError('Año académico no encontrado.', 404);
       await classroomYearService.assertOpen(tx, schoolId, data.classroomId, data.academicYearId);
+      await classroomYearService.assertHasVacancy(tx, schoolId, data.classroomId, data.academicYearId);
       // Regla: isActive = matrícula del año activo y registrada (ver syncEnrollmentActiveFlags)
       const enrollment = await tx.enrollment.create({
         data: { ...data, schoolId, isActive: year.isActive },
@@ -71,6 +72,10 @@ export class EnrollmentRepository {
 
     if (isStateChange || isClassroomChange) {
       return prisma.$transaction(async (tx) => {
+        // Cambio de sección: la sección destino debe tener vacante
+        if (isClassroomChange && existingEnrollment && data.classroomId) {
+          await classroomYearService.assertHasVacancy(tx, schoolId, data.classroomId, existingEnrollment.academicYearId);
+        }
         // Conexión 3: Migración automática de notas y conclusiones al cambiar de aula
         if (isClassroomChange && existingEnrollment && data.classroomId) {
           // Solo las asignaciones del MISMO año de la matrícula
