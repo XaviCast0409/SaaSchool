@@ -1,3 +1,4 @@
+import { confirmDialog } from '@/components/ui/confirm';
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -263,7 +264,7 @@ const FeedModal: React.FC<{ open: boolean; onClose: () => void }> = ({ open, onC
               </Button>
             </div>
           </div>
-          <p className="text-[11px] text-muted-foreground">Este enlace es personal; no lo compartas. Deja de funcionar si cambias tu contraseña.</p>
+          <p className="text-xs text-muted-foreground">Este enlace es personal; no lo compartas. Deja de funcionar si cambias tu contraseña.</p>
         </div>
       )}
     </Modal>
@@ -327,8 +328,8 @@ export const CalendarPage: React.FC = () => {
                 size="sm"
                 className="gap-1.5"
                 disabled={importOfficial.isPending}
-                onClick={() => {
-                  if (!window.confirm('Se agregarán los feriados nacionales (como días sin clases) y las fechas cívicas escolares del año lectivo. No se duplica lo que ya exista. ¿Continuar?')) return;
+                onClick={async () => {
+                  if (!(await confirmDialog({ title: '¿Agregar feriados y fechas cívicas?', description: 'Se agregarán los feriados nacionales (como días sin clases) y las fechas cívicas escolares del año lectivo. No se duplica lo que ya exista.', confirmText: 'Agregar', variant: 'info' }))) return;
                   importOfficial.mutate(
                     { holidays: true, civic: true },
                     {
@@ -382,12 +383,12 @@ export const CalendarPage: React.FC = () => {
                     selected === d && 'ring-2 ring-inset ring-primary',
                   )}
                 >
-                  <span className={cn('inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px]', d === today && 'bg-primary font-bold text-primary-foreground')}>
+                  <span className={cn('inline-flex h-5 w-5 items-center justify-center rounded-full text-xs', d === today && 'bg-primary font-bold text-primary-foreground')}>
                     {Number(d.slice(8, 10))}
                   </span>
                   <div className="mt-0.5 space-y-0.5">
                     {list.slice(0, 2).map((i) => (
-                      <p key={`${i.kind}-${i.id}`} className={cn('hidden truncate rounded px-1 text-[10px] sm:block', styleOf(i))}>{i.title}</p>
+                      <p key={`${i.kind}-${i.id}`} className={cn('hidden truncate rounded px-1 text-xs sm:block', styleOf(i))}>{i.title}</p>
                     ))}
                     {list.length > 0 && (
                       <p className="flex gap-0.5 sm:hidden">
@@ -396,7 +397,7 @@ export const CalendarPage: React.FC = () => {
                         ))}
                       </p>
                     )}
-                    {list.length > 2 && <p className="hidden text-[10px] text-muted-foreground sm:block">+{list.length - 2} más</p>}
+                    {list.length > 2 && <p className="hidden text-xs text-muted-foreground sm:block">+{list.length - 2} más</p>}
                   </div>
                 </button>
               );
@@ -416,7 +417,7 @@ export const CalendarPage: React.FC = () => {
                   <div className="flex items-start gap-2">
                     <span className={cn('mt-0.5 rounded-md p-1', styleOf(i))}><KindIcon item={i} className="h-3.5 w-3.5" /></span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[11px] text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         {kindLabel(i)}
                         {i.startTime ? ` · ${i.startTime}${i.endTime ? `–${i.endTime}` : ''}` : ''}
                         {i.scope ? ` · ${i.scope}` : ''}
@@ -438,8 +439,8 @@ export const CalendarPage: React.FC = () => {
                           size="icon"
                           className="h-7 w-7"
                           aria-label="Eliminar evento"
-                          onClick={() =>
-                            window.confirm('¿Eliminar este evento?') &&
+                          onClick={async () =>
+                            (await confirmDialog({ title: '¿Eliminar este evento?', confirmText: 'Eliminar', variant: 'danger' })) &&
                             del.mutate(i.id, { onSuccess: () => toast.success('Evento eliminado'), onError: (e) => toast.error(apiErrorMessage(e)) })
                           }
                         >

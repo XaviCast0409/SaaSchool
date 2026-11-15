@@ -185,7 +185,7 @@ export const QuickGradePage: React.FC = () => {
           <div className="flex gap-1.5 overflow-x-auto pb-1">
             {data.criteria.map((c) => (
               <button key={c.id} type="button" onClick={() => setCriterionId(c.id)} aria-pressed={criterionId === c.id} title={c.name}
-                className={cn('shrink-0 rounded-md border px-2.5 py-1 text-[11px]', criterionId === c.id ? 'border-primary/60 bg-primary/10 text-primary' : 'border-border text-muted-foreground')}>
+                className={cn('shrink-0 rounded-md border px-2.5 py-1 text-xs', criterionId === c.id ? 'border-primary/60 bg-primary/10 text-primary' : 'border-border text-muted-foreground')}>
                 {c.shortName}
               </button>
             ))}
@@ -196,7 +196,7 @@ export const QuickGradePage: React.FC = () => {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" aria-hidden />
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar estudiante" className="h-9 pl-8" aria-label="Buscar estudiante" />
           </div>
-          <div className="inline-flex rounded-lg border border-border p-0.5 text-[11px]">
+          <div className="inline-flex rounded-lg border border-border p-0.5 text-xs">
             {(['letters', 'numbers'] as Mode[]).map((m) => (
               <button key={m} type="button" onClick={() => setMode(m)} aria-pressed={mode === m} className={cn('rounded-md px-2 py-1 font-semibold', mode === m ? 'bg-primary text-primary-foreground' : 'text-muted-foreground')}>
                 {m === 'letters' ? 'AD–C' : '0–20'}
@@ -204,7 +204,7 @@ export const QuickGradePage: React.FC = () => {
             ))}
           </div>
         </div>
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           {competence?.name} · {filled} de {students.length} con nota
         </p>
       </div>
@@ -215,13 +215,13 @@ export const QuickGradePage: React.FC = () => {
           const isPending = pending.some((p) => p.enrollmentId === s.enrollmentId && p.competenceId === competenceId && p.criterionId === criterionId);
           return (
             <li key={s.enrollmentId} className="flex items-center gap-3 py-2.5">
-              <span className="w-5 shrink-0 text-right text-[11px] text-muted-foreground">{idx + 1}</span>
+              <span className="w-5 shrink-0 text-right text-xs text-muted-foreground">{idx + 1}</span>
               <span className="min-w-0 flex-1 text-sm text-foreground">
                 {s.fullName}
                 {mode === 'letters' && v?.numericScore !== null && v?.numericScore !== undefined && (
-                  <span className="ml-1 rounded bg-muted px-1 text-[10px] font-semibold text-foreground" title="Nota numérica registrada">{v.numericScore}</span>
+                  <span className="ml-1 rounded bg-muted px-1 text-xs font-semibold text-foreground" title="Nota numérica registrada">{v.numericScore}</span>
                 )}
-                {isPending && <span className="ml-1 text-[10px] text-amber-600">• por enviar</span>}
+                {isPending && <span className="ml-1 text-xs text-amber-600">• por enviar</span>}
                 {!isPending && v && (v.literalScore || v.numericScore !== null) && <Check className="ml-1 inline h-3 w-3 text-emerald-600" aria-label="Guardada" />}
               </span>
               {mode === 'letters' ? (

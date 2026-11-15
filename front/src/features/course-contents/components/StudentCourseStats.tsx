@@ -30,7 +30,7 @@ export const StudentCourseStats: React.FC<StudentCourseStatsProps> = ({
             <BookOpen className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground truncate">
+            <p className="text-xs sm:text-xs font-semibold text-muted-foreground truncate">
               Materias de Clase
             </p>
             <p className="text-lg sm:text-2xl font-extrabold text-foreground tracking-tight">
@@ -54,7 +54,7 @@ export const StudentCourseStats: React.FC<StudentCourseStatsProps> = ({
             <ClipboardCheck className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground truncate">
+            <p className="text-xs sm:text-xs font-semibold text-muted-foreground truncate">
               Tareas Pendientes
             </p>
             <div className="flex items-center gap-1.5">
@@ -62,7 +62,7 @@ export const StudentCourseStats: React.FC<StudentCourseStatsProps> = ({
                 {totalPendingTasks}
               </span>
               {totalPendingTasks > 0 && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 font-bold border border-amber-500/20">
+                <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 font-bold border border-amber-500/20">
                   Por entregar
                 </span>
               )}
@@ -85,7 +85,7 @@ export const StudentCourseStats: React.FC<StudentCourseStatsProps> = ({
             <MessageSquare className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground truncate">
+            <p className="text-xs sm:text-xs font-semibold text-muted-foreground truncate">
               Foros de Debate
             </p>
             <div className="flex items-center gap-1.5">
@@ -93,7 +93,7 @@ export const StudentCourseStats: React.FC<StudentCourseStatsProps> = ({
                 {totalForums}
               </span>
               {totalForums > 0 && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-500/20">
+                <span className="text-xs px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-500/20">
                   Activos
                 </span>
               )}
@@ -109,7 +109,7 @@ export const StudentCourseStats: React.FC<StudentCourseStatsProps> = ({
             <Sparkles className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground truncate">
+            <p className="text-xs sm:text-xs font-semibold text-muted-foreground truncate">
               Recursos Publicados
             </p>
             <p className="text-lg sm:text-2xl font-extrabold text-foreground tracking-tight">

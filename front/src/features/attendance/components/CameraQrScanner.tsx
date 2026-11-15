@@ -229,7 +229,7 @@ export const CameraQrScanner: React.FC<CameraQrScannerProps> = ({
 
             {/* Badge de estado en vivo */}
             <div className="absolute top-3 inset-x-0 flex justify-center">
-              <Badge className="bg-background/80 backdrop-blur-md text-foreground border-border text-[11px] gap-1.5 font-bold shadow-md">
+              <Badge className="bg-background/80 backdrop-blur-md text-foreground border-border text-xs gap-1.5 font-bold shadow-md">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 {isProcessing ? 'Verificando carnet...' : 'Cámara Activa - Apunta el QR'}
               </Badge>
@@ -242,7 +242,7 @@ export const CameraQrScanner: React.FC<CameraQrScannerProps> = ({
           <div className="absolute inset-0 bg-background/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center space-y-3">
             <RefreshCw className="w-8 h-8 text-primary animate-spin" />
             <p className="text-xs font-semibold text-foreground">Iniciando sensor de cámara...</p>
-            <p className="text-[11px] text-muted-foreground">Concediendo acceso al dispositivo de video</p>
+            <p className="text-xs text-muted-foreground">Concediendo acceso al dispositivo de video</p>
           </div>
         )}
 
@@ -254,7 +254,7 @@ export const CameraQrScanner: React.FC<CameraQrScannerProps> = ({
             </div>
             <div className="space-y-1">
               <h4 className="text-xs font-bold text-foreground">Acceso a Cámara no disponible</h4>
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
+              <p className="text-xs text-muted-foreground leading-relaxed">
                 {errorMessage || 'Ocurrió un error al intentar activar la cámara.'}
               </p>
             </div>
@@ -290,7 +290,7 @@ export const CameraQrScanner: React.FC<CameraQrScannerProps> = ({
       )}
 
       {/* Consejo rápido */}
-      <p className="text-[11px] text-muted-foreground text-center">
+      <p className="text-xs text-muted-foreground text-center">
         Coloca el código QR del carnet escolar a unos 15 - 20 cm de distancia.
       </p>
     </div>

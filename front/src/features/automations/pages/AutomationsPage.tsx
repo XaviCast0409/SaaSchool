@@ -172,7 +172,7 @@ export const AutomationsPage: React.FC = () => {
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="font-semibold text-foreground">{job.label}</h2>
                     {locked && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
                         <Lock className="h-3 w-3" aria-hidden /> Plan PRO
                       </span>
                     )}

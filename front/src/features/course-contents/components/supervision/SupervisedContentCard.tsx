@@ -60,18 +60,18 @@ export const SupervisedContentCard: React.FC<SupervisedContentCardProps> = ({
         {/* Cabecera con Badges contextuales */}
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <Badge variant="outline" className={`text-[10px] font-bold py-0 h-4 ${theme.badgeStyle}`}>
+            <Badge variant="outline" className={`text-xs font-bold py-0 h-4 ${theme.badgeStyle}`}>
               {item.courseAssignment.classroom.grade}° "{item.courseAssignment.classroom.section}"
             </Badge>
-            <Badge variant="outline" className="text-[10px] font-bold py-0 h-4 border-border text-muted-foreground">
+            <Badge variant="outline" className="text-xs font-bold py-0 h-4 border-border text-muted-foreground">
               {item.courseAssignment.area.name}
             </Badge>
-            <Badge variant="outline" className={`text-[10px] font-bold py-0 h-4 ${typeConfig.badgeClass}`}>
+            <Badge variant="outline" className={`text-xs font-bold py-0 h-4 ${typeConfig.badgeClass}`}>
               {typeConfig.label}
             </Badge>
           </div>
 
-          <span className="text-[10px] font-bold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded">
+          <span className="text-xs font-bold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded">
             {item.bimester}° Bim
           </span>
         </div>
@@ -97,7 +97,7 @@ export const SupervisedContentCard: React.FC<SupervisedContentCardProps> = ({
                 {item.fileName || 'Archivo adjunto'}
               </span>
               {item.fileSize && (
-                <span className="text-[10px] text-muted-foreground shrink-0">
+                <span className="text-xs text-muted-foreground shrink-0">
                   ({formatBytes(item.fileSize)})
                 </span>
               )}
@@ -107,7 +107,7 @@ export const SupervisedContentCard: React.FC<SupervisedContentCardProps> = ({
               <button
                 type="button"
                 onClick={() => setIsPreviewOpen(true)}
-                className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline px-1 py-0.5"
+                className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline px-1 py-0.5"
               >
                 <Eye className="w-3 h-3" />
                 <span>Ver Archivo</span>
@@ -149,7 +149,7 @@ export const SupervisedContentCard: React.FC<SupervisedContentCardProps> = ({
           <span className="truncate font-semibold text-foreground">
             Prof. {item.teacher.lastNamePaternal} {item.teacher.firstName}
           </span>
-          <span className="text-[11px] text-muted-foreground shrink-0">
+          <span className="text-xs text-muted-foreground shrink-0">
             • {formatPeruShortDate(item.createdAt)}
           </span>
         </div>

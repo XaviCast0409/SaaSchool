@@ -177,7 +177,7 @@ const FeeScheduleModal: React.FC<{
                 </option>
               ))}
             </select>
-            <p className="text-[10px] text-muted-foreground mt-1">El tarifario de un grado tiene prioridad sobre el del nivel.</p>
+            <p className="text-xs text-muted-foreground mt-1">El tarifario de un grado tiene prioridad sobre el del nivel.</p>
           </div>
         </div>
 
@@ -193,7 +193,7 @@ const FeeScheduleModal: React.FC<{
           <div>
             <label className="font-semibold block mb-1">Cuota de ingreso (S/)</label>
             <Input type="number" min="0" step="0.01" className="text-xs rounded-xl font-mono" value={f.admissionFee} onChange={(e) => setF({ ...f, admissionFee: e.target.value })} placeholder="0.00" />
-            <p className="text-[10px] text-muted-foreground mt-1">Solo para alumnos ingresantes.</p>
+            <p className="text-xs text-muted-foreground mt-1">Solo para alumnos ingresantes.</p>
           </div>
         </div>
 
@@ -221,7 +221,7 @@ const FeeScheduleModal: React.FC<{
           <div>
             <label className="font-semibold block mb-1">Vence el día</label>
             <Input type="number" min="1" max="31" className="text-xs rounded-xl font-mono" value={f.dueDay} onChange={(e) => setF({ ...f, dueDay: e.target.value })} />
-            <p className="text-[10px] text-muted-foreground mt-1">31 = último día de cada mes.</p>
+            <p className="text-xs text-muted-foreground mt-1">31 = último día de cada mes.</p>
           </div>
         </div>
 
@@ -247,7 +247,7 @@ const FeeScheduleModal: React.FC<{
             </span>
           </label>
         )}
-        {errors.length > 0 && f.monthlyFee !== '' && <p className="text-[11px] text-destructive font-medium">{errors[0]}</p>}
+        {errors.length > 0 && f.monthlyFee !== '' && <p className="text-xs text-destructive font-medium">{errors[0]}</p>}
       </div>
     </Modal>
   );
@@ -467,17 +467,17 @@ export const FeeSchedulesPage: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <h2 className="text-sm font-black text-foreground">{LEVEL_LABEL[level]}</h2>
                     {rows.length === 0 ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400">
                         Sin tarifario: las matrículas no generarán cuotas
                       </span>
                     ) : !hasLevelWide ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-secondary text-secondary-foreground">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-secondary text-secondary-foreground">
                         Solo algunos grados
                       </span>
                     ) : null}
                   </div>
                   {canManage && (
-                    <Button variant="ghost" size="sm" className="h-7 text-[11px] font-bold text-primary gap-1" onClick={() => setModal({ editing: null, level })}>
+                    <Button variant="ghost" size="sm" className="h-7 text-xs font-bold text-primary gap-1" onClick={() => setModal({ editing: null, level })}>
                       <Plus className="w-3 h-3" /> Agregar
                     </Button>
                   )}
@@ -489,7 +489,7 @@ export const FeeSchedulesPage: React.FC = () => {
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
-                      <thead className="bg-muted/40 border-b border-border text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+                      <thead className="bg-muted/40 border-b border-border text-xs font-extrabold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
                         <tr>
                           <th className="px-4 py-3">Aplica a</th>
                           <th className="px-4 py-3 text-right">Matrícula</th>
@@ -513,7 +513,7 @@ export const FeeSchedulesPage: React.FC = () => {
                                 {r.admissionFee > 0 ? soles(r.admissionFee) : '—'}
                               </td>
                               <td className="px-4 py-3 whitespace-nowrap">
-                                <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-secondary text-secondary-foreground">
+                                <span className="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-secondary text-secondary-foreground">
                                   {MONTH_SHORT[r.firstMonth - 1]}–{MONTH_SHORT[r.lastMonth - 1]} · {sum.months} cuotas
                                 </span>
                               </td>
@@ -552,7 +552,7 @@ export const FeeSchedulesPage: React.FC = () => {
         </div>
       )}
 
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         Si un alumno se matricula a mitad de año, solo se generan las pensiones desde su mes de ingreso. Las becas vigentes se aplican
         automáticamente y, al retirar o trasladar a un alumno, se anulan sus cuotas futuras sin cobros.
       </p>

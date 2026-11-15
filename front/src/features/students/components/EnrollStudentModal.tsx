@@ -499,14 +499,14 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                     className="text-xs rounded-xl"
                   />
                   {errors.lastNamePaternal && (
-                    <p className="text-[10px] text-destructive mt-1 font-medium">{errors.lastNamePaternal.message}</p>
+                    <p className="text-xs text-destructive mt-1 font-medium">{errors.lastNamePaternal.message}</p>
                   )}
                 </div>
 
                 {/* Segundo Apellido */}
                 <div>
                   <label className="text-xs font-semibold text-foreground block mb-1">
-                    Segundo Apellido (Materno) <span className="text-[10px] font-normal text-muted-foreground">(Opcional)</span>
+                    Segundo Apellido (Materno) <span className="text-xs font-normal text-muted-foreground">(Opcional)</span>
                   </label>
                   <Input
                     {...register('lastNameMaternal')}
@@ -514,7 +514,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                     className="text-xs rounded-xl"
                   />
                   {errors.lastNameMaternal && (
-                    <p className="text-[10px] text-destructive mt-1 font-medium">{errors.lastNameMaternal.message}</p>
+                    <p className="text-xs text-destructive mt-1 font-medium">{errors.lastNameMaternal.message}</p>
                   )}
                 </div>
               </div>
@@ -530,7 +530,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                   className="text-xs rounded-xl"
                 />
                 {errors.firstNames && (
-                  <p className="text-[10px] text-destructive mt-1 font-medium">{errors.firstNames.message}</p>
+                  <p className="text-xs text-destructive mt-1 font-medium">{errors.firstNames.message}</p>
                 )}
               </div>
 
@@ -564,7 +564,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                     className="text-xs rounded-xl font-mono"
                   />
                   {errors.documentId && (
-                    <p className="text-[10px] text-destructive mt-1 font-medium">{errors.documentId.message}</p>
+                    <p className="text-xs text-destructive mt-1 font-medium">{errors.documentId.message}</p>
                   )}
                 </div>
 
@@ -580,7 +580,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                       <Button
                         type="button"
                         size="sm"
-                        className="h-7 text-[11px] font-bold"
+                        className="h-7 text-xs font-bold"
                         onClick={() => {
                           reset();
                           setStep(1);
@@ -623,7 +623,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                     className="text-xs rounded-xl"
                   />
                   {errors.birthDate && (
-                    <p className="text-[10px] text-destructive mt-1 font-medium">{errors.birthDate.message}</p>
+                    <p className="text-xs text-destructive mt-1 font-medium">{errors.birthDate.message}</p>
                   )}
                 </div>
 
@@ -654,7 +654,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                     className="text-xs rounded-xl font-mono"
                   />
                   {errors.birthUbigeo && (
-                    <p className="text-[10px] text-destructive mt-1 font-medium">{errors.birthUbigeo.message}</p>
+                    <p className="text-xs text-destructive mt-1 font-medium">{errors.birthUbigeo.message}</p>
                   )}
                 </div>
 
@@ -670,7 +670,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                     className="text-xs rounded-xl font-mono"
                   />
                   {errors.residenceUbigeo && (
-                    <p className="text-[10px] text-destructive mt-1 font-medium">{errors.residenceUbigeo.message}</p>
+                    <p className="text-xs text-destructive mt-1 font-medium">{errors.residenceUbigeo.message}</p>
                   )}
                 </div>
               </div>
@@ -726,7 +726,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                     className="text-xs rounded-xl font-mono"
                   />
                   {errors.studentCode && (
-                    <p className="text-[10px] text-destructive mt-1 font-medium">{errors.studentCode.message}</p>
+                    <p className="text-xs text-destructive mt-1 font-medium">{errors.studentCode.message}</p>
                   )}
                 </div>
               </div>
@@ -799,7 +799,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                   ))}
                 </select>
                 {errors.academicYearId && (
-                  <p className="text-[10px] text-destructive mt-1 font-medium">{errors.academicYearId.message}</p>
+                  <p className="text-xs text-destructive mt-1 font-medium">{errors.academicYearId.message}</p>
                 )}
               </div>
 
@@ -820,7 +820,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                   ))}
                 </select>
                 {errors.classroomId && (
-                  <p className="text-[10px] text-destructive mt-1 font-medium">{errors.classroomId.message}</p>
+                  <p className="text-xs text-destructive mt-1 font-medium">{errors.classroomId.message}</p>
                 )}
               </div>
 
@@ -853,7 +853,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                     className="text-xs rounded-xl font-mono"
                   />
                   {errors.previousSchoolModularCode && (
-                    <p className="text-[10px] text-destructive mt-1 font-medium">
+                    <p className="text-xs text-destructive mt-1 font-medium">
                       {errors.previousSchoolModularCode.message}
                     </p>
                   )}
@@ -894,7 +894,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                       className="text-xs rounded-xl font-mono"
                     />
                     {errors.customPensionAmount && (
-                      <p className="text-[10px] text-destructive mt-1 font-medium">
+                      <p className="text-xs text-destructive mt-1 font-medium">
                         {errors.customPensionAmount.message}
                       </p>
                     )}
@@ -989,7 +989,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                             <div className="font-semibold">
                               {parent.firstName} {parent.lastNamePaternal} {parent.lastNameMaternal}
                             </div>
-                            <div className="text-[10px] text-muted-foreground">
+                            <div className="text-xs text-muted-foreground">
                               {parent.email} · DNI: {parent.documentId || 'S/N'}
                             </div>
                           </div>
@@ -999,7 +999,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                     )}
                   </div>
                   {errors.existingParentId && (
-                    <p className="text-[10px] text-destructive mt-1 font-medium">{errors.existingParentId.message}</p>
+                    <p className="text-xs text-destructive mt-1 font-medium">{errors.existingParentId.message}</p>
                   )}
                 </div>
               )}
@@ -1069,9 +1069,9 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                         className="text-xs rounded-xl font-mono"
                       />
                       {errors.newParentDocumentId && (
-                        <p className="text-[10px] text-destructive mt-1 font-medium">{errors.newParentDocumentId.message}</p>
+                        <p className="text-xs text-destructive mt-1 font-medium">{errors.newParentDocumentId.message}</p>
                       )}
-                      <span className="text-[10px] text-muted-foreground block mt-0.5">
+                      <span className="text-xs text-muted-foreground block mt-0.5">
                         Será su usuario y contraseña de acceso inicial.
                       </span>
                     </div>
@@ -1101,7 +1101,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                         className="text-xs rounded-xl"
                       />
                       {errors.newParentEmail && (
-                        <p className="text-[10px] text-destructive mt-1 font-medium">{errors.newParentEmail.message}</p>
+                        <p className="text-xs text-destructive mt-1 font-medium">{errors.newParentEmail.message}</p>
                       )}
                     </div>
                     <div>

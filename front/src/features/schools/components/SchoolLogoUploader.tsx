@@ -92,7 +92,7 @@ export const SchoolLogoUploader: React.FC<{ logoUrl?: string | null; schoolName:
           </button>
         )}
       </div>
-      <p className="text-[11px] text-muted-foreground text-center">
+      <p className="text-xs text-muted-foreground text-center">
         JPG, PNG o WEBP (mejor PNG con fondo transparente). Se guarda al instante y aparece en el menú, las libretas, los
         reportes impresos y la página de ingreso del colegio.
       </p>

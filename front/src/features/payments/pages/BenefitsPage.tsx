@@ -209,7 +209,7 @@ const ScholarshipsTab: React.FC<{ canManage: boolean }> = ({ canManage }) => {
         ) : (
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="w-full text-xs">
-              <thead className="bg-muted/40 text-left text-[11px] uppercase text-muted-foreground">
+              <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
                 <tr>
                   <th className="p-2">Estudiante</th>
                   <th className="p-2">Beca</th>
@@ -230,14 +230,14 @@ const ScholarshipsTab: React.FC<{ canManage: boolean }> = ({ canManage }) => {
                         <span className="font-medium text-foreground">
                           {st.lastNamePaternal} {st.lastNameMaternal}, {st.firstNames}
                         </span>
-                        <span className="block text-[11px]">
+                        <span className="block text-xs">
                           {s.enrollment.classroom.grade}° "{s.enrollment.classroom.section}" · {st.documentId}
                         </span>
                       </td>
                       <td className="p-2">
                         <span className="font-medium">{s.name}</span>
-                        <span className="block text-[11px]">{s.concepts.map((c) => CONCEPTS[c] ?? c).join(', ')}</span>
-                        <span className="block text-[11px] text-muted-foreground">{s.reason}</span>
+                        <span className="block text-xs">{s.concepts.map((c) => CONCEPTS[c] ?? c).join(', ')}</span>
+                        <span className="block text-xs text-muted-foreground">{s.reason}</span>
                       </td>
                       <td className="p-2 whitespace-nowrap">{valueLabel(s)}</td>
                       <td className="p-2 whitespace-nowrap">
@@ -251,7 +251,7 @@ const ScholarshipsTab: React.FC<{ canManage: boolean }> = ({ canManage }) => {
                         ) : (
                           <span>
                             <Badge variant="outline">Desactivada</Badge>
-                            <span className="block text-[10px]">{s.deactivationReason}</span>
+                            <span className="block text-xs">{s.deactivationReason}</span>
                           </span>
                         )}
                       </td>
@@ -442,7 +442,7 @@ const LateFeesTab: React.FC<{ canManage: boolean }> = ({ canManage }) => {
           ) : (
             <div className="overflow-x-auto rounded-lg border border-border">
               <table className="w-full text-xs">
-                <thead className="bg-muted/40 text-left text-[11px] uppercase text-muted-foreground">
+                <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
                   <tr>
                     <th className="p-2">
                       <input
@@ -478,13 +478,13 @@ const LateFeesTab: React.FC<{ canManage: boolean }> = ({ canManage }) => {
                       </td>
                       <td className="p-2">
                         {r.student.lastNamePaternal} {r.student.lastNameMaternal}, {r.student.firstNames}
-                        <span className="block text-[11px] text-muted-foreground">
+                        <span className="block text-xs text-muted-foreground">
                           {r.classroom.grade}° "{r.classroom.section}"
                         </span>
                       </td>
                       <td className="p-2">
                         {r.title}
-                        <span className="block text-[11px] text-muted-foreground">Venció {formatPeruShortDate(r.dueDate)}</span>
+                        <span className="block text-xs text-muted-foreground">Venció {formatPeruShortDate(r.dueDate)}</span>
                       </td>
                       <td className="p-2 text-right">{r.daysOverdue}</td>
                       <td className="p-2 text-right">{soles(r.balance)}</td>

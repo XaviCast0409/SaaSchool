@@ -12,7 +12,7 @@ export const ReportFooter: React.FC<ReportFooterProps> = ({
   pageText = '-- Pág. 1 de 1 --',
 }) => {
   return (
-    <div className="mt-4 pt-2 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground font-mono">
+    <div className="mt-4 pt-2 border-t border-border flex items-center justify-between text-xs text-muted-foreground font-mono">
       <div className="flex items-center gap-2">
         <span className="font-bold text-primary font-sans">{customText}</span>
       </div>

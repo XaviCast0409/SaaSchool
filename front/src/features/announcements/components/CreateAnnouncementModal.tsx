@@ -238,13 +238,13 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
             </div>
             {errors.responseType && <p className="text-xs text-destructive">{errors.responseType.message}</p>}
             {responseType === 'AUTHORIZATION' && (
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Cada familia responde “Autorizo” o “No autorizo” por cada hijo. Se guarda la fecha y el dispositivo como constancia.
               </p>
             )}
             {responseType === 'POLL' && (
               <div>
-                <label htmlFor="poll-options" className="block text-[11px] font-medium text-foreground mb-1">
+                <label htmlFor="poll-options" className="block text-xs font-medium text-foreground mb-1">
                   Opciones (una por línea, máximo 6)
                 </label>
                 <textarea
@@ -259,7 +259,7 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
             )}
             {responseType !== 'NONE' && (
               <div>
-                <label htmlFor="response-deadline" className="block text-[11px] font-medium text-foreground mb-1">
+                <label htmlFor="response-deadline" className="block text-xs font-medium text-foreground mb-1">
                   Responder hasta (opcional)
                 </label>
                 <input
@@ -299,7 +299,7 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
                 className="rounded-lg border border-border bg-background px-2.5 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {expiresAt
                 ? `Se verá en “Vigentes” hasta el ${formatPeruDate(expiresAt)}. Después pasa a “Anteriores”, donde se puede seguir consultando.`
                 : `Sin fecha: pasa a “Anteriores” a los ${UNDATED_ARCHIVE_DAYS} días de publicado. Si es sobre un evento, elige la fecha del evento.`}

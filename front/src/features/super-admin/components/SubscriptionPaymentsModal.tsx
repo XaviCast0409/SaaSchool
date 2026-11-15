@@ -253,7 +253,7 @@ export const SubscriptionPaymentsModal: React.FC<SubscriptionPaymentsModalProps>
                           {p.reference ? ` · ${p.reference}` : ''}
                         </span>
                         {p.voidedAt && (
-                          <Badge variant="destructive" className="text-[10px]">
+                          <Badge variant="destructive" className="text-xs">
                             Anulado
                           </Badge>
                         )}

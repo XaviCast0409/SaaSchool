@@ -89,7 +89,7 @@ export const StudentAttendanceModal: React.FC<StudentAttendanceModalProps> = ({
                     <AlertTriangle className="w-4 h-4 animate-bounce" />
                     <div>
                       <div>Riesgo Crítico de Inasistencia</div>
-                      <div className="text-[10px] font-normal opacity-90">
+                      <div className="text-xs font-normal opacity-90">
                         {detail.consecutiveAbsences} faltas consecutivas
                       </div>
                     </div>
@@ -99,7 +99,7 @@ export const StudentAttendanceModal: React.FC<StudentAttendanceModalProps> = ({
                     <AlertTriangle className="w-4 h-4" />
                     <div>
                       <div>Advertencia de Faltas</div>
-                      <div className="text-[10px] font-normal opacity-90">
+                      <div className="text-xs font-normal opacity-90">
                         {detail.counts.ABSENT_UNJUSTIFIED} inasistencias en el mes
                       </div>
                     </div>
@@ -109,7 +109,7 @@ export const StudentAttendanceModal: React.FC<StudentAttendanceModalProps> = ({
                     <Award className="w-4 h-4" />
                     <div>
                       <div>Asistencia Óptima</div>
-                      <div className="text-[10px] font-normal opacity-90">
+                      <div className="text-xs font-normal opacity-90">
                         {detail.attendanceRate}% de permanencia
                       </div>
                     </div>
@@ -172,12 +172,12 @@ export const StudentAttendanceModal: React.FC<StudentAttendanceModalProps> = ({
                           </div>
 
                           {r.notes ? (
-                            <div className="flex items-center gap-1 text-[11px] text-muted-foreground bg-muted/50 px-2 py-1 rounded max-w-[220px] truncate">
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded max-w-[220px] truncate">
                               <MessageSquare className="w-3 h-3 text-primary shrink-0" />
                               <span className="truncate">{r.notes}</span>
                             </div>
                           ) : (
-                            <span className="text-[10px] text-muted-foreground/50">Sin observaciones</span>
+                            <span className="text-xs text-muted-foreground/50">Sin observaciones</span>
                           )}
                         </div>
                       );

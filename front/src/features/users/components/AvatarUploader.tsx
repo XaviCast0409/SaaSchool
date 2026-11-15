@@ -101,7 +101,7 @@ export const AvatarUploader: React.FC<Props> = ({ name, avatarUrl, userId, onCha
             </button>
           )}
         </div>
-        <p className="text-[11px] text-muted-foreground max-w-[16rem]">
+        <p className="text-xs text-muted-foreground max-w-[16rem]">
           JPG, PNG o WEBP. Se recorta en cuadrado. La ven las familias, los alumnos y el personal del colegio.
         </p>
       </div>

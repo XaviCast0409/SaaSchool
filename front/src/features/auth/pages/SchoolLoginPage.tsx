@@ -174,7 +174,7 @@ export const SchoolLoginPage: React.FC = () => {
               Iniciar sesión
             </Button>
 
-            <p className="text-center text-[11px] text-muted-foreground">
+            <p className="text-center text-xs text-muted-foreground">
               Al ingresar aceptas nuestros{' '}
               <Link to="/terminos" target="_blank" className="text-primary hover:underline font-medium">Términos</Link> y la{' '}
               <Link to="/privacidad" target="_blank" className="text-primary hover:underline font-medium">Política de Privacidad</Link>.
@@ -189,7 +189,7 @@ export const SchoolLoginPage: React.FC = () => {
             <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden /> ¿No es tu colegio? Cambiar de colegio
           </button>
 
-          <div className="mt-3 flex items-center justify-center gap-2 text-[10px] text-muted-foreground">
+          <div className="mt-3 flex items-center justify-center gap-2 text-xs text-muted-foreground">
             <span>Con la tecnología de</span>
             <KipuxLogo className="h-5" />
           </div>

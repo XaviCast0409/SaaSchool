@@ -57,7 +57,7 @@ export const ForumCommentsModal: React.FC<ForumCommentsModalProps> = ({
             </div>
             <div>
               <h2 className="text-sm font-bold text-foreground line-clamp-1">{content.title}</h2>
-              <p className="text-[11px] text-muted-foreground">{content.bimester}° {periodLabel} • Foro de Debate</p>
+              <p className="text-xs text-muted-foreground">{content.bimester}° {periodLabel} • Foro de Debate</p>
             </div>
           </div>
           <Button variant="ghost" size="icon" aria-label="Cerrar modal" onClick={onClose} className="rounded-full">
@@ -84,7 +84,7 @@ export const ForumCommentsModal: React.FC<ForumCommentsModalProps> = ({
             <div className="py-12 text-center text-muted-foreground">
               <MessageSquare className="w-10 h-10 mx-auto opacity-30 mb-2" />
               <p className="text-xs font-semibold">Aún no hay respuestas en este foro</p>
-              <p className="text-[11px]">Sé el primero en iniciar el debate respondiendo abajo.</p>
+              <p className="text-xs">Sé el primero en iniciar el debate respondiendo abajo.</p>
             </div>
           ) : (
             comments.map((comment) => {
@@ -110,12 +110,12 @@ export const ForumCommentsModal: React.FC<ForumCommentsModalProps> = ({
                       </span>
                       <Badge
                         variant={isTeacherOrAdmin ? 'default' : 'outline'}
-                        className="text-[9px] px-1.5 py-0 h-4"
+                        className="text-xs px-1.5 py-0 h-4"
                       >
                         {comment.user.role === 'TEACHER' ? 'Docente' : comment.user.role === 'PARENT' ? 'Familia' : comment.user.role === 'STUDENT' ? 'Alumno' : comment.user.role}
                       </Badge>
                     </div>
-                    <span className="text-[10px] text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                       {formatPeruDate(comment.createdAt, {
                         day: '2-digit',
                         month: 'short',

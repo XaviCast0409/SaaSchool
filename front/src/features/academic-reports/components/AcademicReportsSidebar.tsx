@@ -86,7 +86,7 @@ export const AcademicReportsSidebar: React.FC<AcademicReportsSidebarProps> = ({
             <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
               Centro de Reportes
             </h3>
-            <p className="text-[11px] text-muted-foreground">Emisión y Actas Oficiales</p>
+            <p className="text-xs text-muted-foreground">Emisión y Actas Oficiales</p>
           </div>
         </div>
 
@@ -134,7 +134,7 @@ export const AcademicReportsSidebar: React.FC<AcademicReportsSidebarProps> = ({
                     }`}
                   >
                     <span
-                      className={`font-mono text-[11px] px-1.5 py-0.5 rounded ${
+                      className={`font-mono text-xs px-1.5 py-0.5 rounded ${
                         selectedReport === item.code
                           ? 'bg-primary-foreground/20 text-primary-foreground'
                           : 'bg-muted text-muted-foreground font-semibold'
@@ -180,7 +180,7 @@ export const AcademicReportsSidebar: React.FC<AcademicReportsSidebarProps> = ({
                     }`}
                   >
                     <span
-                      className={`font-mono text-[11px] px-1.5 py-0.5 rounded ${
+                      className={`font-mono text-xs px-1.5 py-0.5 rounded ${
                         selectedReport === item.code
                           ? 'bg-primary-foreground/20 text-primary-foreground'
                           : 'bg-muted text-muted-foreground font-semibold'
@@ -226,7 +226,7 @@ export const AcademicReportsSidebar: React.FC<AcademicReportsSidebarProps> = ({
                     }`}
                   >
                     <span
-                      className={`font-mono text-[11px] px-1.5 py-0.5 rounded ${
+                      className={`font-mono text-xs px-1.5 py-0.5 rounded ${
                         selectedReport === item.code
                           ? 'bg-primary-foreground/20 text-primary-foreground'
                           : 'bg-muted text-muted-foreground font-semibold'
@@ -244,9 +244,9 @@ export const AcademicReportsSidebar: React.FC<AcademicReportsSidebarProps> = ({
       </div>
 
       {/* Footer del Sidebar */}
-      <div className="p-3 border-t border-border bg-muted/20 text-[11px] text-muted-foreground flex items-center justify-between">
+      <div className="p-3 border-t border-border bg-muted/20 text-xs text-muted-foreground flex items-center justify-between">
         <span>Plan PRO Activo</span>
-        <Badge variant="outline" className="text-[10px] font-mono border-primary/30 text-primary">
+        <Badge variant="outline" className="text-xs font-mono border-primary/30 text-primary">
           PRO
         </Badge>
       </div>

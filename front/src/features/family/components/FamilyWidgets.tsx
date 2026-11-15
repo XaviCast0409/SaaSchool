@@ -36,7 +36,7 @@ export const ChildLights: React.FC<{ child: ChildOverview }> = ({ child }) => (
           <p className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
             <span className={cn('h-2.5 w-2.5 rounded-full', st.dot)} aria-hidden /> {l.label}
           </p>
-          <p className="mt-1 text-[11px] leading-snug text-muted-foreground">{l.detail}</p>
+          <p className="mt-1 text-xs leading-snug text-muted-foreground">{l.detail}</p>
         </Link>
       );
     })}
@@ -71,7 +71,7 @@ export const BadgesCard: React.FC<{ studentId: string | null }> = ({ studentId }
           {earned} de {child.badges.length}
         </span>
       </h2>
-      <p className="mb-3 text-[11px] text-muted-foreground">Solo las ves tú y tu familia.</p>
+      <p className="mb-3 text-xs text-muted-foreground">Solo las ves tú y tu familia.</p>
       <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {child.badges.map((b) => (
           <li
@@ -83,7 +83,7 @@ export const BadgesCard: React.FC<{ studentId: string | null }> = ({ studentId }
               {b.emoji}
             </div>
             <p className="mt-1 text-xs font-semibold text-foreground">{b.title}</p>
-            <p className="text-[10px] text-muted-foreground">{b.earned ? '¡Conseguida!' : b.progress ?? b.description}</p>
+            <p className="text-xs text-muted-foreground">{b.earned ? '¡Conseguida!' : b.progress ?? b.description}</p>
           </li>
         ))}
       </ul>
@@ -129,7 +129,7 @@ const Row: React.FC<{ item: TimelineItem; showDate?: boolean }> = ({ item, showD
       <div className="min-w-0 flex-1 border-b border-border/60 pb-3">
         <p className="text-sm font-medium text-foreground">{item.title}</p>
         {item.detail && <p className="text-xs text-muted-foreground">{item.detail}</p>}
-        <p className="mt-0.5 text-[11px] text-muted-foreground">
+        <p className="mt-0.5 text-xs text-muted-foreground">
           {showDate ? formatPeruDate(item.at, { weekday: 'short', day: 'numeric', month: 'short' }) : formatPeruTime(item.at)}
         </p>
       </div>

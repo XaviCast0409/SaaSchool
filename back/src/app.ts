@@ -52,6 +52,7 @@ import { teacherResourcesRouter } from './modules/teacher-resources/teacher-reso
 import { calendarFeedRouter } from './modules/calendar/calendar-feed.routes';
 import { secretariatRouter } from './modules/secretariat/secretariat.routes';
 import { secretariatPublicRouter } from './modules/secretariat/secretariat.public.routes';
+import { publicLeadRouter, leadAdminRouter } from './modules/leads/lead.routes';
 import { notificationPreferenceRouter } from './modules/notifications/notification-preference.routes';
 import { platformRouter } from './modules/platform/platform.routes';
 import { schoolLoginPageRouter } from './modules/schools/school-login-page.routes';
@@ -146,6 +147,9 @@ app.use(`${API_PREFIX}/teacher-resources`, teacherResourcesRouter);
 app.use(`${API_PREFIX}/secretariat`, secretariatRouter);
 // Formularios públicos (admisión y Libro de Reclamaciones): sin sesión, con límite propio por IP
 app.use(`${API_PREFIX}/public/schools`, secretariatPublicRouter);
+// Web de marketing: formulario público de leads y su bandeja para la plataforma
+app.use(`${API_PREFIX}/public/leads`, publicLeadRouter);
+app.use(`${API_PREFIX}/leads`, leadAdminRouter);
 // Pública con firma HMAC (suscripción .ics desde Google Calendar / iPhone)
 app.use(`${API_PREFIX}/calendar-feed`, fileContentRateLimiter, calendarFeedRouter);
 app.use(`${API_PREFIX}/uploads`, uploadRouter);

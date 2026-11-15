@@ -1,49 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { AcademicYearBanner, AcademicYearSwitcher } from '@/components/AcademicYearSwitcher';
 import {
-  Wallet,
-  Percent,
-  Receipt,
-  BarChart3,
-  GraduationCap,
-  Users,
-  CreditCard,
-  BookOpenCheck,
-  BookOpen,
-  CalendarCheck,
-  Calendar,
-  LayoutDashboard,
   LogOut,
   Camera,
   Moon,
   Sun,
   Menu,
   X,
-  Megaphone,
   Settings,
   School as SchoolIcon,
   ShieldCheck,
   ShieldAlert,
-  SlidersHorizontal,
-  Laptop,
-  FileSpreadsheet,
-  History,
-  FileCheck2,
-  AlertTriangle,
-  ClipboardCheck,
-  ClipboardList,
-  Bot,
   BellRing,
-  MessagesSquare,
-  CalendarClock,
-  CalendarDays,
-  Clock3,
-  DoorOpen,
-  Activity,
-  Library,
-  Inbox,
-  FileText,
+  ChevronDown,
+  Lock,
+  Search,
 } from 'lucide-react';
 import { useFinanceAccess } from '@/features/payments/api/usePayments';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -60,10 +32,39 @@ import { ConsentGate } from '@/features/legal/components/ConsentGate';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
 import { MobilePushBanner } from '@/features/notifications/components/MobilePushBanner';
 import { applyBrandColor } from '@/lib/brandColor';
+import { applyTheme, useThemeStore } from '@/lib/theme';
+import { roleLabel } from '@/lib/roles';
 import { useUnreadMessages } from '@/features/messages/api/useMessages';
 import { usePendingReportsCount } from '@/features/payment-reports/api/usePaymentReports';
 import { Toaster } from 'sonner';
 import { KipuxLogo } from '@/components/brand/KipuxLogo';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+import { PageLoader } from '@/components/ui/PageLoader';
+import { CommandPalette } from '@/components/CommandPalette';
+import { BannerStack } from './BannerStack';
+import { MobileBottomNav } from './MobileBottomNav';
+import {
+  BOTTOM_NAV_PATHS,
+  PLAN_HIERARCHY,
+  isNavItemActive,
+  resolveNav,
+  type NavAudience,
+  type ResolvedNavItem,
+} from './navigation';
+
+const NAV_OPEN_KEY = 'kipux:nav-open';
+/** Secciones abiertas la primera vez; el resto se despliega al usarlas y se recuerda */
+const DEFAULT_OPEN_SECTIONS = 2;
+
+const readOpenSections = (): Record<string, boolean> => {
+  try {
+    return JSON.parse(localStorage.getItem(NAV_OPEN_KEY) || '{}') as Record<string, boolean>;
+  } catch {
+    return {};
+  }
+};
+
+const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 
 export const DashboardLayout: React.FC = () => {
   const { user, logout, impersonatedSchool, setImpersonatedSchool } = useAuthStore();
@@ -77,9 +78,12 @@ export const DashboardLayout: React.FC = () => {
   const { data: financeAccess } = useFinanceAccess(isTreasury);
   const canSeeVouchers = isTreasury && Boolean(financeAccess?.can.manage || financeAccess?.can.view);
   const { data: pendingReports = 0 } = usePendingReportsCount(canSeeVouchers);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { theme, toggle: toggleTheme } = useThemeStore();
+  const isDarkMode = theme === 'dark';
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isPhotoOpen, setIsPhotoOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(readOpenSections);
 
   const { data: school } = useGetActiveSchool();
 
@@ -88,6 +92,26 @@ export const DashboardLayout: React.FC = () => {
     return () => applyBrandColor(null);
   }, [school?.brandColor]);
 
+  // El tema elegido se recuerda entre sesiones; las páginas públicas siguen en claro
+  useLayoutEffect(() => {
+    applyTheme(theme);
+    return () => applyTheme(null);
+  }, [theme]);
+
+  // Ctrl+K (o ⌘K) abre el buscador desde cualquier pantalla
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setIsSearchOpen((value) => !value);
+      } else if (event.key === 'Escape') {
+        setIsMobileOpen(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const isImpersonating = !!impersonatedSchool;
   // Logo del colegio activo (en modo soporte, el del colegio visitado)
@@ -95,483 +119,71 @@ export const DashboardLayout: React.FC = () => {
   // Docentes, Dirección y Secretaría pueden tener foto de perfil
   const canHavePhoto = Boolean(user && ['SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'].includes(user.role));
 
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle('dark');
-  };
-
-  const PLAN_HIERARCHY: Record<string, number> = {
-    BASIC: 1,
-    PRO: 2,
-    ENTERPRISE: 3,
-  };
-
   const currentPlan = (isImpersonating ? impersonatedSchool.plan : school?.plan) || 'BASIC';
   const currentPlanLevel = PLAN_HIERARCHY[currentPlan] || 1;
   const userRole = user?.role || 'PARENT';
-
-  interface NavItem {
-    label: string;
-    path: string;
-    icon: React.ComponentType<{ className?: string }>;
-    roles: string[];
-    minPlan: string;
-  }
-
-  interface NavSection {
-    title: string;
-    items: NavItem[];
-  }
-
-  // SuperAdmin en modo SaaS puro: solo herramientas de negocio de plataforma
-  const superAdminNavSections: NavSection[] = [
-    {
-      title: 'Plataforma SaaS',
-      items: [
-        { label: 'Torre de Control SaaS', path: '/super-admin', icon: ShieldCheck, roles: ['SUPER_ADMIN'], minPlan: 'BASIC' },
-        { label: 'Avisos a colegios', path: '/super-admin/announcements', icon: Megaphone, roles: ['SUPER_ADMIN'], minPlan: 'BASIC' },
-        { label: 'Salud del sistema', path: '/super-admin/health', icon: Activity, roles: ['SUPER_ADMIN'], minPlan: 'BASIC' },
-      ],
-    },
-  ];
-
-  // Menú estructurado por áreas de gestión
-  const schoolNavSections: NavSection[] = [
-    {
-      title: 'Operación Diaria',
-      items: [
-        {
-          label: 'Dashboard',
-          path: '/dashboard',
-          icon: LayoutDashboard,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Asistencia y Kiosco QR',
-          path: '/attendance',
-          icon: CalendarCheck,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Portería (salidas)',
-          path: '/gate',
-          icon: DoorOpen,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Justificaciones',
-          path: '/attendance-justifications',
-          icon: FileCheck2,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Alertas de asistencia',
-          path: '/attendance-alerts',
-          icon: AlertTriangle,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Asistencia por curso',
-          path: '/course-attendance',
-          icon: ClipboardCheck,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Muro de Comunicados',
-          path: '/announcements',
-          icon: Megaphone,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Mensajes',
-          path: '/messages',
-          icon: MessagesSquare,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Entrevistas',
-          path: '/meetings',
-          icon: CalendarClock,
-          roles: ['SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Calendario escolar',
-          path: '/calendar',
-          icon: CalendarDays,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Horario de clases',
-          path: '/schedule',
-          icon: Clock3,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Directorio y Familias',
-          path: '/directory',
-          icon: Users,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Secretaría',
-          path: '/secretariat',
-          icon: Inbox,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Agenda e Incidencias',
-          path: '/incidents',
-          icon: ShieldAlert,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
-          minPlan: 'BASIC',
-        },
-      ],
-    },
-    {
-      title: 'Académico',
-      items: [
-        {
-          label: 'Inicio académico',
-          path: '/academic',
-          icon: GraduationCap,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Plan de estudios',
-          path: '/academic/study-plan',
-          icon: BookOpen,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Carga docente',
-          path: '/academic/teaching-load',
-          icon: Users,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Mis cursos',
-          path: '/my-courses',
-          icon: BookOpen,
-          roles: ['TEACHER'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Recursos docentes',
-          path: '/teacher-resources',
-          icon: Library,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Analítica y tutoría',
-          path: '/insights',
-          icon: Activity,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
-          minPlan: 'PRO',
-        },
-        {
-          label: 'Avance y cierre',
-          path: '/academic/progress',
-          icon: ClipboardList,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
-          minPlan: 'PRO',
-        },
-        {
-          label: 'Reportes académicos',
-          path: '/academic/reports',
-          icon: FileSpreadsheet,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'],
-          minPlan: 'PRO',
-        },
-        {
-          label: 'Matrícula SIAGIE (Alumnos)',
-          path: '/students',
-          icon: GraduationCap,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Aula Virtual (Supervisión)',
-          path: '/virtual-classroom-supervision',
-          icon: Laptop,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'],
-          minPlan: 'PRO',
-        },
-        {
-          label: 'Otros reportes',
-          path: '/academic-reports',
-          icon: FileSpreadsheet,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'],
-          minPlan: 'PRO',
-        },
-        {
-          label: 'Bitácora',
-          path: '/audit-logs',
-          icon: History,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
-          minPlan: 'BASIC',
-        },
-      ],
-    },
-    {
-      title: 'Tesorería y Caja',
-      items: [
-        {
-          label: 'Cobranzas y Pensiones',
-          path: '/payments',
-          icon: CreditCard,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Caja diaria',
-          path: '/payments/cash',
-          icon: Wallet,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Tarifario',
-          path: '/payments/fee-schedules',
-          icon: Receipt,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Becas y moras',
-          path: '/payments/benefits',
-          icon: Percent,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Reportes financieros',
-          path: '/payments/reports',
-          icon: BarChart3,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'],
-          minPlan: 'BASIC',
-        },
-      ],
-    },
-    {
-      title: 'Configuración Escolar',
-      items: [
-        {
-          label: 'Años Lectivos',
-          path: '/academic-years',
-          icon: Calendar,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Aulas y Secciones',
-          path: '/classrooms',
-          icon: SchoolIcon,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Criterios y escala',
-          path: '/evaluation-criteria',
-          icon: SlidersHorizontal,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
-          minPlan: 'PRO',
-        },
-        {
-          label: 'Automatizaciones',
-          path: '/automations',
-          icon: Bot,
-          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'],
-          minPlan: 'BASIC',
-        },
-      ],
-    },
-  ];
-
-  // Menú exclusivo y directo para Apoderados (Portal Familiar)
-  const parentNavSections: NavSection[] = [
-    {
-      title: 'Portal Familiar',
-      items: [
-        {
-          label: 'Inicio (Mis Hijos)',
-          path: '/dashboard',
-          icon: Users,
-          roles: ['PARENT'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Asistencia Escolar',
-          path: '/attendance',
-          icon: CalendarCheck,
-          roles: ['PARENT'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Comunicados',
-          path: '/announcements',
-          icon: Megaphone,
-          roles: ['PARENT'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Horario',
-          path: '/schedule',
-          icon: Clock3,
-          roles: ['PARENT'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Calendario',
-          path: '/calendar',
-          icon: CalendarDays,
-          roles: ['PARENT'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Mensajes',
-          path: '/messages',
-          icon: MessagesSquare,
-          roles: ['PARENT'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Entrevistas',
-          path: '/meetings',
-          icon: CalendarClock,
-          roles: ['PARENT'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Mis Pagos y Pensiones',
-          path: '/payments',
-          icon: CreditCard,
-          roles: ['PARENT'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Trámites',
-          path: '/procedures',
-          icon: FileText,
-          roles: ['PARENT'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Libreta de Calificaciones',
-          path: '/grades',
-          icon: BookOpenCheck,
-          roles: ['PARENT'],
-          minPlan: 'PRO',
-        },
-        {
-          label: 'Aula Virtual / Clases',
-          path: '/virtual-classroom',
-          icon: GraduationCap,
-          roles: ['PARENT'],
-          minPlan: 'PRO',
-        },
-      ],
-    },
-  ];
 
   const isStudent = userRole === 'STUDENT' || Boolean(
     user?.email &&
       (user.email.toLowerCase().includes('alumno') || user.email.toLowerCase().includes('estudiante')),
   );
 
-  // Menú exclusivo y seguro para Estudiantes (Cero Deudas / Cero Finanzas)
-  const studentNavSections: NavSection[] = [
-    {
-      title: 'Mochila del Alumno',
-      items: [
-        {
-          label: 'Mi Mochila Digital',
-          path: '/dashboard',
-          icon: LayoutDashboard,
-          roles: ['STUDENT', 'PARENT'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Aula Virtual / Cursos',
-          path: '/virtual-classroom',
-          icon: GraduationCap,
-          roles: ['STUDENT', 'PARENT'],
-          minPlan: 'PRO',
-        },
-        {
-          label: 'Mis Calificaciones',
-          path: '/grades',
-          icon: BookOpenCheck,
-          roles: ['STUDENT', 'PARENT'],
-          minPlan: 'PRO',
-        },
-        {
-          label: 'Mi Asistencia',
-          path: '/attendance',
-          icon: CalendarCheck,
-          roles: ['STUDENT', 'PARENT'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Mi horario',
-          path: '/schedule',
-          icon: Clock3,
-          roles: ['STUDENT'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Calendario',
-          path: '/calendar',
-          icon: CalendarDays,
-          roles: ['STUDENT'],
-          minPlan: 'BASIC',
-        },
-        {
-          label: 'Avisos y Comunicados',
-          path: '/announcements',
-          icon: Megaphone,
-          roles: ['STUDENT', 'PARENT'],
-          minPlan: 'BASIC',
-        },
-      ],
-    },
-  ];
+  const audience: NavAudience =
+    isSuperAdmin && !isImpersonating ? 'platform' : isStudent ? 'student' : userRole === 'PARENT' ? 'parent' : 'school';
 
-  const navSections = (
-    isSuperAdmin && !isImpersonating
-      ? superAdminNavSections
-      : isStudent
-      ? studentNavSections
-      : userRole === 'PARENT'
-      ? parentNavSections
-      : schoolNavSections
-  )
-    .map((section) => ({
-      title: section.title,
-      items: section.items.filter((item) => {
-        const hasRole = item.roles.includes(userRole);
-        const requiredLevel = PLAN_HIERARCHY[item.minPlan] || 1;
-        const hasPlan = userRole === 'SUPER_ADMIN' || currentPlanLevel >= requiredLevel;
-        return hasRole && hasPlan;
-      }),
-    }))
-    .filter((section) => section.items.length > 0);
+  // Solo la dirección decide la suscripción: ve con candado lo que el plan no incluye
+  const showLocked = userRole === 'SCHOOL_ADMIN' && Boolean(school);
+  const navSections = useMemo(
+    () => resolveNav({ audience, role: userRole, planLevel: currentPlanLevel, showLocked }),
+    [audience, userRole, currentPlanLevel, showLocked],
+  );
+
+  const activeSectionTitle = navSections.find((section) =>
+    section.items.some((item) => isNavItemActive(item, location.pathname)),
+  )?.title;
+
+  const collapsible = navSections.length > 1;
+  const isSectionOpen = (title: string, index: number) =>
+    !collapsible || (openSections[title] ?? index < DEFAULT_OPEN_SECTIONS);
+
+  const setSectionOpen = (title: string, open: boolean) => {
+    setOpenSections((prev) => {
+      const next = { ...prev, [title]: open };
+      try {
+        localStorage.setItem(NAV_OPEN_KEY, JSON.stringify(next));
+      } catch {
+        /* sin almacenamiento el menú vuelve a su estado inicial al recargar */
+      }
+      return next;
+    });
+  };
+
+  // Al entrar a una pantalla, su sección del menú se despliega sola y el menú del celular se cierra
+  useEffect(() => {
+    if (activeSectionTitle) {
+      setOpenSections((prev) => (prev[activeSectionTitle] ? prev : { ...prev, [activeSectionTitle]: true }));
+    }
+    setIsMobileOpen(false);
+  }, [activeSectionTitle, location.pathname]);
+
+  const navBadges: Record<string, number> = {
+    '/payments': canSeeVouchers ? pendingReports : 0,
+    '/messages': unreadMessages,
+  };
+
+  // Barra inferior del celular: los cuatro accesos más usados del rol
+  const bottomNavItems = useMemo(() => {
+    const available = navSections.flatMap((section) => section.items).filter((item) => !item.locked);
+    return BOTTOM_NAV_PATHS[audience]
+      .map((path) => available.find((item) => item.path === path))
+      .filter((item): item is ResolvedNavItem => Boolean(item))
+      .slice(0, 4);
+  }, [navSections, audience]);
+  const hasBottomNav = bottomNavItems.length >= 2;
+
+  const canSearchStudents =
+    audience === 'school' && ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'].includes(userRole);
+  const displayRole = isStudent ? 'Estudiante' : roleLabel(userRole);
 
   const canManageSchool = isImpersonating || userRole === 'SCHOOL_ADMIN';
 
@@ -583,50 +195,73 @@ export const DashboardLayout: React.FC = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row">
       {/* Mobile Top Bar */}
-      <div className="md:hidden flex items-center justify-between p-4 border-b border-border bg-card print:hidden">
-        <div className="flex items-center gap-2.5">
+      <div className="md:hidden sticky top-0 z-30 flex items-center justify-between gap-2 px-4 py-3 border-b border-border bg-card print:hidden">
+        <div className="flex items-center gap-2.5 min-w-0">
           {isSuperAdmin && !isImpersonating ? (
             <KipuxLogo className="h-8" />
           ) : schoolLogoUrl ? (
             <img
               src={schoolLogoUrl}
               alt={isImpersonating ? impersonatedSchool.name : (school?.name || 'Logo institucional')}
-              className="w-7 h-7 object-contain rounded-md"
+              className="w-7 h-7 object-contain rounded-md shrink-0"
             />
           ) : (
             <KipuxLogo variant="mark" className="h-7" />
           )}
           {!(isSuperAdmin && !isImpersonating) && (
-            <span className="font-bold text-base truncate max-w-[180px]">
+            <span className="font-bold text-base truncate">
               {isImpersonating ? impersonatedSchool.name : school?.name || 'KIPUX'}
             </span>
           )}
         </div>
-        <div className="flex items-center gap-1.5">
-          <NotificationBell />
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={isMobileOpen ? 'Cerrar menú lateral' : 'Abrir menú lateral'}
-            onClick={() => setIsMobileOpen(!isMobileOpen)}
-          >
-            {isMobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        <div className="flex items-center gap-1 shrink-0">
+          <Button variant="ghost" size="icon" aria-label="Buscar" onClick={() => setIsSearchOpen(true)}>
+            <Search className="w-5 h-5" />
           </Button>
+          <NotificationBell />
+          {/* Con barra inferior, el menú completo se abre desde "Más" */}
+          {!hasBottomNav && (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={isMobileOpen ? 'Cerrar menú lateral' : 'Abrir menú lateral'}
+              onClick={() => setIsMobileOpen(!isMobileOpen)}
+            >
+              {isMobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Sidebar Navigation */}
+      {/* Fondo del menú deslizable en celulares */}
+      {isMobileOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-40 bg-background/70 backdrop-blur-sm print:hidden"
+          onClick={() => setIsMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar Navigation: fijo en escritorio, panel deslizable en celulares */}
       <aside
-        className={`w-full md:w-64 border-r border-border bg-card flex flex-col justify-between shrink-0 transition-all md:h-screen md:sticky md:top-0 print:hidden ${
-          isMobileOpen ? 'block' : 'hidden md:flex'
+        className={`border-r border-border bg-card flex-col justify-between shrink-0 print:hidden md:sticky md:top-0 md:z-auto md:flex md:h-screen md:w-64 md:max-w-none md:shadow-none ${
+          isMobileOpen ? 'fixed inset-y-0 left-0 z-50 flex w-[86%] max-w-xs shadow-2xl animate-in slide-in-from-left duration-200' : 'hidden'
         }`}
       >
         <div className="p-4 space-y-5 flex-1 overflow-y-auto">
+          {/* Cerrar (solo celular) */}
+          <div className="md:hidden flex items-center justify-between">
+            <span className="text-sm font-bold text-foreground">Menú</span>
+            <Button variant="ghost" size="icon" aria-label="Cerrar menú" onClick={() => setIsMobileOpen(false)}>
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
+
           {/* Dynamic School Brand Header */}
           {isSuperAdmin && !isImpersonating ? (
             <div className="hidden md:flex flex-col items-start gap-1 px-1 py-1">
               <KipuxLogo className="h-11" />
-              <span className="text-[10px] text-muted-foreground font-medium">Torre de Control SaaS</span>
+              <span className="text-xs text-muted-foreground font-medium">Torre de Control SaaS</span>
             </div>
           ) : (
           <div className="hidden md:flex items-center gap-3 px-1 py-1">
@@ -645,7 +280,7 @@ export const DashboardLayout: React.FC = () => {
               <h1 className="font-bold text-sm leading-tight truncate text-foreground">
                 {isImpersonating ? impersonatedSchool.name : school?.name || 'KIPUX'}
               </h1>
-              <span className="text-[10px] text-muted-foreground font-medium block truncate">
+              <span className="text-xs text-muted-foreground font-medium block truncate">
                 {isImpersonating ? 'Modo Soporte Técnico' : 'Plataforma escolar KIPUX'}
               </span>
             </div>
@@ -670,15 +305,15 @@ export const DashboardLayout: React.FC = () => {
                   ) : (
                     <UserAvatar name={`${user.firstName} ${user.lastNamePaternal}`} size="sm" />
                   )}
-                  <span className="text-xs font-bold truncate text-foreground">
+                  <span className="text-sm font-bold truncate text-foreground">
                     {user?.firstName} {user?.lastNamePaternal}
                   </span>
                 </div>
-                <Badge variant={user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN' ? 'default' : 'secondary'} className="text-[9px] px-1.5 py-0 font-bold">
-                  {user?.role || 'USER'}
+                <Badge variant={user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN' ? 'default' : 'secondary'} className="shrink-0 text-xs px-1.5 py-0 font-semibold">
+                  {displayRole}
                 </Badge>
               </div>
-              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground truncate">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate">
                 {isSuperAdmin && !isImpersonating ? (
                   <>
                     <ShieldCheck className="w-3.5 h-3.5 text-primary shrink-0" />
@@ -691,60 +326,91 @@ export const DashboardLayout: React.FC = () => {
                   </>
                 )}
               </div>
+              {/* En celulares el selector de año vive aquí (en escritorio está en la cabecera) */}
+              <AcademicYearSwitcher className="md:hidden pt-1" />
             </div>
           )}
 
           {/* Navigation Links Grouped by Domain */}
-          <nav className="space-y-4">
-            {navSections.map((section) => (
-              <div key={section.title} className="space-y-1">
-                <div className="px-2 pt-1 pb-0.5">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {section.title}
-                  </span>
-                </div>
-                <div className="space-y-0.5">
-                  {section.items.map((item) => {
-                    const Icon = item.icon;
-                    // La ficha de un colegio cuelga de la Torre de Control
-                    const isActive =
-                      location.pathname === item.path ||
-                      (item.path === '/super-admin' && location.pathname.startsWith('/super-admin/schools/'));
-                    return (
-                      <Link
-                        key={item.path}
-                        to={item.path}
-                        onClick={() => setIsMobileOpen(false)}
-                        className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
-                          isActive
-                            ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/25'
-                            : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground'
-                        }`}
-                      >
-                        <Icon className="w-4 h-4 shrink-0" />
-                        <span className="truncate">{item.label}</span>
-                        {item.path === '/payments' && canSeeVouchers && pendingReports > 0 && (
-                          <span
-                            className={`ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-bold ${isActive ? 'bg-primary-foreground text-primary' : 'bg-amber-500 text-white'}`}
-                            aria-label={`${pendingReports} pagos por validar`}
-                          >
-                            {pendingReports}
-                          </span>
+          <nav className="space-y-3" aria-label="Menú principal">
+            {navSections.map((section, sectionIndex) => {
+              const open = isSectionOpen(section.title, sectionIndex);
+              const sectionBadge = section.items.reduce((sum, item) => sum + (navBadges[item.path] ?? 0), 0);
+              return (
+                <div key={section.title} className="space-y-1">
+                  {collapsible ? (
+                    <button
+                      type="button"
+                      onClick={() => setSectionOpen(section.title, !open)}
+                      aria-expanded={open}
+                      className="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+                    >
+                      <span className="truncate">{section.title}</span>
+                      <span className="flex items-center gap-1.5">
+                        {!open && sectionBadge > 0 && (
+                          <span className="h-2 w-2 rounded-full bg-primary" aria-label="Tiene pendientes" />
                         )}
-                        {item.path === '/messages' && unreadMessages > 0 && (
-                          <span
-                            className={`ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-bold ${isActive ? 'bg-primary-foreground text-primary' : 'bg-primary text-primary-foreground'}`}
-                            aria-label={`${unreadMessages} mensajes sin leer`}
+                        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? '' : '-rotate-90'}`} />
+                      </span>
+                    </button>
+                  ) : (
+                    <div className="px-2 pt-1 pb-0.5">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        {section.title}
+                      </span>
+                    </div>
+                  )}
+                  {open && (
+                    <div className="space-y-0.5">
+                      {section.items.map((item) => {
+                        const Icon = item.icon;
+                        const isActive = isNavItemActive(item, location.pathname);
+                        const badge = navBadges[item.path] ?? 0;
+                        return (
+                          <Link
+                            key={item.path}
+                            to={item.path}
+                            onClick={() => setIsMobileOpen(false)}
+                            aria-current={isActive ? 'page' : undefined}
+                            title={item.locked ? `Disponible en el plan ${item.minPlan}` : undefined}
+                            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                              isActive
+                                ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/25'
+                                : item.locked
+                                ? 'text-muted-foreground/70 hover:bg-secondary/70 hover:text-foreground'
+                                : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground'
+                            }`}
                           >
-                            {unreadMessages > 99 ? '99+' : unreadMessages}
-                          </span>
-                        )}
-                      </Link>
-                    );
-                  })}
+                            <Icon className="w-4 h-4 shrink-0" />
+                            <span className="truncate">{item.label}</span>
+                            {item.locked && (
+                              <span className="ml-auto flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                                <Lock className="h-3 w-3" />
+                                {item.minPlan}
+                              </span>
+                            )}
+                            {!item.locked && badge > 0 && (
+                              <span
+                                className={`ml-auto rounded-full px-1.5 py-0.5 text-xs font-bold ${
+                                  isActive
+                                    ? 'bg-primary-foreground text-primary'
+                                    : item.path === '/payments'
+                                    ? 'bg-amber-500 text-white'
+                                    : 'bg-primary text-primary-foreground'
+                                }`}
+                                aria-label={item.path === '/payments' ? `${badge} pagos por validar` : `${badge} mensajes sin leer`}
+                              >
+                                {badge > 99 ? '99+' : badge}
+                              </span>
+                            )}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </nav>
         </div>
 
@@ -754,8 +420,11 @@ export const DashboardLayout: React.FC = () => {
             <Button
               variant="outline"
               size="sm"
-              className="w-full justify-start gap-2 text-xs rounded-xl"
-              onClick={() => setIsSettingsOpen(true)}
+              className="w-full justify-start gap-2 text-sm rounded-xl"
+              onClick={() => {
+                setIsSettingsOpen(true);
+                setIsMobileOpen(false);
+              }}
             >
               <Settings className="w-4 h-4 text-primary" />
               <span>Ajustes del Colegio</span>
@@ -766,7 +435,7 @@ export const DashboardLayout: React.FC = () => {
             <Button
               variant="outline"
               size="sm"
-              className="w-full justify-start gap-2 text-xs rounded-xl"
+              className="w-full justify-start gap-2 text-sm rounded-xl"
               onClick={() => {
                 setIsPhotoOpen(true);
                 setIsMobileOpen(false);
@@ -780,7 +449,7 @@ export const DashboardLayout: React.FC = () => {
           <Button
             variant="outline"
             size="sm"
-            className="w-full justify-start gap-2 text-xs rounded-xl"
+            className="w-full justify-start gap-2 text-sm rounded-xl"
             onClick={() => {
               navigate('/notification-preferences');
               setIsMobileOpen(false);
@@ -793,7 +462,7 @@ export const DashboardLayout: React.FC = () => {
           <Button
             variant="outline"
             size="sm"
-            className="w-full justify-start gap-2 text-xs rounded-xl"
+            className="w-full justify-start gap-2 text-sm rounded-xl"
             onClick={toggleTheme}
           >
             {isDarkMode ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4" />}
@@ -803,7 +472,7 @@ export const DashboardLayout: React.FC = () => {
           <Button
             variant="ghost"
             size="sm"
-            className="w-full justify-start gap-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive rounded-xl"
+            className="w-full justify-start gap-2 text-sm text-destructive hover:bg-destructive/10 hover:text-destructive rounded-xl"
             onClick={logout}
           >
             <LogOut className="w-4 h-4" />
@@ -814,64 +483,94 @@ export const DashboardLayout: React.FC = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Support Mode Top Banner */}
-        {isSuperAdmin && isImpersonating && (
-          <div className="bg-amber-500/15 border-b border-amber-500/30 px-4 py-2.5 text-xs flex flex-wrap items-center justify-between gap-3 text-amber-900 dark:text-amber-200">
-            <div className="flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-              <span>
-                <strong>Modo Soporte Técnico:</strong> Visualizando la operativa de <strong>{impersonatedSchool.name}</strong>
-              </span>
-              <Badge variant="outline" className="text-[10px] bg-amber-500/10 border-amber-500/30 font-bold">
-                Plan {impersonatedSchool.plan}
-              </Badge>
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                setImpersonatedSchool(null);
-                navigate('/super-admin');
-              }}
-              className="h-6 text-xs bg-background hover:bg-muted text-foreground border-amber-500/40 font-medium"
-            >
-              Salir al Panel SaaS
-            </Button>
-          </div>
-        )}
-
         {/* Desktop Header Bar with Context & NotificationBell */}
-        <header className="hidden md:flex items-center justify-between px-8 py-3.5 border-b border-border bg-card/60 backdrop-blur-md sticky top-0 z-30 print:hidden">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="font-semibold text-foreground">
+        <header className="hidden md:flex items-center justify-between gap-4 px-8 py-3 border-b border-border bg-card/60 backdrop-blur-md sticky top-0 z-30 print:hidden">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-0">
+            <span className="font-semibold text-foreground truncate">
               {user?.firstName ? `Bienvenido, ${user.firstName}` : 'KIPUX'}
             </span>
             <span>•</span>
-            <span className="capitalize">{isStudent ? 'Estudiante' : userRole.toLowerCase().replace('_', ' ')}</span>
+            <span className="shrink-0">{displayRole}</span>
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setIsSearchOpen(true)}
+              className="flex h-9 w-44 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm text-muted-foreground hover:border-primary/40 hover:text-foreground lg:w-60 xl:w-72"
+            >
+              <Search className="h-4 w-4 shrink-0" />
+              <span className="flex-1 truncate text-left">{canSearchStudents ? 'Buscar pantalla o alumno…' : 'Buscar…'}</span>
+              <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-medium">
+                {isMac ? '⌘K' : 'Ctrl K'}
+              </kbd>
+            </button>
             <AcademicYearSwitcher />
             <NotificationBell />
           </div>
         </header>
 
-        {/* Vencimiento del plan: próximo a vencer, en gracia o en solo lectura */}
-        <PlanStatusBanner school={school} role={userRole} />
+        {/* Avisos sobre el contenido: los urgentes siempre visibles, el resto agrupado */}
+        <BannerStack>
+          {/* Modo soporte */}
+          {isSuperAdmin && isImpersonating && (
+            <div data-priority="high" className="bg-amber-500/15 border-b border-amber-500/30 px-4 py-2.5 text-xs flex flex-wrap items-center justify-between gap-3 text-amber-900 dark:text-amber-200">
+              <div className="flex items-center gap-2">
+                <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span>
+                  <strong>Modo Soporte Técnico:</strong> Visualizando la operativa de <strong>{impersonatedSchool.name}</strong>
+                </span>
+                <Badge variant="outline" className="text-xs bg-amber-500/10 border-amber-500/30 font-bold">
+                  Plan {impersonatedSchool.plan}
+                </Badge>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setImpersonatedSchool(null);
+                  navigate('/super-admin');
+                }}
+                className="h-7 text-xs bg-background hover:bg-muted text-foreground border-amber-500/40 font-medium"
+              >
+                Salir al Panel SaaS
+              </Button>
+            </div>
+          )}
 
-        {/* Avisos de la plataforma (mantenimiento, novedades) */}
-        {!isSuperAdmin && <PlatformAnnouncementsBanner />}
+          {/* Vencimiento del plan: próximo a vencer, en gracia o en solo lectura */}
+          <PlanStatusBanner school={school} role={userRole} />
 
-        {/* Año que se está viendo (si no es el vigente) */}
-        <AcademicYearBanner />
+          {/* Avisos de la plataforma (mantenimiento, novedades) */}
+          {!isSuperAdmin && <PlatformAnnouncementsBanner />}
 
-        {/* Banner de activación de notificaciones en 2do plano para celulares */}
-        <MobilePushBanner />
+          {/* Año que se está viendo (si no es el vigente) */}
+          <AcademicYearBanner />
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 print:p-0 print:overflow-visible">
-          <Outlet />
+          {/* Activación de notificaciones en 2do plano para celulares */}
+          <MobilePushBanner />
+        </BannerStack>
+
+        <main className={`flex-1 overflow-y-auto p-4 md:p-8 space-y-6 print:p-0 print:overflow-visible ${hasBottomNav ? 'pb-24 md:pb-8' : ''}`}>
+          {/* Un fallo de una pantalla no tumba el menú; al cambiar de ruta se reintenta */}
+          <ErrorBoundary resetKey={location.pathname}>
+            <Suspense fallback={<PageLoader />}>
+              <Outlet />
+            </Suspense>
+          </ErrorBoundary>
         </main>
       </div>
+
+      {hasBottomNav && (
+        <MobileBottomNav items={bottomNavItems} badges={navBadges} onOpenMenu={() => setIsMobileOpen(true)} />
+      )}
+
+      <CommandPalette
+        open={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        sections={navSections}
+        canSearchStudents={canSearchStudents}
+      />
 
       {/* Modal de Ajustes del Colegio */}
       {canManageSchool && (

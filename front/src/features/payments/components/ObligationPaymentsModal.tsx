@@ -78,19 +78,19 @@ export const ObligationPaymentsModal: React.FC<Props> = ({ obligationId, canMana
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
               <div className="rounded-lg border border-border p-2">
-                <p className="text-[11px] text-muted-foreground">Monto original</p>
+                <p className="text-xs text-muted-foreground">Monto original</p>
                 <p className="font-bold">S/ {original.toFixed(2)}</p>
               </div>
               <div className="rounded-lg border border-border p-2">
-                <p className="text-[11px] text-muted-foreground">Monto vigente</p>
+                <p className="text-xs text-muted-foreground">Monto vigente</p>
                 <p className="font-bold">S/ {Number(obligation.amountDue).toFixed(2)}</p>
               </div>
               <div className="rounded-lg border border-border p-2">
-                <p className="text-[11px] text-muted-foreground">Pagado</p>
+                <p className="text-xs text-muted-foreground">Pagado</p>
                 <p className="font-bold text-emerald-600 dark:text-emerald-400">S/ {paid.toFixed(2)}</p>
               </div>
               <div className="rounded-lg border border-border p-2">
-                <p className="text-[11px] text-muted-foreground">Saldo</p>
+                <p className="text-xs text-muted-foreground">Saldo</p>
                 <p className="font-bold text-amber-600 dark:text-amber-400">S/ {balance.toFixed(2)}</p>
               </div>
             </div>
@@ -105,7 +105,7 @@ export const ObligationPaymentsModal: React.FC<Props> = ({ obligationId, canMana
 
             {adjustments.length > 0 && (
               <section className="space-y-1.5">
-                <h3 className="text-[11px] font-bold uppercase text-muted-foreground">Descuentos, becas, moras y notas de crédito</h3>
+                <h3 className="text-xs font-bold uppercase text-muted-foreground">Descuentos, becas, moras y notas de crédito</h3>
                 <div className="overflow-x-auto rounded-lg border border-border">
                   <table className="w-full text-xs">
                     <tbody>
@@ -116,12 +116,12 @@ export const ObligationPaymentsModal: React.FC<Props> = ({ obligationId, canMana
                           <tr key={a.id} className={`border-t border-border first:border-t-0 align-top ${voided ? 'bg-destructive/5 text-muted-foreground' : ''}`}>
                             <td className="p-2 font-mono whitespace-nowrap">
                               <span className={voided ? 'line-through' : ''}>{a.number}</span>
-                              {voided && <Badge variant="destructive" className="ml-1 text-[10px]">Anulado</Badge>}
+                              {voided && <Badge variant="destructive" className="ml-1 text-xs">Anulado</Badge>}
                             </td>
                             <td className="p-2">
                               <span className="font-semibold text-foreground">{ADJUSTMENT_LABEL[a.type]}</span>
-                              <span className="block text-[11px]">{a.reason}</span>
-                              <span className="block text-[10px] text-muted-foreground">
+                              <span className="block text-xs">{a.reason}</span>
+                              <span className="block text-xs text-muted-foreground">
                                 {formatPeruDateTime(a.createdAt)} · {personName(a.createdBy)}
                                 {voided ? ` · anulado por ${personName(a.voidedBy)}: ${a.voidReason}` : ''}
                               </span>
@@ -153,7 +153,7 @@ export const ObligationPaymentsModal: React.FC<Props> = ({ obligationId, canMana
             ) : (
               <div className="overflow-x-auto rounded-lg border border-border">
                 <table className="w-full text-xs">
-                  <thead className="bg-muted/40 text-left text-[11px] uppercase text-muted-foreground">
+                  <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
                     <tr>
                       <th className="p-2">Recibo</th>
                       <th className="p-2">Fecha</th>
@@ -171,12 +171,12 @@ export const ObligationPaymentsModal: React.FC<Props> = ({ obligationId, canMana
                           <tr className={`border-t border-border ${isVoided ? 'bg-destructive/5 text-muted-foreground' : ''}`}>
                             <td className="p-2 font-mono">
                               <span className={isVoided ? 'line-through' : ''}>{t.receiptNumber ?? '—'}</span>
-                              {isVoided && <Badge variant="destructive" className="ml-1.5 text-[10px]">Anulado</Badge>}
+                              {isVoided && <Badge variant="destructive" className="ml-1.5 text-xs">Anulado</Badge>}
                             </td>
                             <td className="p-2">{formatPeruDateTime(t.paymentDate)}</td>
                             <td className="p-2">
                               {methodLabel(t.paymentMethod)}
-                              {t.operationNumber && <span className="block font-mono text-[10px] text-muted-foreground">Op. {t.operationNumber}</span>}
+                              {t.operationNumber && <span className="block font-mono text-xs text-muted-foreground">Op. {t.operationNumber}</span>}
                             </td>
                             <td className="p-2">{personName(t.collectedBy)}</td>
                             <td className={`p-2 text-right font-semibold ${isVoided ? 'line-through' : ''}`}>S/ {Number(t.amountPaid).toFixed(2)}</td>
@@ -194,7 +194,7 @@ export const ObligationPaymentsModal: React.FC<Props> = ({ obligationId, canMana
                             </td>
                           </tr>
                           {isVoided && (
-                            <tr className="bg-destructive/5 text-[11px] text-muted-foreground">
+                            <tr className="bg-destructive/5 text-xs text-muted-foreground">
                               <td colSpan={6} className="px-2 pb-2">
                                 Anulado {t.voidedAt ? formatPeruDateTime(t.voidedAt) : ''} por {personName(t.voidedBy)} — Motivo: {t.voidReason}
                               </td>

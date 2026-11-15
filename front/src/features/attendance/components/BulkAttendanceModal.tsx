@@ -187,7 +187,7 @@ export const BulkAttendanceModal: React.FC<BulkAttendanceModalProps> = ({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-7 text-[11px] px-2 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                className="h-7 text-xs px-2 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
                 onClick={() => handleSetAll('PRESENT')}
               >
                 <CheckCircle2 className="w-3 h-3 mr-1" />
@@ -197,7 +197,7 @@ export const BulkAttendanceModal: React.FC<BulkAttendanceModalProps> = ({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-7 text-[11px] px-2 text-destructive border-destructive/30"
+                className="h-7 text-xs px-2 text-destructive border-destructive/30"
                 onClick={() => handleSetAll('ABSENT_UNJUSTIFIED')}
               >
                 Todos Faltó
@@ -250,13 +250,13 @@ export const BulkAttendanceModal: React.FC<BulkAttendanceModalProps> = ({
                             {student.studentName}
                           </span>
                           {student.origin === 'QR_SCAN' && (
-                            <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[10px] font-mono gap-1 py-0">
+                            <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-xs font-mono gap-1 py-0">
                               <QrCode className="w-2.5 h-2.5" />
                               QR
                             </Badge>
                           )}
                         </div>
-                        <div className="text-[11px] font-mono text-muted-foreground">
+                        <div className="text-xs font-mono text-muted-foreground">
                           Doc: {student.documentId || 'S/D'}
                         </div>
                       </div>

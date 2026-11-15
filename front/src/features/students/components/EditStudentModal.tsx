@@ -175,7 +175,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isO
             <div>
               <label className="text-xs font-medium text-foreground">Primer Apellido (Paterno) *</label>
               <Input {...register('lastNamePaternal')} className="h-9 text-xs" />
-              {errors.lastNamePaternal && <span className="text-[10px] text-destructive">{errors.lastNamePaternal.message}</span>}
+              {errors.lastNamePaternal && <span className="text-xs text-destructive">{errors.lastNamePaternal.message}</span>}
             </div>
             <div>
               <label className="text-xs font-medium text-foreground">Segundo Apellido (Materno)</label>
@@ -186,7 +186,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isO
           <div>
             <label className="text-xs font-medium text-foreground">Nombres Completos *</label>
             <Input {...register('firstNames')} className="h-9 text-xs" />
-            {errors.firstNames && <span className="text-[10px] text-destructive">{errors.firstNames.message}</span>}
+            {errors.firstNames && <span className="text-xs text-destructive">{errors.firstNames.message}</span>}
           </div>
 
           {/* Documento y Género */}
@@ -208,7 +208,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isO
             <div>
               <label className="text-xs font-medium text-foreground">Número de Doc. *</label>
               <Input {...register('documentId')} className="h-9 text-xs font-mono" />
-              {errors.documentId && <span className="text-[10px] text-destructive">{errors.documentId.message}</span>}
+              {errors.documentId && <span className="text-xs text-destructive">{errors.documentId.message}</span>}
             </div>
             <div>
               <label className="text-xs font-medium text-foreground">Género *</label>
@@ -227,7 +227,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isO
             <div>
               <label className="text-xs font-medium text-foreground">Fecha Nacimiento *</label>
               <Input type="date" {...register('birthDate')} className="h-9 text-xs" />
-              {errors.birthDate && <span className="text-[10px] text-destructive">{errors.birthDate.message}</span>}
+              {errors.birthDate && <span className="text-xs text-destructive">{errors.birthDate.message}</span>}
             </div>
             <div>
               <label className="text-xs font-medium text-foreground">País de Nacimiento</label>
@@ -244,7 +244,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isO
             <div>
               <label className="text-xs font-medium text-foreground">Ubigeo Nacimiento (6 dígitos)</label>
               <Input {...register('birthUbigeo')} placeholder="Ej: 150101" maxLength={6} className="h-9 text-xs font-mono" />
-              {errors.birthUbigeo && <span className="text-[10px] text-destructive">{errors.birthUbigeo.message}</span>}
+              {errors.birthUbigeo && <span className="text-xs text-destructive">{errors.birthUbigeo.message}</span>}
             </div>
             <div>
               <label className="text-xs font-medium text-foreground">Ubigeo Residencia (6 dígitos)</label>

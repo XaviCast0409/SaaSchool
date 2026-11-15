@@ -161,7 +161,7 @@ export const BulkCredentialsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 />
                 <span className="font-medium">Solo cuentas pendientes</span>
               </label>
-              <p className="text-[11px] text-muted-foreground ml-6 mt-0.5">
+              <p className="text-xs text-muted-foreground ml-6 mt-0.5">
                 Omite usuarios que ya cambiaron su contraseña personal.
               </p>
             </div>

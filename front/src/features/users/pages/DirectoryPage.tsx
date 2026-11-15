@@ -1,3 +1,4 @@
+import { useUrlFilters } from '@/lib/useUrlFilters';
 import React, { useState } from 'react';
 import { Users, GraduationCap, Shield, UserPlus, Building2, CalendarRange, UserMinus, UserCheck2, Repeat2, ArrowLeftRight } from 'lucide-react';
 import { toast } from 'sonner';
@@ -58,11 +59,15 @@ const TABS: Tab[] = [
 
 export const DirectoryPage: React.FC = () => {
   const { user } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<TabKey>('ALL_STAFF');
+  // Filtros en la URL: sobreviven a recargar, al botón Atrás y se pueden compartir como enlace
+  const [urlFilters, setUrlFilters] = useUrlFilters({ tab: 'ALL_STAFF', scope: 'year' });
+  const activeTab = urlFilters.tab as TabKey;
+  const yearScope: 'year' | 'all' = urlFilters.scope === 'all' ? 'all' : 'year';
+  const setActiveTab = (value: TabKey) => setUrlFilters({ tab: value });
+  const setYearScope = (value: 'year' | 'all') => setUrlFilters({ scope: value });
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   // Personal contratado en el año que se está viendo, o todo el personal del colegio
-  const [yearScope, setYearScope] = useState<'year' | 'all'>('year');
   const [renewOpen, setRenewOpen] = useState(false);
   const [replacing, setReplacing] = useState<DirectoryUser | null>(null);
   const { selected: viewedYear, current: currentYear } = useSelectedAcademicYear();

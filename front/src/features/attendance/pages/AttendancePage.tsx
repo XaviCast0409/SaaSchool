@@ -152,7 +152,7 @@ export const AttendancePage: React.FC = () => {
       <div className="p-5 sm:p-7 rounded-2xl bg-card border border-border shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
-            <Badge className="bg-primary/10 text-primary border-primary/20 gap-1 text-[11px] font-bold">
+            <Badge className="bg-primary/10 text-primary border-primary/20 gap-1 text-xs font-bold">
               <CalendarCheck className="w-3.5 h-3.5" />
               <span>Control de Asistencia Escolar</span>
             </Badge>
@@ -307,7 +307,7 @@ export const AttendancePage: React.FC = () => {
                   onChange={(e) => handleDateChange(e.target.value)}
                   className="bg-transparent border-none text-xs font-semibold focus:outline-none text-foreground cursor-pointer"
                 />
-                <span className="text-[11px] font-semibold text-muted-foreground hidden md:inline border-l border-border pl-2 capitalize">
+                <span className="text-xs font-semibold text-muted-foreground hidden md:inline border-l border-border pl-2 capitalize">
                   {formatPeruDate(selectedDate, { weekday: 'short', day: 'numeric', month: 'short' })}
                 </span>
               </div>

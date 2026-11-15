@@ -74,7 +74,7 @@ export const ChildIncidentsCard: React.FC<ChildIncidentsCardProps> = ({
             <h3 className="text-sm font-bold text-foreground">
               Agenda Escolar e Incidencias
             </h3>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {studentName ? `Reportes y citaciones de ${studentName}` : 'Reportes de conducta y salud'}
             </p>
           </div>
@@ -97,7 +97,7 @@ export const ChildIncidentsCard: React.FC<ChildIncidentsCardProps> = ({
         <div className="py-8 text-center text-muted-foreground space-y-1">
           <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto opacity-80" />
           <p className="text-xs font-semibold text-foreground">Sin reportes registrados</p>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             No se han reportado incidencias ni atenciones médicas recientes.
           </p>
         </div>
@@ -115,16 +115,16 @@ export const ChildIncidentsCard: React.FC<ChildIncidentsCardProps> = ({
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-bold border ${typeInfo.color}`}>
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold border ${typeInfo.color}`}>
                       {typeInfo.icon}
                       <span>{typeInfo.label}</span>
                     </span>
-                    <Badge variant="outline" className={`text-[10px] ${severityInfo.badgeClass}`}>
+                    <Badge variant="outline" className={`text-xs ${severityInfo.badgeClass}`}>
                       {severityInfo.label}
                     </Badge>
                   </div>
 
-                  <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <Clock className="w-3 h-3" />
                     {formatPeruDate(inc.createdAt, {
                       day: '2-digit',
@@ -142,14 +142,14 @@ export const ChildIncidentsCard: React.FC<ChildIncidentsCardProps> = ({
                 </div>
 
                 {inc.actionTaken && (
-                  <div className="p-2 rounded-lg bg-background border border-border text-[11px] text-muted-foreground">
+                  <div className="p-2 rounded-lg bg-background border border-border text-xs text-muted-foreground">
                     <strong className="text-foreground">Acción tomada: </strong>
                     {inc.actionTaken}
                   </div>
                 )}
 
                 {inc.citationDate && (
-                  <div className="p-2 rounded-lg bg-purple-500/10 border border-purple-500/20 text-[11px] text-purple-700 dark:text-purple-300 flex items-center gap-1.5 font-semibold">
+                  <div className="p-2 rounded-lg bg-purple-500/10 border border-purple-500/20 text-xs text-purple-700 dark:text-purple-300 flex items-center gap-1.5 font-semibold">
                     <Calendar className="w-3.5 h-3.5" />
                     <span>
                       Fecha de Citación: {formatPeruDateTime(inc.citationDate)}
@@ -159,12 +159,12 @@ export const ChildIncidentsCard: React.FC<ChildIncidentsCardProps> = ({
 
                 {/* Acuse de Recibo */}
                 <div className="pt-1.5 flex items-center justify-between gap-2 border-t border-border">
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {inc.author ? `Registrado por: ${inc.author.firstName} ${inc.author.lastNamePaternal}` : ''}
                   </span>
 
                   {isAcknowledged ? (
-                    <div className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                    <div className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       <span>
                         Enterado el{' '}

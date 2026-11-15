@@ -63,7 +63,7 @@ export const StaffLoadPanel: React.FC = () => {
       </div>
       <div className="rounded-2xl border border-border bg-card overflow-x-auto">
         <table className="w-full text-left text-xs">
-          <thead className="bg-muted/40 border-b border-border text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+          <thead className="bg-muted/40 border-b border-border text-xs font-extrabold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
             <tr>
               <th className="px-4 py-3">Docente</th>
               <th className="px-4 py-3 text-right">Cursos {data.year}</th>
@@ -81,21 +81,21 @@ export const StaffLoadPanel: React.FC = () => {
                       <div className="font-bold text-foreground">
                         {r.teacher.lastNamePaternal} {r.teacher.lastNameMaternal ?? ''}, {r.teacher.firstName}
                       </div>
-                      <div className="text-[10px] text-muted-foreground">{r.teacher.email}</div>
+                      <div className="text-xs text-muted-foreground">{r.teacher.email}</div>
                     </div>
                   </div>
                 </td>
                 <td className="px-4 py-3 text-right font-mono">{r.courses || '—'}</td>
                 <td className="px-4 py-3 text-right font-mono">{r.classrooms || '—'}</td>
                 <td className="px-4 py-3">
-                  {r.tutorOf ? room(r.tutorOf) : !r.hasLoad ? <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400">Sin carga</span> : '—'}
+                  {r.tutorOf ? room(r.tutorOf) : !r.hasLoad ? <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-bold text-amber-700 dark:text-amber-400">Sin carga</span> : '—'}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         La carga se arma en Académico → Carga docente y la tutoría en Aulas, para el año elegido en la cabecera. Para pasar los cursos de un
         docente a otro (renuncia o licencia) usa "Reemplazar" en el directorio.
       </p>
@@ -122,7 +122,7 @@ const ReplacementsList: React.FC = () => {
               <div className="font-semibold text-foreground">
                 {person(r.outgoing)} → {person(r.incoming)}
                 <span
-                  className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                  className={`ml-2 rounded-full px-2 py-0.5 text-xs font-bold ${
                     r.kind === 'TEMPORARY'
                       ? r.status === 'ACTIVE'
                         ? 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300'

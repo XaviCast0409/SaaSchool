@@ -85,7 +85,7 @@ export const FamilySnapshotCard: React.FC<FamilySnapshotCardProps> = ({ children
                       {child.firstNames} {child.lastNamePaternal} {child.lastNameMaternal}
                     </h3>
                     {isSelected && (
-                      <span className="shrink-0 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                      <span className="shrink-0 text-xs font-extrabold uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary">
                         Activo
                       </span>
                     )}

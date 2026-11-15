@@ -34,7 +34,7 @@ export const ActionsPanel: React.FC = () => {
                   <p className="text-sm font-medium text-foreground">
                     {a.severity === 'high' && <AlertTriangle className="mr-1 inline h-3.5 w-3.5 align-text-top text-rose-500" aria-hidden />}
                     {a.title}
-                    {!/^\S*S\/|^\d/.test(a.title) && <span className="ml-1.5 rounded bg-muted px-1.5 py-0.5 text-[11px] font-semibold text-foreground">{a.count}</span>}
+                    {!/^\S*S\/|^\d/.test(a.title) && <span className="ml-1.5 rounded bg-muted px-1.5 py-0.5 text-xs font-semibold text-foreground">{a.count}</span>}
                   </p>
                   <p className="text-xs text-muted-foreground">{a.detail}</p>
                 </div>

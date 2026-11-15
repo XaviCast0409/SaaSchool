@@ -122,7 +122,7 @@ export const AcademicReportsFilterBar: React.FC<AcademicReportsFilterBarProps> =
             </select>
           </div>
         ) : (
-          <div className="flex items-center gap-1.5 px-2 py-1 bg-primary/10 border border-primary/20 rounded-lg text-[11px] font-bold text-primary">
+          <div className="flex items-center gap-1.5 px-2 py-1 bg-primary/10 border border-primary/20 rounded-lg text-xs font-bold text-primary">
             <Layers className="w-3.5 h-3.5" />
             <span>Consolida todas las secciones del grado ({availableSections.length} aulas)</span>
           </div>

@@ -1,3 +1,4 @@
+import { confirmDialog } from '@/components/ui/confirm';
 import React, { useState } from 'react';
 import { Megaphone, Pencil, Trash2, Eye, EyeOff, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -109,8 +110,8 @@ export const PlatformAnnouncementsPage: React.FC = () => {
       { onError: (err) => toast.error(errorMessage(err, 'No se pudo actualizar el aviso.')) },
     );
 
-  const del = (a: PlatformAnnouncement) => {
-    if (window.confirm(`¿Eliminar el aviso "${a.title}"? No se puede deshacer.`)) {
+  const del = async (a: PlatformAnnouncement) => {
+    if (await confirmDialog({ title: `¿Eliminar el aviso "${a.title}"?`, description: 'No se puede deshacer.', confirmText: 'Eliminar', variant: 'danger' })) {
       remove(a.id, { onError: (err) => toast.error(errorMessage(err, 'No se pudo eliminar el aviso.')) });
     }
   };
@@ -221,15 +222,15 @@ export const PlatformAnnouncementsPage: React.FC = () => {
                       <div className="min-w-0 space-y-1">
                         <div className="flex flex-wrap items-center gap-1.5">
                           <strong className="text-sm text-foreground">{a.title}</strong>
-                          <Badge variant={a.level === 'CRITICAL' ? 'destructive' : a.level === 'WARNING' ? 'warning' : 'secondary'} className="text-[10px]">
+                          <Badge variant={a.level === 'CRITICAL' ? 'destructive' : a.level === 'WARNING' ? 'warning' : 'secondary'} className="text-xs">
                             {a.level === 'CRITICAL' ? 'Crítico' : a.level === 'WARNING' ? 'Importante' : 'Informativo'}
                           </Badge>
-                          <Badge variant={a.isLive ? 'success' : 'outline'} className="text-[10px]">
+                          <Badge variant={a.isLive ? 'success' : 'outline'} className="text-xs">
                             {a.isLive ? 'Visible ahora' : a.isActive ? 'Programado / terminado' : 'Oculto'}
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground whitespace-pre-line">{a.message}</p>
-                        <p className="text-[11px] text-muted-foreground">
+                        <p className="text-xs text-muted-foreground">
                           Para {a.audience.map((x) => AUDIENCE_LABELS[x]).join(', ')} · {formatPeruDateTime(a.startsAt)}
                           {a.endsAt ? ` → ${formatPeruDateTime(a.endsAt)}` : ' · sin fecha de fin'}
                         </p>

@@ -95,12 +95,12 @@ export const MobilePushBanner: React.FC = () => {
               </h4>
               <Badge
                 variant="default"
-                className="text-[9px] px-1.5 py-0 font-bold bg-primary text-primary-foreground"
+                className="text-xs px-1.5 py-0 font-bold bg-primary text-primary-foreground"
               >
                 2do Plano
               </Badge>
             </div>
-            <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+            <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
               Activa las alertas para recibir avisos de pagos, comunicados y notas aunque tengas la app cerrada.
             </p>
           </div>

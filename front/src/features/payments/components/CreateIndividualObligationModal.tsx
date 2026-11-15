@@ -183,7 +183,7 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
               </select>
             </div>
             {errors.studentId && (
-              <p className="text-[11px] text-destructive font-semibold">
+              <p className="text-xs text-destructive font-semibold">
                 {errors.studentId.message}
               </p>
             )}
@@ -204,7 +204,7 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
                 ))}
               </select>
               {errors.concept && (
-                <p className="text-[11px] text-destructive font-semibold">
+                <p className="text-xs text-destructive font-semibold">
                   {errors.concept.message}
                 </p>
               )}
@@ -218,7 +218,7 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
                 className="h-9 text-xs"
               />
               {errors.title && (
-                <p className="text-[11px] text-destructive font-semibold">
+                <p className="text-xs text-destructive font-semibold">
                   {errors.title.message}
                 </p>
               )}
@@ -240,7 +240,7 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
                 className="h-9 text-xs font-black"
               />
               {errors.amountDue && (
-                <p className="text-[11px] text-destructive font-semibold">
+                <p className="text-xs text-destructive font-semibold">
                   {errors.amountDue.message}
                 </p>
               )}
@@ -257,7 +257,7 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
                 className="h-9 text-xs"
               />
               {errors.dueDate && (
-                <p className="text-[11px] text-destructive font-semibold">
+                <p className="text-xs text-destructive font-semibold">
                   {errors.dueDate.message}
                 </p>
               )}
@@ -273,7 +273,7 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
                   <span className="text-xs font-bold text-foreground block">
                     Cobrar en caja de inmediato
                   </span>
-                  <span className="text-[11px] text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     Registra el ingreso en el Arqueo de Caja y genera recibo
                   </span>
                 </div>
@@ -293,7 +293,7 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* Método de Pago */}
                   <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-foreground">Método de Cobro:</label>
+                    <label className="text-xs font-bold text-foreground">Método de Cobro:</label>
                     <select
                       {...register('paymentMethod')}
                       className="w-full h-8 rounded-lg border border-border bg-background px-2.5 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
@@ -309,7 +309,7 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
                   {/* N° Operación (si no es efectivo) */}
                   {paymentMethod !== 'CASH' ? (
                     <div className="space-y-1">
-                      <label className="text-[11px] font-bold text-muted-foreground">
+                      <label className="text-xs font-bold text-muted-foreground">
                         N° de operación ({PAYMENT_METHOD_LABEL[paymentMethod]}):
                       </label>
                       <Input
@@ -318,13 +318,13 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
                         className="h-8 text-xs font-mono"
                       />
                       {errors.operationNumber && (
-                        <p className="text-[11px] text-destructive">{errors.operationNumber.message}</p>
+                        <p className="text-xs text-destructive">{errors.operationNumber.message}</p>
                       )}
                     </div>
                   ) : <div />}
                 </div>
 
-                <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-2">
+                <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 shrink-0" />
                   <span>
                     El ingreso entra a <strong>tu caja</strong> con número de recibo correlativo. En efectivo necesitas tener la caja abierta.

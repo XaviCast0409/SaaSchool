@@ -125,7 +125,7 @@ export const EditSchoolPlanModal: React.FC<EditSchoolPlanModalProps> = ({
               })}
               className="h-9 text-xs"
             />
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Déjala vacía para cobrar el precio de lista del plan. Úsala para descuentos o precios especiales.
             </p>
           </div>
@@ -136,7 +136,7 @@ export const EditSchoolPlanModal: React.FC<EditSchoolPlanModalProps> = ({
               <span>Fecha de Vencimiento de Suscripción</span>
             </label>
             <Input type="date" {...register('planExpiresAt')} className="h-9 text-xs" />
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Deja la fecha vacía si el plan es de cobro mensual indefinido.
               {catalog && (
                 <>

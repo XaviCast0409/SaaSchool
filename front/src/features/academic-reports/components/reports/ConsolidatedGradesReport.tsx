@@ -84,7 +84,7 @@ export const ConsolidatedGradesReport: React.FC<ConsolidatedGradesReportProps> =
 
         {/* Tabla Matricial de Calificaciones */}
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse border border-foreground/40 text-[10px] leading-tight">
+          <table className="w-full border-collapse border border-foreground/40 text-xs leading-tight">
             <thead>
               <tr className="bg-muted/60 text-foreground font-bold">
                 <th rowSpan={2} className="border border-foreground/40 p-1 w-6 text-center">N°</th>
@@ -107,7 +107,7 @@ export const ConsolidatedGradesReport: React.FC<ConsolidatedGradesReportProps> =
                 {courses.map((course) => (
                   <th
                     key={course.id}
-                    className="border border-foreground/40 p-1 min-w-[32px] max-w-[42px] text-center [writing-mode:vertical-lr] rotate-180 text-[9px] h-32 truncate"
+                    className="border border-foreground/40 p-1 min-w-[32px] max-w-[42px] text-center [writing-mode:vertical-lr] rotate-180 text-xs h-32 truncate"
                     title={course.name}
                   >
                     {course.name}
@@ -128,7 +128,7 @@ export const ConsolidatedGradesReport: React.FC<ConsolidatedGradesReportProps> =
                     return (
                       <td
                         key={course.id}
-                        className={`border border-foreground/40 p-1 text-center font-mono text-[10px] ${
+                        className={`border border-foreground/40 p-1 text-center font-mono text-xs ${
                           isFailing ? 'text-red-600 font-bold bg-red-500/5' : 'text-foreground'
                         }`}
                       >
@@ -170,7 +170,7 @@ export const ConsolidatedGradesReport: React.FC<ConsolidatedGradesReportProps> =
               ))}
             </tbody>
             {/* Pie de Estadísticas del Curso */}
-            <tfoot className="font-bold text-[9px] bg-muted/30">
+            <tfoot className="font-bold text-xs bg-muted/30">
               <tr>
                 <td colSpan={2} className="border border-foreground/40 p-1 text-right">Promedio del curso:</td>
                 {courses.map((c) => (

@@ -70,7 +70,7 @@ export const ReasonDialog: React.FC<ReasonDialogProps> = ({
           placeholder="Ej: Se registró con el monto equivocado"
           className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         />
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Mínimo {MIN} caracteres. Quedará registrado con tu nombre, la fecha y la hora.
         </p>
       </div>

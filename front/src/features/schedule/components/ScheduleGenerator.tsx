@@ -1,3 +1,4 @@
+import { confirmDialog } from '@/components/ui/confirm';
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { AlertTriangle, CheckCircle2, ChevronDown, Clock, Loader2, Plus, RefreshCw, Save, Sparkles, Trash2, UserX, Wand2 } from 'lucide-react';
@@ -341,9 +342,9 @@ const GenerateStep: React.FC<{ setup: GeneratorSetup }> = ({ setup }) => {
     );
   };
 
-  const doApply = () => {
+  const doApply = async () => {
     if (!result) return;
-    if (replacing && !window.confirm(`Se reemplazará el horario actual de ${replacing} aula(s). ¿Continuar?`)) return;
+    if (replacing && !(await confirmDialog({ title: '¿Reemplazar los horarios actuales?', description: `Se reemplazará el horario actual de ${replacing} aula(s).`, confirmText: 'Reemplazar' }))) return;
     apply.mutate(
       result.proposal.map((p) => ({ classroomId: p.classroomId, blocks: p.blocks })),
       {

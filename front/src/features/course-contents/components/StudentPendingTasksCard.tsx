@@ -51,7 +51,7 @@ export const StudentPendingTasksCard: React.FC<StudentPendingTasksCardProps> = (
             <ClipboardList className="w-4 h-4 text-primary" />
             <span>Agenda de Tareas Escolares</span>
           </CardTitle>
-          <Badge variant="secondary" className="text-[10px] font-bold">
+          <Badge variant="secondary" className="text-xs font-bold">
             {homeworks.length} {homeworks.length === 1 ? 'tarea' : 'tareas'}
           </Badge>
         </div>
@@ -66,7 +66,7 @@ export const StudentPendingTasksCard: React.FC<StudentPendingTasksCardProps> = (
               <CheckCircle2 className="w-5 h-5" />
             </div>
             <p className="text-xs font-bold text-foreground">¡Estás al día con tus tareas!</p>
-            <p className="text-[11px] text-muted-foreground max-w-xs mx-auto">
+            <p className="text-xs text-muted-foreground max-w-xs mx-auto">
               No tienes tareas pendientes por entregar en este momento. ¡Excelente trabajo!
             </p>
           </div>
@@ -93,11 +93,11 @@ export const StudentPendingTasksCard: React.FC<StudentPendingTasksCardProps> = (
                       <div className="flex items-center gap-2 flex-wrap">
                         <Badge
                           variant="outline"
-                          className="text-[10px] px-1.5 py-0 font-bold border-primary/30 text-primary bg-primary/5"
+                          className="text-xs px-1.5 py-0 font-bold border-primary/30 text-primary bg-primary/5"
                         >
                           {areaName}
                         </Badge>
-                        <span className="text-[10px] text-muted-foreground font-semibold">
+                        <span className="text-xs text-muted-foreground font-semibold">
                           {periodLabel} {hw.bimester}
                         </span>
                       </div>
@@ -105,7 +105,7 @@ export const StudentPendingTasksCard: React.FC<StudentPendingTasksCardProps> = (
                         {hw.title}
                       </h4>
                       {hw.description && (
-                        <p className="text-[11px] text-muted-foreground line-clamp-2">
+                        <p className="text-xs text-muted-foreground line-clamp-2">
                           {hw.description}
                         </p>
                       )}
@@ -115,7 +115,7 @@ export const StudentPendingTasksCard: React.FC<StudentPendingTasksCardProps> = (
                       <div className="shrink-0 text-right">
                         <Badge
                           variant="secondary"
-                          className="text-[10px] gap-1 font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20"
+                          className="text-xs gap-1 font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20"
                         >
                           <Clock className="w-3 h-3" />
                           <span>Entrega: {formattedDate}</span>
@@ -124,7 +124,7 @@ export const StudentPendingTasksCard: React.FC<StudentPendingTasksCardProps> = (
                     )}
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-border/40 text-[11px] text-muted-foreground">
+                  <div className="flex items-center justify-between pt-2 border-t border-border/40 text-xs text-muted-foreground">
                     <span>
                       {teacher ? `Prof. ${teacher.firstName} ${teacher.lastNamePaternal}` : 'Profesor de Aula'}
                     </span>
@@ -134,7 +134,7 @@ export const StudentPendingTasksCard: React.FC<StudentPendingTasksCardProps> = (
                         <button
                           type="button"
                           onClick={() => hw.fileUrl && void openFile(hw.fileUrl, { download: true })}
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
+                          className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline"
                         >
                           <Download className="w-3 h-3" />
                           <span>Guía Adjunta</span>
@@ -144,7 +144,7 @@ export const StudentPendingTasksCard: React.FC<StudentPendingTasksCardProps> = (
                         size="sm"
                         variant="ghost"
                         onClick={() => navigate(`/virtual-classroom?courseId=${hw.courseAssignmentId}`)}
-                        className="h-6 px-2 text-[11px] font-bold text-primary hover:bg-primary/10 gap-1"
+                        className="h-6 px-2 text-xs font-bold text-primary hover:bg-primary/10 gap-1"
                       >
                         <span>Ver Curso</span>
                         <ArrowRight className="w-3 h-3" />

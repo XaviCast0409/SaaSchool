@@ -1,3 +1,4 @@
+import { confirmDialog } from '@/components/ui/confirm';
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import {
@@ -67,7 +68,7 @@ const PanelHeader: React.FC<{ icon: React.ReactNode; title: string; description?
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">{icon}</div>
       <div className="min-w-0">
         <h2 className="text-sm font-black tracking-tight text-foreground">{title}</h2>
-        {description && <p className="text-[11px] text-muted-foreground">{description}</p>}
+        {description && <p className="text-xs text-muted-foreground">{description}</p>}
       </div>
     </div>
     {right}
@@ -101,7 +102,7 @@ function UnderlineTabs<T extends string>({ tabs, value, onChange }: { tabs: Unde
             {tab.count !== undefined && (
               <span
                 className={cn(
-                  'rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none',
+                  'rounded-full px-1.5 py-0.5 text-xs font-bold leading-none',
                   isActive ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground',
                 )}
               >
@@ -124,7 +125,7 @@ const EmptyBlock: React.FC<{ icon: React.ReactNode; title: string; children?: Re
 );
 
 const ModeBadge: React.FC<{ mode: MeetingMode }> = ({ mode }) => (
-  <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-secondary-foreground">
+  <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs font-bold text-secondary-foreground">
     <ModeIcon mode={mode} className="h-3 w-3" /> {MODE_LABEL[mode]}
   </span>
 );
@@ -134,7 +135,7 @@ const StatTile: React.FC<{ label: string; value: number; icon: React.ReactNode; 
     <div className={cn('hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl sm:flex', tone)}>{icon}</div>
     <div className="min-w-0">
       <p className="text-xl font-black leading-none text-foreground">{value}</p>
-      <p className="mt-1 truncate text-[11px] font-semibold text-muted-foreground">{label}</p>
+      <p className="mt-1 truncate text-xs font-semibold text-muted-foreground">{label}</p>
     </div>
   </div>
 );
@@ -143,11 +144,11 @@ const StatTile: React.FC<{ label: string; value: number; icon: React.ReactNode; 
 const DateChip: React.FC<{ iso: string }> = ({ iso }) => (
   <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-primary/10 text-primary">
     <span className="text-lg font-black leading-none">{formatPeruDate(iso, { day: 'numeric' })}</span>
-    <span className="mt-0.5 text-[9px] font-bold uppercase tracking-wider">{formatPeruDate(iso, { month: 'short' }).replace('.', '')}</span>
+    <span className="mt-0.5 text-xs font-bold uppercase tracking-wider">{formatPeruDate(iso, { month: 'short' }).replace('.', '')}</span>
   </div>
 );
 
-const fieldLabel = 'block min-w-0 space-y-1 [&>span]:block [&>span]:truncate text-[11px] font-bold uppercase tracking-wider text-muted-foreground';
+const fieldLabel = 'block min-w-0 space-y-1 [&>span]:block [&>span]:truncate text-xs font-bold uppercase tracking-wider text-muted-foreground';
 const fieldControl = 'h-10 rounded-xl text-sm normal-case tracking-normal font-normal';
 const selectControl =
   'h-10 w-full rounded-xl border border-border bg-background px-3 text-sm font-normal normal-case tracking-normal text-foreground focus:outline-none focus:ring-2 focus:ring-primary';
@@ -229,9 +230,9 @@ const StaffView: React.FC = () => {
   const free = upcoming.length - booked;
   const visible = filter === 'ALL' ? upcoming : upcoming.filter((s) => (filter === 'BOOKED' ? s.status === 'BOOKED' : s.status !== 'BOOKED'));
 
-  const onCancel = (s: MeetingSlot) => {
+  const onCancel = async (s: MeetingSlot) => {
     const msg = s.status === 'BOOKED' ? '¿Cancelar esta entrevista? Se avisará a la familia.' : '¿Quitar este horario?';
-    if (!window.confirm(msg)) return;
+    if (!(await confirmDialog({ title: msg, confirmText: s.status === 'BOOKED' ? 'Cancelar entrevista' : 'Quitar horario', cancelText: 'Volver', variant: 'danger' }))) return;
     cancel.mutate(s.id, { onSuccess: () => toast.success('Listo'), onError: (e) => toast.error(apiErrorMessage(e)) });
   };
 
@@ -270,7 +271,7 @@ const StaffView: React.FC = () => {
             <div className="divide-y divide-border/60">
               {groupByDay(visible).map(([day, slots]) => (
                 <div key={day}>
-                  <p className="flex items-center gap-2 bg-muted/40 px-4 py-2 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground sm:px-5">
+                  <p className="flex items-center gap-2 bg-muted/40 px-4 py-2 text-xs font-extrabold uppercase tracking-wider text-muted-foreground sm:px-5">
                     <CalendarDays className="h-3.5 w-3.5 text-primary" aria-hidden /> {day}
                   </p>
                   <ul className="divide-y divide-border/60">
@@ -291,7 +292,7 @@ const StaffView: React.FC = () => {
                               <span className="text-sm font-bold text-foreground">{range(s)}</span>
                               <span
                                 className={cn(
-                                  'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold',
+                                  'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold',
                                   isBooked ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
                                 )}
                               >
@@ -317,7 +318,7 @@ const StaffView: React.FC = () => {
                               </p>
                             )}
                             {s.location && (
-                              <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                 <MapPin className="h-3 w-3 shrink-0" aria-hidden />
                                 <span className="truncate">{s.location}</span>
                               </p>
@@ -329,7 +330,7 @@ const StaffView: React.FC = () => {
                             onClick={() => onCancel(s)}
                             disabled={cancel.isPending}
                             aria-label={isBooked ? 'Cancelar entrevista' : 'Quitar horario'}
-                            className="h-8 shrink-0 gap-1 rounded-lg border-destructive/30 px-2.5 text-[11px] font-bold text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            className="h-8 shrink-0 gap-1 rounded-lg border-destructive/30 px-2.5 text-xs font-bold text-destructive hover:bg-destructive/10 hover:text-destructive"
                           >
                             {isBooked ? <XCircle className="h-3.5 w-3.5" /> : <Trash2 className="h-3.5 w-3.5" />}
                             <span className="hidden sm:inline">{isBooked ? 'Cancelar' : 'Quitar'}</span>
@@ -419,7 +420,7 @@ const ParentView: React.FC = () => {
                           <Clock className="h-3 w-3 text-muted-foreground" aria-hidden /> {range(b)}
                         </span>
                         <ModeBadge mode={b.mode} />
-                        <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                        <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
                           Confirmada
                         </span>
                       </div>
@@ -428,7 +429,7 @@ const ParentView: React.FC = () => {
                         {b.student ? ` · ${b.student.name}` : ''}
                       </p>
                       {b.location && (
-                        <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                           <MapPin className="h-3 w-3 shrink-0" aria-hidden />
                           <span className="truncate">{b.location}</span>
                         </p>
@@ -438,8 +439,8 @@ const ParentView: React.FC = () => {
                       size="sm"
                       variant="outline"
                       aria-label="Cancelar entrevista"
-                      className="h-8 shrink-0 gap-1 rounded-lg border-destructive/30 px-2.5 text-[11px] font-bold text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      onClick={() => window.confirm('¿Cancelar esta entrevista?') && cancel.mutate(b.id, { onSuccess: () => toast.success('Entrevista cancelada'), onError: (e) => toast.error(apiErrorMessage(e)) })}
+                      className="h-8 shrink-0 gap-1 rounded-lg border-destructive/30 px-2.5 text-xs font-bold text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={async () => (await confirmDialog({ title: '¿Cancelar esta entrevista?', confirmText: 'Cancelar entrevista', cancelText: 'Volver', variant: 'danger' })) && cancel.mutate(b.id, { onSuccess: () => toast.success('Entrevista cancelada'), onError: (e) => toast.error(apiErrorMessage(e)) })}
                     >
                       <XCircle className="h-3.5 w-3.5" aria-hidden />
                       <span className="hidden sm:inline">Cancelar</span>
@@ -472,12 +473,12 @@ const ParentView: React.FC = () => {
                     <div className="flex flex-wrap items-center gap-1.5">
                       <h2 className="truncate text-sm font-black tracking-tight text-foreground">{staff.name}</h2>
                       {staff.isTutor && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">
                           <GraduationCap className="h-3 w-3" aria-hidden /> Tutor(a)
                         </span>
                       )}
                     </div>
-                    <p className="truncate text-[11px] text-muted-foreground">
+                    <p className="truncate text-xs text-muted-foreground">
                       {staff.roleLabel}
                       {staff.subjects.length ? ` · ${staff.subjects.join(', ')}` : ''}
                     </p>
@@ -486,7 +487,7 @@ const ParentView: React.FC = () => {
                 <div className="space-y-4 p-4 sm:p-5">
                   {groupByDay(staff.slots).map(([day, slots]) => (
                     <div key={day} className="space-y-2">
-                      <p className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
+                      <p className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
                         <CalendarDays className="h-3.5 w-3.5 text-primary" aria-hidden /> {day}
                       </p>
                       <div className="grid grid-cols-2 gap-2 min-[420px]:grid-cols-3 sm:flex sm:flex-wrap">
@@ -544,7 +545,7 @@ const ParentView: React.FC = () => {
           onChange={(e) => setReason(e.target.value)}
           placeholder="Ej.: quisiera saber cómo va en Matemática y cómo apoyarlo en casa."
         />
-        <p className="mt-1 text-right text-[10px] text-muted-foreground">{reason.length}/500</p>
+        <p className="mt-1 text-right text-xs text-muted-foreground">{reason.length}/500</p>
       </Modal>
     </div>
   );

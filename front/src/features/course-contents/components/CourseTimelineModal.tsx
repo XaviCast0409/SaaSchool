@@ -86,7 +86,7 @@ export const CourseTimelineModal: React.FC<CourseTimelineModalProps> = ({
                 {selectedBimester === bim && (
                   <Badge
                     variant="secondary"
-                    className="text-[10px] px-1.5 py-0 h-4 bg-primary-foreground/20 text-primary-foreground"
+                    className="text-xs px-1.5 py-0 h-4 bg-primary-foreground/20 text-primary-foreground"
                   >
                     {contents.length}
                   </Badge>

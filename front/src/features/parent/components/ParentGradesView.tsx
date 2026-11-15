@@ -42,11 +42,11 @@ export const ParentGradesView: React.FC = () => {
       <div className="p-5 sm:p-7 rounded-2xl bg-card border border-border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2 flex-wrap">
-            <Badge className="bg-primary/10 text-primary border-primary/20 gap-1 text-[11px] font-bold">
+            <Badge className="bg-primary/10 text-primary border-primary/20 gap-1 text-xs font-bold">
               <BookOpenCheck className="w-3.5 h-3.5" />
               <span>Libreta de Calificaciones</span>
             </Badge>
-            <Badge variant="outline" className="text-[11px] font-bold">
+            <Badge variant="outline" className="text-xs font-bold">
               {activeChild.activeEnrollment?.classroom.label || 'Sin aula'} • Año Lectivo{' '}
               {activeChild.activeEnrollment?.academicYear || 2026}
             </Badge>

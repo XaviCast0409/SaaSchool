@@ -52,9 +52,9 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
             <h2 className="text-sm font-black tracking-tight uppercase leading-tight text-foreground">
               {school?.name || 'INSTITUCIÓN EDUCATIVA'}
             </h2>
-            <p className="text-[11px] text-muted-foreground font-medium">Intranet Institucional</p>
+            <p className="text-xs text-muted-foreground font-medium">Intranet Institucional</p>
             {school?.modularCode && (
-              <p className="text-[10px] text-muted-foreground font-mono">Cód. Mod: {school.modularCode}</p>
+              <p className="text-xs text-muted-foreground font-mono">Cód. Mod: {school.modularCode}</p>
             )}
           </div>
         </div>
@@ -72,11 +72,11 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
         </div>
 
         {/* Derecha: Metadatos y Fecha de Impresión */}
-        <div className="text-right text-[11px] font-mono text-muted-foreground min-w-[180px]">
+        <div className="text-right text-xs font-mono text-muted-foreground min-w-[180px]">
           <div>Fecha: <span className="font-semibold text-foreground">{currentDate}</span></div>
           <div>Hora: <span className="font-semibold text-foreground">{currentTime}</span></div>
           {extraInfoRight && (
-            <div className="text-[10px] font-sans font-bold text-primary mt-0.5">{extraInfoRight}</div>
+            <div className="text-xs font-sans font-bold text-primary mt-0.5">{extraInfoRight}</div>
           )}
         </div>
       </div>

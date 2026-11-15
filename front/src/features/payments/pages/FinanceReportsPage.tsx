@@ -57,11 +57,11 @@ const ExcelButton: React.FC<{ onClick: () => void; disabled?: boolean }> = ({ on
 
 const DateRange: React.FC<{ start: string; end: string; onChange: (s: string, e: string) => void }> = ({ start, end, onChange }) => (
   <>
-    <label className="space-y-1 text-[11px] font-semibold text-muted-foreground">
+    <label className="space-y-1 text-xs font-semibold text-muted-foreground">
       Desde
       <input type="date" className={`${sel} block`} value={start} onChange={(e) => onChange(e.target.value, end)} />
     </label>
-    <label className="space-y-1 text-[11px] font-semibold text-muted-foreground">
+    <label className="space-y-1 text-xs font-semibold text-muted-foreground">
       Hasta
       <input type="date" className={`${sel} block`} value={end} onChange={(e) => onChange(start, e.target.value)} />
     </label>
@@ -70,7 +70,7 @@ const DateRange: React.FC<{ start: string; end: string; onChange: (s: string, e:
 
 const GroupTable: React.FC<{ title: string; rows: GroupRow[]; label?: (k: string) => string; total: number }> = ({ title, rows, label, total }) => (
   <div className="rounded-lg border border-border">
-    <p className="border-b border-border bg-muted/40 px-3 py-1.5 text-[11px] font-bold uppercase text-muted-foreground">{title}</p>
+    <p className="border-b border-border bg-muted/40 px-3 py-1.5 text-xs font-bold uppercase text-muted-foreground">{title}</p>
     <table className="w-full text-xs">
       <tbody>
         {rows.map((r) => (
@@ -206,7 +206,7 @@ const CollectionsTab: React.FC = () => {
     <div className="space-y-4">
       <div className="flex flex-wrap items-end gap-2">
         <DateRange start={f.startDate} end={f.endDate} onChange={(s, e) => setF({ ...f, startDate: s, endDate: e })} />
-        <label className="space-y-1 text-[11px] font-semibold text-muted-foreground">
+        <label className="space-y-1 text-xs font-semibold text-muted-foreground">
           Cajero
           <select className={`${sel} block`} value={f.cashierId} onChange={(e) => setF({ ...f, cashierId: e.target.value })}>
             <option value="">Todos</option>
@@ -217,7 +217,7 @@ const CollectionsTab: React.FC = () => {
             ))}
           </select>
         </label>
-        <label className="space-y-1 text-[11px] font-semibold text-muted-foreground">
+        <label className="space-y-1 text-xs font-semibold text-muted-foreground">
           Medio
           <select className={`${sel} block`} value={f.method} onChange={(e) => setF({ ...f, method: e.target.value })}>
             <option value="">Todos</option>
@@ -228,7 +228,7 @@ const CollectionsTab: React.FC = () => {
             ))}
           </select>
         </label>
-        <label className="space-y-1 text-[11px] font-semibold text-muted-foreground">
+        <label className="space-y-1 text-xs font-semibold text-muted-foreground">
           Concepto
           <select className={`${sel} block`} value={f.concept} onChange={(e) => setF({ ...f, concept: e.target.value })}>
             <option value="">Todos</option>
@@ -249,17 +249,17 @@ const CollectionsTab: React.FC = () => {
         <>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <div className="rounded-xl border border-primary/20 bg-primary/10 p-3">
-              <p className="text-[11px] font-bold uppercase text-primary">Total ingresado</p>
+              <p className="text-xs font-bold uppercase text-primary">Total ingresado</p>
               <p className="text-xl font-black">{soles(data.total)}</p>
-              <p className="text-[11px] text-muted-foreground">{data.count} cobros vigentes</p>
+              <p className="text-xs text-muted-foreground">{data.count} cobros vigentes</p>
             </div>
             <div className="rounded-xl border border-border p-3">
-              <p className="text-[11px] font-bold uppercase text-muted-foreground">Recibos anulados</p>
+              <p className="text-xs font-bold uppercase text-muted-foreground">Recibos anulados</p>
               <p className="text-xl font-black">{data.voided.count}</p>
-              <p className="text-[11px] text-muted-foreground">{soles(data.voided.total)} (no suman)</p>
+              <p className="text-xs text-muted-foreground">{soles(data.voided.total)} (no suman)</p>
             </div>
             <div className="rounded-xl border border-border p-3">
-              <p className="text-[11px] font-bold uppercase text-muted-foreground">Promedio por cobro</p>
+              <p className="text-xs font-bold uppercase text-muted-foreground">Promedio por cobro</p>
               <p className="text-xl font-black">{soles(data.count ? data.total / data.count : 0)}</p>
             </div>
           </div>
@@ -323,7 +323,7 @@ const AgingTab: React.FC = () => {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end gap-2">
-        <label className="space-y-1 text-[11px] font-semibold text-muted-foreground">
+        <label className="space-y-1 text-xs font-semibold text-muted-foreground">
           Aula
           <select className={`${sel} block`} value={classroomId} onChange={(e) => setClassroomId(e.target.value)}>
             <option value="">Todas</option>
@@ -344,21 +344,21 @@ const AgingTab: React.FC = () => {
         <>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
             <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3">
-              <p className="text-[11px] font-bold uppercase text-destructive">Total vencido</p>
+              <p className="text-xs font-bold uppercase text-destructive">Total vencido</p>
               <p className="text-xl font-black">{soles(data.total)}</p>
-              <p className="text-[11px] text-muted-foreground">{data.students} alumnos</p>
+              <p className="text-xs text-muted-foreground">{data.students} alumnos</p>
             </div>
             {AGING_BUCKETS.map((b) => (
               <div key={b} className="rounded-xl border border-border p-3">
-                <p className="text-[11px] font-bold uppercase text-muted-foreground">{b} días</p>
+                <p className="text-xs font-bold uppercase text-muted-foreground">{b} días</p>
                 <p className="text-lg font-black">{soles(data.buckets[b])}</p>
-                <p className="text-[11px] text-muted-foreground">{data.total ? ((data.buckets[b] / data.total) * 100).toFixed(1) : '0'} %</p>
+                <p className="text-xs text-muted-foreground">{data.total ? ((data.buckets[b] / data.total) * 100).toFixed(1) : '0'} %</p>
               </div>
             ))}
           </div>
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="w-full text-xs">
-              <thead className="bg-muted/40 text-left text-[11px] uppercase text-muted-foreground">
+              <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
                 <tr>
                   <th className="p-2">Alumno</th>
                   <th className="p-2">Responsable</th>
@@ -378,11 +378,11 @@ const AgingTab: React.FC = () => {
                     <tr className="cursor-pointer border-t border-border hover:bg-muted/30" onClick={() => setOpen(open === r.studentId ? null : r.studentId)}>
                       <td className="p-2">
                         <span className="font-medium">{r.student}</span>
-                        <span className="block text-[11px] text-muted-foreground">{r.classroom}</span>
+                        <span className="block text-xs text-muted-foreground">{r.classroom}</span>
                       </td>
                       <td className="p-2">
                         {r.guardian}
-                        {r.phone && <span className="block text-[11px] text-muted-foreground">{r.phone}</span>}
+                        {r.phone && <span className="block text-xs text-muted-foreground">{r.phone}</span>}
                       </td>
                       <td className="p-2 text-right">{r.cuotas}</td>
                       <td className="p-2 text-right">{r.maxDays}</td>
@@ -395,7 +395,7 @@ const AgingTab: React.FC = () => {
                     </tr>
                     {open === r.studentId &&
                       r.items.map((i) => (
-                        <tr key={i.title + i.dueDate} className="bg-muted/20 text-[11px] text-muted-foreground">
+                        <tr key={i.title + i.dueDate} className="bg-muted/20 text-xs text-muted-foreground">
                           <td className="px-2 py-1" colSpan={3}>
                             ↳ {i.title} · venció {formatPeruShortDate(i.dueDate)}
                           </td>
@@ -450,7 +450,7 @@ const MonthlyTab: React.FC = () => {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end gap-2">
-        <label className="space-y-1 text-[11px] font-semibold text-muted-foreground">
+        <label className="space-y-1 text-xs font-semibold text-muted-foreground">
           Año
           <select className={`${sel} block`} value={year} onChange={(e) => setYear(Number(e.target.value))}>
             {[thisYear - 2, thisYear - 1, thisYear, thisYear + 1].map((y) => (
@@ -460,7 +460,7 @@ const MonthlyTab: React.FC = () => {
             ))}
           </select>
         </label>
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Lo emitido se agrupa por mes de vencimiento; "Ingresó en el mes" y los egresos, por la fecha real del movimiento.
         </p>
         <div className="ml-auto">
@@ -472,7 +472,7 @@ const MonthlyTab: React.FC = () => {
       ) : (
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full text-xs">
-            <thead className="bg-muted/40 text-left text-[11px] uppercase text-muted-foreground">
+            <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
               <tr>
                 <th className="p-2">Mes</th>
                 {cols.map(([k, label]) => (
@@ -547,7 +547,7 @@ const AdjustmentsTab: React.FC = () => {
     <div className="space-y-4">
       <div className="flex flex-wrap items-end gap-2">
         <DateRange start={f.startDate} end={f.endDate} onChange={(s, e) => setF({ ...f, startDate: s, endDate: e })} />
-        <label className="space-y-1 text-[11px] font-semibold text-muted-foreground">
+        <label className="space-y-1 text-xs font-semibold text-muted-foreground">
           Tipo
           <select className={`${sel} block`} value={f.type} onChange={(e) => setF({ ...f, type: e.target.value as '' | AdjustmentType })}>
             <option value="">Todos</option>
@@ -565,7 +565,7 @@ const AdjustmentsTab: React.FC = () => {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {(['DISCOUNT', 'SCHOLARSHIP', 'CREDIT_NOTE', 'LATE_FEE'] as AdjustmentType[]).map((t) => (
           <div key={t} className="rounded-xl border border-border p-3">
-            <p className="text-[11px] font-bold uppercase text-muted-foreground">{ADJUSTMENT_LABEL[t]}</p>
+            <p className="text-xs font-bold uppercase text-muted-foreground">{ADJUSTMENT_LABEL[t]}</p>
             <p className="text-lg font-black">{soles(sum(t))}</p>
           </div>
         ))}
@@ -577,7 +577,7 @@ const AdjustmentsTab: React.FC = () => {
       ) : (
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full text-xs">
-            <thead className="bg-muted/40 text-left text-[11px] uppercase text-muted-foreground">
+            <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
               <tr>
                 <th className="p-2">N°</th>
                 <th className="p-2">Fecha</th>
@@ -595,17 +595,17 @@ const AdjustmentsTab: React.FC = () => {
                   <tr key={a.id} className={`border-t border-border align-top ${voided ? 'bg-destructive/5 text-muted-foreground' : ''}`}>
                     <td className="p-2 font-mono whitespace-nowrap">
                       <span className={voided ? 'line-through' : ''}>{a.number}</span>
-                      {voided && <Badge variant="destructive" className="ml-1 text-[10px]">Anulado</Badge>}
+                      {voided && <Badge variant="destructive" className="ml-1 text-xs">Anulado</Badge>}
                     </td>
                     <td className="p-2 whitespace-nowrap">{formatPeruDateTime(a.createdAt)}</td>
                     <td className="p-2">{ADJUSTMENT_LABEL[a.type]}</td>
                     <td className="p-2">
                       {a.obligation ? studentName(a.obligation.enrollment.student) : ''}
-                      <span className="block text-[11px] text-muted-foreground">{a.obligation?.title}</span>
+                      <span className="block text-xs text-muted-foreground">{a.obligation?.title}</span>
                     </td>
                     <td className="p-2">
                       {a.reason}
-                      {voided && <span className="block text-[11px] text-destructive">Anulado: {a.voidReason}</span>}
+                      {voided && <span className="block text-xs text-destructive">Anulado: {a.voidReason}</span>}
                     </td>
                     <td className="p-2 whitespace-nowrap">{personName(a.createdBy)}</td>
                     <td className={`p-2 text-right font-semibold whitespace-nowrap ${voided ? 'line-through' : ''}`}>
@@ -668,9 +668,9 @@ const ExpensesTab: React.FC = () => {
       </div>
       <div className="grid gap-3 sm:grid-cols-[200px_1fr]">
         <div className="rounded-xl border border-border p-3">
-          <p className="text-[11px] font-bold uppercase text-muted-foreground">Total egresos</p>
+          <p className="text-xs font-bold uppercase text-muted-foreground">Total egresos</p>
           <p className="text-xl font-black">{soles(total)}</p>
-          <p className="text-[11px] text-muted-foreground">{active.length} vigentes</p>
+          <p className="text-xs text-muted-foreground">{active.length} vigentes</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {byCategory.map(([k, v]) => (

@@ -1,3 +1,4 @@
+import { confirmDialog } from '@/components/ui/confirm';
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { AlertTriangle, Copy, Loader2, Plus, Save, Undo2 } from 'lucide-react';
@@ -73,10 +74,10 @@ export const ScheduleEditor: React.FC<{ classroomId: string; canEdit: boolean }>
     setForm((f) => ({ ...f, startTime: f.endTime, endTime: fromMin(Math.min(toMin(f.endTime) + duration, 23 * 60 + 59)) }));
   };
 
-  const copyMondayToWeek = () => {
+  const copyMondayToWeek = async () => {
     const monday = blocks.filter((b) => b.dayOfWeek === 1);
     if (monday.length === 0) return toast.error('Primero arma el lunes.');
-    if (blocks.some((b) => b.dayOfWeek > 1) && !window.confirm('Esto reemplaza martes a viernes con la estructura del lunes. ¿Continuar?')) return;
+    if (blocks.some((b) => b.dayOfWeek > 1) && !(await confirmDialog({ title: '¿Copiar el lunes al resto de la semana?', description: 'Esto reemplaza martes a viernes con la estructura del lunes.', confirmText: 'Copiar' }))) return;
     const copies = [2, 3, 4, 5].flatMap((d) => monday.map((b) => ({ ...b, id: undefined, dayOfWeek: d })));
     update([...monday, ...copies, ...blocks.filter((b) => b.dayOfWeek === 6)]);
     toast.success('Estructura del lunes copiada. Ahora cambia los cursos de cada día.');

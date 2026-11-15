@@ -150,7 +150,7 @@ const ResponsesModal: React.FC<{ a: Announcement | null; onClose: () => void }> 
                   <tr key={r.studentId}>
                     <td className="px-3 py-2">
                       <p className="font-medium text-foreground">{r.studentName}</p>
-                      <p className="text-[11px] text-muted-foreground">{r.classroom}</p>
+                      <p className="text-xs text-muted-foreground">{r.classroom}</p>
                     </td>
                     <td className="px-3 py-2">
                       {r.response ? (
@@ -209,7 +209,7 @@ export const AnnouncementResponsePanel: React.FC<{ announcement: Announcement }>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {Object.entries(stats.tally).map(([k, v]) => (
-              <span key={k} className="text-[11px] text-muted-foreground">
+              <span key={k} className="text-xs text-muted-foreground">
                 {labelOf(k)}: <strong className="text-foreground">{v}</strong>
               </span>
             ))}

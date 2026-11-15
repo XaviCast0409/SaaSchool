@@ -1,3 +1,4 @@
+import { confirmDialog } from '@/components/ui/confirm';
 import React, { useState } from 'react';
 import {
   useReactTable,
@@ -107,7 +108,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({
             {row.original.lastNamePaternal} {row.original.lastNameMaternal}, {row.original.firstNames}
           </div>
           {row.original.hasDisability && (
-            <span className="inline-flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400 font-semibold mt-0.5">
+            <span className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 font-semibold mt-0.5">
               <Accessibility className="w-3 h-3" />
               {row.original.disabilityType || 'NEE / Discapacidad'}
             </span>
@@ -145,7 +146,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({
       accessorKey: 'gender',
       header: 'Género',
       cell: ({ row }) => (
-        <Badge variant="outline" className="text-[10px]">
+        <Badge variant="outline" className="text-xs">
           {row.original.gender === 'MALE' ? 'Masculino' : 'Femenino'}
         </Badge>
       ),
@@ -335,7 +336,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({
                               {student.lastNamePaternal} {student.lastNameMaternal}, {student.firstNames}
                             </div>
                             {student.hasDisability && (
-                              <span className="inline-flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400 font-semibold mt-0.5">
+                              <span className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 font-semibold mt-0.5">
                                 <Accessibility className="w-3 h-3" />
                                 {student.disabilityType || 'NEE / Discapacidad'}
                               </span>
@@ -358,7 +359,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({
                           </span>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="text-[10px]">
+                          <Badge variant="outline" className="text-xs">
                             {student.gender === 'MALE' ? 'Masculino' : 'Femenino'}
                           </Badge>
                         </TableCell>
@@ -396,9 +397,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({
                                 className="h-8 px-2 gap-1 text-xs text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 font-bold"
                                 onClick={async () => {
                                   if (
-                                    window.confirm(
-                                      `¿Restablecer la contraseña del estudiante "${student.firstNames} ${student.lastNamePaternal}"? Se generará una contraseña temporal.`
-                                    )
+                                    await confirmDialog({ title: '¿Restablecer la contraseña?', description: `Se generará una contraseña temporal para ${student.firstNames} ${student.lastNamePaternal}.`, confirmText: 'Restablecer' })
                                   ) {
                                     try {
                                       const data = await resetStudentPassword({ studentId: student.id });

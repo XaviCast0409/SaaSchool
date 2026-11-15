@@ -1,3 +1,4 @@
+import { confirmDialog } from '@/components/ui/confirm';
 import React, { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
@@ -116,13 +117,13 @@ export const SchoolDetailPage: React.FC = () => {
               {school.modularCode ? ` · Cód. modular ${school.modularCode}` : ''}
             </p>
             <div className="flex flex-wrap gap-1.5 mt-2">
-              <Badge className="text-[10px]">Plan {school.plan}</Badge>
+              <Badge className="text-xs">Plan {school.plan}</Badge>
               {school.isActive ? (
-                <Badge variant={status?.access === 'ACTIVE' ? 'success' : status?.access === 'GRACE' ? 'warning' : 'destructive'} className="text-[10px]">
+                <Badge variant={status?.access === 'ACTIVE' ? 'success' : status?.access === 'GRACE' ? 'warning' : 'destructive'} className="text-xs">
                   {status ? ACCESS_LABEL[status.access] : 'Activo'}
                 </Badge>
               ) : (
-                <Badge variant="destructive" className="text-[10px]">Suspendido</Badge>
+                <Badge variant="destructive" className="text-xs">Suspendido</Badge>
               )}
             </div>
           </div>
@@ -155,7 +156,7 @@ export const SchoolDetailPage: React.FC = () => {
           <CardContent className="space-y-2 text-sm">
             <Row label="Mensualidad">
               {formatSoles(school.effectiveMonthlyFee ?? 0)}
-              {school.monthlyFee != null && <span className="text-[11px] text-muted-foreground"> (pactada)</span>}
+              {school.monthlyFee != null && <span className="text-xs text-muted-foreground"> (pactada)</span>}
             </Row>
             <Row label="Vigente hasta">{school.planExpiresAt ? formatPeruShortDate(school.planExpiresAt) : 'Mensual indefinido'}</Row>
             {status?.access !== 'ACTIVE' && status && (
@@ -179,7 +180,7 @@ export const SchoolDetailPage: React.FC = () => {
             <Row label="Alumnos">
               {students}
               <span className="text-muted-foreground"> / {quota === null ? '∞' : (quota ?? '—')}</span>
-              {pct !== null && <span className="text-[11px] text-muted-foreground"> ({pct}%)</span>}
+              {pct !== null && <span className="text-xs text-muted-foreground"> ({pct}%)</span>}
             </Row>
             {pct !== null && (
               <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden" role="meter" aria-label="Uso del cupo" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
@@ -246,7 +247,7 @@ export const SchoolDetailPage: React.FC = () => {
                         <Circle className="w-4 h-4 text-muted-foreground shrink-0" />
                       )}
                       <span className={step.done ? 'text-foreground' : 'text-muted-foreground'}>{step.label}</span>
-                      {step.detail && step.done && <span className="text-[11px] text-muted-foreground">· {step.detail}</span>}
+                      {step.detail && step.done && <span className="text-xs text-muted-foreground">· {step.detail}</span>}
                     </li>
                   ))}
                 </ul>
@@ -305,8 +306,8 @@ const SchoolNotesCard: React.FC<{ schoolId: string }> = ({ schoolId }) => {
 
   const togglePin = (note: SchoolNote) => saveNote({ id: note.id, pinned: !note.pinned });
 
-  const remove = (note: SchoolNote) => {
-    if (window.confirm('¿Eliminar esta nota interna? No se puede deshacer.')) {
+  const remove = async (note: SchoolNote) => {
+    if (await confirmDialog({ title: '¿Eliminar esta nota interna?', description: 'No se puede deshacer.', confirmText: 'Eliminar', variant: 'danger' })) {
       deleteNote(note.id, { onError: (err) => toast.error(errorMessage(err, 'No se pudo eliminar la nota.')) });
     }
   };
@@ -317,7 +318,7 @@ const SchoolNotesCard: React.FC<{ schoolId: string }> = ({ schoolId }) => {
         <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
           <StickyNote className="w-4 h-4 text-primary" /> Notas internas
         </CardTitle>
-        <p className="text-[11px] text-muted-foreground">Solo las ve el equipo de la plataforma. Ej.: “llamar en marzo”, “pidió descuento”.</p>
+        <p className="text-xs text-muted-foreground">Solo las ve el equipo de la plataforma. Ej.: “llamar en marzo”, “pidió descuento”.</p>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="space-y-2">
@@ -367,7 +368,7 @@ const SchoolNotesCard: React.FC<{ schoolId: string }> = ({ schoolId }) => {
                   <>
                     <p className="whitespace-pre-line text-foreground">{note.body}</p>
                     <div className="mt-2 flex items-center justify-between gap-2">
-                      <span className="text-[11px] text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
                         {formatPeruDateTime(note.createdAt)}
                         {note.authorEmail ? ` · ${note.authorEmail}` : ''}
                       </span>

@@ -153,7 +153,7 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
               </p>
             )}
             {hasOpenCash && (
-              <p className="text-[11px] text-muted-foreground">El cobro entrará en tu caja abierta y quedará a tu nombre.</p>
+              <p className="text-xs text-muted-foreground">El cobro entrará en tu caja abierta y quedará a tu nombre.</p>
             )}
           </div>
 

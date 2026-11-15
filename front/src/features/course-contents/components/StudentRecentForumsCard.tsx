@@ -46,7 +46,7 @@ export const StudentRecentForumsCard: React.FC<StudentRecentForumsCardProps> = (
             <MessagesSquare className="w-4 h-4 text-emerald-500" />
             <span>Foros de Debate y Preguntas</span>
           </CardTitle>
-          <Badge variant="secondary" className="text-[10px] font-bold">
+          <Badge variant="secondary" className="text-xs font-bold">
             {forums.length} {forums.length === 1 ? 'activo' : 'activos'}
           </Badge>
         </div>
@@ -61,7 +61,7 @@ export const StudentRecentForumsCard: React.FC<StudentRecentForumsCardProps> = (
               <MessageSquare className="w-5 h-5" />
             </div>
             <p className="text-xs font-bold text-foreground">No hay foros abiertos por el momento</p>
-            <p className="text-[11px] text-muted-foreground max-w-xs mx-auto">
+            <p className="text-xs text-muted-foreground max-w-xs mx-auto">
               Cuando tus profesores abran un tema de debate o preguntas en clase, aparecerá aquí.
             </p>
           </div>
@@ -81,11 +81,11 @@ export const StudentRecentForumsCard: React.FC<StudentRecentForumsCardProps> = (
                       <div className="flex items-center gap-2 flex-wrap">
                         <Badge
                           variant="outline"
-                          className="text-[10px] px-1.5 py-0 font-bold border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/5"
+                          className="text-xs px-1.5 py-0 font-bold border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/5"
                         >
                           {areaName}
                         </Badge>
-                        <span className="text-[10px] text-muted-foreground font-semibold">
+                        <span className="text-xs text-muted-foreground font-semibold">
                           {periodLabel} {forum.bimester}
                         </span>
                       </div>
@@ -93,7 +93,7 @@ export const StudentRecentForumsCard: React.FC<StudentRecentForumsCardProps> = (
                         {forum.title}
                       </h4>
                       {forum.description && (
-                        <p className="text-[11px] text-muted-foreground line-clamp-2">
+                        <p className="text-xs text-muted-foreground line-clamp-2">
                           {forum.description}
                         </p>
                       )}
@@ -101,14 +101,14 @@ export const StudentRecentForumsCard: React.FC<StudentRecentForumsCardProps> = (
 
                     <Badge
                       variant="secondary"
-                      className="shrink-0 text-[10px] gap-1 font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20"
+                      className="shrink-0 text-xs gap-1 font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20"
                     >
                       <MessageSquare className="w-3 h-3" />
                       <span>{commentCount} aportes</span>
                     </Badge>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-border/40 text-[11px]">
+                  <div className="flex items-center justify-between pt-2 border-t border-border/40 text-xs">
                     <span className="text-muted-foreground flex items-center gap-1 font-medium">
                       <Sparkles className="w-3 h-3 text-emerald-500" />
                       <span>Debate de aula</span>
@@ -118,7 +118,7 @@ export const StudentRecentForumsCard: React.FC<StudentRecentForumsCardProps> = (
                       size="sm"
                       variant="ghost"
                       onClick={() => navigate(`/virtual-classroom?courseId=${forum.courseAssignmentId}`)}
-                      className="h-6 px-2 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 gap-1"
+                      className="h-6 px-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 gap-1"
                     >
                       <span>Participar</span>
                       <ArrowRight className="w-3 h-3" />

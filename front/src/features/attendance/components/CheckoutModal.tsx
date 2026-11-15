@@ -204,7 +204,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
                     <span className="text-base font-black text-foreground">
                       {student.fullName}
                     </span>
-                    <Badge variant="outline" className="text-[10px] font-bold">
+                    <Badge variant="outline" className="text-xs font-bold">
                       {student.classroom}
                     </Badge>
                   </div>
@@ -284,11 +284,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
                                 <span className="text-xs font-bold text-foreground truncate">
                                   {g.fullName}
                                 </span>
-                                <Badge className="text-[10px] bg-secondary text-secondary-foreground">
+                                <Badge className="text-xs bg-secondary text-secondary-foreground">
                                   Apoderado ({g.relationshipType})
                                 </Badge>
                               </div>
-                              <span className="text-[11px] text-muted-foreground block">
+                              <span className="text-xs text-muted-foreground block">
                                 Doc: {g.documentId || '—'}
                               </span>
                             </div>
@@ -327,11 +327,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
                                 <span className="text-xs font-bold text-foreground truncate">
                                   {p.fullName}
                                 </span>
-                                <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-600 bg-emerald-500/10">
+                                <Badge variant="outline" className="text-xs border-emerald-500/30 text-emerald-600 bg-emerald-500/10">
                                   Autorizado ({p.relationship})
                                 </Badge>
                               </div>
-                              <span className="text-[11px] text-muted-foreground block">
+                              <span className="text-xs text-muted-foreground block">
                                 {p.documentType}: {p.documentId}
                               </span>
                             </div>
@@ -368,7 +368,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
                             <span className="text-xs font-bold text-foreground block">
                               Sale por su cuenta
                             </span>
-                            <span className="text-[11px] text-muted-foreground">
+                            <span className="text-xs text-muted-foreground">
                               Habilitado para nivel Secundaria
                             </span>
                           </div>

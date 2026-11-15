@@ -128,11 +128,11 @@ export const PlatformHealthPage: React.FC = () => {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-bold flex items-center gap-2">
                     <Bug className="w-4 h-4 text-destructive" /> Errores del servidor
-                    <Badge variant={health.recentErrors.length ? 'destructive' : 'success'} className="text-[10px]">
+                    <Badge variant={health.recentErrors.length ? 'destructive' : 'success'} className="text-xs">
                       {health.recentErrors.length}
                     </Badge>
                   </CardTitle>
-                  <p className="text-[11px] text-muted-foreground">Últimos errores internos desde que arrancó el servidor (se borran al reiniciar).</p>
+                  <p className="text-xs text-muted-foreground">Últimos errores internos desde que arrancó el servidor (se borran al reiniciar).</p>
                 </CardHeader>
                 <CardContent>
                   {!health.recentErrors.length ? (
@@ -206,7 +206,7 @@ const StatusCard: React.FC<{ icon: React.ReactNode; title: string; ok: boolean; 
     <CardContent className="space-y-1">
       <div className={`text-lg font-extrabold ${ok ? 'text-foreground' : 'text-destructive'}`}>{value}</div>
       {lines.filter(Boolean).map((line, i) => (
-        <p key={i} className="text-[11px] text-muted-foreground break-words">
+        <p key={i} className="text-xs text-muted-foreground break-words">
           {line}
         </p>
       ))}

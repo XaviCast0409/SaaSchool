@@ -26,9 +26,9 @@ export const MethodTotals: React.FC<{
   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
     {PAYMENT_METHODS.map((m) => (
       <div key={m} className="rounded-lg border border-border bg-card p-2.5">
-        <p className="text-[11px] font-semibold uppercase text-muted-foreground">{PAYMENT_METHOD_LABEL[m]}</p>
+        <p className="text-xs font-semibold uppercase text-muted-foreground">{PAYMENT_METHOD_LABEL[m]}</p>
         <p className="text-sm font-bold text-foreground">{soles(byMethod?.[m])}</p>
-        {countByMethod && <p className="text-[10px] text-muted-foreground">{countByMethod[m] ?? 0} cobros</p>}
+        {countByMethod && <p className="text-xs text-muted-foreground">{countByMethod[m] ?? 0} cobros</p>}
       </div>
     ))}
   </div>
@@ -48,7 +48,7 @@ export const PaymentsList: React.FC<{
   return (
     <div className="overflow-x-auto rounded-lg border border-border">
       <table className="w-full text-xs">
-        <thead className="bg-muted/40 text-left text-[11px] uppercase text-muted-foreground">
+        <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
           <tr>
             <th className="p-2">Hora</th>
             <th className="p-2">Recibo</th>
@@ -73,18 +73,18 @@ export const PaymentsList: React.FC<{
                   ) : (
                     <span className={voided ? 'line-through' : ''}>{t.receiptNumber ?? '—'}</span>
                   )}
-                  {voided && <Badge variant="destructive" className="ml-1 text-[10px]">Anulado</Badge>}
+                  {voided && <Badge variant="destructive" className="ml-1 text-xs">Anulado</Badge>}
                 </td>
                 <td className="p-2">
                   <span className="font-medium text-foreground">
                     {st ? `${st.lastNamePaternal} ${st.lastNameMaternal ?? ''}, ${st.firstNames}` : '—'}
                   </span>
-                  <span className="block text-[11px] text-muted-foreground">{t.obligation?.title}</span>
-                  {voided && <span className="block text-[11px] text-destructive">Motivo: {t.voidReason}</span>}
+                  <span className="block text-xs text-muted-foreground">{t.obligation?.title}</span>
+                  {voided && <span className="block text-xs text-destructive">Motivo: {t.voidReason}</span>}
                 </td>
                 <td className="p-2 whitespace-nowrap">
                   {methodLabel(t.paymentMethod)}
-                  {t.operationNumber && <span className="block font-mono text-[10px] text-muted-foreground">Op. {t.operationNumber}</span>}
+                  {t.operationNumber && <span className="block font-mono text-xs text-muted-foreground">Op. {t.operationNumber}</span>}
                 </td>
                 {showCashier && <td className="p-2 whitespace-nowrap">{personName(t.collectedBy)}</td>}
                 <td className={`p-2 text-right font-semibold whitespace-nowrap ${voided ? 'line-through' : ''}`}>{soles(t.amountPaid)}</td>
@@ -108,7 +108,7 @@ export const ExpensesList: React.FC<{
   return (
     <div className="overflow-x-auto rounded-lg border border-border">
       <table className="w-full text-xs">
-        <thead className="bg-muted/40 text-left text-[11px] uppercase text-muted-foreground">
+        <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
           <tr>
             <th className="p-2">N°</th>
             <th className="p-2">Hora</th>
@@ -126,20 +126,20 @@ export const ExpensesList: React.FC<{
               <tr key={e.id} className={`border-t border-border align-top ${voided ? 'bg-destructive/5 text-muted-foreground' : ''}`}>
                 <td className="p-2 font-mono whitespace-nowrap">
                   <span className={voided ? 'line-through' : ''}>{e.expenseNumber}</span>
-                  {voided && <Badge variant="destructive" className="ml-1 text-[10px]">Anulado</Badge>}
+                  {voided && <Badge variant="destructive" className="ml-1 text-xs">Anulado</Badge>}
                 </td>
                 <td className="p-2 whitespace-nowrap">{formatPeruTime(e.createdAt)}</td>
                 <td className="p-2">
                   <span className="font-medium text-foreground">{e.description}</span>
-                  <span className="block text-[11px] text-muted-foreground">
+                  <span className="block text-xs text-muted-foreground">
                     {EXPENSE_CATEGORY_LABEL[e.category] ?? e.category}
                     {e.beneficiary ? ` · ${e.beneficiary}` : ''}
                   </span>
-                  {voided && <span className="block text-[11px] text-destructive">Motivo: {e.voidReason}</span>}
+                  {voided && <span className="block text-xs text-destructive">Motivo: {e.voidReason}</span>}
                 </td>
                 <td className="p-2 whitespace-nowrap">
                   {e.documentType ? EXPENSE_DOCUMENT_LABEL[e.documentType] ?? e.documentType : '—'}
-                  {e.documentNumber && <span className="block font-mono text-[10px]">{e.documentNumber}</span>}
+                  {e.documentNumber && <span className="block font-mono text-xs">{e.documentNumber}</span>}
                 </td>
                 <td className="p-2 whitespace-nowrap">{personName(e.registeredBy)}</td>
                 <td className={`p-2 text-right font-semibold whitespace-nowrap ${voided ? 'line-through' : ''}`}>{soles(e.amount)}</td>

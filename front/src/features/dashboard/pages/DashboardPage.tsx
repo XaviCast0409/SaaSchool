@@ -140,7 +140,7 @@ export const DashboardPage: React.FC = () => {
               </div>
               <div className="text-left">
                 <span className="block font-bold text-sm leading-tight">Nuevo Alumno</span>
-                <span className="text-[11px] text-muted-foreground">Registrar matrícula</span>
+                <span className="text-xs text-muted-foreground">Registrar matrícula</span>
               </div>
             </button>
 
@@ -153,7 +153,7 @@ export const DashboardPage: React.FC = () => {
               </div>
               <div className="text-left">
                 <span className="block font-bold text-sm leading-tight">Registrar Pago</span>
-                <span className="text-[11px] text-muted-foreground">Ingreso manual</span>
+                <span className="text-xs text-muted-foreground">Ingreso manual</span>
               </div>
             </button>
 
@@ -166,7 +166,7 @@ export const DashboardPage: React.FC = () => {
               </div>
               <div className="text-left">
                 <span className="block font-bold text-sm leading-tight">Cobros Masivos</span>
-                <span className="text-[11px] text-muted-foreground">Generar por aula</span>
+                <span className="text-xs text-muted-foreground">Generar por aula</span>
               </div>
             </button>
 
@@ -179,7 +179,7 @@ export const DashboardPage: React.FC = () => {
               </div>
               <div className="text-left">
                 <span className="block font-bold text-sm leading-tight">Publicar Aviso</span>
-                <span className="text-[11px] text-muted-foreground">Comunicados</span>
+                <span className="text-xs text-muted-foreground">Comunicados</span>
               </div>
             </button>
           </div>
@@ -196,7 +196,7 @@ export const DashboardPage: React.FC = () => {
               </div>
               <div className="text-left">
                 <span className="block font-bold text-sm leading-tight">Matricular Alumno</span>
-                <span className="text-[11px] text-muted-foreground">Nueva matrícula</span>
+                <span className="text-xs text-muted-foreground">Nueva matrícula</span>
               </div>
             </button>
 
@@ -209,7 +209,7 @@ export const DashboardPage: React.FC = () => {
               </div>
               <div className="text-left">
                 <span className="block font-bold text-sm leading-tight">Caja Ventanilla</span>
-                <span className="text-[11px] text-muted-foreground">Cobro de pensión</span>
+                <span className="text-xs text-muted-foreground">Cobro de pensión</span>
               </div>
             </button>
 
@@ -222,7 +222,7 @@ export const DashboardPage: React.FC = () => {
               </div>
               <div className="text-left">
                 <span className="block font-bold text-sm leading-tight">Carnets QR</span>
-                <span className="text-[11px] text-muted-foreground">Impresión por sección</span>
+                <span className="text-xs text-muted-foreground">Impresión por sección</span>
               </div>
             </button>
 
@@ -235,7 +235,7 @@ export const DashboardPage: React.FC = () => {
               </div>
               <div className="text-left">
                 <span className="block font-bold text-sm leading-tight">Publicar Aviso</span>
-                <span className="text-[11px] text-muted-foreground">Circular a familias</span>
+                <span className="text-xs text-muted-foreground">Circular a familias</span>
               </div>
             </button>
           </div>
@@ -252,7 +252,7 @@ export const DashboardPage: React.FC = () => {
               </div>
               <div className="text-left">
                 <span className="block font-bold text-sm leading-tight">Mis Cursos</span>
-                <span className="text-[11px] text-muted-foreground">Carga asignada</span>
+                <span className="text-xs text-muted-foreground">Carga asignada</span>
               </div>
             </button>
 
@@ -265,7 +265,7 @@ export const DashboardPage: React.FC = () => {
               </div>
               <div className="text-left">
                 <span className="block font-bold text-sm leading-tight">Tomar Asistencia</span>
-                <span className="text-[11px] text-muted-foreground">Control de aula</span>
+                <span className="text-xs text-muted-foreground">Control de aula</span>
               </div>
             </button>
 
@@ -278,7 +278,7 @@ export const DashboardPage: React.FC = () => {
               </div>
               <div className="text-left">
                 <span className="block font-bold text-sm leading-tight">Registro Notas</span>
-                <span className="text-[11px] text-muted-foreground">Calificaciones</span>
+                <span className="text-xs text-muted-foreground">Calificaciones</span>
               </div>
             </button>
 
@@ -291,7 +291,7 @@ export const DashboardPage: React.FC = () => {
               </div>
               <div className="text-left">
                 <span className="block font-bold text-sm leading-tight">Comunicados</span>
-                <span className="text-[11px] text-muted-foreground">Avisos del colegio</span>
+                <span className="text-xs text-muted-foreground">Avisos del colegio</span>
               </div>
             </button>
           </div>
@@ -308,7 +308,7 @@ export const DashboardPage: React.FC = () => {
               </div>
               <div className="text-left">
                 <span className="block font-bold text-sm leading-tight">Mis Pensiones y Pagos</span>
-                <span className="text-[11px] text-muted-foreground">Historial y deudas pendientes</span>
+                <span className="text-xs text-muted-foreground">Historial y deudas pendientes</span>
               </div>
             </button>
 
@@ -321,7 +321,7 @@ export const DashboardPage: React.FC = () => {
               </div>
               <div className="text-left">
                 <span className="block font-bold text-sm leading-tight">Libreta de Calificaciones</span>
-                <span className="text-[11px] text-muted-foreground">Notas y escala CNEB</span>
+                <span className="text-xs text-muted-foreground">Notas y escala CNEB</span>
               </div>
             </button>
 
@@ -334,7 +334,7 @@ export const DashboardPage: React.FC = () => {
               </div>
               <div className="text-left">
                 <span className="block font-bold text-sm leading-tight">Avisos y Circulares</span>
-                <span className="text-[11px] text-muted-foreground">Comunicados institucionales</span>
+                <span className="text-xs text-muted-foreground">Comunicados institucionales</span>
               </div>
             </button>
           </div>
@@ -546,10 +546,10 @@ export const DashboardPage: React.FC = () => {
                 className="cursor-pointer p-4 rounded-xl border border-border bg-card hover:border-primary/40 hover:shadow-sm transition-all space-y-2"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary">
+                  <span className="px-2 py-0.5 rounded text-xs font-bold bg-primary/10 text-primary">
                     {announcement.priority}
                   </span>
-                  <span className="text-[11px] text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {formatPeruShortDate(announcement.publishedAt)}
                   </span>
                 </div>

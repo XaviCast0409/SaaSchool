@@ -47,7 +47,7 @@ export const FamiliesByStateReport: React.FC<FamiliesByStateReportProps> = ({ da
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse border border-foreground/50 text-[11px]">
+          <table className="w-full border-collapse border border-foreground/50 text-xs">
             <thead>
               <tr className="bg-muted/50 font-bold text-foreground">
                 <th className="border border-foreground/50 p-1.5 w-10 text-center">N°</th>
@@ -65,7 +65,7 @@ export const FamiliesByStateReport: React.FC<FamiliesByStateReportProps> = ({ da
               {families.map((fam) => (
                 <tr key={fam.familyCode} className="hover:bg-muted/30 transition-colors">
                   <td className="border border-foreground/50 p-1.5 text-center font-mono">{fam.index}</td>
-                  <td className="border border-foreground/50 p-1.5 text-center font-mono font-bold text-[10px] text-primary">
+                  <td className="border border-foreground/50 p-1.5 text-center font-mono font-bold text-xs text-primary">
                     {fam.familyCode}
                   </td>
                   <td className="border border-foreground/50 p-1.5 font-bold uppercase text-foreground">
@@ -73,12 +73,12 @@ export const FamiliesByStateReport: React.FC<FamiliesByStateReportProps> = ({ da
                   </td>
                   <td className="border border-foreground/50 p-1.5 text-muted-foreground uppercase">{fam.fatherName}</td>
                   <td className="border border-foreground/50 p-1.5 text-muted-foreground uppercase">{fam.motherName}</td>
-                  <td className="border border-foreground/50 p-1.5 text-center font-mono text-[10px] text-muted-foreground">
+                  <td className="border border-foreground/50 p-1.5 text-center font-mono text-xs text-muted-foreground">
                     {fam.fatherPhone !== '—' ? fam.fatherPhone : fam.motherPhone !== '—' ? fam.motherPhone : fam.guardianPhone}
                   </td>
-                  <td className="border border-foreground/50 p-1.5 text-center font-semibold text-[10px] uppercase">
+                  <td className="border border-foreground/50 p-1.5 text-center font-semibold text-xs uppercase">
                     <span
-                      className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                      className={`px-1.5 py-0.5 rounded text-xs font-bold ${
                         fam.state === 'REGISTERED'
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                           : 'bg-rose-50 text-rose-700 border border-rose-200'
@@ -90,7 +90,7 @@ export const FamiliesByStateReport: React.FC<FamiliesByStateReportProps> = ({ da
                   <td className="border border-foreground/50 p-1.5 text-center font-bold text-foreground font-mono">
                     {fam.childrenCount}
                   </td>
-                  <td className="border border-foreground/50 p-1.5 text-[10px] text-muted-foreground">
+                  <td className="border border-foreground/50 p-1.5 text-xs text-muted-foreground">
                     {fam.childrenSummary || '—'}
                   </td>
                 </tr>

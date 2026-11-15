@@ -129,17 +129,17 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ user, isOpen, onCl
             <div className="space-y-1">
               <label className="text-xs font-medium text-foreground">Nombre(s) *</label>
               <Input placeholder="Ej: Luis Alberto" {...register('firstName')} className="h-9 text-xs" />
-              {errors.firstName && <p className="text-[10px] text-destructive">{errors.firstName.message}</p>}
+              {errors.firstName && <p className="text-xs text-destructive">{errors.firstName.message}</p>}
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium text-foreground">Apellido Paterno *</label>
               <Input placeholder="Ej: García" {...register('lastNamePaternal')} className="h-9 text-xs" />
-              {errors.lastNamePaternal && <p className="text-[10px] text-destructive">{errors.lastNamePaternal.message}</p>}
+              {errors.lastNamePaternal && <p className="text-xs text-destructive">{errors.lastNamePaternal.message}</p>}
             </div>
             <div className="space-y-1 sm:col-span-2">
               <label className="text-xs font-medium text-foreground">Apellido Materno *</label>
               <Input placeholder="Ej: Torres" {...register('lastNameMaternal')} className="h-9 text-xs" />
-              {errors.lastNameMaternal && <p className="text-[10px] text-destructive">{errors.lastNameMaternal.message}</p>}
+              {errors.lastNameMaternal && <p className="text-xs text-destructive">{errors.lastNameMaternal.message}</p>}
             </div>
           </div>
 
@@ -168,7 +168,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ user, isOpen, onCl
             <div className="space-y-1">
               <label className="text-xs font-medium text-foreground">Correo Electrónico *</label>
               <Input type="email" placeholder="correo@ejemplo.com" {...register('email')} className="h-9 text-xs" />
-              {errors.email && <p className="text-[10px] text-destructive">{errors.email.message}</p>}
+              {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium text-foreground">Celular</label>

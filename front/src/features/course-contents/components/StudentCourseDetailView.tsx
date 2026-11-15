@@ -100,10 +100,10 @@ export const StudentCourseDetailView: React.FC<StudentCourseDetailViewProps> = (
 
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant="outline" className={`text-[10px] font-bold ${theme.badgeStyle}`}>
+              <Badge variant="outline" className={`text-xs font-bold ${theme.badgeStyle}`}>
                 {theme.category}
               </Badge>
-              <Badge variant="secondary" className="text-[10px] font-bold">
+              <Badge variant="secondary" className="text-xs font-bold">
                 {classroomLabel}
               </Badge>
             </div>
@@ -120,15 +120,15 @@ export const StudentCourseDetailView: React.FC<StudentCourseDetailViewProps> = (
         {/* Resumen de recursos del bimestre */}
         <div className="flex items-center gap-2 sm:gap-3 border-t md:border-t-0 md:border-l border-border pt-4 md:pt-0 md:pl-6 shrink-0 flex-wrap">
           <div className="text-center px-3 py-1.5 rounded-xl bg-muted/40">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase">Materiales</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase">Materiales</p>
             <p className="text-base sm:text-lg font-black text-foreground">{materialsCount}</p>
           </div>
           <div className="text-center px-3 py-1.5 rounded-xl bg-amber-500/10">
-            <p className="text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase">Tareas</p>
+            <p className="text-xs font-bold text-amber-700 dark:text-amber-300 uppercase">Tareas</p>
             <p className="text-base sm:text-lg font-black text-amber-700 dark:text-amber-300">{homeworksCount}</p>
           </div>
           <div className="text-center px-3 py-1.5 rounded-xl bg-emerald-500/10">
-            <p className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 uppercase">Foros</p>
+            <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase">Foros</p>
             <p className="text-base sm:text-lg font-black text-emerald-700 dark:text-emerald-300">{forumsCount}</p>
           </div>
         </div>
@@ -152,7 +152,7 @@ export const StudentCourseDetailView: React.FC<StudentCourseDetailViewProps> = (
               {selectedBimester === bim && (
                 <Badge
                   variant="secondary"
-                  className="text-[10px] px-1.5 py-0 h-4 bg-primary-foreground/20 text-primary-foreground"
+                  className="text-xs px-1.5 py-0 h-4 bg-primary-foreground/20 text-primary-foreground"
                 >
                   {contents.length}
                 </Badge>

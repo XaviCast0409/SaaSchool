@@ -164,7 +164,7 @@ export const HolidaysModal: React.FC<HolidaysModalProps> = ({ isOpen, onClose })
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
               <span>Feriados registrados en {selectedYear}</span>
-              <Badge variant="secondary" className="text-[10px] font-mono">
+              <Badge variant="secondary" className="text-xs font-mono">
                 {holidays.length}
               </Badge>
             </div>
@@ -191,7 +191,7 @@ export const HolidaysModal: React.FC<HolidaysModalProps> = ({ isOpen, onClose })
                       <span className="font-bold text-xs text-foreground block">
                         {h.name}
                       </span>
-                      <span className="text-[11px] font-mono text-muted-foreground">
+                      <span className="text-xs font-mono text-muted-foreground">
                         {formatPeruDate(h.date, { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
                       </span>
                     </div>

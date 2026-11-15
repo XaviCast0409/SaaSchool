@@ -179,20 +179,20 @@ export const SubmitHomeworkModal: React.FC<SubmitHomeworkModalProps> = ({
                   </div>
 
                   {currentSubmission.isLate ? (
-                    <Badge variant="destructive" className="text-[10px] font-bold">
+                    <Badge variant="destructive" className="text-xs font-bold">
                       Fuera de fecha
                     </Badge>
                   ) : (
                     <Badge
                       variant="outline"
-                      className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                      className="text-xs font-bold text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
                     >
                       A tiempo
                     </Badge>
                   )}
                 </div>
 
-                <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                <div className="text-xs text-muted-foreground flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5" />
                   <span>
                     Enviado:{' '}
@@ -214,7 +214,7 @@ export const SubmitHomeworkModal: React.FC<SubmitHomeworkModalProps> = ({
                   <button
                     type="button"
                     onClick={() => void openFile(currentSubmission.fileUrl, { download: true })}
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline shrink-0"
+                    className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline shrink-0"
                   >
                     <span>Ver</span>
                     <ExternalLink className="w-3 h-3" />
@@ -223,7 +223,7 @@ export const SubmitHomeworkModal: React.FC<SubmitHomeworkModalProps> = ({
 
                 {/* Comentario del estudiante */}
                 {currentSubmission.studentComment && (
-                  <div className="text-[11px] text-muted-foreground">
+                  <div className="text-xs text-muted-foreground">
                     <span className="font-semibold block text-foreground">Tu comentario:</span>
                     <p className="italic">"{currentSubmission.studentComment}"</p>
                   </div>
@@ -248,7 +248,7 @@ export const SubmitHomeworkModal: React.FC<SubmitHomeworkModalProps> = ({
 
                     {currentSubmission.teacherFeedback && (
                       <div className="text-xs text-foreground bg-card p-2.5 rounded-lg border border-border/60">
-                        <span className="font-semibold text-muted-foreground block text-[10px] uppercase tracking-wide">
+                        <span className="font-semibold text-muted-foreground block text-xs uppercase tracking-wide">
                           Comentario del Profesor:
                         </span>
                         <p className="mt-0.5 leading-relaxed">
@@ -261,7 +261,7 @@ export const SubmitHomeworkModal: React.FC<SubmitHomeworkModalProps> = ({
               </div>
 
               {!isGraded && (
-                <div className="text-[11px] text-muted-foreground text-center">
+                <div className="text-xs text-muted-foreground text-center">
                   ¿Necesitas corregir tu entrega? Puedes subir un nuevo archivo a continuación.
                 </div>
               )}
@@ -295,7 +295,7 @@ export const SubmitHomeworkModal: React.FC<SubmitHomeworkModalProps> = ({
                         <span className="font-semibold text-xs text-foreground">
                           Haz clic para elegir un archivo
                         </span>
-                        <span className="text-[10px]">Límite máximo: 30 MB</span>
+                        <span className="text-xs">Límite máximo: 30 MB</span>
                       </>
                     )}
                   </div>

@@ -45,7 +45,7 @@ export const FamiliesRelativesReport: React.FC<FamiliesRelativesReportProps> = (
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse border border-foreground/50 text-[11px]">
+          <table className="w-full border-collapse border border-foreground/50 text-xs">
             <thead>
               <tr className="bg-muted/50 font-bold text-foreground">
                 <th className="border border-foreground/50 p-1.5 w-10 text-center">N°</th>
@@ -65,7 +65,7 @@ export const FamiliesRelativesReport: React.FC<FamiliesRelativesReportProps> = (
               {records.map((rec) => (
                 <tr key={rec.student.id} className="hover:bg-muted/30 transition-colors">
                   <td className="border border-foreground/50 p-1.5 text-center font-mono">{rec.index}</td>
-                  <td className="border border-foreground/50 p-1.5 text-center font-mono text-[10px] text-muted-foreground">
+                  <td className="border border-foreground/50 p-1.5 text-center font-mono text-xs text-muted-foreground">
                     {rec.student.studentCode}
                   </td>
                   <td className="border border-foreground/50 p-1.5 text-center font-mono font-medium">
@@ -74,25 +74,25 @@ export const FamiliesRelativesReport: React.FC<FamiliesRelativesReportProps> = (
                   <td className="border border-foreground/50 p-1.5 font-bold uppercase text-foreground">
                     {rec.student.fullName}
                   </td>
-                  <td className="border border-foreground/50 p-1.5 text-center font-medium text-[10px]">
+                  <td className="border border-foreground/50 p-1.5 text-center font-medium text-xs">
                     {rec.student.classroomLabel}
                   </td>
-                  <td className="border border-foreground/50 p-1.5 uppercase text-muted-foreground text-[10px]">
+                  <td className="border border-foreground/50 p-1.5 uppercase text-muted-foreground text-xs">
                     {rec.father.fullName}
                   </td>
-                  <td className="border border-foreground/50 p-1.5 text-center font-mono text-[10px] text-muted-foreground">
+                  <td className="border border-foreground/50 p-1.5 text-center font-mono text-xs text-muted-foreground">
                     {rec.father.phone}
                   </td>
-                  <td className="border border-foreground/50 p-1.5 uppercase text-muted-foreground text-[10px]">
+                  <td className="border border-foreground/50 p-1.5 uppercase text-muted-foreground text-xs">
                     {rec.mother.fullName}
                   </td>
-                  <td className="border border-foreground/50 p-1.5 text-center font-mono text-[10px] text-muted-foreground">
+                  <td className="border border-foreground/50 p-1.5 text-center font-mono text-xs text-muted-foreground">
                     {rec.mother.phone}
                   </td>
-                  <td className="border border-foreground/50 p-1.5 uppercase font-medium text-foreground text-[10px]">
+                  <td className="border border-foreground/50 p-1.5 uppercase font-medium text-foreground text-xs">
                     {rec.guardian.fullName}
                   </td>
-                  <td className="border border-foreground/50 p-1.5 text-center font-mono text-[10px] font-bold text-primary">
+                  <td className="border border-foreground/50 p-1.5 text-center font-mono text-xs font-bold text-primary">
                     {rec.guardian.phone}
                   </td>
                 </tr>

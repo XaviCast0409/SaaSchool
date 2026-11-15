@@ -402,7 +402,7 @@ export const CourseAttendancePage: React.FC = () => {
                               {isAbsentDaily && (
                                 <Badge
                                   variant="destructive"
-                                  className="h-5 text-[10px] px-1.5 py-0 uppercase font-semibold"
+                                  className="h-5 text-xs px-1.5 py-0 uppercase font-semibold"
                                 >
                                   Faltó al colegio
                                 </Badge>

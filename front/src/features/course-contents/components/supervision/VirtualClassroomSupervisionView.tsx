@@ -1,3 +1,4 @@
+import { confirmDialog } from '@/components/ui/confirm';
 import React, { useState } from 'react';
 import { usePeriods } from '@/features/academic-years/api/useAcademicYears';
 import {
@@ -54,9 +55,7 @@ export const VirtualClassroomSupervisionView: React.FC = () => {
   };
 
   const handleDeleteContent = async (id: string) => {
-    const confirm = window.confirm(
-      '¿Estás seguro de que deseas eliminar esta publicación? Los alumnos y el docente ya no podrán verla ni descargar el archivo.',
-    );
+    const confirm = await confirmDialog({ title: '¿Eliminar esta publicación?', description: 'Los alumnos y el docente ya no podrán verla ni descargar el archivo.', confirmText: 'Eliminar', variant: 'danger' });
     if (!confirm) return;
 
     try {

@@ -68,7 +68,7 @@ export const LoginPageSettingsSection: React.FC<Props> = ({ slug, schoolName, br
 
       {link ? (
         <div className="space-y-1">
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Comparte este enlace con tu comunidad. El código del colegio es <strong className="text-foreground">{slug}</strong>.
           </p>
           <div className="flex items-center gap-1.5">
@@ -82,7 +82,7 @@ export const LoginPageSettingsSection: React.FC<Props> = ({ slug, schoolName, br
           </div>
         </div>
       ) : (
-        <p className="text-[11px] text-muted-foreground">Tu colegio aún no tiene código de ingreso. Solicítalo a soporte.</p>
+        <p className="text-xs text-muted-foreground">Tu colegio aún no tiene código de ingreso. Solicítalo a soporte.</p>
       )}
 
       {/* Vista previa del fondo */}
@@ -95,7 +95,7 @@ export const LoginPageSettingsSection: React.FC<Props> = ({ slug, schoolName, br
         <div className="absolute inset-0 bg-black/40" aria-hidden />
         <div className="relative flex h-full flex-col justify-end p-3 text-white">
           <p className="text-sm font-bold leading-tight line-clamp-1">{values.loginTitle?.trim() || `Bienvenidos a ${schoolName}`}</p>
-          {values.loginMessage?.trim() && <p className="text-[11px] text-white/85 line-clamp-2">{values.loginMessage}</p>}
+          {values.loginMessage?.trim() && <p className="text-xs text-white/85 line-clamp-2">{values.loginMessage}</p>}
         </div>
       </div>
 
@@ -119,7 +119,7 @@ export const LoginPageSettingsSection: React.FC<Props> = ({ slug, schoolName, br
             <Trash2 className="w-3.5 h-3.5" aria-hidden /> Quitar
           </button>
         )}
-        <span className="text-[11px] text-muted-foreground">JPG, PNG o WEBP · máx. 5 MB · horizontal</span>
+        <span className="text-xs text-muted-foreground">JPG, PNG o WEBP · máx. 5 MB · horizontal</span>
       </div>
 
       <div>
@@ -143,7 +143,7 @@ export const LoginPageSettingsSection: React.FC<Props> = ({ slug, schoolName, br
           {...register('loginMessage')}
           className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
         />
-        <p className="text-[11px] text-muted-foreground mt-1">Lo ve cualquier persona que abra la página de ingreso: no incluyas datos privados.</p>
+        <p className="text-xs text-muted-foreground mt-1">Lo ve cualquier persona que abra la página de ingreso: no incluyas datos privados.</p>
       </div>
     </div>
   );

@@ -82,7 +82,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
           >
             {notification.title}
           </h4>
-          <span className="text-[10px] text-muted-foreground shrink-0 flex items-center gap-1">
+          <span className="text-xs text-muted-foreground shrink-0 flex items-center gap-1">
             <Clock className="w-2.5 h-2.5" />
             {formatTimeAgo(notification.createdAt)}
           </span>
@@ -93,7 +93,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
         </p>
 
         {notification.link && (
-          <span className="inline-block mt-1 text-[10px] font-semibold text-primary underline underline-offset-2">
+          <span className="inline-block mt-1 text-xs font-semibold text-primary underline underline-offset-2">
             Ver detalles →
           </span>
         )}

@@ -164,7 +164,7 @@ export const EditObligationModal: React.FC<EditObligationModalProps> = ({
               ))}
             </select>
             {concept !== obligation.concept && (
-              <p className="text-[11px] text-amber-700 dark:text-amber-400">
+              <p className="text-xs text-amber-700 dark:text-amber-400">
                 Se reclasifica en reportes y becas. Escribe el motivo abajo; si era una pensión del cronograma, ese mes no se vuelve a generar.
               </p>
             )}
@@ -203,7 +203,7 @@ export const EditObligationModal: React.FC<EditObligationModalProps> = ({
             </div>
           </div>
 
-          <p className="rounded-lg border border-border bg-muted/30 p-2.5 text-[11px] text-muted-foreground">
+          <p className="rounded-lg border border-border bg-muted/30 p-2.5 text-xs text-muted-foreground">
             Aquí solo se corrige el monto base de una cuota sin cobros ni ajustes. Para descuentos, notas de crédito o moras usa
             <strong> Cobros → Agregar ajuste</strong>; para becas de todo el año, <strong>Becas y moras</strong>. Así queda constancia numerada.
           </p>

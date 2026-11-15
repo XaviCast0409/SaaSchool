@@ -24,11 +24,11 @@ export const AttendanceMetricsCards: React.FC<AttendanceMetricsCardsProps> = ({ 
             <Percent className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase">Tasa Asistencia</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase">Tasa Asistencia</p>
             <p className="text-xl sm:text-2xl font-black text-emerald-700 dark:text-emerald-300">
               {percentage}%
             </p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               Total: {summary?.totalRecorded ?? 0} días
             </p>
           </div>
@@ -42,11 +42,11 @@ export const AttendanceMetricsCards: React.FC<AttendanceMetricsCardsProps> = ({ 
             <CheckCircle2 className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase">Asistencias</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase">Asistencias</p>
             <p className="text-xl sm:text-2xl font-black text-foreground">
               {summary?.presentCount ?? 0}
             </p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Puntual a clases</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Puntual a clases</p>
           </div>
         </CardContent>
       </Card>
@@ -58,11 +58,11 @@ export const AttendanceMetricsCards: React.FC<AttendanceMetricsCardsProps> = ({ 
             <Clock className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase">Tardanzas</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase">Tardanzas</p>
             <p className="text-xl sm:text-2xl font-black text-amber-700 dark:text-amber-300">
               {summary?.lateCount ?? 0}
             </p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Registradas</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Registradas</p>
           </div>
         </CardContent>
       </Card>
@@ -74,11 +74,11 @@ export const AttendanceMetricsCards: React.FC<AttendanceMetricsCardsProps> = ({ 
             <AlertCircle className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase">Inasistencias</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase">Inasistencias</p>
             <p className="text-xl sm:text-2xl font-black text-destructive">
               {summary?.absentCount ?? 0}
             </p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Faltas registradas</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Faltas registradas</p>
           </div>
         </CardContent>
       </Card>

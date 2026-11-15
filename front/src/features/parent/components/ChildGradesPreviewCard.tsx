@@ -21,13 +21,13 @@ export const ChildGradesPreviewCard: React.FC = () => {
           </div>
           <div>
             <h3 className="font-bold text-sm text-foreground">Libreta de Calificaciones</h3>
-            <span className="text-[11px] text-muted-foreground">Evaluación por competencias SIAGIE</span>
+            <span className="text-xs text-muted-foreground">Evaluación por competencias SIAGIE</span>
           </div>
         </div>
 
         <Badge
           variant={isPro ? 'default' : 'outline'}
-          className={`text-[10px] font-bold ${
+          className={`text-xs font-bold ${
             isPro ? 'bg-primary text-primary-foreground' : 'border-amber-500/40 text-amber-600 bg-amber-500/5'
           }`}
         >

@@ -1,3 +1,4 @@
+import { confirmDialog } from '@/components/ui/confirm';
 import React, { useEffect, useRef, useState } from 'react';
 import { SchoolLetterhead } from '@/features/schools/components/SchoolLetterhead';
 import { useSearchParams } from 'react-router-dom';
@@ -201,21 +202,21 @@ const ResourcesTab: React.FC = () => {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {data.rows.map((r) => (
             <Card key={r.id} className="flex flex-col p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">{KIND_LABEL[r.kind]}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-primary">{KIND_LABEL[r.kind]}</p>
               <h3 className="mt-0.5 text-sm font-semibold text-foreground">{r.title}</h3>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">
+              <p className="mt-0.5 text-xs text-muted-foreground">
                 {[r.areaName, r.educationLevel ? LEVEL_LABEL[r.educationLevel] : null, r.grade !== null ? `${r.grade}.°` : null].filter(Boolean).join(' · ') || 'General'}
               </p>
               {r.description && <p className="mt-2 line-clamp-3 text-xs text-muted-foreground">{r.description}</p>}
               {r.tags.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1">
                   {r.tags.map((t) => (
-                    <button key={t} type="button" className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground hover:text-foreground" onClick={() => setFilters({ ...filters, q: t })}>#{t}</button>
+                    <button key={t} type="button" className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setFilters({ ...filters, q: t })}>#{t}</button>
                   ))}
                 </div>
               )}
               <div className="mt-auto pt-3">
-                <p className="mb-2 text-[11px] text-muted-foreground">
+                <p className="mb-2 text-xs text-muted-foreground">
                   {r.authorName} · {formatPeruShortDate(r.createdAt)} · {r.downloads} uso(s)
                 </p>
                 <div className="flex gap-1.5">
@@ -229,7 +230,7 @@ const ResourcesTab: React.FC = () => {
                   )}
                   {r.canDelete && (
                     <Button size="sm" variant="ghost" className="h-8 text-xs" aria-label="Quitar recurso"
-                      onClick={() => window.confirm('¿Quitar este recurso del banco?') && del.mutate(r.id, { onSuccess: () => toast.success('Recurso quitado'), onError: (e) => toast.error(apiErrorMessage(e)) })}>
+                      onClick={async () => (await confirmDialog({ title: '¿Quitar este recurso del banco?', confirmText: 'Quitar', variant: 'danger' })) && del.mutate(r.id, { onSuccess: () => toast.success('Recurso quitado'), onError: (e) => toast.error(apiErrorMessage(e)) })}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   )}
@@ -412,14 +413,14 @@ const RubricsTab: React.FC = () => {
             <Card key={r.id} className="flex flex-col p-4">
               <button type="button" className="text-left" onClick={() => setViewing(r)}>
                 <h3 className="text-sm font-semibold text-foreground hover:underline">{r.title}</h3>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                <p className="mt-0.5 text-xs text-muted-foreground">
                   {[r.areaName, r.educationLevel ? LEVEL_LABEL[r.educationLevel] : null].filter(Boolean).join(' · ') || 'General'} · {r.criteria.length} criterio(s)
                   {!r.isShared && ' · privada'}
                 </p>
                 <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{r.criteria.map((c) => c.name).join(' · ')}</p>
               </button>
               <div className="mt-auto flex items-center gap-1.5 pt-3">
-                <span className="mr-auto text-[11px] text-muted-foreground">{r.authorName}</span>
+                <span className="mr-auto text-xs text-muted-foreground">{r.authorName}</span>
                 <Button size="sm" variant="ghost" className="h-8 text-xs" aria-label="Duplicar" title="Duplicar para adaptarla"
                   onClick={() => duplicate.mutate(r.id, { onSuccess: (copy) => (toast.success('Copia creada: ya puedes adaptarla'), setEditing({ rubric: copy })), onError: (e) => toast.error(apiErrorMessage(e)) })}>
                   <Copy className="h-3.5 w-3.5" />
@@ -430,7 +431,7 @@ const RubricsTab: React.FC = () => {
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
                     <Button size="sm" variant="ghost" className="h-8 text-xs" aria-label="Eliminar"
-                      onClick={() => window.confirm('¿Eliminar esta rúbrica?') && del.mutate(r.id, { onSuccess: () => toast.success('Rúbrica eliminada'), onError: (e) => toast.error(apiErrorMessage(e)) })}>
+                      onClick={async () => (await confirmDialog({ title: '¿Eliminar esta rúbrica?', confirmText: 'Eliminar', variant: 'danger' })) && del.mutate(r.id, { onSuccess: () => toast.success('Rúbrica eliminada'), onError: (e) => toast.error(apiErrorMessage(e)) })}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </>

@@ -156,7 +156,7 @@ export const WhatsAppQueueModal: React.FC<{ open: boolean; onClose: () => void; 
             <Textarea className="mt-2" rows={4} value={template} onChange={(e) => saveTemplate(e.target.value)} aria-label="Plantilla del mensaje" />
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               {TEMPLATE_VARIABLES.map((v) => (
-                <code key={v} className="rounded bg-muted px-1.5 py-0.5 text-[11px]">{v}</code>
+                <code key={v} className="rounded bg-muted px-1.5 py-0.5 text-xs">{v}</code>
               ))}
               <Button size="sm" variant="ghost" className={cn('ml-auto h-7 text-xs', template === DEFAULT_WA_TEMPLATE && 'hidden')} onClick={() => saveTemplate(DEFAULT_WA_TEMPLATE)}>
                 Restaurar mensaje
@@ -164,7 +164,7 @@ export const WhatsAppQueueModal: React.FC<{ open: boolean; onClose: () => void; 
             </div>
           </details>
           {data && data.meta.total > 100 && (
-            <p className="text-[11px] text-muted-foreground">Se muestran las primeras 100 pensiones vencidas. Filtra por aula para ver el resto.</p>
+            <p className="text-xs text-muted-foreground">Se muestran las primeras 100 pensiones vencidas. Filtra por aula para ver el resto.</p>
           )}
         </div>
       )}

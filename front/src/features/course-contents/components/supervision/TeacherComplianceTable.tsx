@@ -56,7 +56,7 @@ export const TeacherComplianceTable: React.FC<TeacherComplianceTableProps> = ({
       <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="border-b border-border bg-muted/40 font-bold text-muted-foreground uppercase tracking-wider text-[11px]">
+            <tr className="border-b border-border bg-muted/40 font-bold text-muted-foreground uppercase tracking-wider text-xs">
               <th className="py-3 px-4">Docente</th>
               <th className="py-3 px-3 text-center">Cursos Asignados</th>
               <th className="py-3 px-3">Cobertura Curricular</th>
@@ -80,7 +80,7 @@ export const TeacherComplianceTable: React.FC<TeacherComplianceTableProps> = ({
                     {/* Docente */}
                     <td className="py-3 px-4">
                       <div className="font-bold text-foreground">{t.fullName}</div>
-                      <div className="text-[11px] text-muted-foreground font-normal">{t.email}</div>
+                      <div className="text-xs text-muted-foreground font-normal">{t.email}</div>
                     </td>
 
                     {/* Cursos */}
@@ -90,7 +90,7 @@ export const TeacherComplianceTable: React.FC<TeacherComplianceTableProps> = ({
 
                     {/* Barra de Cobertura */}
                     <td className="py-3 px-3 min-w-[140px]">
-                      <div className="flex items-center justify-between text-[11px] mb-1 font-semibold">
+                      <div className="flex items-center justify-between text-xs mb-1 font-semibold">
                         <span>
                           {t.coursesWithContentCount} de {t.assignedCoursesCount} cursos
                         </span>
@@ -132,19 +132,19 @@ export const TeacherComplianceTable: React.FC<TeacherComplianceTableProps> = ({
                     {/* Estado Semáforo */}
                     <td className="py-3 px-3 text-center">
                       {t.status === 'COMPLIANT' && (
-                        <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 gap-1 text-[10px]">
+                        <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 gap-1 text-xs">
                           <CheckCircle2 className="w-3 h-3" />
                           <span>Al día</span>
                         </Badge>
                       )}
                       {t.status === 'PARTIAL' && (
-                        <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 gap-1 text-[10px]">
+                        <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 gap-1 text-xs">
                           <AlertTriangle className="w-3 h-3" />
                           <span>Parcial</span>
                         </Badge>
                       )}
                       {t.status === 'INACTIVE' && (
-                        <Badge className="bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30 gap-1 text-[10px]">
+                        <Badge className="bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30 gap-1 text-xs">
                           <XCircle className="w-3 h-3" />
                           <span>Sin actividad</span>
                         </Badge>
@@ -199,12 +199,12 @@ export const TeacherComplianceTable: React.FC<TeacherComplianceTableProps> = ({
                             >
                               <div className="min-w-0">
                                 <p className="font-bold text-foreground truncate">{c.areaName}</p>
-                                <p className="text-[11px] text-muted-foreground truncate">
+                                <p className="text-xs text-muted-foreground truncate">
                                   {c.classroomLabel}
                                 </p>
                               </div>
                               <span
-                                className={`text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ${
+                                className={`text-xs font-black px-2 py-0.5 rounded-full shrink-0 ${
                                   c.contentsCount > 0
                                     ? 'bg-primary/10 text-primary'
                                     : 'bg-red-500/15 text-red-600 dark:text-red-400'

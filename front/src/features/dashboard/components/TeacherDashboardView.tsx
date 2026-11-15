@@ -129,13 +129,13 @@ export const TeacherDashboardView: React.FC = () => {
       <div className="p-6 sm:p-8 rounded-2xl bg-card border border-border shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-5 relative overflow-hidden">
         <div className="space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
-            <Badge className="bg-primary/10 text-primary border-primary/20 gap-1 text-[11px] font-bold">
+            <Badge className="bg-primary/10 text-primary border-primary/20 gap-1 text-xs font-bold">
               <GraduationCap className="w-3.5 h-3.5" />
               <span>Panel Docente • KIPUX</span>
             </Badge>
 
             {isTutor && tutorClassroom && (
-              <Badge variant="outline" className="text-[11px] font-bold border-emerald-500/30 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 gap-1">
+              <Badge variant="outline" className="text-xs font-bold border-emerald-500/30 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 gap-1">
                 <School className="w-3 h-3" />
                 <span>Docente Tutor: {tutorClassroom.grade}° "{tutorClassroom.section}" • {tutorClassroom.educationLevel}</span>
               </Badge>
@@ -170,9 +170,9 @@ export const TeacherDashboardView: React.FC = () => {
               <BookOpen className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase">Mis Asignaturas</p>
+              <p className="text-xs font-bold text-muted-foreground uppercase">Mis Asignaturas</p>
               <p className="text-xl sm:text-2xl font-black text-foreground">{totalCourses}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Carga horaria a cargo</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Carga horaria a cargo</p>
             </div>
           </CardContent>
         </Card>
@@ -183,9 +183,9 @@ export const TeacherDashboardView: React.FC = () => {
               <School className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase">Aulas Asignadas</p>
+              <p className="text-xs font-bold text-muted-foreground uppercase">Aulas Asignadas</p>
               <p className="text-xl sm:text-2xl font-black text-emerald-700 dark:text-emerald-300">{uniqueClassrooms}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Secciones activas</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Secciones activas</p>
             </div>
           </CardContent>
         </Card>
@@ -196,9 +196,9 @@ export const TeacherDashboardView: React.FC = () => {
               <Award className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase">Competencias CNEB</p>
+              <p className="text-xs font-bold text-muted-foreground uppercase">Competencias CNEB</p>
               <p className="text-xl sm:text-2xl font-black text-foreground">{totalCompetences}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">A evaluar en el ciclo</p>
+              <p className="text-xs text-muted-foreground mt-0.5">A evaluar en el ciclo</p>
             </div>
           </CardContent>
         </Card>
@@ -209,9 +209,9 @@ export const TeacherDashboardView: React.FC = () => {
               <Megaphone className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase">Comunicados</p>
+              <p className="text-xs font-bold text-muted-foreground uppercase">Comunicados</p>
               <p className="text-xl sm:text-2xl font-black text-foreground">{announcementsCount}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Circulares oficiales</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Circulares oficiales</p>
             </div>
           </CardContent>
         </Card>
@@ -265,7 +265,7 @@ export const TeacherDashboardView: React.FC = () => {
               <BookOpen className="w-3.5 h-3.5 text-primary" />
               <span>Mis Cursos a Cargo ({totalCourses})</span>
             </h2>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {selectedDashboardClassroom
                 ? `Mostrando cursos del aula seleccionada (${displayedCourses.length} materias)`
                 : 'Acceso directo a tus materias principales'}
@@ -342,7 +342,7 @@ export const TeacherDashboardView: React.FC = () => {
                           <IconComponent className="w-5 h-5" />
                         </div>
                         <div className="min-w-0">
-                          <Badge variant="outline" className={`text-[10px] font-bold py-0 h-4 ${theme.badgeStyle}`}>
+                          <Badge variant="outline" className={`text-xs font-bold py-0 h-4 ${theme.badgeStyle}`}>
                             {theme.category}
                           </Badge>
                           <h4 className="text-sm font-extrabold text-foreground truncate mt-1">
@@ -393,8 +393,8 @@ export const TeacherDashboardView: React.FC = () => {
                   <BookOpen className="w-5 h-5" />
                 </div>
                 <p className="text-xs font-bold text-foreground">+{totalCourses - 3} materias adicionales</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">En tus otras aulas asignadas</p>
-                <span className="text-[11px] font-bold text-primary mt-2 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                <p className="text-xs text-muted-foreground mt-0.5">En tus otras aulas asignadas</p>
+                <span className="text-xs font-bold text-primary mt-2 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
                   Explorar todo en Mis Cursos <ArrowRight className="w-3.5 h-3.5" />
                 </span>
               </Card>

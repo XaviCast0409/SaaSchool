@@ -89,7 +89,7 @@ export const SupervisionMetricsCards: React.FC<SupervisionMetricsCardsProps> = (
                 {c.title}
               </span>
               <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${c.badgeClass}`}
+                className={`text-xs font-bold px-2 py-0.5 rounded-full ${c.badgeClass}`}
               >
                 {c.badge}
               </span>

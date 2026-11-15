@@ -47,17 +47,17 @@ export const StudentCourseCard: React.FC<StudentCourseCardProps> = ({
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <Badge variant="outline" className={`text-[10px] font-bold py-0 h-4 ${theme.badgeStyle}`}>
+                <Badge variant="outline" className={`text-xs font-bold py-0 h-4 ${theme.badgeStyle}`}>
                   {theme.category}
                 </Badge>
                 {pendingTasksCount > 0 && (
-                  <Badge className="text-[10px] font-bold py-0 h-4 bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20 gap-1">
+                  <Badge className="text-xs font-bold py-0 h-4 bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20 gap-1">
                     <ClipboardList className="w-2.5 h-2.5" />
                     <span>{pendingTasksCount} tarea{pendingTasksCount > 1 ? 's' : ''}</span>
                   </Badge>
                 )}
                 {activeForumsCount > 0 && (
-                  <Badge className="text-[10px] font-bold py-0 h-4 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20 gap-1">
+                  <Badge className="text-xs font-bold py-0 h-4 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20 gap-1">
                     <MessageSquare className="w-2.5 h-2.5" />
                     <span>Foro</span>
                   </Badge>
@@ -105,13 +105,13 @@ export const StudentCourseCard: React.FC<StudentCourseCardProps> = ({
                 <IconComponent className="w-5 h-5" />
               </div>
               <div>
-                <Badge variant="outline" className={`text-[10px] font-bold py-0.5 ${theme.badgeStyle}`}>
+                <Badge variant="outline" className={`text-xs font-bold py-0.5 ${theme.badgeStyle}`}>
                   {theme.category}
                 </Badge>
               </div>
             </div>
 
-            <Badge variant="secondary" className="text-[10px] font-bold shrink-0">
+            <Badge variant="secondary" className="text-xs font-bold shrink-0">
               {contentsCount > 0 ? `${contentsCount} publicaciones` : 'Sin materiales'}
             </Badge>
           </div>
@@ -134,19 +134,19 @@ export const StudentCourseCard: React.FC<StudentCourseCardProps> = ({
         <div className="space-y-2 pt-1">
           <div className="flex items-center gap-1.5 flex-wrap min-h-[22px]">
             {pendingTasksCount > 0 ? (
-              <Badge className="text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20 gap-1">
+              <Badge className="text-xs font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20 gap-1">
                 <ClipboardList className="w-3 h-3" />
                 <span>{pendingTasksCount} tarea{pendingTasksCount > 1 ? 's' : ''} pendiente{pendingTasksCount > 1 ? 's' : ''}</span>
               </Badge>
             ) : null}
             {activeForumsCount > 0 ? (
-              <Badge className="text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20 gap-1">
+              <Badge className="text-xs font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20 gap-1">
                 <MessageSquare className="w-3 h-3" />
                 <span>Foro activo</span>
               </Badge>
             ) : null}
             {pendingTasksCount === 0 && activeForumsCount === 0 && contentsCount > 0 ? (
-              <span className="text-[11px] text-muted-foreground flex items-center gap-1 font-medium">
+              <span className="text-xs text-muted-foreground flex items-center gap-1 font-medium">
                 <Sparkles className="w-3 h-3 text-primary" />
                 <span>Materiales de clase listos</span>
               </span>

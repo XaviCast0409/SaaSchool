@@ -57,7 +57,7 @@ export const NextDayCard: React.FC<{ studentId: string | null; compact?: boolean
             <ol className="space-y-1">
               {(compact ? data.blocks.slice(0, 8) : data.blocks).map((b, i) => (
                 <li key={`${b.startTime}-${i}`} className="flex items-baseline gap-2 text-sm">
-                  <span className="w-12 shrink-0 font-mono text-[11px] text-muted-foreground">{b.startTime}</span>
+                  <span className="w-12 shrink-0 font-mono text-xs text-muted-foreground">{b.startTime}</span>
                   {b.courseAssignmentId ? (
                     <span className="text-foreground">{b.courseName}</span>
                   ) : (

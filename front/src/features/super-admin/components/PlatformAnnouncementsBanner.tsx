@@ -33,7 +33,10 @@ export const PlatformAnnouncementsBanner: React.FC = () => {
   const { data: announcements = [] } = useActivePlatformAnnouncements(true);
   const [dismissed, setDismissed] = useState<string[]>(readDismissed);
 
-  const visible = announcements.filter((a) => a.level === 'CRITICAL' || !dismissed.includes(a.id));
+  // Los críticos primero: son los que nunca se agrupan detrás de "ver más avisos"
+  const visible = announcements
+    .filter((a) => a.level === 'CRITICAL' || !dismissed.includes(a.id))
+    .sort((a, b) => Number(b.level === 'CRITICAL') - Number(a.level === 'CRITICAL'));
   if (!visible.length) return null;
 
   const dismiss = (id: string) => {
@@ -43,11 +46,16 @@ export const PlatformAnnouncementsBanner: React.FC = () => {
   };
 
   return (
-    <div className="print:hidden">
+    <>
       {visible.map((a) => {
         const { box, Icon } = STYLES[a.level];
         return (
-          <div key={a.id} role="status" className={`border-b px-4 py-2.5 text-xs flex items-start gap-2 ${box}`}>
+          <div
+            key={a.id}
+            role="status"
+            data-priority={a.level === 'CRITICAL' ? 'high' : undefined}
+            className={`border-b px-4 py-2.5 text-xs flex items-start gap-2 print:hidden ${box}`}
+          >
             <Icon className="w-4 h-4 shrink-0 mt-px" />
             <div className="flex-1 min-w-0">
               <strong>{a.title}.</strong> <span className="whitespace-pre-line">{a.message}</span>
@@ -65,6 +73,6 @@ export const PlatformAnnouncementsBanner: React.FC = () => {
           </div>
         );
       })}
-    </div>
+    </>
   );
 };

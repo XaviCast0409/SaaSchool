@@ -1,3 +1,5 @@
+import { useUrlFilters } from '@/lib/useUrlFilters';
+import { confirmDialog } from '@/components/ui/confirm';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -51,7 +53,7 @@ const PlanStatusBadge: React.FC<{ status?: PlanStatus }> = ({ status }) => {
   if (access === 'ACTIVE') {
     if (daysUntilExpiry === null || daysUntilExpiry > 15) return null;
     return (
-      <Badge variant="outline" className="text-[10px] whitespace-nowrap border-amber-500/40 text-amber-700 dark:text-amber-300">
+      <Badge variant="outline" className="text-xs whitespace-nowrap border-amber-500/40 text-amber-700 dark:text-amber-300">
         {daysUntilExpiry === 0 ? 'Vence hoy' : `Vence en ${daysUntilExpiry} d`}
       </Badge>
     );
@@ -63,7 +65,7 @@ const PlanStatusBadge: React.FC<{ status?: PlanStatus }> = ({ status }) => {
         ? `Solo lectura · ${daysOverdue} d vencido`
         : `Sin acceso · ${daysOverdue} d vencido`;
   return (
-    <Badge variant={access === 'GRACE' ? 'outline' : 'destructive'} className="text-[10px] whitespace-nowrap">
+    <Badge variant={access === 'GRACE' ? 'outline' : 'destructive'} className="text-xs whitespace-nowrap">
       {label}
     </Badge>
   );
@@ -95,8 +97,11 @@ export const SuperAdminPage: React.FC = () => {
   const navigate = useNavigate();
   const setImpersonatedSchool = useAuthStore((state) => state.setImpersonatedSchool);
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterPlan, setFilterPlan] = useState<string>('ALL');
+  // Filtros en la URL: sobreviven a recargar, al botón Atrás y se pueden compartir como enlace
+  const [urlFilters, setUrlFilters] = useUrlFilters({ q: '', plan: 'ALL' });
+  const { q: searchTerm, plan: filterPlan } = urlFilters;
+  const setSearchTerm = (value: string) => setUrlFilters({ q: value });
+  const setFilterPlan = (value: string) => setUrlFilters({ plan: value });
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedSchoolForPlan, setSelectedSchoolForPlan] = useState<SchoolWithStats | null>(null);
   const [selectedSchoolForEdit, setSelectedSchoolForEdit] = useState<SchoolWithStats | null>(null);
@@ -181,9 +186,9 @@ export const SuperAdminPage: React.FC = () => {
         Math.min(...a.reasons.map((r) => TONE_RANK[r.tone])) - Math.min(...b.reasons.map((r) => TONE_RANK[r.tone])),
     );
 
-  const handleToggleStatus = (school: SchoolWithStats) => {
+  const handleToggleStatus = async (school: SchoolWithStats) => {
     if (school.isActive) {
-      if (window.confirm(`¿Deseas suspender el acceso a la plataforma para el colegio "${school.name}"?`)) {
+      if (await confirmDialog({ title: `¿Suspender a "${school.name}"?`, description: 'El colegio perderá el acceso a la plataforma hasta que lo reactives.', confirmText: 'Suspender acceso', variant: 'danger' })) {
         deactivateSchool(school.id, {
           onSuccess: () => toast.success(`🚫 Colegio "${school.name}" suspendido por cobranza.`),
           onError: () => toast.error('Error al suspender el colegio.'),
@@ -239,7 +244,7 @@ export const SuperAdminPage: React.FC = () => {
                 {activeSchools} <span className="text-xs font-semibold text-muted-foreground">/ {totalSchools} activos</span>
               </div>
             )}
-            <p className="text-[11px] text-muted-foreground mt-1">Instituciones conectadas</p>
+            <p className="text-xs text-muted-foreground mt-1">Instituciones conectadas</p>
           </CardContent>
         </Card>
 
@@ -256,7 +261,7 @@ export const SuperAdminPage: React.FC = () => {
                 S/ {estimatedMRR.toFixed(2)}
               </div>
             )}
-            <p className="text-[11px] text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               {overdueSchools > 0 ? (
                 <span className="text-destructive font-semibold">{overdueSchools} con plan vencido</span>
               ) : (
@@ -279,7 +284,7 @@ export const SuperAdminPage: React.FC = () => {
                 {totalStudentsInPlatform}
               </div>
             )}
-            <p className="text-[11px] text-muted-foreground mt-1">Matrículas activas consolidadas</p>
+            <p className="text-xs text-muted-foreground mt-1">Matrículas activas consolidadas</p>
           </CardContent>
         </Card>
 
@@ -294,7 +299,7 @@ export const SuperAdminPage: React.FC = () => {
             ) : (
               <div className="text-2xl font-extrabold text-foreground">S/ {formatSoles(billing?.collectedThisMonth ?? 0)}</div>
             )}
-            <p className="text-[11px] text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               {billing
                 ? `${billing.paymentsThisMonth} ${billing.paymentsThisMonth === 1 ? 'pago' : 'pagos'} · mes anterior S/ ${formatSoles(billing.collectedLastMonth)}`
                 : 'Pagos de suscripción registrados'}
@@ -310,7 +315,7 @@ export const SuperAdminPage: React.FC = () => {
             <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground">
               <AlertTriangle className="w-4 h-4 text-amber-500" />
               Requiere atención
-              <Badge variant="secondary" className="text-[10px]">
+              <Badge variant="secondary" className="text-xs">
                 {attentionSchools.length}
               </Badge>
             </CardTitle>
@@ -331,7 +336,7 @@ export const SuperAdminPage: React.FC = () => {
                         <Badge
                           key={r.label}
                           variant={r.tone === 'danger' ? 'destructive' : r.tone === 'warn' ? 'warning' : 'secondary'}
-                          className="text-[10px] whitespace-nowrap"
+                          className="text-xs whitespace-nowrap"
                         >
                           {r.label}
                         </Badge>
@@ -437,12 +442,12 @@ export const SuperAdminPage: React.FC = () => {
                         <TableCell>
                           <Badge
                             variant={item.plan === 'PRO' ? 'default' : item.plan === 'ENTERPRISE' ? 'success' : 'secondary'}
-                            className="font-bold text-[10px] whitespace-nowrap"
+                            className="font-bold text-xs whitespace-nowrap"
                           >
                             {item.plan} (S/ {formatSoles(feeOf(item))}/mes)
                           </Badge>
                           {hasCustomFee && (
-                            <div className="text-[10px] text-muted-foreground mt-0.5">
+                            <div className="text-xs text-muted-foreground mt-0.5">
                               Precio pactado · lista S/ {formatSoles(listPrice(item.plan))}
                             </div>
                           )}
@@ -451,7 +456,7 @@ export const SuperAdminPage: React.FC = () => {
                           <div className="space-y-0.5">
                             <div className="text-xs font-medium text-foreground">
                               <strong>{item._count?.students || 0}</strong>
-                              <span className="text-muted-foreground text-[11px]">
+                              <span className="text-muted-foreground text-xs">
                                 /{quota === null ? '∞' : quota ?? '—'} alumnos
                               </span>
                             </div>
@@ -470,7 +475,7 @@ export const SuperAdminPage: React.FC = () => {
                                 />
                               </div>
                             )}
-                            <div className="text-[11px] text-muted-foreground">
+                            <div className="text-xs text-muted-foreground">
                               {item._count?.users || 0} usuarios
                             </div>
                           </div>
@@ -480,7 +485,7 @@ export const SuperAdminPage: React.FC = () => {
                             <div className="text-xs text-foreground">
                               {timeAgo(item.activity?.lastSeenAt) ?? <span className="text-muted-foreground">Sin actividad</span>}
                             </div>
-                            <div className="text-[11px] text-muted-foreground">
+                            <div className="text-xs text-muted-foreground">
                               {item.activity?.active7d ?? 0} activos (7 d) · {item.activity?.active30d ?? 0} (30 d)
                             </div>
                           </div>
@@ -496,18 +501,18 @@ export const SuperAdminPage: React.FC = () => {
                           ) : (
                             <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">Mensual Indefinido</span>
                           )}
-                          <div className="text-[11px] text-muted-foreground mt-1 whitespace-nowrap">
+                          <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap">
                             {item.lastPaymentOn ? `Último pago ${formatPeruShortDate(item.lastPaymentOn)}` : 'Sin pagos registrados'}
                           </div>
                         </TableCell>
                         <TableCell>
                           {item.isActive ? (
-                            <Badge variant="success" className="gap-1 text-[10px]">
+                            <Badge variant="success" className="gap-1 text-xs">
                               <CheckCircle2 className="w-3 h-3" />
                               <span>Activo</span>
                             </Badge>
                           ) : (
-                            <Badge variant="destructive" className="gap-1 text-[10px]">
+                            <Badge variant="destructive" className="gap-1 text-xs">
                               <XCircle className="w-3 h-3" />
                               <span>Suspendido</span>
                             </Badge>

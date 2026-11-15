@@ -55,7 +55,7 @@ const AreaEditor: React.FC<{ area: PreuniversityArea; level: Level; grade: numbe
               <input type="checkbox" className="mt-1" checked={s.on} onChange={(e) => setSel({ ...sel, [c.key]: { ...s, on: e.target.checked } })} />
               <span className="flex-1">
                 <span className="font-medium">{c.name}</span>
-                {c.sanMarcos && <span className="ml-1.5 rounded bg-muted px-1 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">San Marcos</span>}
+                {c.sanMarcos && <span className="ml-1.5 rounded bg-muted px-1 py-0.5 text-xs uppercase tracking-wide text-muted-foreground">San Marcos</span>}
                 <span className="block text-xs text-muted-foreground">{c.competences.map((n) => catalog.competences[n].shortName).join(' · ')}</span>
               </span>
               {s.on && (

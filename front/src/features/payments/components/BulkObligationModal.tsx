@@ -217,11 +217,11 @@ export const BulkObligationModal: React.FC<BulkObligationModalProps> = ({ onClos
                 ] as const
               ).map(([field, label]) => (
                 <div key={field} className="space-y-1">
-                  <label className="text-[11px] font-semibold text-foreground">{label} (S/)</label>
+                  <label className="text-xs font-semibold text-foreground">{label} (S/)</label>
                   <Input type="number" step="0.01" min="0" placeholder="No cobrar" {...register(field)} className="h-9 text-xs font-mono font-bold" />
                 </div>
               ))}
-              <p className="col-span-3 text-[10px] text-muted-foreground">Deja vacío un nivel para no cobrarle este concepto.</p>
+              <p className="col-span-3 text-xs text-muted-foreground">Deja vacío un nivel para no cobrarle este concepto.</p>
             </div>
           )}
 

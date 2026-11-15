@@ -46,7 +46,7 @@ export const StudentBirthdaysReport: React.FC<StudentBirthdaysReportProps> = ({ 
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse border border-foreground/50 text-[11px]">
+          <table className="w-full border-collapse border border-foreground/50 text-xs">
             <thead>
               <tr className="bg-muted/50 font-bold text-foreground">
                 <th className="border border-foreground/50 p-1.5 w-10 text-center">N°</th>
@@ -67,16 +67,16 @@ export const StudentBirthdaysReport: React.FC<StudentBirthdaysReportProps> = ({ 
                   <td className="border border-foreground/50 p-1.5 text-center font-mono font-black text-xs text-primary">
                     {student.day}
                   </td>
-                  <td className="border border-foreground/50 p-1.5 text-center font-medium text-[10px] text-muted-foreground">
+                  <td className="border border-foreground/50 p-1.5 text-center font-medium text-xs text-muted-foreground">
                     {student.monthName}
                   </td>
-                  <td className="border border-foreground/50 p-1.5 text-center font-mono text-[10px] text-muted-foreground">
+                  <td className="border border-foreground/50 p-1.5 text-center font-mono text-xs text-muted-foreground">
                     {student.birthDateFormatted}
                   </td>
                   <td className="border border-foreground/50 p-1.5 text-center font-bold text-foreground font-mono">
                     {student.ageTurning !== null ? `${student.ageTurning}a` : '—'}
                   </td>
-                  <td className="border border-foreground/50 p-1.5 text-center font-mono text-[10px] text-muted-foreground">
+                  <td className="border border-foreground/50 p-1.5 text-center font-mono text-xs text-muted-foreground">
                     {student.studentCode}
                   </td>
                   <td className="border border-foreground/50 p-1.5 font-bold uppercase text-foreground">
@@ -85,7 +85,7 @@ export const StudentBirthdaysReport: React.FC<StudentBirthdaysReportProps> = ({ 
                   <td className="border border-foreground/50 p-1.5 text-center font-bold text-muted-foreground">
                     {student.gender}
                   </td>
-                  <td className="border border-foreground/50 p-1.5 text-center font-medium text-[10px]">
+                  <td className="border border-foreground/50 p-1.5 text-center font-medium text-xs">
                     {student.classroomLabel} ({student.educationLevel})
                   </td>
                 </tr>

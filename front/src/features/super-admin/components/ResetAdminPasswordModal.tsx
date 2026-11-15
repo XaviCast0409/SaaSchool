@@ -101,7 +101,7 @@ export const ResetAdminPasswordModal: React.FC<ResetAdminPasswordModalProps> = (
                   <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                   <span>Soporte Técnico de Acceso</span>
                 </div>
-                <p className="text-[11px] leading-relaxed">
+                <p className="text-xs leading-relaxed">
                   Esta acción actualizará la contraseña del usuario con rol <strong>Director / Administrador</strong> de este colegio para que pueda ingresar inmediatamente.
                 </p>
               </div>
@@ -117,7 +117,7 @@ export const ResetAdminPasswordModal: React.FC<ResetAdminPasswordModalProps> = (
                   onChange={(e) => setCustomPassword(e.target.value)}
                   className="h-9 text-xs font-mono"
                 />
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   Si lo dejas vacío, el sistema generará una clave segura como: <code className="bg-muted px-1 rounded">Colegio4821!</code>
                 </p>
               </div>

@@ -1,3 +1,4 @@
+import { useUrlFilters } from '@/lib/useUrlFilters';
 import React, { useState } from 'react';
 import {
   FileCheck2,
@@ -28,9 +29,13 @@ const LEVEL_LABELS: Record<string, string> = {
 };
 
 export const AttendanceJustificationsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<JustificationStatus>('PENDING');
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(20);
+  // Filtros en la URL: sobreviven a recargar, al botón Atrás y se pueden compartir como enlace
+  const [urlFilters, setUrlFilters] = useUrlFilters({ tab: 'PENDING', page: 1, limit: 20 });
+  const { page, limit } = urlFilters;
+  const activeTab = urlFilters.tab as JustificationStatus;
+  const setActiveTab = (value: JustificationStatus) => setUrlFilters({ tab: value });
+  const setPage = (value: number) => setUrlFilters({ page: value });
+  const setLimit = (value: number) => setUrlFilters({ limit: value });
 
   // Modal para rechazar
   const [rejectingItem, setRejectingItem] = useState<AttendanceJustification | null>(null);
@@ -158,7 +163,7 @@ export const AttendanceJustificationsPage: React.FC = () => {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-muted/40 border-b border-border text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
+              <thead className="bg-muted/40 border-b border-border text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3">Estudiante</th>
                   <th className="px-4 py-3">Aula</th>
@@ -197,7 +202,7 @@ export const AttendanceJustificationsPage: React.FC = () => {
                         {datesDisplay}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                        <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-secondary text-secondary-foreground">
+                        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-secondary text-secondary-foreground">
                           {REASON_LABELS[item.reason] || item.reason}
                         </span>
                       </td>
@@ -206,7 +211,7 @@ export const AttendanceJustificationsPage: React.FC = () => {
                           {item.description}
                         </span>
                         {item.reviewNote && item.status === 'REJECTED' && (
-                          <span className="block text-[10px] text-destructive mt-0.5">
+                          <span className="block text-xs text-destructive mt-0.5">
                             Nota: {item.reviewNote}
                           </span>
                         )}
@@ -217,7 +222,7 @@ export const AttendanceJustificationsPage: React.FC = () => {
                             variant="ghost"
                             size="sm"
                             onClick={() => item.fileUrl && void openFile(item.fileUrl)}
-                            className="h-7 text-[11px] font-bold text-primary hover:text-primary gap-1"
+                            className="h-7 text-xs font-bold text-primary hover:text-primary gap-1"
                           >
                             <ExternalLink className="w-3 h-3" />
                             <span>Ver</span>
@@ -226,7 +231,7 @@ export const AttendanceJustificationsPage: React.FC = () => {
                           <span className="text-muted-foreground">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap text-[11px]">
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap text-xs">
                         {formatDateTime(item.createdAt)}
                       </td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">
@@ -236,7 +241,7 @@ export const AttendanceJustificationsPage: React.FC = () => {
                               size="sm"
                               disabled={isReviewing}
                               onClick={() => handleApprove(item)}
-                              className="h-7 px-2.5 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg gap-1"
+                              className="h-7 px-2.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg gap-1"
                             >
                               <CheckCircle2 className="w-3 h-3" />
                               <span>Aprobar</span>
@@ -249,18 +254,18 @@ export const AttendanceJustificationsPage: React.FC = () => {
                                 setRejectingItem(item);
                                 setRejectNote('');
                               }}
-                              className="h-7 px-2.5 text-[11px] font-bold text-destructive hover:bg-destructive/10 border-destructive/30 rounded-lg gap-1"
+                              className="h-7 px-2.5 text-xs font-bold text-destructive hover:bg-destructive/10 border-destructive/30 rounded-lg gap-1"
                             >
                               <XCircle className="w-3 h-3" />
                               <span>Rechazar</span>
                             </Button>
                           </div>
                         ) : item.status === 'APPROVED' ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
                             Aprobada
                           </span>
                         ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-destructive/15 text-destructive">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-destructive/15 text-destructive">
                             Rechazada
                           </span>
                         )}

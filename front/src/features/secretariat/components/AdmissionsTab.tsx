@@ -204,7 +204,7 @@ export const AdmissionsTab: React.FC<{ defaultYear: number | null }> = ({ defaul
                       <p className="font-medium leading-tight">{a.studentFirstNames} {a.studentLastNamePaternal}</p>
                       <p className="text-xs text-muted-foreground">{a.gradeLabel}</p>
                       {a.interviewAt && status === 'INTERVIEW' && <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">Entrevista: {formatPeruDateTime(a.interviewAt)}</p>}
-                      <p className="mt-1 text-[11px] text-muted-foreground">{formatPeruShortDate(a.createdAt)} · {a.guardianPhone}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{formatPeruShortDate(a.createdAt)} · {a.guardianPhone}</p>
                     </button>
                   ))}
                 </div>

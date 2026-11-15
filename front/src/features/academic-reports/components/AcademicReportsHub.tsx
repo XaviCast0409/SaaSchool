@@ -301,7 +301,7 @@ export const AcademicReportsHub: React.FC<AcademicReportsHubProps> = ({
                     <div className="space-y-1">
                       {Object.entries(subCategories).map(([subCategory, items]) => (
                         <div key={subCategory} className="pl-4 pr-1 py-1">
-                          <div className="flex items-center gap-1.5 py-1 text-[11px] font-bold text-muted-foreground uppercase tracking-tight">
+                          <div className="flex items-center gap-1.5 py-1 text-xs font-bold text-muted-foreground uppercase tracking-tight">
                             <ChevronDown className="w-3 h-3" />
                             <span>Menú: {subCategory} ({items.length})</span>
                           </div>
@@ -326,13 +326,13 @@ export const AcademicReportsHub: React.FC<AcademicReportsHubProps> = ({
                                       : 'opacity-40 text-muted-foreground cursor-not-allowed'
                                   }`}
                                 >
-                                  <div className="col-span-3 font-mono text-center text-[11px]">
+                                  <div className="col-span-3 font-mono text-center text-xs">
                                     {report.code}
                                   </div>
                                   <div className="col-span-9 truncate text-xs">
                                     {report.name}
                                     {!report.isImplemented && (
-                                      <span className="ml-2 text-[10px] font-mono text-muted-foreground">
+                                      <span className="ml-2 text-xs font-mono text-muted-foreground">
                                         (Próx.)
                                       </span>
                                     )}
@@ -457,7 +457,7 @@ export const AcademicReportsHub: React.FC<AcademicReportsHubProps> = ({
                     </div>
                   </div>
 
-                  <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 text-primary text-[11px] font-medium leading-tight">
+                  <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 text-primary text-xs font-medium leading-tight">
                     ℹ️ Ranking consolidado evaluando a <strong>todas las secciones</strong> del grado simultáneamente.
                   </div>
                 </>
@@ -482,7 +482,7 @@ export const AcademicReportsHub: React.FC<AcademicReportsHubProps> = ({
                     </div>
                   </div>
 
-                  <div className="p-2 rounded-lg bg-muted border border-border text-muted-foreground text-[11px] leading-tight">
+                  <div className="p-2 rounded-lg bg-muted border border-border text-muted-foreground text-xs leading-tight">
                     Padrón institucional completo agrupado por núcleos familiares según condición de matrícula.
                   </div>
                 </>
@@ -509,7 +509,7 @@ export const AcademicReportsHub: React.FC<AcademicReportsHubProps> = ({
                     </div>
                   </div>
 
-                  <div className="p-2 rounded-lg bg-muted border border-border text-muted-foreground text-[11px] leading-tight">
+                  <div className="p-2 rounded-lg bg-muted border border-border text-muted-foreground text-xs leading-tight">
                     {selectedClassroomId
                       ? 'Mostrando información restringida al aula seleccionada.'
                       : 'Mostrando todo el colegio consolidado sin restricción de aula.'}

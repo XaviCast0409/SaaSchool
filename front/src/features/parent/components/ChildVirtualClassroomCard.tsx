@@ -15,7 +15,7 @@ export const ChildVirtualClassroomCard: React.FC = () => {
             <GraduationCap className="w-4 h-4 text-primary" />
             <span>Aula Virtual y Materiales</span>
           </CardTitle>
-          <span className="text-[10px] uppercase font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+          <span className="text-xs uppercase font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
             Bimestral
           </span>
         </div>
@@ -27,15 +27,15 @@ export const ChildVirtualClassroomCard: React.FC = () => {
         <div className="grid grid-cols-3 gap-2 text-center text-xs">
           <div className="p-2 rounded-lg bg-muted/40 border border-border">
             <BookOpen className="w-3.5 h-3.5 text-primary mx-auto mb-1" />
-            <span className="block font-semibold text-[11px] text-foreground">Clases</span>
+            <span className="block font-semibold text-xs text-foreground">Clases</span>
           </div>
           <div className="p-2 rounded-lg bg-muted/40 border border-border">
             <FileText className="w-3.5 h-3.5 text-amber-500 mx-auto mb-1" />
-            <span className="block font-semibold text-[11px] text-foreground">Tareas</span>
+            <span className="block font-semibold text-xs text-foreground">Tareas</span>
           </div>
           <div className="p-2 rounded-lg bg-muted/40 border border-border">
             <MessageSquare className="w-3.5 h-3.5 text-emerald-500 mx-auto mb-1" />
-            <span className="block font-semibold text-[11px] text-foreground">Foros</span>
+            <span className="block font-semibold text-xs text-foreground">Foros</span>
           </div>
         </div>
 

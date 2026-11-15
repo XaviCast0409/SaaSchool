@@ -29,7 +29,7 @@ export const ReportActionToolbar: React.FC<ReportActionToolbarProps> = ({
         <span className="text-sm font-bold text-foreground truncate max-w-[280px] sm:max-w-md">
           {reportTitle}
         </span>
-        <Badge variant="secondary" className="text-[10px] uppercase font-semibold text-muted-foreground">
+        <Badge variant="secondary" className="text-xs uppercase font-semibold text-muted-foreground">
           {orientation === 'landscape' ? 'Horizontal (A4)' : 'Vertical (A4)'}
         </Badge>
       </div>

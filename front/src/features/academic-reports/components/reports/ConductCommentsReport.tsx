@@ -52,7 +52,7 @@ export const ConductCommentsReport: React.FC<ConductCommentsReportProps> = ({ da
         />
 
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse border border-foreground/50 text-[11px]">
+          <table className="w-full border-collapse border border-foreground/50 text-xs">
             <thead>
               <tr className="bg-muted/50 font-bold text-foreground">
                 <th className="border border-foreground/50 p-1.5 w-10 text-center">N°</th>

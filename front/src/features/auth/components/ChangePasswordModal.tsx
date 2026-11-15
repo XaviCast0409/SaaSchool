@@ -101,7 +101,7 @@ export const ChangePasswordModal: React.FC = () => {
           </div>
         </form>
 
-        <p className="text-[11px] text-center text-muted-foreground">
+        <p className="text-xs text-center text-muted-foreground">
           Recuerda guardar tu nueva clave en un lugar seguro.
         </p>
       </div>

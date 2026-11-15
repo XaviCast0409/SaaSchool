@@ -114,19 +114,19 @@ export const NominaSiagieModal: React.FC<NominaSiagieModalProps> = ({
               {/* Tarjetas de Métricas */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="p-3 rounded-xl border border-border bg-background/50">
-                  <span className="text-[11px] text-muted-foreground block font-medium">Total Matriculados</span>
+                  <span className="text-xs text-muted-foreground block font-medium">Total Matriculados</span>
                   <span className="text-xl font-bold text-foreground mt-0.5 block">
                     {nominaData.totalStudents} alumnos
                   </span>
                 </div>
                 <div className="p-3 rounded-xl border border-border bg-background/50">
-                  <span className="text-[11px] text-muted-foreground block font-medium">Varones (M)</span>
+                  <span className="text-xs text-muted-foreground block font-medium">Varones (M)</span>
                   <span className="text-xl font-bold text-blue-600 dark:text-blue-400 mt-0.5 block">
                     {countMales}
                   </span>
                 </div>
                 <div className="p-3 rounded-xl border border-border bg-background/50">
-                  <span className="text-[11px] text-muted-foreground block font-medium">Mujeres (F)</span>
+                  <span className="text-xs text-muted-foreground block font-medium">Mujeres (F)</span>
                   <span className="text-xl font-bold text-pink-600 dark:text-pink-400 mt-0.5 block">
                     {countFemales}
                   </span>
@@ -153,7 +153,7 @@ export const NominaSiagieModal: React.FC<NominaSiagieModalProps> = ({
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Año Académico:</span>
-                  <Badge variant="outline" className="text-[10px]">
+                  <Badge variant="outline" className="text-xs">
                     {nominaData.academicYear?.year || new Date().getFullYear()}
                   </Badge>
                 </div>
@@ -174,17 +174,17 @@ export const NominaSiagieModal: React.FC<NominaSiagieModalProps> = ({
                     nominaData.students.map((st, idx) => (
                       <div key={st.id} className="p-2.5 flex items-center justify-between hover:bg-muted/30">
                         <div className="flex items-center gap-2">
-                          <span className="w-5 text-muted-foreground font-mono text-[11px]">{idx + 1}.</span>
+                          <span className="w-5 text-muted-foreground font-mono text-xs">{idx + 1}.</span>
                           <div>
                             <span className="font-medium text-foreground">
                               {st.lastNamePaternal} {st.lastNameMaternal}, {st.firstNames}
                             </span>
-                            <span className="block text-[10px] text-muted-foreground font-mono">
+                            <span className="block text-xs text-muted-foreground font-mono">
                               DNI: {st.documentId} {st.studentCode ? `| Cód: ${st.studentCode}` : ''}
                             </span>
                           </div>
                         </div>
-                        <Badge variant="outline" className="text-[10px]">
+                        <Badge variant="outline" className="text-xs">
                           {st.gender === 'MALE' ? 'M' : 'F'}
                         </Badge>
                       </div>

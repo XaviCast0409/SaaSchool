@@ -65,7 +65,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                 {title || fileName || 'Documento'}
               </h3>
               {fileName && (
-                <p className="text-[11px] text-muted-foreground truncate">
+                <p className="text-xs text-muted-foreground truncate">
                   {fileName}
                 </p>
               )}

@@ -200,7 +200,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PAR
                   </label>
                 ))}
               </div>
-              <p className="text-[11px] text-muted-foreground">Si se contrata desde ahora para el año siguiente, marca solo ese año.</p>
+              <p className="text-xs text-muted-foreground">Si se contrata desde ahora para el año siguiente, marca solo ese año.</p>
             </div>
           )}
 

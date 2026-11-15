@@ -51,12 +51,12 @@ export const FamiliesChildrenReport: React.FC<FamiliesChildrenReportProps> = ({ 
               {/* Header de la Familia */}
               <div className="bg-muted/70 px-3 py-2 border-b border-foreground/30 flex flex-wrap items-center justify-between gap-2 text-xs">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded text-[11px]">
+                  <span className="font-mono font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded text-xs">
                     {fam.familyCode}
                   </span>
                   <span className="font-bold uppercase text-foreground">{fam.familyName}</span>
                 </div>
-                <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   <span>
                     <strong className="text-foreground">Padre:</strong> {fam.fatherName}
                   </span>
@@ -73,9 +73,9 @@ export const FamiliesChildrenReport: React.FC<FamiliesChildrenReportProps> = ({ 
               </div>
 
               {/* Sub-tabla de Hijos */}
-              <table className="w-full border-collapse text-[11px]">
+              <table className="w-full border-collapse text-xs">
                 <thead>
-                  <tr className="bg-muted/30 font-semibold text-muted-foreground text-[10px] uppercase">
+                  <tr className="bg-muted/30 font-semibold text-muted-foreground text-xs uppercase">
                     <th className="p-1.5 w-10 text-center border-b border-foreground/20">N°</th>
                     <th className="p-1.5 w-24 text-center border-b border-foreground/20">Cód. Alumno</th>
                     <th className="p-1.5 w-20 text-center border-b border-foreground/20">DNI</th>
@@ -89,14 +89,14 @@ export const FamiliesChildrenReport: React.FC<FamiliesChildrenReportProps> = ({ 
                   {fam.children.map((child) => (
                     <tr key={child.documentId} className="hover:bg-muted/20 border-b border-border/50 last:border-b-0">
                       <td className="p-1.5 text-center font-mono text-muted-foreground">{child.index}</td>
-                      <td className="p-1.5 text-center font-mono text-[10px] text-muted-foreground">
+                      <td className="p-1.5 text-center font-mono text-xs text-muted-foreground">
                         {child.studentCode}
                       </td>
                       <td className="p-1.5 text-center font-mono font-medium">{child.documentId}</td>
                       <td className="p-1.5 font-medium uppercase text-foreground">{child.fullName}</td>
                       <td className="p-1.5 text-center text-muted-foreground">{child.level}</td>
                       <td className="p-1.5 text-center font-medium">{child.classroomLabel}</td>
-                      <td className="p-1.5 text-center font-semibold text-[10px] uppercase text-emerald-600">
+                      <td className="p-1.5 text-center font-semibold text-xs uppercase text-emerald-600">
                         {child.enrollmentState === 'REGISTERED' ? 'Matriculado' : child.enrollmentState}
                       </td>
                     </tr>

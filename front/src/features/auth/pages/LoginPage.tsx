@@ -141,7 +141,7 @@ export const LoginPage: React.FC = () => {
               Iniciar Sesión
             </Button>
 
-            <p className="text-center text-[11px] text-muted-foreground pt-1">
+            <p className="text-center text-xs text-muted-foreground pt-1">
               Al ingresar aceptas nuestros{' '}
               <Link to="/terminos" target="_blank" className="text-primary hover:underline font-medium">
                 Términos
@@ -153,7 +153,7 @@ export const LoginPage: React.FC = () => {
               .
             </p>
 
-            <p className="text-center text-[11px] text-muted-foreground">
+            <p className="text-center text-xs text-muted-foreground">
               ¿Eres del colegio?{' '}
               <Link to="/login?cambiar=1" className="text-primary hover:underline font-medium">
                 Ingresa con el código de tu colegio
@@ -168,7 +168,7 @@ export const LoginPage: React.FC = () => {
                 <ShieldCheck className="w-4 h-4 text-primary" />
                 <span>Accesos rápidos de prueba (Seed):</span>
               </div>
-              <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-0.5">
+              <span className="text-xs text-muted-foreground font-medium flex items-center gap-0.5">
                 <Sparkles className="w-3 h-3 text-amber-500" />
                 Click para rellenar
               </span>
@@ -183,7 +183,7 @@ export const LoginPage: React.FC = () => {
                     key={catKey}
                     type="button"
                     onClick={() => setActiveCategory(catKey)}
-                    className={`flex-1 min-w-[70px] py-1 px-2 text-[11px] font-bold rounded-md transition-all text-center whitespace-nowrap ${
+                    className={`flex-1 min-w-[70px] py-1 px-2 text-xs font-bold rounded-md transition-all text-center whitespace-nowrap ${
                       isActive
                         ? 'bg-background text-primary shadow-xs border border-border/80'
                         : 'text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -210,15 +210,15 @@ export const LoginPage: React.FC = () => {
                     </span>
                     <Badge
                       variant="outline"
-                      className={`text-[9px] px-1 py-0 h-4 font-bold shrink-0 ${
+                      className={`text-xs px-1 py-0 h-4 font-bold shrink-0 ${
                         acc.badgeColor || 'border-border text-muted-foreground'
                       }`}
                     >
                       {acc.badge}
                     </Badge>
                   </div>
-                  <div className="text-[10px] text-muted-foreground truncate mt-0.5">{acc.email}</div>
-                  <div className="text-[9px] text-primary/80 font-medium truncate mt-0.5">{acc.sub}</div>
+                  <div className="text-xs text-muted-foreground truncate mt-0.5">{acc.email}</div>
+                  <div className="text-xs text-primary/80 font-medium truncate mt-0.5">{acc.sub}</div>
                 </button>
               ))}
             </div>

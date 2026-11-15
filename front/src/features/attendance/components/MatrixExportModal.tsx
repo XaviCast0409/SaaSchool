@@ -91,7 +91,7 @@ export const MatrixExportModal: React.FC<MatrixExportModalProps> = ({
                 <h2 className="font-extrabold text-lg text-foreground">
                   Plantilla de Asistencia (Cuadrícula Reforzada)
                 </h2>
-                <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30 font-bold">
+                <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30 font-bold">
                   SIAGIE / MINEDU
                 </Badge>
               </div>
@@ -138,7 +138,7 @@ export const MatrixExportModal: React.FC<MatrixExportModalProps> = ({
                 <div className="p-2 rounded-xl bg-primary/10 text-primary">
                   <Users className="w-5 h-5" />
                 </div>
-                <Badge className="bg-primary text-primary-foreground font-bold text-[10px]">
+                <Badge className="bg-primary text-primary-foreground font-bold text-xs">
                   Nómina del Grado
                 </Badge>
               </div>
@@ -152,7 +152,7 @@ export const MatrixExportModal: React.FC<MatrixExportModalProps> = ({
                 </p>
               </div>
 
-              <ul className="text-[11px] text-muted-foreground space-y-1.5 pt-1">
+              <ul className="text-xs text-muted-foreground space-y-1.5 pt-1">
                 <li className="flex items-center gap-1.5">
                   <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
                   <span>Cuadro bien marcado con bordes reforzados</span>
@@ -185,7 +185,7 @@ export const MatrixExportModal: React.FC<MatrixExportModalProps> = ({
                 <div className="p-2 rounded-xl bg-muted text-foreground">
                   <FileEdit className="w-5 h-5" />
                 </div>
-                <Badge variant="outline" className="text-[10px] font-bold">
+                <Badge variant="outline" className="text-xs font-bold">
                   Para Imprimir
                 </Badge>
               </div>
@@ -199,7 +199,7 @@ export const MatrixExportModal: React.FC<MatrixExportModalProps> = ({
                 </p>
               </div>
 
-              <ul className="text-[11px] text-muted-foreground space-y-1.5 pt-1">
+              <ul className="text-xs text-muted-foreground space-y-1.5 pt-1">
                 <li className="flex items-center gap-1.5">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                   <span>Cuadrícula oscura y definida para escritura nítida</span>

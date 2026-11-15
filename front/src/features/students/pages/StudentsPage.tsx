@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useUrlFilters } from '@/lib/useUrlFilters';
 import { Users, UserPlus, QrCode, FileSpreadsheet, KeyRound, Upload, Repeat2 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useStudents } from '../api/useStudents';
@@ -36,14 +36,19 @@ export const StudentsPage: React.FC = () => {
   const targetYear = pickEnrollmentTargetYear(years);
 
   // Estados de paginación y filtros jerárquicos
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [searchParams] = useSearchParams();
-  const [search, setSearch] = useState(() => searchParams.get('q') ?? '');
-  const [classroomId, setClassroomId] = useState<string | undefined>(undefined);
-  const [educationLevel, setEducationLevel] = useState<'INITIAL' | 'PRIMARY' | 'SECONDARY' | undefined>(undefined);
+  // En la URL: sobreviven a recargar y al botón Atrás, y el buscador global (Ctrl+K) abre la lista ya filtrada
+  const [urlFilters, setUrlFilters] = useUrlFilters({ page: 1, limit: 10, q: '', classroomId: '', level: '', scope: 'year' });
+  const { page, limit, q: search } = urlFilters;
+  const classroomId = urlFilters.classroomId || undefined;
+  const educationLevel = (['INITIAL', 'PRIMARY', 'SECONDARY'] as const).find((level) => level === urlFilters.level);
+  const scope: 'year' | 'all' = urlFilters.scope === 'all' ? 'all' : 'year';
+  const setPage = (value: number) => setUrlFilters({ page: value });
+  const setLimit = (value: number) => setUrlFilters({ limit: value });
+  const setSearch = (value: string) => setUrlFilters({ q: value });
+  const setClassroomId = (value: string | undefined) => setUrlFilters({ classroomId: value ?? '' });
+  const setEducationLevel = (value: 'INITIAL' | 'PRIMARY' | 'SECONDARY' | undefined) => setUrlFilters({ level: value ?? '' });
+  const setScope = (value: 'year' | 'all') => setUrlFilters({ scope: value });
 
-  const [scope, setScope] = useState<'year' | 'all'>('year');
   const { selected: viewedYear } = useSelectedAcademicYear();
   const { data: response, isLoading, isError, refetch } = useStudents({
     scope,

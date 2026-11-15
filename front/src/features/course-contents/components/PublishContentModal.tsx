@@ -178,7 +178,7 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
                 </div>
                 <div>
                   <span className="block font-bold">Material de Clase</span>
-                  <span className="text-[10px] text-muted-foreground font-normal">PPT, PDF, Word</span>
+                  <span className="text-xs text-muted-foreground font-normal">PPT, PDF, Word</span>
                 </div>
               </button>
 
@@ -196,7 +196,7 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
                 </div>
                 <div>
                   <span className="block font-bold">Tarea Escolar</span>
-                  <span className="text-[10px] text-muted-foreground font-normal">Con fecha límite</span>
+                  <span className="text-xs text-muted-foreground font-normal">Con fecha límite</span>
                 </div>
               </button>
 
@@ -214,7 +214,7 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
                 </div>
                 <div>
                   <span className="block font-bold">Foro de Debate</span>
-                  <span className="text-[10px] text-muted-foreground font-normal">Pregunta y debate</span>
+                  <span className="text-xs text-muted-foreground font-normal">Pregunta y debate</span>
                 </div>
               </button>
             </div>
@@ -255,7 +255,7 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
               }
               className="text-xs"
             />
-            {errors.title && <p className="text-destructive text-[11px]">{errors.title.message}</p>}
+            {errors.title && <p className="text-destructive text-xs">{errors.title.message}</p>}
           </div>
 
           {/* Descripción / Indicaciones */}
@@ -296,7 +296,7 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setAttachmentMode('FILE')}
-                    className={`px-2 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-1 transition-all ${
+                    className={`px-2 py-0.5 rounded-md text-xs font-bold flex items-center gap-1 transition-all ${
                       attachmentMode === 'FILE'
                         ? 'bg-background text-foreground shadow-xs'
                         : 'text-muted-foreground hover:text-foreground'
@@ -308,7 +308,7 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setAttachmentMode('DRIVE')}
-                    className={`px-2 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-1 transition-all ${
+                    className={`px-2 py-0.5 rounded-md text-xs font-bold flex items-center gap-1 transition-all ${
                       attachmentMode === 'DRIVE'
                         ? 'bg-emerald-600 text-white shadow-xs'
                         : 'text-muted-foreground hover:text-foreground'
@@ -329,7 +329,7 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
                         <FileText className="w-5 h-5 text-primary shrink-0" />
                         <div className="truncate">
                           <p className="font-medium text-foreground truncate">{selectedFile.name}</p>
-                          <p className="text-[10px] text-muted-foreground">
+                          <p className="text-xs text-muted-foreground">
                             {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
                           </p>
                         </div>
@@ -348,7 +348,7 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
                     <label className="border-2 border-dashed border-border hover:border-primary/50 bg-background hover:bg-muted/30 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-all">
                       <Upload className="w-6 h-6 text-muted-foreground mb-1" />
                       <span className="font-semibold text-foreground text-xs">Haz clic para subir un archivo</span>
-                      <span className="text-[10px] text-muted-foreground text-center">
+                      <span className="text-xs text-muted-foreground text-center">
                         PowerPoint (.pptx), Word (.docx), PDF, Excel o Imágenes (máx. 30MB)
                       </span>
                       <input
@@ -378,12 +378,12 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
                   />
 
                   {isGoogleDriveUrl(driveUrl) ? (
-                    <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20">
+                    <div className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400 font-semibold bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20">
                       <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
                       <span>¡Enlace en la nube reconocido! Se activará la descarga directa en 1 clic para los alumnos.</span>
                     </div>
                   ) : (
-                    <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    <p className="text-xs text-muted-foreground leading-relaxed">
                       💡 <strong>Tip:</strong> Asegúrate de que el archivo tenga permisos de lectura para que cualquier persona con el enlace pueda abrirlo o descargarlo sin restricciones.
                     </p>
                   )}

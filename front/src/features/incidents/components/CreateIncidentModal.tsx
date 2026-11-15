@@ -177,7 +177,7 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
               </select>
             </div>
             {errors.studentId && (
-              <p className="text-[11px] text-destructive font-semibold">
+              <p className="text-xs text-destructive font-semibold">
                 {errors.studentId.message}
               </p>
             )}
@@ -198,7 +198,7 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
                 ))}
               </select>
               {errors.type && (
-                <p className="text-[11px] text-destructive font-semibold">
+                <p className="text-xs text-destructive font-semibold">
                   {errors.type.message}
                 </p>
               )}
@@ -227,7 +227,7 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
               className="h-9 text-xs"
             />
             {errors.title && (
-              <p className="text-[11px] text-destructive font-semibold">
+              <p className="text-xs text-destructive font-semibold">
                 {errors.title.message}
               </p>
             )}
@@ -258,7 +258,7 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
               className="w-full text-xs bg-background border border-border rounded-lg p-2.5 text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary"
             />
             {errors.description && (
-              <p className="text-[11px] text-destructive font-semibold">
+              <p className="text-xs text-destructive font-semibold">
                 {errors.description.message}
               </p>
             )}

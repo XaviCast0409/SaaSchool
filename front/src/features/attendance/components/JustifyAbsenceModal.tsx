@@ -197,7 +197,7 @@ export const JustifyAbsenceModal: React.FC<JustifyAbsenceModalProps> = ({
                 className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
               {errors.dateFrom && (
-                <p className="text-[11px] text-destructive mt-1 font-semibold">
+                <p className="text-xs text-destructive mt-1 font-semibold">
                   {errors.dateFrom.message}
                 </p>
               )}
@@ -213,7 +213,7 @@ export const JustifyAbsenceModal: React.FC<JustifyAbsenceModalProps> = ({
                 className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
               {errors.dateTo && (
-                <p className="text-[11px] text-destructive mt-1 font-semibold">
+                <p className="text-xs text-destructive mt-1 font-semibold">
                   {errors.dateTo.message}
                 </p>
               )}
@@ -236,7 +236,7 @@ export const JustifyAbsenceModal: React.FC<JustifyAbsenceModalProps> = ({
               ))}
             </select>
             {errors.reason && (
-              <p className="text-[11px] text-destructive mt-1 font-semibold">
+              <p className="text-xs text-destructive mt-1 font-semibold">
                 {errors.reason.message}
               </p>
             )}
@@ -254,7 +254,7 @@ export const JustifyAbsenceModal: React.FC<JustifyAbsenceModalProps> = ({
               className="w-full rounded-xl border border-border bg-background p-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
             />
             {errors.description && (
-              <p className="text-[11px] text-destructive mt-1 font-semibold">
+              <p className="text-xs text-destructive mt-1 font-semibold">
                 {errors.description.message}
               </p>
             )}
@@ -265,7 +265,7 @@ export const JustifyAbsenceModal: React.FC<JustifyAbsenceModalProps> = ({
             <label className="text-xs font-bold text-foreground block mb-1">
               Adjuntar sustento (opcional)
             </label>
-            <p className="text-[11px] text-muted-foreground mb-2">
+            <p className="text-xs text-muted-foreground mb-2">
               Formatos: PDF, JPG o PNG. Máximo 15 MB.
             </p>
 
@@ -287,7 +287,7 @@ export const JustifyAbsenceModal: React.FC<JustifyAbsenceModalProps> = ({
               <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-all">
                 <Upload className="w-6 h-6 text-muted-foreground mb-1" />
                 <span className="text-xs font-bold text-foreground">Seleccionar comprobante o certificado</span>
-                <span className="text-[10px] text-muted-foreground mt-0.5">Toca aquí para adjuntar el archivo</span>
+                <span className="text-xs text-muted-foreground mt-0.5">Toca aquí para adjuntar el archivo</span>
                 <input
                   type="file"
                   accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"

@@ -82,7 +82,7 @@ export const MeritSalondReport: React.FC<MeritSalondReportProps> = ({ data }) =>
 
         {/* Tabla Principal de Mérito */}
         <div className="overflow-x-auto mb-6">
-          <table className="w-full border-collapse border border-foreground/50 text-[11px]">
+          <table className="w-full border-collapse border border-foreground/50 text-xs">
             <thead>
               <tr className="bg-muted/50 font-bold text-foreground">
                 <th rowSpan={2} className="border border-foreground/50 p-1.5 w-12 text-center">Puesto</th>
@@ -94,7 +94,7 @@ export const MeritSalondReport: React.FC<MeritSalondReportProps> = ({ data }) =>
                 <th rowSpan={2} className="border border-foreground/50 p-1.5 w-16 text-center">Conducta</th>
                 <th rowSpan={2} className="border border-foreground/50 p-1.5 w-20 text-center">Tercio</th>
               </tr>
-              <tr className="bg-muted/30 font-semibold text-foreground text-[10px]">
+              <tr className="bg-muted/30 font-semibold text-foreground text-xs">
                 <th className="border border-foreground/50 p-1 w-10 text-center">Aprob.</th>
                 <th className="border border-foreground/50 p-1 w-10 text-center">Desap.</th>
                 <th className="border border-foreground/50 p-1 w-8 text-center">SN</th>
@@ -127,7 +127,7 @@ export const MeritSalondReport: React.FC<MeritSalondReportProps> = ({ data }) =>
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 text-xs mb-4">
           {/* Cuadro: Cantidad de Alumnos */}
           <div className="md:col-span-5">
-            <table className="w-full border-collapse border border-foreground/50 text-[11px]">
+            <table className="w-full border-collapse border border-foreground/50 text-xs">
               <thead>
                 <tr className="bg-muted/50 font-bold">
                   <th colSpan={2} className="border border-foreground/50 p-1.5 text-center">Cantidad de Alumnos</th>
@@ -164,7 +164,7 @@ export const MeritSalondReport: React.FC<MeritSalondReportProps> = ({ data }) =>
 
           {/* Cuadro: Estadísticas de Tercios */}
           <div className="md:col-span-7">
-            <table className="w-full border-collapse border border-foreground/50 text-[11px]">
+            <table className="w-full border-collapse border border-foreground/50 text-xs">
               <thead>
                 <tr className="bg-muted/50 font-bold">
                   <th rowSpan={2} className="border border-foreground/50 p-1.5 text-left">Estadísticas Tercios</th>
@@ -173,7 +173,7 @@ export const MeritSalondReport: React.FC<MeritSalondReportProps> = ({ data }) =>
                   <th colSpan={2} className="border border-foreground/50 p-1 text-center">Rango Promedio</th>
                   <th rowSpan={2} className="border border-foreground/50 p-1.5 text-center w-14">Prom.</th>
                 </tr>
-                <tr className="bg-muted/30 font-semibold text-[10px]">
+                <tr className="bg-muted/30 font-semibold text-xs">
                   <th className="border border-foreground/50 p-1 w-14 text-center">Inicial</th>
                   <th className="border border-foreground/50 p-1 w-14 text-center">Final</th>
                 </tr>

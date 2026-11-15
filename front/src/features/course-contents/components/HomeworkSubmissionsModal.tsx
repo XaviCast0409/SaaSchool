@@ -164,14 +164,14 @@ export const HomeworkSubmissionsModal: React.FC<HomeworkSubmissionsModalProps> =
           <div className="p-2.5 rounded-xl bg-card border border-border flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-primary" />
             <div>
-              <span className="text-muted-foreground block text-[10px]">Total Alumnos</span>
+              <span className="text-muted-foreground block text-xs">Total Alumnos</span>
               <span className="font-bold text-foreground text-sm">{totalStudents}</span>
             </div>
           </div>
           <div className="p-2.5 rounded-xl bg-card border border-border flex items-center gap-2">
             <Clock className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             <div>
-              <span className="text-muted-foreground block text-[10px]">Entregaron</span>
+              <span className="text-muted-foreground block text-xs">Entregaron</span>
               <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">
                 {submittedCount}
               </span>
@@ -180,7 +180,7 @@ export const HomeworkSubmissionsModal: React.FC<HomeworkSubmissionsModalProps> =
           <div className="p-2.5 rounded-xl bg-card border border-border flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
             <div>
-              <span className="text-muted-foreground block text-[10px]">Pendientes</span>
+              <span className="text-muted-foreground block text-xs">Pendientes</span>
               <span className="font-bold text-amber-600 dark:text-amber-400 text-sm">
                 {pendingCount}
               </span>
@@ -224,27 +224,27 @@ export const HomeworkSubmissionsModal: React.FC<HomeworkSubmissionsModalProps> =
                         {sub?.isLate ? (
                           <Badge
                             variant="destructive"
-                            className="text-[9px] uppercase font-bold px-1.5 py-0"
+                            className="text-xs uppercase font-bold px-1.5 py-0"
                           >
                             Fuera de fecha
                           </Badge>
                         ) : sub ? (
                           <Badge
                             variant="outline"
-                            className="text-[9px] font-bold px-1.5 py-0 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                            className="text-xs font-bold px-1.5 py-0 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
                           >
                             A tiempo
                           </Badge>
                         ) : (
                           <Badge
                             variant="outline"
-                            className="text-[9px] font-bold px-1.5 py-0 text-muted-foreground"
+                            className="text-xs font-bold px-1.5 py-0 text-muted-foreground"
                           >
                             Pendiente
                           </Badge>
                         )}
                       </div>
-                      <div className="text-[10px] text-muted-foreground mt-0.5">
+                      <div className="text-xs text-muted-foreground mt-0.5">
                         DNI: {item.student.documentId}
                         {sub && (
                           <span>
@@ -264,7 +264,7 @@ export const HomeworkSubmissionsModal: React.FC<HomeworkSubmissionsModalProps> =
                           <button
                             type="button"
                             onClick={() => void openFile(sub.fileUrl, { download: true })}
-                            className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline truncate"
+                            className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline truncate"
                           >
                             <ExternalLink className="w-3.5 h-3.5 shrink-0" />
                             <span className="truncate">{sub.fileName}</span>
@@ -274,7 +274,7 @@ export const HomeworkSubmissionsModal: React.FC<HomeworkSubmissionsModalProps> =
 
                       {/* Comentario del estudiante */}
                       {sub?.studentComment && (
-                        <p className="mt-1 text-[11px] text-muted-foreground italic bg-muted/30 p-1.5 rounded-lg border border-border/50">
+                        <p className="mt-1 text-xs text-muted-foreground italic bg-muted/30 p-1.5 rounded-lg border border-border/50">
                           "{sub.studentComment}"
                         </p>
                       )}
@@ -285,7 +285,7 @@ export const HomeworkSubmissionsModal: React.FC<HomeworkSubmissionsModalProps> =
                       <div className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 justify-end">
                         {/* Nota Numérica (0-20) */}
                         <div className="w-20">
-                          <label className="text-[10px] font-semibold text-muted-foreground block mb-0.5">
+                          <label className="text-xs font-semibold text-muted-foreground block mb-0.5">
                             Nota (0-20)
                           </label>
                           <input
@@ -308,7 +308,7 @@ export const HomeworkSubmissionsModal: React.FC<HomeworkSubmissionsModalProps> =
 
                         {/* Nota Literal (AD, A, B, C, EXO) */}
                         <div className="w-24">
-                          <label className="text-[10px] font-semibold text-muted-foreground block mb-0.5">
+                          <label className="text-xs font-semibold text-muted-foreground block mb-0.5">
                             SIAGIE
                           </label>
                           <select
@@ -333,7 +333,7 @@ export const HomeworkSubmissionsModal: React.FC<HomeworkSubmissionsModalProps> =
 
                         {/* Feedback / Comentario del Docente */}
                         <div className="flex-1 min-w-[140px]">
-                          <label className="text-[10px] font-semibold text-muted-foreground block mb-0.5">
+                          <label className="text-xs font-semibold text-muted-foreground block mb-0.5">
                             Retroalimentación
                           </label>
                           <div className="relative">

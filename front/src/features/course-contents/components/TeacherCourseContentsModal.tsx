@@ -1,3 +1,4 @@
+import { confirmDialog } from '@/components/ui/confirm';
 import React, { useState, useMemo } from 'react';
 import {
   X,
@@ -94,7 +95,7 @@ export const TeacherCourseContentsModal: React.FC<TeacherCourseContentsModalProp
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('¿Seguro que deseas eliminar esta publicación del aula virtual?')) return;
+    if (!(await confirmDialog({ title: '¿Eliminar esta publicación del aula virtual?', confirmText: 'Eliminar', variant: 'danger' }))) return;
     try {
       await deleteContent({ id, courseAssignmentId: assignment.id });
       toast.success('Publicación eliminada correctamente');
@@ -116,13 +117,13 @@ export const TeacherCourseContentsModal: React.FC<TeacherCourseContentsModalProp
 
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant="outline" className={`text-[10px] font-bold py-0 h-4 ${theme.badgeStyle}`}>
+                  <Badge variant="outline" className={`text-xs font-bold py-0 h-4 ${theme.badgeStyle}`}>
                     {theme.category}
                   </Badge>
-                  <Badge variant="secondary" className="text-[10px] font-bold py-0 h-4">
+                  <Badge variant="secondary" className="text-xs font-bold py-0 h-4">
                     {assignment.grade}° "{assignment.section}" • {assignment.educationLevel}
                   </Badge>
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                  <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
                     <Cloud className="w-3 h-3" />
                     <span>Almacenamiento Cloud</span>
                   </span>
@@ -182,7 +183,7 @@ export const TeacherCourseContentsModal: React.FC<TeacherCourseContentsModalProp
                     {selectedBimester === bim && (
                       <Badge
                         variant="secondary"
-                        className="text-[10px] px-1.5 py-0 h-4 bg-primary-foreground/20 text-primary-foreground"
+                        className="text-xs px-1.5 py-0 h-4 bg-primary-foreground/20 text-primary-foreground"
                       >
                         {contents.length}
                       </Badge>
@@ -193,16 +194,16 @@ export const TeacherCourseContentsModal: React.FC<TeacherCourseContentsModalProp
 
               {/* Indicadores en vivo del bimestre */}
               <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-                <span className="text-[11px] font-bold text-muted-foreground hidden lg:inline">Recursos del periodo:</span>
-                <Badge variant="outline" className="text-[10px] font-semibold gap-1 bg-card">
+                <span className="text-xs font-bold text-muted-foreground hidden lg:inline">Recursos del periodo:</span>
+                <Badge variant="outline" className="text-xs font-semibold gap-1 bg-card">
                   <BookOpen className="w-3 h-3 text-primary" />
                   <span>{materialsCount} Clases</span>
                 </Badge>
-                <Badge variant="outline" className="text-[10px] font-semibold gap-1 bg-card text-amber-700 dark:text-amber-300">
+                <Badge variant="outline" className="text-xs font-semibold gap-1 bg-card text-amber-700 dark:text-amber-300">
                   <ClipboardList className="w-3 h-3 text-amber-600" />
                   <span>{homeworksCount} Tareas</span>
                 </Badge>
-                <Badge variant="outline" className="text-[10px] font-semibold gap-1 bg-card text-emerald-700 dark:text-emerald-300">
+                <Badge variant="outline" className="text-xs font-semibold gap-1 bg-card text-emerald-700 dark:text-emerald-300">
                   <MessageSquare className="w-3 h-3 text-emerald-600" />
                   <span>{forumsCount} Foros</span>
                 </Badge>
@@ -315,11 +316,11 @@ export const TeacherCourseContentsModal: React.FC<TeacherCourseContentsModalProp
                       <h4 className="text-xs font-bold text-foreground group-hover:text-primary transition-colors">
                         Subir Clase o PPT
                       </h4>
-                      <p className="text-[11px] text-muted-foreground leading-normal">
+                      <p className="text-xs text-muted-foreground leading-normal">
                         Sube diapositivas, fichas PDF o guías Word directo a la nube.
                       </p>
                     </div>
-                    <span className="text-[11px] font-bold text-primary flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                    <span className="text-xs font-bold text-primary flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
                       Publicar Clase <Plus className="w-3 h-3" />
                     </span>
                   </Card>
@@ -335,11 +336,11 @@ export const TeacherCourseContentsModal: React.FC<TeacherCourseContentsModalProp
                       <h4 className="text-xs font-bold text-foreground group-hover:text-amber-600 transition-colors">
                         Asignar Tarea
                       </h4>
-                      <p className="text-[11px] text-muted-foreground leading-normal">
+                      <p className="text-xs text-muted-foreground leading-normal">
                         Fija fecha de entrega, pautas y adjunta la ficha de trabajo.
                       </p>
                     </div>
-                    <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                    <span className="text-xs font-bold text-amber-700 dark:text-amber-300 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
                       Crear Tarea <Plus className="w-3 h-3" />
                     </span>
                   </Card>
@@ -355,11 +356,11 @@ export const TeacherCourseContentsModal: React.FC<TeacherCourseContentsModalProp
                       <h4 className="text-xs font-bold text-foreground group-hover:text-emerald-600 transition-colors">
                         Iniciar Foro
                       </h4>
-                      <p className="text-[11px] text-muted-foreground leading-normal">
+                      <p className="text-xs text-muted-foreground leading-normal">
                         Plantea una pregunta disparadora para debatir con tus alumnos.
                       </p>
                     </div>
-                    <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                    <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
                       Crear Foro <Plus className="w-3 h-3" />
                     </span>
                   </Card>

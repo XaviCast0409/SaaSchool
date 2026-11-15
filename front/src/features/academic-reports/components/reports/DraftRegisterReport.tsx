@@ -41,12 +41,12 @@ export const DraftRegisterReport: React.FC<DraftRegisterReportProps> = ({ data }
 
         {/* Tabla Borrador Cuadriculada */}
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse border border-foreground/50 text-[10px]">
+          <table className="w-full border-collapse border border-foreground/50 text-xs">
             <thead>
               <tr className="bg-muted/40 font-bold">
                 <th rowSpan={2} className="border border-foreground/50 p-1 w-7 text-center">N°</th>
                 <th rowSpan={2} className="border border-foreground/50 p-1.5 min-w-[220px] text-left">Apellidos y Nombres</th>
-                <th colSpan={blankCriteriaColumnsCount} className="border border-foreground/50 p-1.5 text-center uppercase tracking-wider text-[11px]">
+                <th colSpan={blankCriteriaColumnsCount} className="border border-foreground/50 p-1.5 text-center uppercase tracking-wider text-xs">
                   CRITERIOS DE EVALUACIÓN
                 </th>
               </tr>

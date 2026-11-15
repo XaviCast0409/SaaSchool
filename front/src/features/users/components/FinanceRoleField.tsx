@@ -61,7 +61,7 @@ export const FinanceRoleField: React.FC<{ user: DirectoryUser }> = ({ user }) =>
           </option>
         ))}
       </select>
-      {hint && <p className="text-[11px] text-muted-foreground">{hint} Se guarda al instante.</p>}
+      {hint && <p className="text-xs text-muted-foreground">{hint} Se guarda al instante.</p>}
     </div>
   );
 };

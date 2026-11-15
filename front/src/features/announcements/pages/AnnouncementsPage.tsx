@@ -1,3 +1,5 @@
+import { useUrlFilters } from '@/lib/useUrlFilters';
+import { confirmDialog } from '@/components/ui/confirm';
 import React, { useState } from 'react';
 import { Plus, Search, Megaphone, Bell, AlertTriangle, X, Archive } from 'lucide-react';
 import { useGetAnnouncements, useDeleteAnnouncement } from '../api/useAnnouncements';
@@ -14,11 +16,16 @@ import type { AnnouncementPriority, AnnouncementStatus } from '../types';
 export const AnnouncementsPage: React.FC = () => {
   const currentUser = useAuthStore((state) => state.user);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [search, setSearch] = useState('');
-  const [priority, setPriority] = useState<AnnouncementPriority | undefined>(undefined);
-  const [status, setStatus] = useState<AnnouncementStatus>('current');
+  // Filtros en la URL: sobreviven a recargar, al botón Atrás y se pueden compartir como enlace
+  const [urlFilters, setUrlFilters] = useUrlFilters({ page: 1, limit: 10, q: '', priority: '', status: 'current' });
+  const { page, limit, q: search } = urlFilters;
+  const priority = (urlFilters.priority || undefined) as AnnouncementPriority | undefined;
+  const status = urlFilters.status as AnnouncementStatus;
+  const setPage = (value: number) => setUrlFilters({ page: value });
+  const setLimit = (value: number) => setUrlFilters({ limit: value });
+  const setSearch = (value: string) => setUrlFilters({ q: value });
+  const setPriority = (value: AnnouncementPriority | undefined) => setUrlFilters({ priority: value ?? '' });
+  const setStatus = (value: AnnouncementStatus) => setUrlFilters({ status: value });
   const isPast = status === 'past';
 
   const { data, isLoading, isError } = useGetAnnouncements({
@@ -38,7 +45,7 @@ export const AnnouncementsPage: React.FC = () => {
     currentUser?.role === 'TEACHER';
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('¿Estás seguro de eliminar este comunicado?')) {
+    if (await confirmDialog({ title: '¿Eliminar este comunicado?', confirmText: 'Eliminar', variant: 'danger' })) {
       await deleteAnnouncement(id);
     }
   };
@@ -49,7 +56,7 @@ export const AnnouncementsPage: React.FC = () => {
       <div className="p-5 sm:p-7 rounded-2xl bg-card border border-border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
-            <Badge className="bg-primary/10 text-primary border-primary/20 gap-1 text-[11px] font-bold">
+            <Badge className="bg-primary/10 text-primary border-primary/20 gap-1 text-xs font-bold">
               <Megaphone className="w-3.5 h-3.5" />
               <span>Muro Institucional Oficial</span>
             </Badge>

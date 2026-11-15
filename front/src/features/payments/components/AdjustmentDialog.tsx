@@ -90,7 +90,7 @@ export const AdjustmentDialog: React.FC<{
             </button>
           ))}
         </div>
-        <p className="text-[11px] text-muted-foreground">{HINTS[type]}</p>
+        <p className="text-xs text-muted-foreground">{HINTS[type]}</p>
 
         {type === 'DISCOUNT' && (
           <div className="flex gap-3 text-xs">

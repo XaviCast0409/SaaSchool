@@ -57,7 +57,7 @@ export const ChildSwitcher: React.FC<ChildSwitcherProps> = ({
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <Badge
                     variant={isSelected ? 'outline' : 'secondary'}
-                    className={`text-[9px] px-1.5 py-0 font-bold ${
+                    className={`text-xs px-1.5 py-0 font-bold ${
                       isSelected
                         ? 'border-primary-foreground/40 text-primary-foreground'
                         : ''
@@ -66,7 +66,7 @@ export const ChildSwitcher: React.FC<ChildSwitcherProps> = ({
                     {classroom ? `${classroom.grade}° "${classroom.section}"` : 'Sin aula'}
                   </Badge>
                   <span
-                    className={`text-[10px] truncate ${
+                    className={`text-xs truncate ${
                       isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground'
                     }`}
                   >

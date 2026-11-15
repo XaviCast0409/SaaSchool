@@ -98,7 +98,7 @@ export const FinalSituationModal: React.FC<{ year: { id: string; year: number } 
           </div>
           <div className="rounded-xl border border-border max-h-[45vh] overflow-y-auto">
             <table className="w-full text-left">
-              <thead className="sticky top-0 bg-muted/90 text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">
+              <thead className="sticky top-0 bg-muted/90 text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
                 <tr>
                   <th className="px-3 py-2">Aula</th>
                   <th className="px-3 py-2">Resultado</th>

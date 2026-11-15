@@ -193,7 +193,7 @@ export const EditSchoolInfoModal: React.FC<EditSchoolInfoModalProps> = ({
                 {errors.slug ? (
                   <p className="text-xs text-destructive">{errors.slug.message}</p>
                 ) : (
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     Si lo cambias, los enlaces y QR que el colegio ya compartió dejarán de funcionar.
                   </p>
                 )}

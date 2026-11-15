@@ -50,7 +50,7 @@ export const ParentAttendanceView: React.FC = () => {
   const { data: justificationsData, isLoading: loadingJustifications } =
     useJustifications(enrollmentId ? { enrollmentId } : {});
 
-  const { data: authorizedPickups = [] } = usePickups(activeChild.id);
+  const { data: authorizedPickups = [] } = usePickups(activeChild?.id);
 
   // Detección de parámetros en URL para auto-abrir modal de justificación
   useEffect(() => {
@@ -143,11 +143,11 @@ export const ParentAttendanceView: React.FC = () => {
       <div className="p-5 sm:p-7 rounded-2xl bg-card border border-border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2 flex-wrap">
-            <Badge className="bg-primary/10 text-primary border-primary/20 gap-1 text-[11px] font-bold">
+            <Badge className="bg-primary/10 text-primary border-primary/20 gap-1 text-xs font-bold">
               <CalendarCheck className="w-3.5 h-3.5" />
               <span>Control de Asistencia</span>
             </Badge>
-            <Badge variant="outline" className="text-[11px] font-bold">
+            <Badge variant="outline" className="text-xs font-bold">
               {activeChild.activeEnrollment?.classroom.label || 'Sin aula'} • Año Lectivo{' '}
               {activeChild.activeEnrollment?.academicYear || 2026}
             </Badge>
@@ -206,7 +206,7 @@ export const ParentAttendanceView: React.FC = () => {
           >
             <span>{f.label}</span>
             <span
-              className={`text-[10px] px-1.5 py-0 rounded-full font-bold ${
+              className={`text-xs px-1.5 py-0 rounded-full font-bold ${
                 filterStatus === f.key
                   ? 'bg-primary-foreground/20 text-primary-foreground'
                   : 'bg-muted text-muted-foreground'
@@ -254,7 +254,7 @@ export const ParentAttendanceView: React.FC = () => {
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-10 h-10 rounded-xl bg-secondary/80 border border-border/60 flex flex-col items-center justify-center text-center shrink-0 shadow-sm">
-                      <span className="text-[9px] uppercase font-bold text-muted-foreground leading-none">
+                      <span className="text-xs uppercase font-bold text-muted-foreground leading-none">
                         {recordDate.toLocaleDateString('es-PE', { month: 'short', timeZone: 'UTC' })}
                       </span>
                       <span className="text-sm font-black text-foreground leading-none mt-0.5">
@@ -272,7 +272,7 @@ export const ParentAttendanceView: React.FC = () => {
                           timeZone: 'UTC',
                         })}
                       </span>
-                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5 flex-wrap">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 flex-wrap">
                         {item.checkInTime ? (
                           <span className="flex items-center gap-1 font-semibold text-foreground">
                             <Clock className="w-3 h-3 text-primary" />
@@ -303,7 +303,7 @@ export const ParentAttendanceView: React.FC = () => {
                           setModalDefaultDate(item.date.slice(0, 10));
                           setModalOpen(true);
                         }}
-                        className="h-7 text-[11px] font-bold rounded-lg gap-1 border-primary/30 text-primary hover:bg-primary/10"
+                        className="h-7 text-xs font-bold rounded-lg gap-1 border-primary/30 text-primary hover:bg-primary/10"
                       >
                         <FileText className="w-3 h-3" />
                         <span>Justificar</span>
@@ -361,7 +361,7 @@ export const ParentAttendanceView: React.FC = () => {
                       <span className="text-xs sm:text-sm font-bold text-foreground">
                         {dateDisplay}
                       </span>
-                      <span className="text-[11px] font-medium text-muted-foreground">
+                      <span className="text-xs font-medium text-muted-foreground">
                         • {REASON_LABELS[j.reason] || j.reason}
                       </span>
                     </div>
@@ -369,7 +369,7 @@ export const ParentAttendanceView: React.FC = () => {
                       {j.description}
                     </p>
                     {j.reviewNote && j.status === 'REJECTED' && (
-                      <p className="text-[11px] text-destructive font-medium">
+                      <p className="text-xs text-destructive font-medium">
                         Nota del colegio: {j.reviewNote}
                       </p>
                     )}
@@ -377,17 +377,17 @@ export const ParentAttendanceView: React.FC = () => {
 
                   <div className="shrink-0 flex items-center gap-2">
                     {j.status === 'PENDING' && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
                         Pendiente
                       </span>
                     )}
                     {j.status === 'APPROVED' && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                         Aprobada
                       </span>
                     )}
                     {j.status === 'REJECTED' && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-destructive/15 text-destructive border border-destructive/20">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-destructive/15 text-destructive border border-destructive/20">
                         Rechazada
                       </span>
                     )}
@@ -424,11 +424,11 @@ export const ParentAttendanceView: React.FC = () => {
                     <span className="text-xs sm:text-sm font-bold text-foreground truncate">
                       {p.fullName}
                     </span>
-                    <Badge variant="outline" className="text-[10px] text-emerald-600 bg-emerald-500/10 border-emerald-500/30">
+                    <Badge variant="outline" className="text-xs text-emerald-600 bg-emerald-500/10 border-emerald-500/30">
                       {p.relationship}
                     </Badge>
                   </div>
-                  <div className="text-[11px] text-muted-foreground">
+                  <div className="text-xs text-muted-foreground">
                     {p.documentType}: <strong className="text-foreground">{p.documentId}</strong>
                     {p.cellphone && (
                       <span className="ml-2">

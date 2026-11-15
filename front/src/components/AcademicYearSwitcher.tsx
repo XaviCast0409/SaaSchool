@@ -9,7 +9,8 @@ import { useAuthStore } from '@/store/useAuthStore';
 export const useSelectedAcademicYear = () => {
   const { user } = useAuthStore();
   const enabled = !!user && YEAR_SCOPED_ROLES.includes(user.role);
-  const { data: years = [] } = useAcademicYears();
+  // Familias y alumnos no eligen año: no se pide la lista (el servidor se la niega)
+  const { data: years = [] } = useAcademicYears(enabled);
   const { selectedYearId } = useAcademicYearStore();
   const current = years.find((y) => y.isActive) ?? null;
   const selected = (enabled && years.find((y) => y.id === selectedYearId)) || current;
@@ -62,17 +63,12 @@ export const AcademicYearSwitcher: React.FC<{ className?: string }> = ({ classNa
   );
 };
 
-/** Aviso cuando se está viendo un año distinto al vigente (y selector en celulares). */
+/** Aviso cuando se está viendo un año distinto al vigente. */
 export const AcademicYearBanner: React.FC = () => {
   const { enabled, current, selected, isOtherYear } = useSelectedAcademicYear();
   const switchYear = useSwitchYear();
-  if (!enabled) return null;
+  if (!enabled || !isOtherYear || !selected || !current) return null;
   return (
-    <>
-      <div className="md:hidden flex justify-end border-b border-border px-4 py-1.5 print:hidden">
-        <AcademicYearSwitcher />
-      </div>
-      {isOtherYear && selected && current && (
         <div className="bg-indigo-500/10 border-b border-indigo-500/30 px-4 md:px-8 py-2 text-xs flex flex-wrap items-center justify-between gap-2 text-indigo-900 dark:text-indigo-200 print:hidden">
           <span className="flex items-center gap-2">
             <Eye className="w-4 h-4 shrink-0" />
@@ -90,7 +86,5 @@ export const AcademicYearBanner: React.FC = () => {
             Volver a {current.year}
           </button>
         </div>
-      )}
-    </>
   );
 };

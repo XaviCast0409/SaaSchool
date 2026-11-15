@@ -28,7 +28,7 @@ const Voucher: React.FC<{ url: string | null }> = ({ url }) => {
   return (
     <a href={resolved} target="_blank" rel="noreferrer" className="group relative block">
       <img src={resolved} alt="Voucher de pago" className="max-h-72 w-full rounded-lg border border-border bg-white object-contain" onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} />
-      <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded bg-background/90 px-1.5 py-0.5 text-[11px] text-foreground opacity-0 group-hover:opacity-100">
+      <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded bg-background/90 px-1.5 py-0.5 text-xs text-foreground opacity-0 group-hover:opacity-100">
         Abrir <ExternalLink className="h-3 w-3" aria-hidden />
       </span>
     </a>
@@ -70,7 +70,7 @@ const InstructionsEditor: React.FC<{ open: boolean; onClose: () => void }> = ({ 
     >
       <div className="space-y-3">
         <div className="flex items-center gap-3">
-          {qrPreview ? <img src={qrPreview} alt="QR de pago" className="h-24 w-24 rounded-lg border border-border bg-white object-contain p-1" /> : <div className="flex h-24 w-24 items-center justify-center rounded-lg bg-muted text-[11px] text-muted-foreground">Sin QR</div>}
+          {qrPreview ? <img src={qrPreview} alt="QR de pago" className="h-24 w-24 rounded-lg border border-border bg-white object-contain p-1" /> : <div className="flex h-24 w-24 items-center justify-center rounded-lg bg-muted text-xs text-muted-foreground">Sin QR</div>}
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => {
             const f = e.target.files?.[0];
             if (f) upload.mutate({ file: f, purpose: 'SCHOOL_ASSET' }, { onSuccess: (r) => setQr(r.url), onError: (err) => toast.error(apiErrorMessage(err)) });
@@ -130,7 +130,7 @@ export const TreasuryReportsPanel: React.FC<{ readOnly?: boolean }> = ({ readOnl
         <button type="button" onClick={() => setOpen(!open)} className="flex flex-1 items-center gap-2 text-left" aria-expanded={open}>
           <Inbox className="h-4 w-4 text-primary" aria-hidden />
           <span className="text-sm font-semibold text-foreground">Pagos reportados por las familias</span>
-          {pendingCount > 0 && <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[11px] font-bold text-white">{pendingCount} por validar</span>}
+          {pendingCount > 0 && <span className="rounded-full bg-amber-500 px-2 py-0.5 text-xs font-bold text-white">{pendingCount} por validar</span>}
           <ChevronDown className={cn('ml-auto h-4 w-4 text-muted-foreground transition-transform', open && 'rotate-180')} aria-hidden />
         </button>
         {!readOnly && (
@@ -163,7 +163,7 @@ export const TreasuryReportsPanel: React.FC<{ readOnly?: boolean }> = ({ readOnl
                     <p className="text-xs text-muted-foreground">
                       {r.obligation.title} · <strong className="text-foreground">S/ {r.amount.toFixed(2)}</strong> por {METHOD_LABEL[r.method]} · op. {r.operationNumber} · {formatPeruShortDate(r.paidOn.slice(0, 10))}
                     </p>
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       Reportó {r.reportedBy} · {formatPeruDateTime(r.createdAt)}
                       {r.status !== 'PENDING' && r.reviewedBy ? ` · revisó ${r.reviewedBy}` : ''}
                       {r.receiptNumber ? ` · ${r.receiptNumber}` : ''}
@@ -219,11 +219,11 @@ export const TreasuryReportsPanel: React.FC<{ readOnly?: boolean }> = ({ readOnl
                 ['Comentario', selected.note || '—'],
               ].map(([k, v]) => (
                 <div key={k}>
-                  <dt className="text-[11px] text-muted-foreground">{k}</dt>
+                  <dt className="text-xs text-muted-foreground">{k}</dt>
                   <dd className="font-medium text-foreground">{v}</dd>
                 </div>
               ))}
-              <p className="pt-2 text-[11px] text-muted-foreground">Verifica en tu app de Yape, Plin o del banco que el abono llegó con este número de operación antes de validar.</p>
+              <p className="pt-2 text-xs text-muted-foreground">Verifica en tu app de Yape, Plin o del banco que el abono llegó con este número de operación antes de validar.</p>
             </dl>
             {rejecting && (
               <label className="text-xs text-muted-foreground sm:col-span-2">

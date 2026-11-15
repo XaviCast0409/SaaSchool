@@ -9,6 +9,8 @@ import { PrivacyPolicyPage } from '@/features/legal/pages/PrivacyPolicyPage';
 import { TermsPage } from '@/features/legal/pages/TermsPage';
 import { PlanGuard } from '@/components/ui/PlanGuard';
 import { PageLoader } from '@/components/ui/PageLoader';
+import { NoAccessPage, NotFoundPage } from '@/components/ui/StatusPages';
+import { SectionTabsLayout } from '@/layouts/SectionTabsLayout';
 
 const DashboardPage = lazy(() =>
   import('@/features/dashboard/pages/DashboardPage').then((m) => ({ default: m.DashboardPage })),
@@ -78,6 +80,12 @@ const PlatformAnnouncementsPage = lazy(() =>
 );
 const PlatformHealthPage = lazy(() =>
   import('@/features/super-admin/pages/PlatformHealthPage').then((m) => ({ default: m.PlatformHealthPage })),
+);
+const LeadsPage = lazy(() =>
+  import('@/features/super-admin/pages/LeadsPage').then((m) => ({ default: m.LeadsPage })),
+);
+const LandingPage = lazy(() =>
+  import('@/features/marketing/pages/LandingPage').then((m) => ({ default: m.LandingPage })),
 );
 const StudentCoursesPage = lazy(() =>
   import('@/features/course-contents/pages/StudentCoursesPage').then((m) => ({ default: m.StudentCoursesPage })),
@@ -189,7 +197,7 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
 
-/** Guardia por Rol: previene navegación por URL si el usuario no tiene permisos */
+/** Guardia por Rol: si el usuario entra por URL a una sección que su rol no incluye, se le avisa */
 const RoleGuard: React.FC<{
   allowedRoles: string[];
   disallowStudents?: boolean;
@@ -202,12 +210,13 @@ const RoleGuard: React.FC<{
     return null;
   }
 
-  if (!user || !allowedRoles.includes(user.role)) {
-    return <Navigate to="/dashboard" replace />;
+  if (!user) {
+    return <Navigate to="/login" replace />;
   }
 
-  if (disallowStudents && user.role === 'STUDENT') {
-    return <Navigate to="/dashboard" replace />;
+  // Sin permiso: se explica en lugar de redirigir en silencio al inicio
+  if (!allowedRoles.includes(user.role) || (disallowStudents && user.role === 'STUDENT')) {
+    return <NoAccessPage />;
   }
 
   return <>{children}</>;
@@ -218,6 +227,9 @@ export const AppRouter: React.FC = () => {
     <BrowserRouter>
       <Suspense fallback={<PageLoader />}>
         <Routes>
+          {/* Web de marketing de KIPUX (pública) */}
+          <Route path="/" element={<LandingPage />} />
+
           {/* Ingreso: primero el código del colegio, luego la página propia de ese colegio */}
           <Route
             path="/login"
@@ -339,16 +351,6 @@ export const AppRouter: React.FC = () => {
               }
             />
             <Route
-              path="/academic/reports"
-              element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE']}>
-                  <PlanGuard minPlan="PRO">
-                    <AcademicReportsPage />
-                  </PlanGuard>
-                </RoleGuard>
-              }
-            />
-            <Route
               path="/academic/report-cards/print"
               element={
                 <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER']}>
@@ -456,16 +458,6 @@ export const AppRouter: React.FC = () => {
               }
             />
             <Route
-              path="/academic-reports"
-              element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER']}>
-                  <PlanGuard minPlan="PRO">
-                    <LegacyAcademicReportsPage />
-                  </PlanGuard>
-                </RoleGuard>
-              }
-            />
-            <Route
               path="/virtual-classroom"
               element={
                 <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT', 'STUDENT']}>
@@ -477,42 +469,70 @@ export const AppRouter: React.FC = () => {
               path="/virtual-classroom-supervision"
               element={
                 <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE']}>
-                  <VirtualClassroomSupervisionPage />
+                  <PlanGuard minPlan="PRO">
+                    <VirtualClassroomSupervisionPage />
+                  </PlanGuard>
                 </RoleGuard>
               }
             />
-            <Route
-              path="/attendance"
-              element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT']}>
-                  <AttendancePage />
-                </RoleGuard>
-              }
-            />
-            <Route
-              path="/attendance-justifications"
-              element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER']}>
-                  <AttendanceJustificationsPage />
-                </RoleGuard>
-              }
-            />
-            <Route
-              path="/attendance-alerts"
-              element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER']}>
-                  <AttendanceAlertsPage />
-                </RoleGuard>
-              }
-            />
-            <Route
-              path="/course-attendance"
-              element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER']}>
-                  <CourseAttendancePage />
-                </RoleGuard>
-              }
-            />
+            {/* Asistencia: cuatro pantallas bajo una sola entrada del menú, como pestañas */}
+            <Route element={<SectionTabsLayout group="attendance" />}>
+              <Route
+                path="/attendance"
+                element={
+                  <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT']}>
+                    <AttendancePage />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/course-attendance"
+                element={
+                  <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER']}>
+                    <CourseAttendancePage />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/attendance-justifications"
+                element={
+                  <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER']}>
+                    <AttendanceJustificationsPage />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/attendance-alerts"
+                element={
+                  <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER']}>
+                    <AttendanceAlertsPage />
+                  </RoleGuard>
+                }
+              />
+            </Route>
+            {/* Reportes académicos: los dos centros de reportes, como pestañas */}
+            <Route element={<SectionTabsLayout group="reports" />}>
+              <Route
+                path="/academic/reports"
+                element={
+                  <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE']}>
+                    <PlanGuard minPlan="PRO">
+                      <AcademicReportsPage />
+                    </PlanGuard>
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/academic-reports"
+                element={
+                  <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER']}>
+                    <PlanGuard minPlan="PRO">
+                      <LegacyAcademicReportsPage />
+                    </PlanGuard>
+                  </RoleGuard>
+                }
+              />
+            </Route>
             <Route
               path="/incidents"
               element={
@@ -525,7 +545,9 @@ export const AppRouter: React.FC = () => {
               path="/evaluation-criteria"
               element={
                 <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
-                  <EvaluationCriteriaPage />
+                  <PlanGuard minPlan="PRO">
+                    <EvaluationCriteriaPage />
+                  </PlanGuard>
                 </RoleGuard>
               }
             />
@@ -557,7 +579,9 @@ export const AppRouter: React.FC = () => {
               path="/insights"
               element={
                 <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER']}>
-                  <InsightsPage />
+                  <PlanGuard minPlan="PRO">
+                    <InsightsPage />
+                  </PlanGuard>
                 </RoleGuard>
               }
             />
@@ -657,10 +681,18 @@ export const AppRouter: React.FC = () => {
                 </RoleGuard>
               }
             />
-          </Route>
+            <Route
+              path="/super-admin/leads"
+              element={
+                <RoleGuard allowedRoles={['SUPER_ADMIN']}>
+                  <LeadsPage />
+                </RoleGuard>
+              }
+            />
 
-          {/* Default Fallback */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            {/* Dirección inexistente: se explica dentro de la app (sin sesión, ProtectedRoute lleva al ingreso) */}
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
         </Routes>
       </Suspense>
     </BrowserRouter>

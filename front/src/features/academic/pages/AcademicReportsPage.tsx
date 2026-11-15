@@ -104,7 +104,7 @@ export const AcademicReportsPage: React.FC = () => {
                   <th rowSpan={2} className="sticky left-0 bg-muted/40 px-3 py-2 text-left font-semibold">Estudiante</th>
                   {data.matrix.consolidatedAreas?.map((a) => (
                     <th key={a.code} colSpan={a.competences.length + coursesOf(a.code).length} className="border-l border-border px-2 py-1.5 text-center font-semibold">
-                      {a.name}{coursesOf(a.code).length > 0 && <span className="block text-[10px] font-normal">área madre · va al SIAGIE</span>}
+                      {a.name}{coursesOf(a.code).length > 0 && <span className="block text-xs font-normal">área madre · va al SIAGIE</span>}
                     </th>
                   ))}
                   {period === 'FINAL' && <th rowSpan={2} className="border-l border-border px-2 py-2 font-semibold">Situación</th>}

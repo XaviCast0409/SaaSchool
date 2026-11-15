@@ -265,7 +265,7 @@ export const RolloverModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
               )}
               <div className="rounded-xl border border-border overflow-x-auto max-h-[50vh] overflow-y-auto">
                 <table className="w-full text-left">
-                  <thead className="sticky top-0 bg-muted/90 backdrop-blur text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+                  <thead className="sticky top-0 bg-muted/90 backdrop-blur text-xs font-extrabold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
                     <tr>
                       <th className="px-3 py-2 w-8">
                         <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Seleccionar todos" className="w-4 h-4 rounded" />
@@ -296,7 +296,7 @@ export const RolloverModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
                           </td>
                           <td className="px-3 py-2">
                             <div className="font-bold text-foreground whitespace-nowrap">{name}</div>
-                            <div className="text-[10px] text-muted-foreground font-mono">{r.student.documentId}</div>
+                            <div className="text-xs text-muted-foreground font-mono">{r.student.documentId}</div>
                           </td>
                           <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{classroomLabel(r.fromClassroom)}</td>
                           <td className="px-3 py-2">
@@ -334,11 +334,11 @@ export const RolloverModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
                             <div className="flex flex-wrap gap-1">
                               {r.flags.map((f) =>
                                 f === 'DEBT' ? (
-                                  <span key={f} className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 whitespace-nowrap">
+                                  <span key={f} className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 whitespace-nowrap">
                                     Debe {soles(r.overdueDebt)}
                                   </span>
                                 ) : FLAG[f] ? (
-                                  <span key={f} className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${FLAG[f]!.cls}`}>
+                                  <span key={f} className={`px-1.5 py-0.5 rounded-full text-xs font-bold whitespace-nowrap ${FLAG[f]!.cls}`}>
                                     {FLAG[f]!.label}
                                   </span>
                                 ) : null,
@@ -351,7 +351,7 @@ export const RolloverModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
                   </tbody>
                 </table>
               </div>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 El aula propuesta es el grado siguiente en la misma sección y turno, entre las secciones abiertas en {data?.toYear.year}. Quien
                 tiene situación final "permanece" se propone repitiendo; si falta la situación final, regístrala en <strong>Años lectivos</strong>{' '}
                 o marca <strong>Repite</strong> y cambia su aula. La deuda no bloquea la matrícula: se muestra para que Dirección decida.
@@ -375,7 +375,7 @@ const Chip: React.FC<{ children: React.ReactNode; tone?: 'ok' | 'bad' | 'warn' |
           : tone === 'primary'
             ? 'bg-primary/10 text-primary'
             : 'bg-secondary text-secondary-foreground';
-  return <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${cls}`}>{children}</span>;
+  return <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${cls}`}>{children}</span>;
 };
 
 const Stat: React.FC<{ label: string; value: number; tone: 'ok' | 'bad' | 'warn' | 'muted' }> = ({ label, value, tone }) => (
@@ -387,6 +387,6 @@ const Stat: React.FC<{ label: string; value: number; tone: 'ok' | 'bad' | 'warn'
     >
       {value}
     </div>
-    <div className="text-[11px] text-muted-foreground">{label}</div>
+    <div className="text-xs text-muted-foreground">{label}</div>
   </div>
 );

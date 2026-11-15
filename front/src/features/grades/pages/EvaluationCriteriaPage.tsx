@@ -190,11 +190,11 @@ export const EvaluationCriteriaPage: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-5">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="border-primary/30 text-primary bg-primary/5 text-[10px] font-bold">
+              <Badge variant="outline" className="border-primary/30 text-primary bg-primary/5 text-xs font-bold">
                 <ShieldCheck className="w-3 h-3 mr-1" />
                 Solo Dirección y Administrador
               </Badge>
-              <Badge variant="secondary" className="text-[10px] font-medium">
+              <Badge variant="secondary" className="text-xs font-medium">
                 CNEB / MINEDU
               </Badge>
             </div>
@@ -235,7 +235,7 @@ export const EvaluationCriteriaPage: React.FC = () => {
               <Layers className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Criterios Activos
               </p>
               <p className="text-xl font-black text-foreground">{activeCriteria.length}</p>
@@ -247,7 +247,7 @@ export const EvaluationCriteriaPage: React.FC = () => {
               <Scale className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Suma de Pesos
               </p>
               <p className="text-xl font-black text-foreground font-mono">
@@ -261,7 +261,7 @@ export const EvaluationCriteriaPage: React.FC = () => {
               <CheckCircle2 className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Estado del Sistema
               </p>
               <p className="text-xs font-bold text-foreground">Sincronizado con Matriz</p>
@@ -322,7 +322,7 @@ export const EvaluationCriteriaPage: React.FC = () => {
                     className="h-8 text-xs bg-background"
                   />
                   {errors.name && (
-                    <span className="text-[10px] text-destructive">{errors.name.message}</span>
+                    <span className="text-xs text-destructive">{errors.name.message}</span>
                   )}
                 </div>
 
@@ -340,7 +340,7 @@ export const EvaluationCriteriaPage: React.FC = () => {
                     className="h-8 text-xs font-mono uppercase bg-background"
                   />
                   {errors.shortName && (
-                    <span className="text-[10px] text-destructive">{errors.shortName.message}</span>
+                    <span className="text-xs text-destructive">{errors.shortName.message}</span>
                   )}
                 </div>
 
@@ -375,7 +375,7 @@ export const EvaluationCriteriaPage: React.FC = () => {
                     })}
                     className="h-8 text-xs font-mono bg-background"
                   />
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     1.0 = ponderación estándar
                   </span>
                 </div>
@@ -391,7 +391,7 @@ export const EvaluationCriteriaPage: React.FC = () => {
                     {...register('order', { valueAsNumber: true })}
                     className="h-8 text-xs font-mono bg-background"
                   />
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     1, 2, 3... de izquierda a derecha
                   </span>
                 </div>
@@ -427,7 +427,7 @@ export const EvaluationCriteriaPage: React.FC = () => {
             <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Criterios Configurados para el Colegio ({criteria.length})
             </h3>
-            <span className="text-[11px] text-muted-foreground font-mono">
+            <span className="text-xs text-muted-foreground font-mono">
               Los cambios se reflejan automáticamente en la matriz docente
             </span>
           </div>
@@ -485,7 +485,7 @@ export const EvaluationCriteriaPage: React.FC = () => {
                       <td className="p-3 text-center">
                         <Badge
                           variant="secondary"
-                          className="font-mono font-bold text-[11px] px-2 py-0.5"
+                          className="font-mono font-bold text-xs px-2 py-0.5"
                         >
                           {c.shortName}
                         </Badge>
@@ -499,7 +499,7 @@ export const EvaluationCriteriaPage: React.FC = () => {
                       {/* Nivel */}
                       <td className="p-3 text-center">
                         {c.educationLevel ? (
-                          <Badge variant="outline" className="text-[10px] uppercase font-semibold">
+                          <Badge variant="outline" className="text-xs uppercase font-semibold">
                             {c.educationLevel === 'INITIAL'
                               ? 'Inicial'
                               : c.educationLevel === 'PRIMARY'
@@ -507,7 +507,7 @@ export const EvaluationCriteriaPage: React.FC = () => {
                                 : 'Secundaria'}
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="text-[10px] text-muted-foreground border-border">
+                          <Badge variant="outline" className="text-xs text-muted-foreground border-border">
                             Todos
                           </Badge>
                         )}
@@ -523,12 +523,12 @@ export const EvaluationCriteriaPage: React.FC = () => {
                         {c.isActive ? (
                           <Badge
                             variant="secondary"
-                            className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-none text-[10px]"
+                            className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-none text-xs"
                           >
                             Activo
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="text-muted-foreground text-[10px]">
+                          <Badge variant="outline" className="text-muted-foreground text-xs">
                             Inactivo
                           </Badge>
                         )}

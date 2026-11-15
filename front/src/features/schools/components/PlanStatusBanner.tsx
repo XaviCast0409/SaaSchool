@@ -72,7 +72,7 @@ export const PlanStatusBanner: React.FC<PlanStatusBannerProps> = ({ school, role
       : 'bg-destructive/10 border-destructive/30 text-destructive';
 
   return (
-    <div role="status" className={`border-b px-4 py-2.5 text-xs flex items-start gap-2 print:hidden ${styles}`}>
+    <div role="status" data-priority={tone === 'danger' ? 'high' : undefined} className={`border-b px-4 py-2.5 text-xs flex items-start gap-2 print:hidden ${styles}`}>
       <AlertTriangle className="w-4 h-4 shrink-0 mt-px" />
       <span>{text}</span>
     </div>

@@ -102,7 +102,7 @@ export const ReplaceTeacherModal: React.FC<{ teacher: DirectoryUser; onClose: ()
                     <div className="font-semibold text-foreground">
                       {c.course} · {c.classroom}
                     </div>
-                    <div className="text-[11px] text-muted-foreground">
+                    <div className="text-xs text-muted-foreground">
                       {c.grades} notas · {c.contents} contenidos · {c.attendanceSessions} sesiones de asistencia · {c.scheduleBlocks} horas en horario
                       {c.pendingSubmissions > 0 && <span className="text-amber-700 dark:text-amber-400 font-semibold"> · {c.pendingSubmissions} entregas por calificar</span>}
                     </div>
@@ -115,7 +115,7 @@ export const ReplaceTeacherModal: React.FC<{ teacher: DirectoryUser; onClose: ()
                 </p>
               )}
               {pendingTotal > 0 && (
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   Las {pendingTotal} entregas por calificar quedarán para el nuevo docente, que podrá revisarlas y calificarlas.
                 </p>
               )}
@@ -135,7 +135,7 @@ export const ReplaceTeacherModal: React.FC<{ teacher: DirectoryUser; onClose: ()
                 </option>
               ))}
             </select>
-            <span className="block text-[10px] text-muted-foreground">Si es nuevo en el colegio, regístralo primero con "Registrar Personal".</span>
+            <span className="block text-xs text-muted-foreground">Si es nuevo en el colegio, regístralo primero con "Registrar Personal".</span>
           </label>
 
           <div className="flex gap-2">
@@ -152,7 +152,7 @@ export const ReplaceTeacherModal: React.FC<{ teacher: DirectoryUser; onClose: ()
                 className={`flex-1 rounded-xl border p-2 text-left ${f.kind === k ? 'border-primary bg-primary/5' : 'border-border'}`}
               >
                 <div className="font-bold text-foreground">{label}</div>
-                <div className="text-[10px] text-muted-foreground">{hint}</div>
+                <div className="text-xs text-muted-foreground">{hint}</div>
               </button>
             ))}
           </div>
@@ -197,7 +197,7 @@ export const ReplaceTeacherModal: React.FC<{ teacher: DirectoryUser; onClose: ()
                   <input type="radio" name="outgoingAction" checked={f.outgoingAction === k} onChange={() => setF({ ...f, outgoingAction: k })} className="mt-0.5" />
                   <span>
                     <span className="font-semibold text-foreground">{label}</span>
-                    <span className="block text-[10px] text-muted-foreground">{hint}</span>
+                    <span className="block text-xs text-muted-foreground">{hint}</span>
                   </span>
                 </label>
               ))}

@@ -1,3 +1,5 @@
+import { useUrlFilters } from '@/lib/useUrlFilters';
+import { confirmDialog } from '@/components/ui/confirm';
 import React, { useState } from 'react';
 import {
   CreditCard,
@@ -75,11 +77,14 @@ export const PaymentsPage: React.FC = () => {
   const isDirector = canView;
 
   // State de paginación y filtros
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [filterStatus, setFilterStatus] = useState<string>('ALL');
-  const [selectedClassroomId, setSelectedClassroomId] = useState<string>('');
-  const [searchTerm, setSearchTerm] = useState('');
+  // Filtros en la URL: sobreviven a recargar, al botón Atrás y se pueden compartir como enlace
+  const [urlFilters, setUrlFilters] = useUrlFilters({ page: 1, limit: 10, status: 'ALL', classroomId: '', q: '' });
+  const { page, limit, status: filterStatus, classroomId: selectedClassroomId, q: searchTerm } = urlFilters;
+  const setPage = (value: number) => setUrlFilters({ page: value });
+  const setLimit = (value: number) => setUrlFilters({ limit: value });
+  const setFilterStatus = (value: string) => setUrlFilters({ status: value });
+  const setSelectedClassroomId = (value: string) => setUrlFilters({ classroomId: value });
+  const setSearchTerm = (value: string) => setUrlFilters({ q: value });
 
   // Modals state
   const [selectedObligationForTransaction, setSelectedObligationForTransaction] = useState<PaymentObligation | null>(null);
@@ -141,8 +146,8 @@ export const PaymentsPage: React.FC = () => {
   const obligations = isParent ? parentObligations : adminObligations;
   const isLoading = isParent ? isLoadingParentObligations : isLoadingAdminObligations;
 
-  const handleBulkReminders = () => {
-    if (window.confirm('¿Deseas enviar recordatorios masivos por correo electrónico a todos los apoderados con deudas vencidas?')) {
+  const handleBulkReminders = async () => {
+    if (await confirmDialog({ title: '¿Enviar recordatorios masivos?', description: 'Se enviará un correo electrónico a todos los apoderados con deudas vencidas.', confirmText: 'Enviar recordatorios' })) {
       sendBulkReminders('EMAIL');
     }
   };
@@ -282,7 +287,7 @@ export const PaymentsPage: React.FC = () => {
                   S/ {financialSummary?.totalExpected.toFixed(2) || '0.00'}
                 </div>
               )}
-              <p className="text-[11px] text-muted-foreground mt-1">Obligaciones emitidas</p>
+              <p className="text-xs text-muted-foreground mt-1">Obligaciones emitidas</p>
             </CardContent>
           </Card>
 
@@ -299,7 +304,7 @@ export const PaymentsPage: React.FC = () => {
                   S/ {financialSummary?.totalCollected.toFixed(2) || '0.00'}
                 </div>
               )}
-              <p className="text-[11px] text-muted-foreground mt-1">Pagos confirmados</p>
+              <p className="text-xs text-muted-foreground mt-1">Pagos confirmados</p>
             </CardContent>
           </Card>
 
@@ -316,7 +321,7 @@ export const PaymentsPage: React.FC = () => {
                   S/ {financialSummary?.totalPending.toFixed(2) || '0.00'}
                 </div>
               )}
-              <p className="text-[11px] text-muted-foreground mt-1">Por cobrar este mes</p>
+              <p className="text-xs text-muted-foreground mt-1">Por cobrar este mes</p>
             </CardContent>
           </Card>
 
@@ -333,7 +338,7 @@ export const PaymentsPage: React.FC = () => {
                   {financialSummary?.overdueCount || 0}
                 </div>
               )}
-              <p className="text-[11px] text-muted-foreground mt-1">Pensiones vencidas</p>
+              <p className="text-xs text-muted-foreground mt-1">Pensiones vencidas</p>
             </CardContent>
           </Card>
         </div>
@@ -430,7 +435,7 @@ export const PaymentsPage: React.FC = () => {
                             <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                               {student?.documentId && <span className="font-mono">DNI: {student.documentId}</span>}
                               {classroom && (
-                                <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-secondary text-secondary-foreground">
+                                <span className="px-1.5 py-0.5 rounded text-xs font-semibold bg-secondary text-secondary-foreground">
                                   {classroom.grade}° "{classroom.section}"
                                 </span>
                               )}
@@ -440,7 +445,7 @@ export const PaymentsPage: React.FC = () => {
                         <TableCell>
                           <div>
                             <div className="font-medium text-foreground text-xs">{item.title}</div>
-                            <div className="text-[11px] text-muted-foreground">{item.concept}</div>
+                            <div className="text-xs text-muted-foreground">{item.concept}</div>
                           </div>
                         </TableCell>
                         <TableCell>

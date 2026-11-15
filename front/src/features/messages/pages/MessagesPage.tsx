@@ -159,7 +159,7 @@ const ConversationList: React.FC<{
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline justify-between gap-2">
                 <p className={cn('truncate text-sm', c.unread ? 'font-semibold text-foreground' : 'font-medium text-foreground')}>{c.counterpart.name}</p>
-                <span className="shrink-0 text-[11px] text-muted-foreground">{shortWhen(c.lastMessageAt)}</span>
+                <span className="shrink-0 text-xs text-muted-foreground">{shortWhen(c.lastMessageAt)}</span>
               </div>
               <p className="truncate text-xs text-muted-foreground">
                 {c.counterpart.roleLabel} · {c.student.name}
@@ -167,7 +167,7 @@ const ConversationList: React.FC<{
               <div className="flex items-center justify-between gap-2">
                 <p className={cn('truncate text-xs', c.unread ? 'text-foreground' : 'text-muted-foreground')}>{c.lastMessageText ?? 'Sin mensajes todavía'}</p>
                 {c.unread > 0 && (
-                  <span className="shrink-0 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground" aria-label={`${c.unread} sin leer`}>
+                  <span className="shrink-0 rounded-full bg-primary px-1.5 py-0.5 text-xs font-bold text-primary-foreground" aria-label={`${c.unread} sin leer`}>
                     {c.unread}
                   </span>
                 )}
@@ -253,7 +253,7 @@ const ChatPanel: React.FC<{ conversationId: string; onBack: () => void }> = ({ c
         )}
         {grouped.map((g) => (
           <div key={g.day} className="space-y-1.5">
-            <p className="text-center text-[11px] font-medium text-muted-foreground">{g.day}</p>
+            <p className="text-center text-xs font-medium text-muted-foreground">{g.day}</p>
             {g.items.map((m) => (
               <div key={m.id} className={cn('flex', m.mine ? 'justify-end' : 'justify-start')}>
                 <div
@@ -263,7 +263,7 @@ const ChatPanel: React.FC<{ conversationId: string; onBack: () => void }> = ({ c
                   )}
                 >
                   {m.body}
-                  <span className={cn('mt-1 flex items-center justify-end gap-1 text-[10px]', m.mine ? 'text-primary-foreground/75' : 'text-muted-foreground')}>
+                  <span className={cn('mt-1 flex items-center justify-end gap-1 text-xs', m.mine ? 'text-primary-foreground/75' : 'text-muted-foreground')}>
                     {formatPeruTime(m.createdAt)}
                     {m.mine &&
                       (otherRead && otherRead >= new Date(m.createdAt) ? (
@@ -281,7 +281,7 @@ const ChatPanel: React.FC<{ conversationId: string; onBack: () => void }> = ({ c
       </div>
 
       {conversation.officeHours && (
-        <p className="flex items-center gap-1.5 border-t border-border px-3 pt-2 text-[11px] text-muted-foreground">
+        <p className="flex items-center gap-1.5 border-t border-border px-3 pt-2 text-xs text-muted-foreground">
           <Clock className="h-3 w-3" aria-hidden /> Horario de atención: lunes a viernes de {conversation.officeHours.start} a {conversation.officeHours.end}
         </p>
       )}
@@ -340,7 +340,7 @@ export const MessagesPage: React.FC = () => {
           <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-3">
             <div>
               <h1 className="text-base font-semibold text-foreground">Mensajes</h1>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {user?.role === 'PARENT' ? 'Conversa con el tutor y los docentes de tus hijos' : 'Conversaciones privadas con las familias'}
               </p>
             </div>

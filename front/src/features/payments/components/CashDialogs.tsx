@@ -218,7 +218,7 @@ export const CloseCashModal: React.FC<{
             placeholder="Ej: Faltan S/ 2 de vuelto que se dio a un apoderado"
           />
         </label>
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Después de cerrar ya no podrás cobrar en esta caja ni anular sus movimientos. Si hubo un error, el tesorero puede reabrirla.
         </p>
       </div>
@@ -281,7 +281,7 @@ export const CashSessionDetailModal: React.FC<{
                 ['Efectivo contado', s.countedCash == null ? '—' : soles(s.countedCash)],
               ].map(([label, value]) => (
                 <div key={label} className="rounded-lg border border-border p-2.5">
-                  <p className="text-[11px] text-muted-foreground">{label}</p>
+                  <p className="text-xs text-muted-foreground">{label}</p>
                   <p className="text-sm font-bold">{value}</p>
                 </div>
               ))}

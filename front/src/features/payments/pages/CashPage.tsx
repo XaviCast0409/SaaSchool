@@ -129,7 +129,7 @@ const MyCash: React.FC<{ canManage: boolean }> = ({ canManage }) => {
             ['Efectivo esperado', soles(s.totals.expectedCash)],
           ].map(([label, value], i) => (
             <div key={label} className={`rounded-lg border p-3 ${i === 3 ? 'border-primary/30 bg-primary/5' : 'border-border'}`}>
-              <p className="text-[11px] text-muted-foreground">{label}</p>
+              <p className="text-xs text-muted-foreground">{label}</p>
               <p className="text-lg font-bold">{value}</p>
             </div>
           ))}
@@ -204,16 +204,16 @@ const SessionsHistory: React.FC<{ canView: boolean; canManage: boolean; isAdmin:
           {canManage && pendingReview > 0 && <Badge variant="warning">{pendingReview} por revisar</Badge>}
         </div>
         <div className="flex flex-wrap items-end gap-2">
-          <label className="space-y-1 text-[11px] font-semibold text-muted-foreground">
+          <label className="space-y-1 text-xs font-semibold text-muted-foreground">
             Desde
             <input type="date" className={`${selectCls} block`} value={filters.startDate ?? ''} onChange={(e) => setFilters({ ...filters, startDate: e.target.value || undefined })} />
           </label>
-          <label className="space-y-1 text-[11px] font-semibold text-muted-foreground">
+          <label className="space-y-1 text-xs font-semibold text-muted-foreground">
             Hasta
             <input type="date" className={`${selectCls} block`} value={filters.endDate ?? ''} onChange={(e) => setFilters({ ...filters, endDate: e.target.value || undefined })} />
           </label>
           {canView && (
-            <label className="space-y-1 text-[11px] font-semibold text-muted-foreground">
+            <label className="space-y-1 text-xs font-semibold text-muted-foreground">
               Cajero
               <select className={`${selectCls} block`} value={filters.cashierId ?? ''} onChange={(e) => setFilters({ ...filters, cashierId: e.target.value || undefined })}>
                 <option value="">Todos</option>
@@ -225,7 +225,7 @@ const SessionsHistory: React.FC<{ canView: boolean; canManage: boolean; isAdmin:
               </select>
             </label>
           )}
-          <label className="space-y-1 text-[11px] font-semibold text-muted-foreground">
+          <label className="space-y-1 text-xs font-semibold text-muted-foreground">
             Estado
             <select
               className={`${selectCls} block`}
@@ -248,7 +248,7 @@ const SessionsHistory: React.FC<{ canView: boolean; canManage: boolean; isAdmin:
         ) : (
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="w-full text-xs">
-              <thead className="bg-muted/40 text-left text-[11px] uppercase text-muted-foreground">
+              <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
                 <tr>
                   <th className="p-2">Cajero</th>
                   <th className="p-2">Apertura</th>

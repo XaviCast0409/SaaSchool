@@ -1,3 +1,4 @@
+import { confirmDialog } from '@/components/ui/confirm';
 import React, { useState } from 'react';
 import {
   useReactTable,
@@ -101,7 +102,7 @@ export const UserTable: React.FC<UserTableProps> = ({
           badgeClass: 'bg-muted text-muted-foreground border-border',
         };
         return (
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] border ${config.badgeClass}`}>
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs border ${config.badgeClass}`}>
             {config.label}
           </span>
         );
@@ -173,9 +174,7 @@ export const UserTable: React.FC<UserTableProps> = ({
                 className="h-7 px-2 text-xs text-amber-600 hover:bg-amber-500/10 hover:text-amber-600 font-semibold"
                 onClick={async () => {
                   if (
-                    window.confirm(
-                      `¿Restablecer la contraseña de "${user.firstName} ${user.lastNamePaternal}"? Se generará una contraseña temporal.`
-                    )
+                    await confirmDialog({ title: '¿Restablecer la contraseña?', description: `Se generará una contraseña temporal para ${user.firstName} ${user.lastNamePaternal}.`, confirmText: 'Restablecer' })
                   ) {
                     try {
                       const data = await resetPassword({ userId: user.id });

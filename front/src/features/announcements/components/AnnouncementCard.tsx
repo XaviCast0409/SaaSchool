@@ -215,19 +215,19 @@ export const AnnouncementCard: React.FC<AnnouncementCardProps> = ({
       <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border/60 text-xs text-muted-foreground">
         {announcement.author && (
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center font-black text-[10px] shrink-0 border border-primary/20">
+            <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center font-black text-xs shrink-0 border border-primary/20">
               {announcement.author.firstName[0]}
             </div>
             <span className="font-bold text-foreground">
               {announcement.author.firstName} {announcement.author.lastNamePaternal}
             </span>
-            <span className="text-[11px] text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               • {announcement.author.role === 'TEACHER' ? 'Docente de Aula' : 'Dirección Escolar'}
             </span>
           </div>
         )}
 
-        <div className="flex items-center gap-1.5 ml-auto text-[11px] text-muted-foreground font-medium">
+        <div className="flex items-center gap-1.5 ml-auto text-xs text-muted-foreground font-medium">
           <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
           <span>{formattedDate}</span>
         </div>

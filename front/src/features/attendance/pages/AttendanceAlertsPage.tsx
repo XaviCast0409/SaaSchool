@@ -1,3 +1,4 @@
+import { useUrlFilters } from '@/lib/useUrlFilters';
 import React, { useState } from 'react';
 import {
   AlertTriangle,
@@ -36,9 +37,13 @@ export const AttendanceAlertsPage: React.FC = () => {
   const { user } = useAuthStore();
   const isSchoolAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'SCHOOL_ADMIN';
 
-  const [activeTab, setActiveTab] = useState<'OPEN' | 'ATTENDED'>('OPEN');
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(20);
+  // Filtros en la URL: sobreviven a recargar, al botón Atrás y se pueden compartir como enlace
+  const [urlFilters, setUrlFilters] = useUrlFilters({ tab: 'OPEN', page: 1, limit: 20 });
+  const { page, limit } = urlFilters;
+  const activeTab: 'OPEN' | 'ATTENDED' = urlFilters.tab === 'ATTENDED' ? 'ATTENDED' : 'OPEN';
+  const setActiveTab = (value: 'OPEN' | 'ATTENDED') => setUrlFilters({ tab: value });
+  const setPage = (value: number) => setUrlFilters({ page: value });
+  const setLimit = (value: number) => setUrlFilters({ limit: value });
 
   // Modales
   const [attendItem, setAttendItem] = useState<AttendanceAlert | null>(null);
@@ -235,7 +240,7 @@ export const AttendanceAlertsPage: React.FC = () => {
 
                     <Badge
                       variant="outline"
-                      className="text-[10px] font-bold border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0"
+                      className="text-xs font-bold border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0"
                     >
                       {RISK_REASON_LABELS[item.reason] || item.reason}
                     </Badge>
@@ -253,7 +258,7 @@ export const AttendanceAlertsPage: React.FC = () => {
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Calendar className="w-3 h-3" />
                     <span>Detectada el: {triggerDateFormatted}</span>
                   </div>
@@ -262,18 +267,18 @@ export const AttendanceAlertsPage: React.FC = () => {
                   {item.status === 'ATTENDED' && (
                     <div className="p-3 rounded-xl bg-secondary/50 border border-border text-xs space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">
+                        <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold text-xs">
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           Atendida
                         </span>
                         {item.incidentId && (
-                          <Badge className="text-[10px] bg-primary/10 text-primary border border-primary/20">
+                          <Badge className="text-xs bg-primary/10 text-primary border border-primary/20">
                             Familia citada
                           </Badge>
                         )}
                       </div>
                       {item.attendedNote && (
-                        <p className="text-muted-foreground italic text-[11px]">
+                        <p className="text-muted-foreground italic text-xs">
                           "{item.attendedNote}"
                         </p>
                       )}

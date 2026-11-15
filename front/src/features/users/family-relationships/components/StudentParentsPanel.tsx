@@ -83,7 +83,7 @@ export const StudentParentsPanel: React.FC<StudentParentsPanelProps> = ({
                   <span className="font-semibold text-sm text-foreground truncate">
                     {rel.user?.firstName} {rel.user?.lastNamePaternal} {rel.user?.lastNameMaternal}
                   </span>
-                  <Badge variant="secondary" className="text-[10px] shrink-0">
+                  <Badge variant="secondary" className="text-xs shrink-0">
                     {RELATIONSHIP_LABELS[rel.relationshipType] || rel.relationshipType}
                   </Badge>
                 </div>
@@ -95,19 +95,19 @@ export const StudentParentsPanel: React.FC<StudentParentsPanelProps> = ({
                 {/* Badges de atributos */}
                 <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
                   {rel.isLegalGuardian && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full">
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full">
                       <Shield className="w-2.5 h-2.5" />
                       Apoderado Legal
                     </span>
                   )}
                   {rel.isFinancialResponsible && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded-full">
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded-full">
                       <CreditCard className="w-2.5 h-2.5" />
                       Resp. Pago
                     </span>
                   )}
                   {rel.livesWithStudent && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
                       <Home className="w-2.5 h-2.5" />
                       Convive
                     </span>

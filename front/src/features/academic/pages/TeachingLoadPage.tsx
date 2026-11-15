@@ -1,3 +1,4 @@
+import { confirmDialog } from '@/components/ui/confirm';
 import React, { useMemo, useState } from 'react';
 import {
   AlertTriangle, BookOpen, CheckCircle2, ChevronDown, Clock, Filter, GraduationCap, Search, Sparkles, UserCheck, Users, Wand2, X,
@@ -125,8 +126,8 @@ export const TeachingLoadPage: React.FC = () => {
     return m;
   }, [data, pending]);
 
-  const changeLevel = (l: Level) => {
-    if (changes.length && !window.confirm('Tienes cambios sin guardar. ¿Descartarlos?')) return;
+  const changeLevel = async (l: Level) => {
+    if (changes.length && !(await confirmDialog({ title: '¿Descartar los cambios sin guardar?', description: 'Tienes cambios en la carga docente que todavía no guardaste.', confirmText: 'Descartar cambios', cancelText: 'Seguir editando' }))) return;
     setPending({});
     setFocusTeacher(null);
     setLevel(l);
@@ -291,7 +292,7 @@ const StatTile: React.FC<{
         {label}
       </div>
       <p className="mt-1.5 text-xl font-bold tabular-nums">{value}</p>
-      {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
       {children}
     </Comp>
   );
@@ -379,7 +380,7 @@ const GradeBlock: React.FC<GradeBlockProps> = ({ level, grade, rooms, data, quer
                   >
                     "{r.section}"
                     <span className={cn(
-                      'rounded-full px-1.5 text-[11px] font-medium tabular-nums',
+                      'rounded-full px-1.5 text-xs font-medium tabular-nums',
                       isActive ? 'bg-white/20' : complete ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
                     )}>
                       {complete ? <CheckCircle2 className="inline h-3 w-3" /> : `${s.done}/${s.total}`}
@@ -458,9 +459,9 @@ const CourseCard: React.FC<{
         <p className="line-clamp-2 text-sm font-semibold leading-snug" title={cell.name}>{cell.name}</p>
         <div className="flex shrink-0 items-center gap-1">
           {cell.weeklyHours != null && (
-            <span className="rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">{cell.weeklyHours} h</span>
+            <span className="rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium tabular-nums text-muted-foreground">{cell.weeklyHours} h</span>
           )}
-          {changed && <span className="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300">Editado</span>}
+          {changed && <span className="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-300">Editado</span>}
         </div>
       </div>
       <div className="flex items-center gap-2.5">
@@ -485,8 +486,8 @@ const CourseCard: React.FC<{
       </div>
       {(cell.hasGrades || cell.isTransversal) && (
         <div className="mt-2 flex flex-wrap gap-1">
-          {cell.hasGrades && <span className="rounded-full bg-sky-500/10 px-2 py-0.5 text-[10px] font-medium text-sky-700 dark:text-sky-300">Tiene notas</span>}
-          {cell.isTransversal && <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-medium text-violet-700 dark:text-violet-300">Transversal</span>}
+          {cell.hasGrades && <span className="rounded-full bg-sky-500/10 px-2 py-0.5 text-xs font-medium text-sky-700 dark:text-sky-300">Tiene notas</span>}
+          {cell.isTransversal && <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-xs font-medium text-violet-700 dark:text-violet-300">Transversal</span>}
         </div>
       )}
     </div>
@@ -535,17 +536,17 @@ const TeacherPanel: React.FC<{
                   active ? 'bg-primary/10 ring-1 ring-primary/30' : 'hover:bg-muted/60',
                 )}
               >
-                <Avatar teacher={t} className="h-7 w-7 text-[10px]" />
+                <Avatar teacher={t} className="h-7 w-7 text-xs" />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline justify-between gap-2">
                     <span className={cn('truncate text-xs font-medium', !load.courses && 'text-muted-foreground')}>{teacherName(t)}</span>
-                    <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{load.hours} h</span>
+                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{load.hours} h</span>
                   </div>
                   <div className="mt-1 flex items-center gap-2">
                     <div className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
                       <div className={cn('h-full rounded-full transition-all duration-500', load.courses ? 'bg-primary/70' : 'bg-transparent')} style={{ width: `${(load.hours / maxHours) * 100}%` }} />
                     </div>
-                    <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">{load.courses} curso{load.courses === 1 ? '' : 's'}</span>
+                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{load.courses} curso{load.courses === 1 ? '' : 's'}</span>
                   </div>
                 </div>
               </button>

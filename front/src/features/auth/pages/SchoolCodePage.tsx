@@ -95,7 +95,7 @@ export const SchoolCodePage: React.FC = () => {
               {error ? (
                 <p id="school-code-error" className="text-xs text-destructive">{error}</p>
               ) : (
-                <p id="school-code-help" className="text-[11px] text-muted-foreground">
+                <p id="school-code-help" className="text-xs text-muted-foreground">
                   Tu colegio te lo entrega junto con tus credenciales. También puedes abrir el enlace que te compartió.
                 </p>
               )}
@@ -106,7 +106,7 @@ export const SchoolCodePage: React.FC = () => {
             </Button>
           </form>
 
-          <p className="text-center text-[11px] text-muted-foreground pt-2 border-t border-border/50">
+          <p className="text-center text-xs text-muted-foreground pt-2 border-t border-border/50">
             ¿Administras la plataforma?{' '}
             <Link to="/login/general" className="text-primary hover:underline font-medium">
               Ingreso general

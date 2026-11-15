@@ -27,7 +27,7 @@ export const ChildFinancialCard: React.FC<ChildFinancialCardProps> = ({ enrollme
           </div>
           <div>
             <h3 className="font-bold text-sm text-foreground">Pensiones y Pagos</h3>
-            <span className="text-[11px] text-muted-foreground">Control financiero escolar</span>
+            <span className="text-xs text-muted-foreground">Control financiero escolar</span>
           </div>
         </div>
 
@@ -56,7 +56,7 @@ export const ChildFinancialCard: React.FC<ChildFinancialCardProps> = ({ enrollme
       {/* Amount Display */}
       <div className="p-4 rounded-xl bg-secondary/30 border border-border/40 flex items-center justify-between">
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+          <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">
             {!hasPending ? 'Estado de Cuenta' : 'Total Pendiente por Pagar'}
           </span>
           <span
@@ -70,7 +70,7 @@ export const ChildFinancialCard: React.FC<ChildFinancialCardProps> = ({ enrollme
 
         {hasPending && fin?.nextDueDate && (
           <div className="text-right">
-            <span className="text-[10px] text-muted-foreground block">Próximo Vencimiento</span>
+            <span className="text-xs text-muted-foreground block">Próximo Vencimiento</span>
             <span className="text-xs font-bold text-destructive block">
               {formatPeruDate(fin.nextDueDate, { day: '2-digit', month: 'short' })}
             </span>

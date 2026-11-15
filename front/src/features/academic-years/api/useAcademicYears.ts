@@ -39,8 +39,9 @@ interface ApiResponse<T> {
   data: T;
 }
 
-export const useAcademicYears = () => {
+export const useAcademicYears = (enabled = true) => {
   return useQuery({
+    enabled,
     queryKey: ['academic-years'],
     queryFn: async () => {
       const response = await api.get<ApiResponse<AcademicYear[]>>('/academic-years');

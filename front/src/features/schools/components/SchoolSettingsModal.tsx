@@ -202,7 +202,7 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
                   </button>
                 </div>
               </div>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Personaliza el color primario de los botones, bordes y acentos visuales de la plataforma para tu colegio.
               </p>
             </div>
@@ -262,7 +262,7 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
 
             <div className="grid grid-cols-3 gap-2">
               <div>
-                <label htmlFor="school-dep-input" className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">
+                <label htmlFor="school-dep-input" className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
                   Departamento
                 </label>
                 <input
@@ -274,7 +274,7 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
                 />
               </div>
               <div>
-                <label htmlFor="school-prov-input" className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">
+                <label htmlFor="school-prov-input" className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
                   Provincia
                 </label>
                 <input
@@ -286,7 +286,7 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
                 />
               </div>
               <div>
-                <label htmlFor="school-dist-input" className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">
+                <label htmlFor="school-dist-input" className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
                   Distrito
                 </label>
                 <input
@@ -307,7 +307,7 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
                     <ShieldAlert className="w-4 h-4 text-amber-500" />
                     <span>Retener constancias oficiales por deuda vencida</span>
                   </label>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
                     Conforme a la Ley 27665, solo se pueden retener constancias y certificados de periodos no pagados. Las notas, la libreta y la asistencia SIEMPRE permanecen visibles para las familias.
                   </p>
                 </div>
@@ -338,7 +338,7 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
                   >
                     Avisar a las familias cuando el estudiante no registra ingreso
                   </label>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
                     Envía una notificación a los apoderados al cerrarse la asistencia si el alumno no ingresó.
                   </p>
                 </div>
@@ -352,7 +352,7 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
 
               {/* Parámetros de alerta */}
               <div className="pt-2 border-t border-border/60 space-y-2.5">
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   Las alertas se calculan cada día lectivo después del cierre automático y se envían al tutor del aula.
                 </p>
 
@@ -360,7 +360,7 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
                   <div>
                     <label
                       htmlFor="alert-consecutive"
-                      className="block text-[11px] font-medium text-foreground mb-1"
+                      className="block text-xs font-medium text-foreground mb-1"
                     >
                       Alerta por faltas injustificadas seguidas
                     </label>
@@ -377,7 +377,7 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
                   <div>
                     <label
                       htmlFor="alert-percent"
-                      className="block text-[11px] font-medium text-foreground mb-1"
+                      className="block text-xs font-medium text-foreground mb-1"
                     >
                       Alerta por % de faltas injustificadas en 30 días
                     </label>
@@ -399,7 +399,7 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
                   <div>
                     <label
                       htmlFor="alert-lates"
-                      className="block text-[11px] font-medium text-foreground mb-1"
+                      className="block text-xs font-medium text-foreground mb-1"
                     >
                       Alerta por tardanzas injustificadas en 30 días
                     </label>
@@ -427,7 +427,7 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
                   <label htmlFor="messaging-enabled" className="text-xs font-semibold text-foreground cursor-pointer">
                     Mensajería entre familias y docentes
                   </label>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
                     Chat privado dentro de la app: los docentes no necesitan dar su número personal.
                   </p>
                 </div>
@@ -440,25 +440,25 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
               </div>
               <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
                 <div>
-                  <label htmlFor="messaging-start" className="block text-[11px] font-medium text-foreground mb-1">
+                  <label htmlFor="messaging-start" className="block text-xs font-medium text-foreground mb-1">
                     Atención desde
                   </label>
                   <input id="messaging-start" type="time" {...register('messagingStartTime')} className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary" />
                 </div>
                 <div>
-                  <label htmlFor="messaging-end" className="block text-[11px] font-medium text-foreground mb-1">
+                  <label htmlFor="messaging-end" className="block text-xs font-medium text-foreground mb-1">
                     Atención hasta
                   </label>
                   <input id="messaging-end" type="time" {...register('messagingEndTime')} className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary" />
                 </div>
                 <div>
-                  <label htmlFor="wa-prefix" className="block text-[11px] font-medium text-foreground mb-1">
+                  <label htmlFor="wa-prefix" className="block text-xs font-medium text-foreground mb-1">
                     Prefijo de WhatsApp
                   </label>
                   <input id="wa-prefix" inputMode="numeric" maxLength={4} {...register('whatsappCountryCode')} className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary" />
                 </div>
               </div>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Fuera del horario de atención (y fines de semana) los mensajes de las familias se guardan, pero no suenan en el celular del docente.
               </p>
             </div>
@@ -483,7 +483,7 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
                   PLAN {school?.plan || 'BASIC'}
                 </span>
               </div>
-              <p className="text-[11px] text-muted-foreground pt-1">
+              <p className="text-xs text-muted-foreground pt-1">
                 🔒 El plan de suscripción solo puede ser gestionado por el Administrador General SaaS (SuperAdmin). Para cambiar tu plan, solicita un Upgrade a Soporte.
               </p>
             </div>

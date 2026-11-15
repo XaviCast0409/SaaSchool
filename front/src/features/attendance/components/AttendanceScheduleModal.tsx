@@ -107,7 +107,7 @@ export const AttendanceScheduleModal: React.FC<AttendanceScheduleModalProps> = (
                 <h2 className="font-extrabold text-base sm:text-lg text-foreground">
                   Configuración de Horarios de Asistencia
                 </h2>
-                <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30">
+                <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30">
                   Director / Admin
                 </Badge>
               </div>
@@ -149,7 +149,7 @@ export const AttendanceScheduleModal: React.FC<AttendanceScheduleModalProps> = (
                       <span className="w-2 h-2 rounded-full bg-emerald-500" title="Configuración personalizada activa" />
                     )}
                   </div>
-                  <p className="text-[11px] text-muted-foreground mt-1 line-clamp-1">{opt.desc}</p>
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{opt.desc}</p>
                 </button>
               ))}
             </div>
@@ -163,7 +163,7 @@ export const AttendanceScheduleModal: React.FC<AttendanceScheduleModalProps> = (
                 <CheckCircle2 className="w-4 h-4" />
                 <span>Entrada Puntual</span>
               </div>
-              <p className="text-[11px] text-muted-foreground">Hasta esta hora es Presente:</p>
+              <p className="text-xs text-muted-foreground">Hasta esta hora es Presente:</p>
               <Input
                 type="time"
                 value={entryTime}
@@ -179,7 +179,7 @@ export const AttendanceScheduleModal: React.FC<AttendanceScheduleModalProps> = (
                 <Clock className="w-4 h-4" />
                 <span>Límite de Tardanza</span>
               </div>
-              <p className="text-[11px] text-muted-foreground">Hasta esta hora es Tardanza:</p>
+              <p className="text-xs text-muted-foreground">Hasta esta hora es Tardanza:</p>
               <Input
                 type="time"
                 value={lateToleranceTime}
@@ -195,7 +195,7 @@ export const AttendanceScheduleModal: React.FC<AttendanceScheduleModalProps> = (
                 <Clock className="w-4 h-4" />
                 <span>Hora de Corte (Falta)</span>
               </div>
-              <p className="text-[11px] text-muted-foreground">A partir de esta hora:</p>
+              <p className="text-xs text-muted-foreground">A partir de esta hora:</p>
               <Input
                 type="time"
                 value={autoCloseTime}
@@ -234,7 +234,7 @@ export const AttendanceScheduleModal: React.FC<AttendanceScheduleModalProps> = (
               <span className="font-bold text-xs text-foreground block">
                 Cierre Automático Diario de Faltas
               </span>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Si está activado, a las {autoCloseTime} (lunes a viernes) el sistema asignará falta automáticamente a los no registrados.
               </p>
             </div>

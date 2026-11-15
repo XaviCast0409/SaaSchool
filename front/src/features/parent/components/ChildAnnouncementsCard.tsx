@@ -21,7 +21,7 @@ export const ChildAnnouncementsCard: React.FC = () => {
           </div>
           <div>
             <h3 className="font-bold text-sm text-foreground">Muro de Comunicados</h3>
-            <span className="text-[11px] text-muted-foreground">Circulares y avisos oficiales</span>
+            <span className="text-xs text-muted-foreground">Circulares y avisos oficiales</span>
           </div>
         </div>
 
@@ -55,11 +55,11 @@ export const ChildAnnouncementsCard: React.FC = () => {
                   {item.title}
                 </h4>
                 {item.priority === 'URGENT' ? (
-                  <Badge variant="destructive" className="text-[9px] px-1.5 py-0 font-bold shrink-0">
+                  <Badge variant="destructive" className="text-xs px-1.5 py-0 font-bold shrink-0">
                     Urgente
                   </Badge>
                 ) : item.priority === 'IMPORTANT' ? (
-                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 font-bold border-amber-500/40 text-amber-600 shrink-0">
+                  <Badge variant="outline" className="text-xs px-1.5 py-0 font-bold border-amber-500/40 text-amber-600 shrink-0">
                     Importante
                   </Badge>
                 ) : null}
@@ -69,7 +69,7 @@ export const ChildAnnouncementsCard: React.FC = () => {
                 {item.content}
               </p>
 
-              <div className="flex items-center gap-1 text-[10px] text-muted-foreground pt-0.5">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground pt-0.5">
                 <Calendar className="w-2.5 h-2.5" />
                 <span>{formatPeruDate(item.publishedAt, { day: '2-digit', month: 'short' })}</span>
               </div>

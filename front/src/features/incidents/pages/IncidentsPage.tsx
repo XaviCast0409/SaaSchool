@@ -1,3 +1,4 @@
+import { useUrlFilters } from '@/lib/useUrlFilters';
 import React, { useState } from 'react';
 import {
   ShieldAlert,
@@ -60,11 +61,14 @@ export const IncidentsPage: React.FC = () => {
     user?.role === 'SCHOOL_ADMIN' ||
     user?.role === 'ADMINISTRATIVE';
 
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(20);
-  const [selectedType, setSelectedType] = useState<string>('ALL');
-  const [selectedSeverity, setSelectedSeverity] = useState<string>('ALL');
-  const [selectedClassroomId, setSelectedClassroomId] = useState<string>('');
+  // Filtros en la URL: sobreviven a recargar, al botón Atrás y se pueden compartir como enlace
+  const [urlFilters, setUrlFilters] = useUrlFilters({ page: 1, limit: 20, type: 'ALL', severity: 'ALL', classroomId: '' });
+  const { page, limit, type: selectedType, severity: selectedSeverity, classroomId: selectedClassroomId } = urlFilters;
+  const setPage = (value: number) => setUrlFilters({ page: value });
+  const setLimit = (value: number) => setUrlFilters({ limit: value });
+  const setSelectedType = (value: string) => setUrlFilters({ type: value });
+  const setSelectedSeverity = (value: string) => setUrlFilters({ severity: value });
+  const setSelectedClassroomId = (value: string) => setUrlFilters({ classroomId: value });
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [siseveModalIncidentId, setSiseveModalIncidentId] = useState<string | null>(null);
   const [siseveInputCode, setSiseveInputCode] = useState('');
@@ -228,7 +232,7 @@ export const IncidentsPage: React.FC = () => {
                       {typeInfo.icon}
                       <span>{typeInfo.label}</span>
                     </span>
-                    <Badge variant="outline" className={`text-[10px] ${severityInfo.badgeClass}`}>
+                    <Badge variant="outline" className={`text-xs ${severityInfo.badgeClass}`}>
                       Severidad: {severityInfo.label}
                     </Badge>
 
@@ -236,13 +240,13 @@ export const IncidentsPage: React.FC = () => {
                       inc.siseveCode ? (
                         <Badge
                           variant="outline"
-                          className="text-[10px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 font-bold"
+                          className="text-xs bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 font-bold"
                         >
                           SíseVe: {inc.siseveCode}
                         </Badge>
                       ) : (
                         <div className="flex items-center gap-1.5">
-                          <Badge variant="destructive" className="text-[10px] font-bold">
+                          <Badge variant="destructive" className="text-xs font-bold">
                             Pendiente SíseVe
                           </Badge>
                           {canManageSiseve && (
@@ -253,7 +257,7 @@ export const IncidentsPage: React.FC = () => {
                                 setSiseveModalIncidentId(inc.id);
                                 setSiseveInputCode('');
                               }}
-                              className="h-6 text-[10px] px-2 font-bold text-destructive hover:bg-destructive/10 border-destructive/30"
+                              className="h-6 text-xs px-2 font-bold text-destructive hover:bg-destructive/10 border-destructive/30"
                             >
                               Registrar código SíseVe
                             </Button>
@@ -276,12 +280,12 @@ export const IncidentsPage: React.FC = () => {
                       <User className="w-3.5 h-3.5 text-primary" />
                       <span>{studentName}</span>
                     </div>
-                    <div className="text-[11px] text-muted-foreground flex items-center gap-1">
+                    <div className="text-xs text-muted-foreground flex items-center gap-1">
                       <SchoolIcon className="w-3 h-3" />
                       <span>{classroomLabel}</span>
                     </div>
                     {inc.author && (
-                      <p className="text-[10px] text-muted-foreground pt-1">
+                      <p className="text-xs text-muted-foreground pt-1">
                         Por: {inc.author.firstName} {inc.author.lastNamePaternal}
                       </p>
                     )}
@@ -295,7 +299,7 @@ export const IncidentsPage: React.FC = () => {
                     </p>
 
                     {inc.actionTaken && (
-                      <div className="p-2 rounded-lg bg-muted/40 border border-border text-[11px] text-muted-foreground">
+                      <div className="p-2 rounded-lg bg-muted/40 border border-border text-xs text-muted-foreground">
                         <strong className="text-foreground">Acción / Medida tomada: </strong>
                         {inc.actionTaken}
                       </div>
@@ -323,7 +327,7 @@ export const IncidentsPage: React.FC = () => {
                       </span>
                     </div>
                   ) : (
-                    <div className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                    <div className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
                       <Clock className="w-3.5 h-3.5" />
                       <span>Pendiente de acuse del padre</span>
                     </div>

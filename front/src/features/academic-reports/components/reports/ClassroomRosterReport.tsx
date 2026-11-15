@@ -76,7 +76,7 @@ export const ClassroomRosterReport: React.FC<ClassroomRosterReportProps> = ({ da
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse border border-foreground/50 text-[11px]">
+          <table className="w-full border-collapse border border-foreground/50 text-xs">
             <thead>
               <tr className="bg-muted/50 font-bold text-foreground">
                 <th className="border border-foreground/50 p-1.5 w-10 text-center">N°</th>
@@ -94,12 +94,12 @@ export const ClassroomRosterReport: React.FC<ClassroomRosterReportProps> = ({ da
               {students.map((student) => (
                 <tr key={student.enrollmentId} className="hover:bg-muted/30 transition-colors">
                   <td className="border border-foreground/50 p-1.5 text-center font-mono">{student.index}</td>
-                  <td className="border border-foreground/50 p-1.5 text-center font-mono text-[10px] text-muted-foreground">{student.studentCode}</td>
+                  <td className="border border-foreground/50 p-1.5 text-center font-mono text-xs text-muted-foreground">{student.studentCode}</td>
                   <td className="border border-foreground/50 p-1.5 text-center font-mono font-medium">{student.documentId}</td>
                   <td className="border border-foreground/50 p-1.5 font-medium uppercase">{student.fullName}</td>
                   <td className="border border-foreground/50 p-1.5 text-center font-bold text-muted-foreground">{student.gender}</td>
-                  <td className="border border-foreground/50 p-1.5 text-center font-mono text-[10px] text-muted-foreground">{student.birthDate}</td>
-                  <td className="border border-foreground/50 p-1.5 text-center font-semibold text-[10px] uppercase">
+                  <td className="border border-foreground/50 p-1.5 text-center font-mono text-xs text-muted-foreground">{student.birthDate}</td>
+                  <td className="border border-foreground/50 p-1.5 text-center font-semibold text-xs uppercase">
                     {student.enrollmentState === 'REGISTERED' ? 'Matriculado' : student.enrollmentState}
                   </td>
                   <td className="border border-foreground/50 p-1.5 uppercase text-muted-foreground">{student.guardianName}</td>

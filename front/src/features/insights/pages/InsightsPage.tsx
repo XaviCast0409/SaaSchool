@@ -105,13 +105,13 @@ const TutoringModal: React.FC<{ row: RiskRow | null; onClose: () => void }> = ({
                 <li key={i.id} className="rounded-lg border border-border p-3 text-sm">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="font-medium text-foreground">{INTERVENTION_LABEL[i.type] ?? i.type}</p>
-                    <span className="text-[11px] text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                       {dateOnly(i.date)} · {i.authorName}
                     </span>
                   </div>
                   <p className="mt-1 whitespace-pre-line text-xs text-foreground">{i.notes}</p>
                   {i.agreements && <p className="mt-1 whitespace-pre-line text-xs text-muted-foreground"><strong>Acuerdos:</strong> {i.agreements}</p>}
-                  <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                     {i.followUpDate && <span className="text-muted-foreground">Revisar el {dateOnly(i.followUpDate)}</span>}
                     <button
                       type="button"
@@ -179,13 +179,13 @@ const RiskTab: React.FC = () => {
           <ul className="divide-y divide-border">
             {rows.map((r) => (
               <li key={r.enrollmentId} className="flex flex-wrap items-start gap-3 p-3">
-                <span className={cn('mt-0.5 w-16 shrink-0 rounded-md px-2 py-1 text-center text-[11px] font-bold', LEVEL_STYLE[r.level])}>{r.level}</span>
+                <span className={cn('mt-0.5 w-16 shrink-0 rounded-md px-2 py-1 text-center text-xs font-bold', LEVEL_STYLE[r.level])}>{r.level}</span>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-foreground">
                     {r.name} <span className="text-xs font-normal text-muted-foreground">· {r.classroom}</span>
                   </p>
                   <p className="text-xs text-muted-foreground">{r.reasons.join(' · ') || 'Señales leves'}</p>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {r.lastIntervention ? `Última intervención: ${INTERVENTION_LABEL[r.lastIntervention.type] ?? r.lastIntervention.type} · ${dateOnly(r.lastIntervention.date)}` : 'Sin intervenciones registradas'}
                   </p>
                 </div>
@@ -259,7 +259,7 @@ const HeatmapTab: React.FC = () => {
                       <td key={a} className="px-1 py-1">
                         <div className={cn('rounded-md px-1 py-1.5 text-center', cellColor(pctC, pctB))} title={`AD ${t.AD} · A ${t.A} · B ${t.B} · C ${t.C} (de ${t.total})`}>
                           <span className="block font-bold">{pctC}% C</span>
-                          <span className="block text-[10px] opacity-80">{pctB}% B</span>
+                          <span className="block text-xs opacity-80">{pctB}% B</span>
                         </div>
                       </td>
                     );
@@ -268,7 +268,7 @@ const HeatmapTab: React.FC = () => {
               ))}
             </tbody>
           </table>
-          <p className="mt-2 text-[11px] text-muted-foreground">Porcentaje de calificativos de competencias en C y en B por aula y área. Pasa el cursor para ver el detalle.</p>
+          <p className="mt-2 text-xs text-muted-foreground">Porcentaje de calificativos de competencias en C y en B por aula y área. Pasa el cursor para ver el detalle.</p>
         </Card>
       )}
     </div>
@@ -310,7 +310,7 @@ const SiagieTab: React.FC = () => {
               ))}
             </ul>
           </Card>
-          <p className="text-[11px] text-muted-foreground">Corrígelos en Matrícula SIAGIE (Alumnos) antes de exportar las actas o la nómina.</p>
+          <p className="text-xs text-muted-foreground">Corrígelos en Matrícula SIAGIE (Alumnos) antes de exportar las actas o la nómina.</p>
         </>
       )}
     </div>

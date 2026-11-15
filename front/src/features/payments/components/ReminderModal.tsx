@@ -94,7 +94,7 @@ export const ReminderModal: React.FC<ReminderModalProps> = ({ obligation, onClos
                   <Mail className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                   <div className="space-y-0.5">
                     <p className="font-semibold text-foreground">Correo Electrónico (Email)</p>
-                    <p className="text-muted-foreground text-[11px] leading-relaxed">
+                    <p className="text-muted-foreground text-xs leading-relaxed">
                       Se enviará el recordatorio con los detalles de la deuda y fecha límite directamente al correo registrado del apoderado financiero.
                     </p>
                   </div>

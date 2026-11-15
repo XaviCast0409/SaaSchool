@@ -107,29 +107,29 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 flex-wrap">
             {isMaterial && (
-              <Badge className="text-[10px] bg-primary/10 text-primary border-primary/20 gap-1 font-bold">
+              <Badge className="text-xs bg-primary/10 text-primary border-primary/20 gap-1 font-bold">
                 <BookOpen className="w-3 h-3" />
                 <span>Material de Clase</span>
               </Badge>
             )}
             {isHomework && (
-              <Badge className="text-[10px] bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20 gap-1 font-bold">
+              <Badge className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20 gap-1 font-bold">
                 <ClipboardList className="w-3 h-3" />
                 <span>Tarea Escolar</span>
               </Badge>
             )}
             {isForum && (
-              <Badge className="text-[10px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20 gap-1 font-bold">
+              <Badge className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20 gap-1 font-bold">
                 <MessageSquare className="w-3 h-3" />
                 <span>Foro de Debate</span>
               </Badge>
             )}
 
-            <Badge variant="outline" className="text-[10px] font-semibold text-muted-foreground">
+            <Badge variant="outline" className="text-xs font-semibold text-muted-foreground">
               {content.bimester}° {periodLabel}
             </Badge>
 
-            <span className="text-[10px] text-muted-foreground flex items-center gap-1 ml-auto">
+            <span className="text-xs text-muted-foreground flex items-center gap-1 ml-auto">
               <Clock className="w-3 h-3" />
               <span>{formattedDate}</span>
             </span>
@@ -170,7 +170,7 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
                 <Calendar className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                 <span>Entrega: {dueDateStatus.formattedDate}</span>
               </div>
-              <Badge className={`text-[10px] font-bold ${dueDateStatus.urgencyBadge}`}>
+              <Badge className={`text-xs font-bold ${dueDateStatus.urgencyBadge}`}>
                 {dueDateStatus.urgencyLabel}
               </Badge>
             </div>
@@ -181,7 +181,7 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
             <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/40 border border-border gap-2 flex-wrap">
               <div className="flex items-center gap-2">
                 {isGraded ? (
-                  <Badge className="text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 gap-1">
+                  <Badge className="text-xs font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 gap-1">
                     <Award className="w-3 h-3" />
                     <span>
                       Calificado:{' '}
@@ -193,13 +193,13 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
                     </span>
                   </Badge>
                 ) : studentSubmission?.isLate ? (
-                  <Badge variant="destructive" className="text-[10px] font-bold">
+                  <Badge variant="destructive" className="text-xs font-bold">
                     Entregado fuera de fecha
                   </Badge>
                 ) : studentSubmission ? (
                   <Badge
                     variant="outline"
-                    className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border-emerald-500/30 gap-1"
+                    className="text-xs font-bold text-emerald-600 dark:text-emerald-400 border-emerald-500/30 gap-1"
                   >
                     <CheckCircle2 className="w-3 h-3" />
                     <span>Entregado a tiempo</span>
@@ -207,7 +207,7 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
                 ) : (
                   <Badge
                     variant="outline"
-                    className="text-[10px] font-bold text-amber-600 dark:text-amber-400 border-amber-500/30"
+                    className="text-xs font-bold text-amber-600 dark:text-amber-400 border-amber-500/30"
                   >
                     Pendiente
                   </Badge>
@@ -259,8 +259,8 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
               <p className="font-bold text-foreground truncate text-xs">
                 {content.fileName || 'Archivo adjunto de clase'}
               </p>
-              <div className="flex items-center gap-2 text-[10px] text-muted-foreground flex-wrap mt-0.5">
-                <Badge variant="outline" className={`py-0 h-4 text-[9px] font-bold ${fileMeta.badgeStyle}`}>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap mt-0.5">
+                <Badge variant="outline" className={`py-0 h-4 text-xs font-bold ${fileMeta.badgeStyle}`}>
                   {fileMeta.label}
                 </Badge>
                 {isDrive && (

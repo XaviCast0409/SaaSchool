@@ -75,12 +75,12 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
       <div className="p-5 sm:p-7 rounded-2xl bg-card border border-border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2 flex-wrap">
-            <Badge className="bg-primary/10 text-primary border-primary/20 gap-1 text-[11px] font-bold">
+            <Badge className="bg-primary/10 text-primary border-primary/20 gap-1 text-xs font-bold">
               <GraduationCap className="w-3.5 h-3.5" />
               <span>Mi Mochila Digital</span>
             </Badge>
             {classroom && (
-              <Badge variant="outline" className="text-[11px] font-bold">
+              <Badge variant="outline" className="text-xs font-bold">
                 {classroom.grade}° "{classroom.section}" • {classroom.educationLevel}
               </Badge>
             )}
@@ -127,7 +127,7 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
                     <p className="text-xs font-bold text-foreground group-hover:text-primary transition-colors truncate">
                       {s.title}
                     </p>
-                    <p className="text-[11px] text-muted-foreground truncate">
+                    <p className="text-xs text-muted-foreground truncate">
                       {s.desc}
                     </p>
                   </div>

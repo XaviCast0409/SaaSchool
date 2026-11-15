@@ -1,3 +1,4 @@
+import { confirmDialog } from '@/components/ui/confirm';
 import React, { useState } from 'react';
 import {
   Calendar,
@@ -188,7 +189,7 @@ export const AcademicYearsPage: React.FC = () => {
   };
 
   const handleDelete = async (ay: AcademicYear) => {
-    if (window.confirm(`¿Estás seguro de eliminar el Año Lectivo "${ay.name || ay.year}"?`)) {
+    if (await confirmDialog({ title: `¿Eliminar el Año Lectivo "${ay.name || ay.year}"?`, confirmText: 'Eliminar', variant: 'danger' })) {
       try {
         await deleteYear(ay.id);
         toast.success('Año Lectivo eliminado.');
@@ -327,14 +328,14 @@ export const AcademicYearsPage: React.FC = () => {
                       <div className="flex items-center gap-2 mt-0.5">
                         <Badge
                           variant={ay.isActive ? 'default' : 'secondary'}
-                          className={`text-[10px] font-bold ${
+                          className={`text-xs font-bold ${
                             ay.isActive ? 'bg-emerald-500 text-white' : 'text-muted-foreground'
                           }`}
                         >
                           {ay.isActive ? 'Vigente' : 'No vigente'}
                         </Badge>
                         {ay.enrollmentOpen && (
-                          <Badge variant="outline" className="text-[10px] font-bold border-indigo-500/40 text-indigo-600 dark:text-indigo-300">
+                          <Badge variant="outline" className="text-xs font-bold border-indigo-500/40 text-indigo-600 dark:text-indigo-300">
                             Matrícula abierta
                           </Badge>
                         )}
@@ -538,7 +539,7 @@ export const AcademicYearsPage: React.FC = () => {
                 <div className="space-y-2">
                   {formData.periodsConfig.map((period, idx) => (
                     <div key={period.periodNumber} className="grid grid-cols-5 gap-2 items-center">
-                      <span className="col-span-1 text-[11px] font-bold text-muted-foreground truncate">
+                      <span className="col-span-1 text-xs font-bold text-muted-foreground truncate">
                         {period.name}
                       </span>
                       <div className="col-span-2">
@@ -550,7 +551,7 @@ export const AcademicYearsPage: React.FC = () => {
                             updated[idx] = { ...updated[idx], startDate: e.target.value };
                             setFormData({ ...formData, periodsConfig: updated });
                           }}
-                          className="w-full rounded-lg border border-border bg-background px-2 py-1 text-[11px] text-foreground"
+                          className="w-full rounded-lg border border-border bg-background px-2 py-1 text-xs text-foreground"
                           title="Fecha de Inicio del Periodo"
                         />
                       </div>
@@ -563,7 +564,7 @@ export const AcademicYearsPage: React.FC = () => {
                             updated[idx] = { ...updated[idx], endDate: e.target.value };
                             setFormData({ ...formData, periodsConfig: updated });
                           }}
-                          className="w-full rounded-lg border border-border bg-background px-2 py-1 text-[11px] text-foreground"
+                          className="w-full rounded-lg border border-border bg-background px-2 py-1 text-xs text-foreground"
                           title="Fecha de Fin del Periodo"
                         />
                       </div>

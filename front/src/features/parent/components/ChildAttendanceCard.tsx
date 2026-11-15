@@ -70,7 +70,7 @@ export const ChildAttendanceCard: React.FC<ChildAttendanceCardProps> = ({ enroll
           </div>
           <div>
             <h3 className="font-bold text-sm text-foreground">Control de Asistencia</h3>
-            <span className="text-[11px] text-muted-foreground">Registro oficial del colegio</span>
+            <span className="text-xs text-muted-foreground">Registro oficial del colegio</span>
           </div>
         </div>
 
@@ -103,7 +103,7 @@ export const ChildAttendanceCard: React.FC<ChildAttendanceCardProps> = ({ enroll
       {/* Mini Counters */}
       <div className="grid grid-cols-3 gap-2 text-center pt-1">
         <div className="p-2.5 rounded-xl bg-secondary/30 border border-border/40">
-          <span className="text-[10px] font-bold uppercase text-muted-foreground block">
+          <span className="text-xs font-bold uppercase text-muted-foreground block">
             Asistencias
           </span>
           <span className="text-base font-extrabold text-foreground">
@@ -111,7 +111,7 @@ export const ChildAttendanceCard: React.FC<ChildAttendanceCardProps> = ({ enroll
           </span>
         </div>
         <div className="p-2.5 rounded-xl bg-secondary/30 border border-border/40">
-          <span className="text-[10px] font-bold uppercase text-muted-foreground block">
+          <span className="text-xs font-bold uppercase text-muted-foreground block">
             Tardanzas
           </span>
           <span className="text-base font-extrabold text-amber-600 dark:text-amber-400">
@@ -119,7 +119,7 @@ export const ChildAttendanceCard: React.FC<ChildAttendanceCardProps> = ({ enroll
           </span>
         </div>
         <div className="p-2.5 rounded-xl bg-secondary/30 border border-border/40">
-          <span className="text-[10px] font-bold uppercase text-muted-foreground block">
+          <span className="text-xs font-bold uppercase text-muted-foreground block">
             Faltas
           </span>
           <span className="text-base font-extrabold text-destructive">

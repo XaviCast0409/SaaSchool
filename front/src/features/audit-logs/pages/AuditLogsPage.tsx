@@ -1,3 +1,4 @@
+import { useUrlFilters } from '@/lib/useUrlFilters';
 import React, { useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, History } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -56,11 +57,11 @@ const LogRow: React.FC<{ log: AuditLogItem }> = ({ log }) => {
         <div className="min-w-0 flex-1">
           <p className="text-sm leading-snug"><Summary log={log} /></p>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
-            <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-medium', CATEGORY_STYLE[log.category ?? ''] ?? 'bg-muted text-muted-foreground')}>
+            <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', CATEGORY_STYLE[log.category ?? ''] ?? 'bg-muted text-muted-foreground')}>
               {log.actionLabel}
             </span>
             {log.isCorrection && (
-              <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
+              <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
                 Corrección en periodo cerrado
               </span>
             )}
@@ -88,13 +89,16 @@ const LogRow: React.FC<{ log: AuditLogItem }> = ({ log }) => {
 };
 
 export const AuditLogsPage: React.FC = () => {
-  const [category, setCategory] = useState('');
-  const [actorId, setActorId] = useState('');
-  const [onlyCorrections, setOnlyCorrections] = useState(false);
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(25);
+  // Filtros en la URL: sobreviven a recargar, al botón Atrás y se pueden compartir como enlace
+  const [urlFilters, setUrlFilters] = useUrlFilters({ category: '', actorId: '', corrections: false as boolean, from: '', to: '', page: 1, limit: 25 });
+  const { category, actorId, corrections: onlyCorrections, from, to, page, limit } = urlFilters;
+  const setCategory = (value: string) => setUrlFilters({ category: value });
+  const setActorId = (value: string) => setUrlFilters({ actorId: value });
+  const setOnlyCorrections = (value: boolean) => setUrlFilters({ corrections: value });
+  const setFrom = (value: string) => setUrlFilters({ from: value });
+  const setTo = (value: string) => setUrlFilters({ to: value });
+  const setPage = (value: number) => setUrlFilters({ page: value });
+  const setLimit = (value: number) => setUrlFilters({ limit: value });
 
   const { data: categories = [] } = useAuditCategories();
   const { data: actors = [] } = useAuditActors();
