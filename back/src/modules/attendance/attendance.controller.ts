@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
+import { assertEnrollmentAccess } from '../../core/security/student-access';
 import { recordAudit } from '../../utils/audit.util';
 import {
   createAttendanceSchema,
@@ -80,16 +81,7 @@ export class AttendanceController {
     const schoolId = request.user!.schoolId;
     const enrollmentId = String(request.params.enrollmentId);
 
-    if (request.user!.role === 'STUDENT') {
-      const myStudentId = request.user!.studentId || request.user!.userId;
-      const enrollment = await prisma.enrollment.findUnique({
-        where: { id: enrollmentId },
-        select: { studentId: true },
-      });
-      if (!enrollment || enrollment.studentId !== myStudentId) {
-        throw new AppError('No tienes permiso para consultar la asistencia de otro estudiante.', 403);
-      }
-    }
+    await assertEnrollmentAccess(request.user!, enrollmentId);
 
     const query = studentAttendanceQuerySchema.parse(request.query);
     const detail = await this.attendanceService.getStudentMonthlyDetail(
@@ -105,16 +97,7 @@ export class AttendanceController {
     const schoolId = request.user!.schoolId;
     const enrollmentId = String(request.params.enrollmentId);
 
-    if (request.user!.role === 'STUDENT') {
-      const myStudentId = request.user!.studentId || request.user!.userId;
-      const enrollment = await prisma.enrollment.findUnique({
-        where: { id: enrollmentId },
-        select: { studentId: true },
-      });
-      if (!enrollment || enrollment.studentId !== myStudentId) {
-        throw new AppError('No tienes permiso para consultar la asistencia de otro estudiante.', 403);
-      }
-    }
+    await assertEnrollmentAccess(request.user!, enrollmentId);
 
     const attendances = await this.attendanceService.getAttendanceByEnrollment(
       enrollmentId,

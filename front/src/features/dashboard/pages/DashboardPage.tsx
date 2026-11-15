@@ -31,6 +31,12 @@ import { Button } from '@/components/ui/button';
 import { ParentPortalPage } from '@/features/parent/pages/ParentPortalPage';
 import { TeacherDashboardView } from '../components/TeacherDashboardView';
 import { formatPeruShortDate } from '@/lib/dateUtils';
+import { useDashboardOnboarding } from '../api/useDashboardOnboarding';
+import { DirectorOnboardingCard } from '../components/DirectorOnboardingCard';
+import { SchoolSettingsModal } from '@/features/schools/components/SchoolSettingsModal';
+import { useGetActiveSchool } from '@/features/schools/api/useSchool';
+import { SubscriptionPlan } from '@/features/schools/types';
+import { PLAN_HIERARCHY } from '@/layouts/navigation';
 
 export const DashboardPage: React.FC = () => {
   const { user, impersonatedSchool } = useAuthStore();
@@ -62,6 +68,12 @@ export const DashboardPage: React.FC = () => {
   const isAdmin = user?.role === 'SCHOOL_ADMIN' || (user?.role === 'SUPER_ADMIN' && !!impersonatedSchool);
   const canManageStudents = isAdmin || isAdministrative;
   const canSeeMacroFinances = isAdmin; // Estrictamente exclusivo de la Dirección del Colegio
+
+  const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
+  const { data: onboarding } = useDashboardOnboarding(isAdmin);
+  const { data: activeSchool } = useGetActiveSchool();
+  const currentPlan: SubscriptionPlan = (activeSchool?.plan as SubscriptionPlan) || 'BASIC';
+  const isProPlan = (PLAN_HIERARCHY[currentPlan] || 1) >= (PLAN_HIERARCHY.PRO || 2);
 
   // Queries segregadas por rol para prevenir 403 y llamadas innecesarias
   const { data: studentsResponse } = useStudents({ page: 1, limit: 100 }, canManageStudents);
@@ -121,8 +133,20 @@ export const DashboardPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Guía de puesta en marcha para el director */}
+      {isAdmin && onboarding && onboarding.percent < 100 && (
+        <DirectorOnboardingCard
+          onboarding={onboarding}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+        />
+      )}
+
       {/* Pendientes concretos para la Dirección y Secretaría */}
-      {(isAdmin || isAdministrative) && <ActionsPanel />}
+      {(isAdmin || isAdministrative) && (
+        <ActionsPanel
+          isBoardingComplete={onboarding ? onboarding.percent === 100 : true}
+        />
+      )}
 
       {/* Botonera de Acciones Rápidas Según el Rol */}
       <div className="space-y-3">
@@ -647,10 +671,18 @@ export const DashboardPage: React.FC = () => {
           {!isAdministrative && (isAdmin || isTeacher || isParent) && (
             <Card className="flex flex-col justify-between hover:border-primary/50 transition-colors">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <BookOpenCheck className="w-5 h-5 text-primary" />
-                  {isParent ? 'Libreta de Calificaciones' : 'Registro de Notas'}
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <BookOpenCheck className="w-5 h-5 text-primary" />
+                    {isParent ? 'Libreta de Calificaciones' : 'Registro de Notas'}
+                  </CardTitle>
+                  {!isProPlan && (
+                    <span className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                      <Sparkles className="w-3 h-3" />
+                      PRO
+                    </span>
+                  )}
+                </div>
                 <CardDescription className="text-xs">
                   {isParent
                     ? 'Consulta el avance académico y notas de tus hijos.'
@@ -664,7 +696,13 @@ export const DashboardPage: React.FC = () => {
                   className="w-full justify-between text-xs font-semibold text-primary"
                   onClick={() => navigate('/grades')}
                 >
-                  <span>{isParent ? 'Ver libreta escolar' : 'Abrir registro notas'}</span>
+                  <span>
+                    {!isProPlan
+                      ? 'Mejorar a Plan PRO'
+                      : isParent
+                      ? 'Ver libreta escolar'
+                      : 'Abrir registro notas'}
+                  </span>
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </CardContent>
@@ -724,6 +762,11 @@ export const DashboardPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      <SchoolSettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
     </div>
   );
 };

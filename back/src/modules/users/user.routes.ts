@@ -129,7 +129,7 @@ userRouter.get('/staff-load', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADM
 
 userRouter.get('/:id', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'), userController.getById);
 userRouter.patch('/:id', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'), userController.update);
-userRouter.delete('/:id', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'), userController.deactivate);
+userRouter.delete('/:id', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'), userController.deactivate);
 
 // Rol en caja y tesorería (solo Dirección): cajero, tesorero o contador de solo lectura.
 // Va aparte de la edición general para que nadie pueda subirse sus propios permisos.
@@ -164,7 +164,7 @@ userRouter.patch(
 // Reactivar usuario (undo del soft delete)
 userRouter.patch(
   '/:id/reactivate',
-  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'),
+  authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'),
   userController.reactivate,
 );
 

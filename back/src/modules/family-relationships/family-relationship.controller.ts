@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { assertStudentAccess } from '../../core/security/student-access';
 import {
   createFamilyRelationshipSchema,
   updateFamilyRelationshipSchema,
@@ -29,7 +30,25 @@ export class FamilyRelationshipController {
   getByStudent = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
     const studentId = String(request.params.studentId);
+    if (request.user!.role === 'TEACHER') {
+      await assertStudentAccess(request.user!, studentId);
+    }
     const relationships = await this.familyRelationshipService.getByStudent(studentId, schoolId);
+    if (request.user!.role === 'TEACHER') {
+      const sanitized = relationships.map((r: any) => ({
+        ...r,
+        user: r.user
+          ? {
+              ...r.user,
+              documentId: '',
+              cellphone: '',
+              email: '',
+            }
+          : r.user,
+      }));
+      response.status(200).json({ status: 'success', data: sanitized });
+      return;
+    }
     response.status(200).json({ status: 'success', data: relationships });
   };
 

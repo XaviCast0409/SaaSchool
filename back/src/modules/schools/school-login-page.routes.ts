@@ -18,7 +18,7 @@ async function loadBySlug(rawSlug: string) {
   const slug = normalizeSlug(rawSlug);
   if (!isValidSlug(slug)) throw new AppError(NOT_FOUND_MESSAGE, 404);
   const school = await prisma.school.findFirst({
-    where: { slug, isActive: true },
+    where: { slug },
     select: {
       name: true,
       slug: true,
@@ -27,9 +27,16 @@ async function loadBySlug(rawSlug: string) {
       loginBackgroundUrl: true,
       loginTitle: true,
       loginMessage: true,
+      isActive: true,
     },
   });
   if (!school) throw new AppError(NOT_FOUND_MESSAGE, 404);
+  if (!school.isActive) {
+    throw new AppError(
+      'El acceso de tu colegio está suspendido. Comunícate con la dirección o con soporte de KIPUX.',
+      403,
+    );
+  }
   return school;
 }
 

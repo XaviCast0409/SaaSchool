@@ -184,7 +184,7 @@ export class FeeScheduleService {
     input: { academicYearId: string; classroomId: string; condition: string; enrollmentDate?: string; customPensionAmount?: unknown },
   ): Promise<{ feeScheduleFound: boolean; year: number; items: PlannedObligation[]; total: number; warning: string | null; feeSchedule: ReturnType<typeof toPlain> | null }> {
     const [year, classroom] = await Promise.all([
-      db.academicYear.findFirst({ where: { id: input.academicYearId, schoolId }, select: { year: true } }),
+      db.academicYear.findFirst({ where: { id: input.academicYearId, schoolId }, select: { year: true, startDate: true, endDate: true } }),
       db.classroom.findFirst({ where: { id: input.classroomId, schoolId }, select: { educationLevel: true, grade: true } }),
     ]);
     if (!year) throw new AppError('Año académico no encontrado.', 404);
@@ -210,6 +210,7 @@ export class FeeScheduleService {
       terms: fee,
       condition: input.condition,
       enrollmentDate: input.enrollmentDate ?? getSchoolNow().dateStr,
+      academicYearStartDate: year.startDate,
       customPensionAmount: custom === null || custom === undefined ? null : String(custom),
     });
     return { feeScheduleFound: true, year: year.year, items, total: scheduleTotal(items), warning: null, feeSchedule: toPlain(fee) };

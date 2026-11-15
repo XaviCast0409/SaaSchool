@@ -28,6 +28,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthStore } from '@/store/useAuthStore';
 import { api } from '@/lib/axios';
 import { toast } from 'sonner';
+import { formatEducationLevel, formatShift } from '@/lib/utils';
 import { formatPeruShortDate } from '@/lib/dateUtils';
 import { PrintPortal, usePrint } from '@/lib/print';
 
@@ -240,7 +241,7 @@ export const StudentFichaDocument: React.FC<{
                   <div className="text-muted-foreground mt-1 text-[11px]">
                     Aula:{' '}
                     <strong className="text-foreground">
-                      {enr.classroom?.grade}° "{enr.classroom?.section}" - {enr.classroom?.educationLevel} ({enr.classroom?.shift === 'MORNING' ? 'Mañana' : 'Tarde'})
+                      {enr.classroom?.grade}° "{enr.classroom?.section}" - {formatEducationLevel(enr.classroom?.educationLevel)} ({formatShift(enr.classroom?.shift) ? `Turno ${formatShift(enr.classroom?.shift)}` : ''})
                     </strong>
                     {enr.previousSchoolModularCode && (
                       <span className="ml-2">

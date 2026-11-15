@@ -59,9 +59,13 @@ export const ReportPaymentModal: React.FC<{ obligation: ReportableObligation | n
     );
   };
 
+  const today = getPeruToday();
+  const isFutureDate = Boolean(form.paidOn && form.paidOn > today);
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!obligation) return;
+    if (isFutureDate) return toast.error('La fecha de pago no puede ser futura.');
     if (!voucher) return toast.error('Adjunta la captura del voucher.');
     report.mutate(
       {
@@ -91,11 +95,19 @@ export const ReportPaymentModal: React.FC<{ obligation: ReportableObligation | n
       description={obligation ? `${obligation.title}${obligation.studentName ? ` · ${obligation.studentName}` : ''} · saldo S/ ${obligation.balance.toFixed(2)}` : undefined}
       size="lg"
       footer={
-        <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button type="submit" form="report-payment-form" disabled={report.isPending || upload.isPending || !voucher} className="gap-2">
-            {report.isPending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />} Enviar a tesorería
-          </Button>
+        <div className="flex flex-col items-end gap-1.5 w-full">
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+            <Button type="submit" form="report-payment-form" disabled={report.isPending || upload.isPending || !voucher || isFutureDate} className="gap-2">
+              {report.isPending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />} Enviar a tesorería
+            </Button>
+          </div>
+          {!voucher && (
+            <p className="text-xs text-muted-foreground">Adjunta la captura del voucher para enviar.</p>
+          )}
+          {isFutureDate && (
+            <p className="text-xs text-destructive">La fecha de pago no puede ser futura.</p>
+          )}
         </div>
       }
     >
@@ -138,7 +150,7 @@ export const ReportPaymentModal: React.FC<{ obligation: ReportableObligation | n
           </div>
 
           <div>
-            <p className="mb-1 text-xs text-muted-foreground">Captura del voucher</p>
+            <p className="mb-1 text-xs text-muted-foreground">Captura del voucher <span className="text-destructive font-bold">*</span></p>
             <input ref={fileRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => onFile(e.target.files?.[0])} />
             <button
               type="button"

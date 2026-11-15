@@ -4,6 +4,8 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { LoginPage } from '@/features/auth/pages/LoginPage';
 import { SchoolCodePage } from '@/features/auth/pages/SchoolCodePage';
 import { SchoolLoginPage } from '@/features/auth/pages/SchoolLoginPage';
+import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage';
+import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage';
 import { DashboardLayout } from '@/layouts/DashboardLayout';
 import { PrivacyPolicyPage } from '@/features/legal/pages/PrivacyPolicyPage';
 import { TermsPage } from '@/features/legal/pages/TermsPage';
@@ -256,6 +258,10 @@ export const AppRouter: React.FC = () => {
               </PublicRoute>
             }
           />
+
+          {/* Recuperación de contraseña (P1) */}
+          <Route path="/olvide-contrasena" element={<ForgotPasswordPage />} />
+          <Route path="/restablecer" element={<ResetPasswordPage />} />
 
           {/* Rutas Públicas Legales (Ley 29733) */}
           <Route path="/privacidad" element={<PrivacyPolicyPage />} />

@@ -10,6 +10,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LetterBadge, PeriodStatusBadge } from '@/components/ui/letter-badge';
 import { usePeriods, useSaveTutorReport, useTutorReport } from '../api';
+import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
+import { formatEducationLevel } from '@/lib/utils';
+import { ArrowLeft } from 'lucide-react';
 import type { Letter, TutorReport } from '../types';
 
 interface Draft { conductScore: string; conductLetter: Letter | ''; conductComment: string; tutorComment: string }
@@ -18,8 +21,9 @@ const letterFor = (score: number, t: TutorReport['thresholds']): Letter => (scor
 
 /** Registro del tutor o tutora: conducta (nota + comentario) y comentario general para la libreta interna. */
 export const TutorReportPage: React.FC = () => {
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const classroomId = params.get('classroomId');
+  const { data: classrooms = [] } = useClassrooms();
   const { data: periods } = usePeriods();
   const [period, setPeriod] = useState<number | null>(null);
   useEffect(() => {
@@ -42,7 +46,59 @@ export const TutorReportPage: React.FC = () => {
   const [draft, setDraft] = useState<Record<string, Draft>>({});
   useEffect(() => setDraft(initial), [initial]);
 
-  if (!classroomId) return <p className="text-sm">Falta elegir el aula.</p>;
+  if (!classroomId) {
+    return (
+      <div className="mx-auto max-w-md space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm mt-8">
+        <div className="space-y-1">
+          <h2 className="text-base font-bold text-foreground">Informe de tutoría y conducta</h2>
+          <p className="text-xs text-muted-foreground">Selecciona el aula y periodo para registrar apreciaciones y conducta.</p>
+        </div>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-semibold block mb-1">Aula y Sección</label>
+            <select
+              className="w-full text-xs rounded-xl border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              onChange={(e) => {
+                if (e.target.value) setParams({ classroomId: e.target.value, period: String(period || 1) });
+              }}
+              defaultValue=""
+            >
+              <option value="">— Selecciona un aula —</option>
+              {classrooms.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.grade}° "{c.section}" - {formatEducationLevel(c.educationLevel)}
+                </option>
+              ))}
+            </select>
+          </div>
+          {periods?.periods && (
+            <div>
+              <label className="text-xs font-semibold block mb-1">Periodo</label>
+              <select
+                className="w-full text-xs rounded-xl border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                value={period || ''}
+                onChange={(e) => setPeriod(Number(e.target.value))}
+              >
+                {periods.periods.map((p) => (
+                  <option key={p.periodNumber} value={p.periodNumber}>
+                    Periodo {p.periodNumber} ({p.status === 'OPEN' ? 'Abierto' : p.status === 'REVIEW' ? 'En revisión' : 'Cerrado'})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+        <div className="pt-2 border-t border-border flex justify-end">
+          <Button asChild variant="outline" size="sm" className="gap-1.5 text-xs">
+            <Link to="/academic-reports">
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span>Volver a Reportes académicos</span>
+            </Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
   const dirtyIds = Object.keys(draft).filter((id) => JSON.stringify(draft[id]) !== JSON.stringify(initial[id]));
   const invalid = Object.values(draft).some((d) => d.conductScore !== '' && (Number.isNaN(Number(d.conductScore)) || Number(d.conductScore) < 0 || Number(d.conductScore) > 20));
   const set = (id: string, patch: Partial<Draft>) => setDraft((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }));

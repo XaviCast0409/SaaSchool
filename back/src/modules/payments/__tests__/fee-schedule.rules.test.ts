@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildEnrollmentSchedule,
+  calculateMatriculaDueDate,
   existingPeriodKey,
   monthlyDueDate,
   periodForConcept,
@@ -31,6 +32,33 @@ describe('cronograma de matrícula', () => {
     expect(items[0]).toMatchObject({ concept: 'MATRICULA', title: 'Matrícula 2026', amountDue: 300, dueDate: '2026-01-20' });
     expect(items[1]).toMatchObject({ concept: 'PENSION', title: 'Pensión Marzo 2026', amountDue: 450, dueDate: '2026-03-31' });
     expect(scheduleTotal(items)).toBe(300 + 450 * 10);
+  });
+
+  it('A4: Si la matrícula se genera antes del inicio de clases, su dueDate es el día anterior al inicio del año y NO está vencida', () => {
+    const items = buildEnrollmentSchedule({
+      year: 2026,
+      terms,
+      condition: 'CONTINUO',
+      enrollmentDate: '2026-01-20',
+      academicYearStartDate: '2026-03-02',
+    });
+    const matricula = items.find((i) => i.concept === 'MATRICULA')!;
+    expect(matricula.dueDate).toBe('2026-03-01');
+    const hoy = '2026-01-20';
+    expect(matricula.dueDate > hoy).toBe(true);
+  });
+
+  it('A4: Si la matrícula se genera con el año iniciado, su dueDate es fecha + 7 días o fin de mes', () => {
+    const items = buildEnrollmentSchedule({
+      year: 2026,
+      terms,
+      condition: 'CONTINUO',
+      enrollmentDate: '2026-03-10',
+      academicYearStartDate: '2026-03-02',
+    });
+    const matricula = items.find((i) => i.concept === 'MATRICULA')!;
+    expect(matricula.dueDate).toBe('2026-03-17');
+    expect(matricula.dueDate > '2026-03-10').toBe(true);
   });
 
   it('matricularse el año anterior genera todo el cronograma', () => {

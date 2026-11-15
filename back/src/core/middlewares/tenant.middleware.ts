@@ -47,8 +47,15 @@ export const tenantMiddleware = async (
     select: { id: true, isActive: true, planExpiresAt: true },
   });
 
-  if (!school || !school.isActive) {
+  if (!school) {
     throw new AppError('El colegio o la sesión ya no existe en la base de datos. Por favor inicia sesión nuevamente.', 401);
+  }
+
+  if (!school.isActive && request.user.role !== 'SUPER_ADMIN') {
+    throw new AppError(
+      'El acceso de tu colegio está suspendido. Comunícate con la dirección o con soporte de KIPUX.',
+      403,
+    );
   }
 
   if (request.user.role !== 'SUPER_ADMIN') {

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { LetterBadge } from '@/components/ui/letter-badge';
 import { useSaveScores, useSetFinalLetter, apiErrorMessage, type ScoreInput } from '../api';
@@ -10,7 +11,7 @@ interface Props {
   competenceId: string;
   reason: string | null;
   onNeedReason: () => void;
-  onStatus: (s: 'idle' | 'saving' | 'saved' | 'error', msg?: string) => void;
+  onStatus: (s: 'idle' | 'saving' | 'saved' | 'error', msg?: string, invalidCount?: number) => void;
 }
 
 const keyOf = (enrollmentId: string, criterionId: string) => `${enrollmentId}|${criterionId}`;
@@ -47,8 +48,11 @@ export const GradebookGrid: React.FC<Props> = ({ data, competenceId, reason, onN
       items.push({ enrollmentId, criterionId, competenceId, ...parsed });
     });
     setInvalid(bad);
-    if (items.length === 0) return;
-    onStatus('saving');
+    if (items.length === 0) {
+      if (bad.size > 0) onStatus('error', undefined, bad.size);
+      return;
+    }
+    onStatus('saving', undefined, bad.size);
     try {
       const res = await saveScores.mutateAsync({ periodNumber: data.periodNumber, items, reason });
       setResults((prev) => {
@@ -57,9 +61,13 @@ export const GradebookGrid: React.FC<Props> = ({ data, competenceId, reason, onN
         return [...map.values()];
       });
       setDirty((prev) => { const n = new Set(prev); items.forEach((i) => n.delete(keyOf(i.enrollmentId, i.criterionId))); return n; });
-      onStatus('saved');
+      if (bad.size > 0) {
+        onStatus('error', undefined, bad.size);
+      } else {
+        onStatus('saved', undefined, 0);
+      }
     } catch (e) {
-      onStatus('error', apiErrorMessage(e, 'No se pudieron guardar las notas.'));
+      onStatus('error', apiErrorMessage(e, 'No se pudieron guardar las notas.'), bad.size);
     }
   }, [dirty, drafts, competenceId, data, reason, saveScores, onNeedReason, onStatus]);
 
@@ -134,7 +142,13 @@ export const GradebookGrid: React.FC<Props> = ({ data, competenceId, reason, onN
                         disabled={!active || !editable}
                         value={drafts[k] ?? ''}
                         onChange={(e) => setCell(k, e.target.value)}
-                        onBlur={() => { void flush(); }}
+                        onBlur={() => {
+                          const v = drafts[k] ?? '';
+                          if (v.trim() !== '' && parseCell(v) === 'invalid') {
+                            toast.warning(`«${v}» no es una nota válida. Ingresa un número de 0 a 20 o AD, A, B, C, EXO.`);
+                          }
+                          void flush();
+                        }}
                         onPaste={(e) => onPaste(e, row, col)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === 'ArrowDown') { e.preventDefault(); focusCell(row + 1, col); }

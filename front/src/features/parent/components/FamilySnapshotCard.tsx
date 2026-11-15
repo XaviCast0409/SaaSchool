@@ -47,13 +47,13 @@ export const FamilySnapshotCard: React.FC<FamilySnapshotCardProps> = ({ children
           if (attendancePercent !== null && attendanceSummary?.totalRecorded && attendanceSummary.totalRecorded > 0) {
             if (attendancePercent >= 95) {
               attendanceClass = 'bg-success/15 text-success border border-success/20';
-              attendanceLabel = `Asistencia ${attendancePercent}%`;
+              attendanceLabel = `Asistencia ${attendancePercent}% (en el año)`;
             } else if (attendancePercent >= 85) {
               attendanceClass = 'bg-warning/15 text-warning border border-warning/20';
-              attendanceLabel = `Asistencia ${attendancePercent}%`;
+              attendanceLabel = `Asistencia ${attendancePercent}% (en el año)`;
             } else {
               attendanceClass = 'bg-destructive/15 text-destructive border border-destructive/20';
-              attendanceLabel = `Asistencia ${attendancePercent}%`;
+              attendanceLabel = `Asistencia ${attendancePercent}% (en el año)`;
             }
           }
 

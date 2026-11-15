@@ -179,7 +179,33 @@ async function main(): Promise<void> {
   const mkUser = (data: { email: string; role: 'SUPER_ADMIN' | 'SCHOOL_ADMIN' | 'ADMINISTRATIVE' | 'TEACHER' | 'PARENT'; firstName: string; lastNamePaternal: string; lastNameMaternal: string; passwordHash: string; cellphone?: string }) =>
     prisma.user.create({ data: { schoolId: S, documentType: 'DNI', documentId: nextAdultDni(), cellphone: data.cellphone ?? `9${between(10000000, 99999999)}`, ...data } });
 
-  await mkUser({ email: 'superadmin@saaschool.com', role: 'SUPER_ADMIN', firstName: 'Carlos', lastNamePaternal: 'Administrador', lastNameMaternal: 'SaaS', passwordHash: passAdmin });
+  const internalPlatformSchool = await prisma.school.upsert({
+    where: { documentId: '00000000000' },
+    update: { isActive: false },
+    create: {
+      name: 'KIPUX Plataforma',
+      slug: 'kipux-plataforma',
+      documentId: '00000000000',
+      plan: 'ENTERPRISE',
+      isActive: false,
+      address: 'Plataforma Central KIPUX',
+    },
+  });
+
+  await prisma.user.create({
+    data: {
+      schoolId: internalPlatformSchool.id,
+      documentType: 'DNI',
+      documentId: '00000000',
+      cellphone: '999999999',
+      email: 'superadmin@saaschool.com',
+      role: 'SUPER_ADMIN',
+      firstName: 'Carlos',
+      lastNamePaternal: 'Administrador',
+      lastNameMaternal: 'SaaS',
+      passwordHash: passAdmin,
+    },
+  });
   const director = await mkUser({ email: 'admin.pro@innova.edu.pe', role: 'SCHOOL_ADMIN', firstName: 'Mariana', lastNamePaternal: 'Benavides', lastNameMaternal: 'Castro', passwordHash: passAdmin });
   const secretaria = await mkUser({ email: 'secretaria.pro@innova.edu.pe', role: 'ADMINISTRATIVE', firstName: 'Patricia', lastNamePaternal: 'Salazar', lastNameMaternal: 'Vega', passwordHash: passAdmin });
 

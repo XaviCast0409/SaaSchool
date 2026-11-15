@@ -224,11 +224,12 @@ export const registerFichaMatriculaSchema = z.object({
             path: ['newGuardian', 'lastNamePaternal'],
           });
         }
-        if (!data.newGuardian?.email) {
+        // El correo es opcional: sin él, el apoderado ingresa con su número de documento
+        if (!data.newGuardian?.email && !data.newGuardian?.documentId?.trim()) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: 'Correo electrónico del apoderado requerido',
-            path: ['newGuardian', 'email'],
+            message: 'Indica el correo o el número de documento del apoderado para crear su acceso',
+            path: ['newGuardian', 'documentId'],
           });
         }
         if (data.newGuardian?.documentType === 'DNI') {
@@ -259,6 +260,8 @@ export type UpdateStudentDto = z.infer<typeof updateStudentSchema>;
 export type StudentFilterDto = z.infer<typeof studentFilterSchema> & {
   /** Año elegido en la cabecera (lo pone el controlador, no el cliente) */
   academicYearId?: string;
+  actorRole?: string;
+  actorUserId?: string;
 };
 export type RegisterFichaMatriculaDto = z.infer<typeof registerFichaMatriculaSchema>;
 export type NominaClassroomParamDto = z.infer<typeof nominaClassroomParamSchema>;

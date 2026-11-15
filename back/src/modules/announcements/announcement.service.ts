@@ -6,9 +6,36 @@ import type { Announcement, Role } from '@prisma/client';
 import { deliver } from '../automations/delivery';
 import { announcementEndsAt } from './announcement-status.rules';
 import { announcementRecipients, enrichForViewer, visibilityWhere, type Viewer } from './announcement-responses.service';
+import { assertTeacherAnnouncementAllowed } from './announcement-author.rules';
 
 export class AnnouncementService {
   constructor(private readonly announcementRepository: AnnouncementRepository) {}
+
+  private async validateTeacherAnnouncement(
+    schoolId: string,
+    teacherId: string,
+    classroomId?: string | null,
+    targetRoles?: Role[],
+  ): Promise<void> {
+    const activeYear = await prisma.academicYear.findFirst({
+      where: { schoolId, isActive: true },
+      select: { id: true },
+    });
+
+    const teacherClassrooms = await prisma.classroom.findMany({
+      where: {
+        schoolId,
+        OR: [
+          { tutorTeacherId: teacherId },
+          { years: { some: { tutorTeacherId: teacherId, ...(activeYear ? { academicYearId: activeYear.id } : {}) } } },
+          { assignments: { some: { teacherId, deletedAt: null, ...(activeYear ? { academicYearId: activeYear.id } : {}) } } },
+        ],
+      },
+      select: { id: true },
+    });
+
+    assertTeacherAnnouncementAllowed('TEACHER', teacherClassrooms.map((c) => c.id), classroomId, targetRoles);
+  }
 
   async getAnnouncements(viewer: Viewer, filters: AnnouncementFilterDto) {
     const visibility = await visibilityWhere(viewer);
@@ -32,7 +59,11 @@ export class AnnouncementService {
     schoolId: string,
     authorId: string,
     createDto: CreateAnnouncementDto,
+    authorRole?: string,
   ): Promise<Announcement> {
+    if (authorRole === 'TEACHER') {
+      await this.validateTeacherAnnouncement(schoolId, authorId, createDto.classroomId, createDto.targetRoles);
+    }
     const created = await this.announcementRepository.create(schoolId, authorId, createDto);
 
     // Avisar (app + push) solo a quienes corresponde: roles destino y, si es de un aula, solo sus familias
@@ -68,8 +99,13 @@ export class AnnouncementService {
   ): Promise<Announcement> {
     const current = await this.getAnnouncementById(announcementId, schoolId);
     // Un docente solo puede modificar sus propios comunicados
-    if (editor?.role === 'TEACHER' && current.authorId !== editor.userId) {
-      throw new AppError('Solo puedes modificar tus propios comunicados.', 403);
+    if (editor?.role === 'TEACHER') {
+      if (current.authorId !== editor.userId) {
+        throw new AppError('Solo puedes modificar tus propios comunicados.', 403);
+      }
+      const effectiveClassroomId = updateDto.classroomId !== undefined ? updateDto.classroomId : current.classroomId;
+      const effectiveTargetRoles = updateDto.targetRoles !== undefined ? updateDto.targetRoles : (current.targetRoles as Role[]);
+      await this.validateTeacherAnnouncement(schoolId, editor.userId, effectiveClassroomId, effectiveTargetRoles);
     }
     return this.announcementRepository.update(announcementId, schoolId, updateDto);
   }

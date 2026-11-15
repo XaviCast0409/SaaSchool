@@ -32,6 +32,7 @@ schoolRouter.post('/:id/subscription-payments', SUPER_ADMIN, paymentController.c
 schoolRouter.post('/:id/subscription-payments/:paymentId/void', SUPER_ADMIN, paymentController.void);
 
 // Ficha del colegio (solo plataforma): puesta en marcha y notas internas del equipo
+schoolRouter.get('/me/onboarding', authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN'), overviewController.myOnboarding);
 schoolRouter.get('/:id/onboarding', SUPER_ADMIN, overviewController.onboarding);
 schoolRouter.get('/:id/notes', SUPER_ADMIN, overviewController.listNotes);
 schoolRouter.post('/:id/notes', SUPER_ADMIN, overviewController.createNote);

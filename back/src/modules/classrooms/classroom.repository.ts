@@ -27,8 +27,30 @@ export class ClassroomRepository {
    * Aulas del año elegido (o del vigente) con sus matriculados, vacantes y tutor de ese año. Si el
    * año ya definió sus secciones, solo devuelve las abiertas (salvo `includeClosed`).
    */
-  async findAllBySchool(schoolId: string, academicYearId?: string, includeClosed = false): Promise<ClassroomWithStats[]> {
+  async findAllBySchool(
+    schoolId: string,
+    academicYearId?: string,
+    includeClosed = false,
+    teacherId?: string,
+  ): Promise<ClassroomWithStats[]> {
     const yearId = await classroomYearService.resolveYearId(schoolId, academicYearId);
+
+    let teacherClassroomIds: Set<string> | undefined = undefined;
+    if (teacherId) {
+      const assigned = await prisma.classroom.findMany({
+        where: {
+          schoolId,
+          OR: [
+            { tutorTeacherId: teacherId },
+            { years: { some: { tutorTeacherId: teacherId, ...(yearId ? { academicYearId: yearId } : {}) } } },
+            { assignments: { some: { teacherId, deletedAt: null, ...(yearId ? { academicYearId: yearId } : {}) } } },
+          ],
+        },
+        select: { id: true },
+      });
+      teacherClassroomIds = new Set(assigned.map((c) => c.id));
+    }
+
     const [rooms, counts, sections] = await Promise.all([
       prisma.classroom.findMany({ where: { schoolId }, include: CLASSROOM_INCLUDE, orderBy: ORDER }),
       prisma.enrollment.groupBy({ by: ['classroomId'], where: { schoolId, ...enrollmentsOfYear(academicYearId) }, _count: { _all: true } }),
@@ -49,7 +71,7 @@ export class ClassroomRepository {
           enrolledCount: counts.find((c) => c.classroomId === r.id)?._count._all ?? 0,
         };
       })
-      .filter((r) => includeClosed || r.openInYear);
+      .filter((r) => (includeClosed || r.openInYear) && (!teacherClassroomIds || teacherClassroomIds.has(r.id)));
   }
 
   async findById(classroomId: string, schoolId: string): Promise<ClassroomWithTutor | null> {

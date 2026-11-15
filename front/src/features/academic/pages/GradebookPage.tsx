@@ -31,7 +31,7 @@ export const GradebookPage: React.FC = () => {
   const [reason, setReason] = useState<string | null>(null);
   const [reasonOpen, setReasonOpen] = useState(false);
   const [criteriaOpen, setCriteriaOpen] = useState(false);
-  const [status, setStatus] = useState<{ s: 'idle' | 'saving' | 'saved' | 'error'; msg?: string }>({ s: 'idle' });
+  const [status, setStatus] = useState<{ s: 'idle' | 'saving' | 'saved' | 'error'; msg?: string; invalidCount?: number }>({ s: 'idle' });
   const [downloading, setDownloading] = useState(false);
 
   const handleDownload = async () => {
@@ -130,7 +130,7 @@ export const GradebookPage: React.FC = () => {
               </div>
               <p className="mb-3 text-sm text-muted-foreground">{data.competences.find((c) => c.id === competenceId)?.name}</p>
               {data.criteria.length === 0 && <p className="mb-3 text-sm text-muted-foreground">Este curso no usa criterios: registra directamente el calificativo final.</p>}
-              <GradebookGrid data={data} competenceId={competenceId} reason={reason} onNeedReason={() => setReasonOpen(true)} onStatus={(s, msg) => setStatus({ s, msg })} />
+              <GradebookGrid data={data} competenceId={competenceId} reason={reason} onNeedReason={() => setReasonOpen(true)} onStatus={(s, msg, invalidCount) => setStatus({ s, msg, invalidCount })} />
               <p className="mt-2 text-xs text-muted-foreground">Escribe un número de 0 a 20 o AD, A, B, C, EXO. Puedes pegar columnas desde Excel. Enter baja a la siguiente fila.</p>
             </>
           )}
@@ -141,8 +141,16 @@ export const GradebookPage: React.FC = () => {
 
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2 text-sm">
-          <span className={cn(status.s === 'error' ? 'text-red-600' : 'text-muted-foreground')}>
-            {status.s === 'saving' ? 'Guardando…' : status.s === 'saved' ? 'Guardado' : status.s === 'error' ? 'Error al guardar' : 'Los cambios se guardan solos'}
+          <span className={cn(status.invalidCount && status.invalidCount > 0 ? 'text-destructive font-semibold' : status.s === 'error' ? 'text-red-600' : 'text-muted-foreground')}>
+            {status.invalidCount && status.invalidCount > 0
+              ? `${status.invalidCount} valor(es) no válido(s) sin guardar`
+              : status.s === 'saving'
+              ? 'Guardando…'
+              : status.s === 'saved'
+              ? 'Guardado'
+              : status.s === 'error'
+              ? 'Error al guardar'
+              : 'Los cambios se guardan solos'}
           </span>
           <span className="text-muted-foreground">
             {Math.max(missingGrades, 0)} calificativos pendientes · {missingConclusions} conclusiones pendientes

@@ -18,39 +18,89 @@ const USER_PUBLIC_SELECT = {
   educationLevel: true,
   isActive: true,
   avatarUrl: true,
-  mustChangePassword: true,
-  passwordChangedAt: true,
-  failedLoginAttempts: true,
-  lockedUntil: true,
   createdAt: true,
   updatedAt: true,
 } satisfies Prisma.UserSelect;
 
-type PublicUser = Omit<User, 'passwordHash' | 'lastSeenAt'>;
+export type PublicUser = Omit<User, 'passwordHash' | 'lastSeenAt' | 'mustChangePassword' | 'passwordChangedAt' | 'failedLoginAttempts' | 'lockedUntil'>;
 
 export class UserRepository {
   async findAllBySchool(
     schoolId: string,
-    filters: Partial<UserFilterDto> = {},
+    filters: Partial<UserFilterDto> & { actorRole?: Role; actorUserId?: string } = {},
   ): Promise<PaginatedResult<PublicUser>> {
-    const { page = 1, limit = 500, role, roles, staffOnly, search, yearScope, staffYearId } = filters;
+    const { page = 1, limit = 500, role, roles, staffOnly, search, yearScope, staffYearId, actorRole, actorUserId } = filters;
     const skip = (page - 1) * limit;
 
     let roleFilter: Prisma.UserWhereInput['role'] = undefined;
-    if (role) {
-      roleFilter = role;
-    } else if (roles) {
-      const parsed = roles.split(',').map((r) => r.trim()).filter(Boolean) as Role[];
-      if (parsed.length > 0) {
+    if (actorRole !== 'SUPER_ADMIN') {
+      if (role) {
+        roleFilter = role === 'SUPER_ADMIN' ? { in: [] } : role;
+      } else if (roles) {
+        const parsed = roles.split(',').map((r) => r.trim()).filter((r) => r && r !== 'SUPER_ADMIN') as Role[];
         roleFilter = { in: parsed };
+      } else if (staffOnly) {
+        roleFilter = { in: ['SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'] };
+      } else {
+        roleFilter = { not: 'SUPER_ADMIN' };
       }
-    } else if (staffOnly) {
-      roleFilter = { in: ['SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'] };
+    } else {
+      if (role) {
+        roleFilter = role;
+      } else if (roles) {
+        const parsed = roles.split(',').map((r) => r.trim()).filter(Boolean) as Role[];
+        if (parsed.length > 0) {
+          roleFilter = { in: parsed };
+        }
+      } else if (staffOnly) {
+        roleFilter = { in: ['SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'] };
+      }
+    }
+
+    let teacherTeacherFilter: Prisma.UserWhereInput | undefined = undefined;
+    if (actorRole === 'TEACHER' && actorUserId) {
+      const teacherClassrooms = await prisma.classroom.findMany({
+        where: {
+          schoolId,
+          OR: [
+            { tutorTeacherId: actorUserId },
+            { years: { some: { tutorTeacherId: actorUserId, ...(staffYearId ? { academicYearId: staffYearId } : {}) } } },
+            { assignments: { some: { teacherId: actorUserId, deletedAt: null, ...(staffYearId ? { academicYearId: staffYearId } : {}) } } },
+          ],
+        },
+        select: { id: true },
+      });
+      const classroomIds = teacherClassrooms.map((c) => c.id);
+
+      const parentRelations = await prisma.familyRelationship.findMany({
+        where: {
+          student: {
+            schoolId,
+            enrollments: {
+              some: {
+                classroomId: { in: classroomIds },
+                isActive: true,
+                ...(staffYearId ? { academicYearId: staffYearId } : {}),
+              },
+            },
+          },
+        },
+        select: { userId: true },
+      });
+      const allowedParentUserIds = [...new Set(parentRelations.map((r) => r.userId))];
+
+      teacherTeacherFilter = {
+        OR: [
+          { role: { in: ['SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'] } },
+          { role: 'PARENT', id: { in: allowedParentUserIds } },
+        ],
+      };
     }
 
     const where: Prisma.UserWhereInput = {
       schoolId,
       ...(roleFilter ? { role: roleFilter } : {}),
+      ...(teacherTeacherFilter ? teacherTeacherFilter : {}),
       // Personal contratado en el año elegido
       ...(yearScope === 'year' && staffYearId ? { staffYears: { some: { academicYearId: staffYearId } } } : {}),
       ...(search
@@ -66,7 +116,7 @@ export class UserRepository {
         : {}),
     };
 
-    const [data, total] = await Promise.all([
+    const [rawRows, total] = await Promise.all([
       prisma.user.findMany({
         where,
         skip,
@@ -80,6 +130,16 @@ export class UserRepository {
       prisma.user.count({ where }),
     ]);
 
+    const data: PublicUser[] =
+      actorRole === 'TEACHER'
+        ? rawRows.map((u) => ({
+            ...u,
+            documentId: '',
+            cellphone: '',
+            educationLevel: '',
+          }))
+        : rawRows;
+
     return {
       data,
       meta: {
@@ -91,9 +151,13 @@ export class UserRepository {
     };
   }
 
-  async findById(userId: string, schoolId: string): Promise<PublicUser | null> {
+  async findById(userId: string, schoolId: string, actorRole?: Role): Promise<PublicUser | null> {
     return prisma.user.findFirst({
-      where: { id: userId, schoolId },
+      where: {
+        id: userId,
+        schoolId,
+        ...(actorRole !== 'SUPER_ADMIN' ? { role: { not: 'SUPER_ADMIN' } } : {}),
+      },
       select: USER_PUBLIC_SELECT,
     });
   }
@@ -160,9 +224,13 @@ export class UserRepository {
     });
   }
 
-  async findByIdRaw(userId: string, schoolId: string): Promise<User | null> {
+  async findByIdRaw(userId: string, schoolId: string, actorRole?: Role): Promise<User | null> {
     return prisma.user.findFirst({
-      where: { id: userId, schoolId },
+      where: {
+        id: userId,
+        schoolId,
+        ...(actorRole !== 'SUPER_ADMIN' ? { role: { not: 'SUPER_ADMIN' } } : {}),
+      },
     });
   }
 

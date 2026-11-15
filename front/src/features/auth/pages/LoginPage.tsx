@@ -20,7 +20,13 @@ interface DemoAccount {
   badgeColor?: string;
 }
 
-const DEMO_CATEGORIES: Record<string, { title: string; accounts: DemoAccount[] }> = {
+/**
+ * Cuentas del seed solo en desarrollo (`pnpm dev`). En el build de producción la condición es
+ * falsa en tiempo de compilación y estos usuarios y claves no llegan al navegador.
+ */
+const SHOW_DEMO_ACCOUNTS = import.meta.env.DEV;
+
+const DEMO_CATEGORIES: Record<string, { title: string; accounts: DemoAccount[] }> = !SHOW_DEMO_ACCOUNTS ? {} : {
   PRO: {
     title: 'Colegio PRO (Innova)',
     accounts: [
@@ -37,16 +43,6 @@ const DEMO_CATEGORIES: Record<string, { title: string; accounts: DemoAccount[] }
       { label: 'Lucas Silva', email: 'alumno.lucas@innova.edu.pe', pass: 'Student123!', sub: '3° Primaria PRO (Mochila Digital)', badge: 'ALUMNO', badgeColor: 'bg-indigo-600 text-white' },
       { label: 'Valeria Silva', email: 'alumno.valeria@innova.edu.pe', pass: 'Student123!', sub: '2° Secundaria PRO (Notas y Cursos)', badge: 'ALUMNA', badgeColor: 'bg-purple-600 text-white' },
       { label: 'Gabriel Mendoza', email: 'alumno.gabriel@innova.edu.pe', pass: 'Student123!', sub: '1° Primaria PRO (Hijo Único)', badge: 'ALUMNO', badgeColor: 'bg-indigo-600 text-white' },
-      { label: 'Mateo Pérez', email: 'alumno.mateo@sanignacio.edu.pe', pass: 'Student123!', sub: '2° Primaria BASIC', badge: 'ALUMNO', badgeColor: 'bg-slate-600 text-white' },
-    ],
-  },
-  BASIC: {
-    title: 'Colegio BASIC (San Ignacio)',
-    accounts: [
-      { label: 'Director BASIC', email: 'admin.basic@sanignacio.edu.pe', pass: 'Admin123!', sub: 'Gestión institucional', badge: 'BASIC' },
-      { label: 'Secretaría BASIC', email: 'secretaria.basic@sanignacio.edu.pe', pass: 'Admin123!', sub: 'Control escolar básico', badge: 'BASIC' },
-      { label: 'Docente BASIC', email: 'docente.basic@sanignacio.edu.pe', pass: 'Teacher123!', sub: 'Notas 2° Primaria', badge: 'BASIC' },
-      { label: 'Padre BASIC', email: 'padre.basic@sanignacio.edu.pe', pass: 'Parent123!', sub: 'Padre de Mateo', badge: 'BASIC' },
     ],
   },
 };
@@ -54,6 +50,7 @@ const DEMO_CATEGORIES: Record<string, { title: string; accounts: DemoAccount[] }
 export const LoginPage: React.FC = () => {
   const { mutate: login, isPending, error } = useLogin();
   const [activeCategory, setActiveCategory] = useState<keyof typeof DEMO_CATEGORIES>('PRO');
+  const [suspensionNotice, setSuspensionNotice] = useState<string | null>(() => sessionStorage.getItem('suspension_message'));
 
   const {
     register,
@@ -63,13 +60,14 @@ export const LoginPage: React.FC = () => {
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: 'admin.pro@innova.edu.pe',
-      password: 'Admin123!',
-    },
+    defaultValues: SHOW_DEMO_ACCOUNTS
+      ? { email: 'admin.pro@innova.edu.pe', password: 'Admin123!' }
+      : { email: '', password: '' },
   });
 
   const onSubmit = (data: LoginFormData) => {
+    sessionStorage.removeItem('suspension_message');
+    setSuspensionNotice(null);
     login(data);
   };
 
@@ -96,7 +94,12 @@ export const LoginPage: React.FC = () => {
 
         <CardContent className="pt-5 space-y-4">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5">
-            {error && (
+            {suspensionNotice && (
+              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-xs font-semibold">
+                {suspensionNotice}
+              </div>
+            )}
+            {error && !suspensionNotice && (
               <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs font-semibold">
                 {(error as { response?: { data?: { message?: string } } }).response?.data?.message ||
                   'Credenciales incorrectas o servidor no disponible.'}
@@ -119,9 +122,14 @@ export const LoginPage: React.FC = () => {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-foreground tracking-wide uppercase">
-                Contraseña
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-foreground tracking-wide uppercase">
+                  Contraseña
+                </label>
+                <Link to="/olvide-contrasena" className="text-xs text-primary hover:underline font-medium">
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
               <Input
                 type="password"
                 placeholder="••••••••"
@@ -161,7 +169,8 @@ export const LoginPage: React.FC = () => {
             </p>
           </form>
 
-          {/* Quick Demo Accesses from Seed Data */}
+          {/* Quick Demo Accesses from Seed Data (solo desarrollo) */}
+          {SHOW_DEMO_ACCOUNTS && (
           <div className="mt-5 pt-3.5 border-t border-border space-y-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
@@ -223,6 +232,7 @@ export const LoginPage: React.FC = () => {
               ))}
             </div>
           </div>
+          )}
         </CardContent>
       </Card>
     </div>

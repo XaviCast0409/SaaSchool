@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
+import multer from 'multer';
 import * as Sentry from '@sentry/node';
 import { AppError } from '../errors/app-error';
 import { env } from '../../config/env';
@@ -45,6 +46,36 @@ export const globalErrorHandler = (
     return;
   }
 
+  // Errores de carga de archivos (Multer)
+  if (error instanceof multer.MulterError) {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      response.status(413).json({
+        status: 'fail',
+        message: 'El archivo supera el tamaño máximo permitido (8 MB). Elige un archivo más liviano o comprímelo.',
+      } satisfies ErrorResponse);
+      return;
+    }
+    if (error.code === 'LIMIT_FILE_COUNT') {
+      response.status(400).json({
+        status: 'fail',
+        message: 'Se superó la cantidad máxima de archivos permitidos en una sola carga.',
+      } satisfies ErrorResponse);
+      return;
+    }
+    if (error.code === 'LIMIT_UNEXPECTED_FILE') {
+      response.status(400).json({
+        status: 'fail',
+        message: 'Campo de archivo no reconocido o no permitido para este formulario.',
+      } satisfies ErrorResponse);
+      return;
+    }
+    response.status(400).json({
+      status: 'fail',
+      message: `Error al cargar archivo: ${error.message}`,
+    } satisfies ErrorResponse);
+    return;
+  }
+
   // Errores de Prisma — Constraint violations (P2002 Unique Constraint)
   if (error.constructor.name === 'PrismaClientKnownRequestError') {
     const prismaError = error as Error & { code: string; meta?: Record<string, unknown> };
@@ -59,7 +90,17 @@ export const globalErrorHandler = (
 
       let customMessage = 'Ya existe un registro en la plataforma con ese valor único.';
 
-      if (targetFields.some((f) => f.includes('slug'))) {
+      if (
+        (prismaError.meta?.modelName === 'School' && targetFields.some((f) => f.includes('documentId'))) ||
+        targetFields.some((f) => f.includes('School_documentId_key'))
+      ) {
+        customMessage = 'Ya existe un colegio registrado con ese RUC.';
+      } else if (
+        (prismaError.meta?.modelName === 'School' && targetFields.some((f) => f.includes('modularCode'))) ||
+        targetFields.some((f) => f.includes('School_modularCode_key'))
+      ) {
+        customMessage = 'Ya existe un colegio registrado con ese Código Modular.';
+      } else if (targetFields.some((f) => f.includes('slug'))) {
         customMessage = 'Ese código de colegio ya está en uso. Elige otro.';
       } else if (targetFields.some((f) => f.includes('documentId') || f.includes('documentNumber'))) {
         customMessage = 'El DNI / Número de Documento ingresado ya pertenece a otro estudiante o apoderado registrado.';

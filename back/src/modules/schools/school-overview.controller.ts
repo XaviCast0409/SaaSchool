@@ -15,6 +15,12 @@ export class SchoolOverviewController {
     response.status(200).json({ status: 'success', data });
   };
 
+  myOnboarding = async (request: Request, response: Response): Promise<void> => {
+    const schoolId = request.user!.schoolId;
+    const data = await this.service.onboarding(schoolId);
+    response.status(200).json({ status: 'success', data });
+  };
+
   listNotes = async (request: Request, response: Response): Promise<void> => {
     const data = await this.service.listNotes(request.params.id as string);
     response.status(200).json({ status: 'success', data });

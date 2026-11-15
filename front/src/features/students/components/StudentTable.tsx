@@ -23,6 +23,7 @@ import { TemporaryCredentialsDialog, type TemporaryCredential } from '@/componen
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { formatFullName, formatEducationLevel } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Pagination } from '@/components/ui/Pagination';
@@ -99,13 +100,13 @@ export const StudentTable: React.FC<StudentTableProps> = ({
       ),
     },
     {
-      accessorFn: (row) => `${row.lastNamePaternal} ${row.lastNameMaternal}, ${row.firstNames}`,
+      accessorFn: (row) => formatFullName(row, 'LAST_FIRST'),
       id: 'fullName',
       header: 'Apellidos y Nombres',
       cell: ({ row }) => (
         <div>
           <div className="font-medium text-foreground">
-            {row.original.lastNamePaternal} {row.original.lastNameMaternal}, {row.original.firstNames}
+            {formatFullName(row.original, 'LAST_FIRST')}
           </div>
           {row.original.hasDisability && (
             <span className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 font-semibold mt-0.5">
@@ -128,7 +129,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({
         return (
           <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-md bg-secondary text-secondary-foreground font-semibold">
             <BookOpen className="w-3 h-3 text-primary" />
-            {classroom.grade}° "{classroom.section}" - {classroom.educationLevel}
+            {classroom.grade}° "{classroom.section}" - {formatEducationLevel(classroom.educationLevel)}
           </span>
         );
       },
@@ -260,7 +261,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({
             <option value="">Todas las Aulas / Secciones</option>
             {classrooms.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.grade}° "{c.section}" - {c.educationLevel}
+                {c.grade}° "{c.section}" - {formatEducationLevel(c.educationLevel)}
               </option>
             ))}
           </select>
@@ -333,7 +334,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({
                         <TableCell>
                           <div>
                             <div className="font-medium text-foreground">
-                              {student.lastNamePaternal} {student.lastNameMaternal}, {student.firstNames}
+                              {formatFullName(student, 'LAST_FIRST')}
                             </div>
                             {student.hasDisability && (
                               <span className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 font-semibold mt-0.5">
@@ -347,7 +348,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({
                           {classroom ? (
                             <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-md bg-secondary text-secondary-foreground font-semibold">
                               <BookOpen className="w-3 h-3 text-primary" />
-                              {classroom.grade}° "{classroom.section}" - {classroom.educationLevel}
+                              {classroom.grade}° "{classroom.section}" - {formatEducationLevel(classroom.educationLevel)}
                             </span>
                           ) : (
                             <span className="text-xs text-muted-foreground italic">Sin asignación</span>
@@ -478,7 +479,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({
                           >
                             <StudentParentsPanel
                               studentId={student.id}
-                              studentName={`${student.lastNamePaternal} ${student.lastNameMaternal}, ${student.firstNames}`}
+                              studentName={formatFullName(student, 'LAST_FIRST')}
                               availableParents={allParents}
                             />
                           </TableCell>
@@ -531,7 +532,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({
       {/* Modal de Carnet Escolar QR Individual */}
       {selectedStudentForQr && (
         <StudentQrCardModal
-          studentName={`${selectedStudentForQr.lastNamePaternal} ${selectedStudentForQr.lastNameMaternal || ''}, ${selectedStudentForQr.firstNames}`.trim()}
+          studentName={formatFullName(selectedStudentForQr, 'LAST_FIRST')}
           documentId={selectedStudentForQr.documentId}
           studentCode={selectedStudentForQr.studentCode}
           grade={selectedStudentForQr.enrollments?.[0]?.classroom?.grade || ''}
@@ -547,7 +548,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({
         <StudentCertificateModal
           isOpen={Boolean(selectedStudentForCertificates)}
           studentId={selectedStudentForCertificates.id}
-          studentName={`${selectedStudentForCertificates.lastNamePaternal} ${selectedStudentForCertificates.lastNameMaternal || ''}, ${selectedStudentForCertificates.firstNames}`.trim()}
+          studentName={formatFullName(selectedStudentForCertificates, 'LAST_FIRST')}
           onClose={() => setSelectedStudentForCertificates(null)}
         />
       )}

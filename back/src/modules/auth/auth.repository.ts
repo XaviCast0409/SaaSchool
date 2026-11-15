@@ -8,6 +8,14 @@ export class AuthRepository {
     return school?.id ?? null;
   }
 
+  async findSchoolBySlug(slug: string): Promise<{ id: string; isActive: boolean } | null> {
+    return prisma.school.findFirst({ where: { slug }, select: { id: true, isActive: true } });
+  }
+
+  async findSchoolById(id: string): Promise<{ id: string; isActive: boolean } | null> {
+    return prisma.school.findUnique({ where: { id }, select: { id: true, isActive: true } });
+  }
+
   /**
    * Devuelve hasta 2 usuarios que coincidan (para detectar ambigüedad entre colegios).
    * Con `schoolId` la búsqueda se limita a ese colegio.
@@ -34,6 +42,33 @@ export class AuthRepository {
 
   async findUserById(id: string): Promise<User | null> {
     return prisma.user.findUnique({ where: { id } });
+  }
+
+  async findUserByEmail(email: string): Promise<User | null> {
+    const clean = email.trim().toLowerCase();
+    return prisma.user.findFirst({
+      where: { email: { equals: clean, mode: 'insensitive' } },
+    });
+  }
+
+  async createPasswordResetToken(data: { userId: string; tokenHash: string; expiresAt: Date }): Promise<void> {
+    await prisma.passwordResetToken.create({
+      data,
+    });
+  }
+
+  async findPasswordResetToken(tokenHash: string) {
+    return prisma.passwordResetToken.findUnique({
+      where: { tokenHash },
+      include: { user: true },
+    });
+  }
+
+  async markPasswordResetTokenUsed(id: string): Promise<void> {
+    await prisma.passwordResetToken.update({
+      where: { id },
+      data: { usedAt: new Date() },
+    });
   }
 
   async findStudentById(studentId: string): Promise<Student | null> {

@@ -13,6 +13,9 @@ import { slugify, slugCandidates } from './school-slug.rules';
 export class SchoolRepository {
   async findAll(): Promise<School[]> {
     return prisma.school.findMany({
+      where: {
+        documentId: { not: '00000000000' },
+      },
       orderBy: { createdAt: 'desc' },
       include: {
         _count: {
@@ -82,6 +85,19 @@ export class SchoolRepository {
     });
   }
 
+  async findByDocumentId(documentId: string): Promise<School | null> {
+    return prisma.school.findFirst({
+      where: { documentId },
+    });
+  }
+
+  async findUserByEmail(email: string): Promise<{ id: string } | null> {
+    return prisma.user.findFirst({
+      where: { email: email.toLowerCase().trim() },
+      select: { id: true },
+    });
+  }
+
   /** Primer código libre entre base, base-2, base-3... */
   async findAvailableSlug(base: string): Promise<string> {
     const candidates = slugCandidates(base);
@@ -128,11 +144,11 @@ export class SchoolRepository {
 
       // 2. Si se pasaron credenciales para el Administrador Inicial, crear el usuario
       if (adminEmail) {
-        const passwordToSet =
-          adminPassword && PASSWORD_POLICY_REGEX.test(adminPassword.trim())
-            ? adminPassword.trim()
-            : generateTemporaryPassword(12);
-        const passwordHash = await hashPassword(passwordToSet);
+        // La clave ya viene validada (school.schema + school.service): se usa tal cual se le entrega al director
+        if (!adminPassword) {
+          throw new AppError('Indica la contraseña inicial del director.', 400);
+        }
+        const passwordHash = await hashPassword(adminPassword.trim());
         await tx.user.create({
           data: {
             schoolId: school.id,
@@ -140,12 +156,12 @@ export class SchoolRepository {
             passwordHash,
             mustChangePassword: true,
             firstName: adminFirstName || 'Director(a)',
-            lastNamePaternal: adminLastNamePaternal || school.name,
+            lastNamePaternal: adminLastNamePaternal || 'Director',
             lastNameMaternal: adminLastNameMaternal || '',
             role: 'SCHOOL_ADMIN',
             documentType: 'DNI',
-            documentId: adminDocumentId || school.documentId,
-            cellphone: adminCellphone || school.phone || '',
+            documentId: adminDocumentId || null,
+            cellphone: adminCellphone || '',
           },
         });
       }

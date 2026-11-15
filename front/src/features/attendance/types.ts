@@ -210,6 +210,8 @@ export interface AttendanceSheetData {
     UNRECORDED: number;
   };
   students: AttendanceSheetStudentItem[];
+  isSchoolDay?: boolean;
+  nonSchoolDayReason?: string;
 }
 
 export interface SaveAttendanceSheetPayload {

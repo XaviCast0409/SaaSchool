@@ -17,6 +17,7 @@ import { useStudents } from '../api/useStudents';
 import type { Student } from '../types';
 import { generateStudentQrCode } from '@/features/attendance/utils/studentQrUtils';
 import { PrintPortal, usePrint } from '@/lib/print';
+import { formatEducationLevel } from '@/lib/utils';
 
 interface SectionQrCardsModalProps {
   initialClassroomId?: string;
@@ -275,7 +276,7 @@ export const SectionQrCardsModal: React.FC<SectionQrCardsModalProps> = ({
                 <option value="">— Seleccionar Sección —</option>
                 {classrooms.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.grade}° "{c.section}" - {c.educationLevel}
+                    {c.grade}° "{c.section}" - {formatEducationLevel(c.educationLevel)}
                   </option>
                 ))}
               </select>

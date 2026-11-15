@@ -1,6 +1,9 @@
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
 import { monthRangeUTC, parseSchoolDate } from '../../utils/timezone.util';
+import { formatFullName } from '../../utils/name.util';
+import { nationalHolidays } from '../calendar/official-dates';
+import { isSchoolDay } from './attendance.rules';
 import type { Attendance, AttendanceStatus, AttendanceOrigin, Prisma, AttendanceScheduleConfig, AttendanceScheduleScope, EducationLevel } from '@prisma/client';
 import type {
   AttendanceFilterDto,
@@ -47,6 +50,8 @@ export interface AttendanceSheetData {
     UNRECORDED: number;
   };
   students: AttendanceSheetStudentItem[];
+  isSchoolDay?: boolean;
+  nonSchoolDayReason?: string;
 }
 
 export interface AttendanceMonthlySummary {
@@ -479,9 +484,7 @@ export class AttendanceRepository {
     const students: AttendanceSheetStudentItem[] = enrollments.map((e) => {
       const att = attendanceMap.get(e.id);
       const student = e.student;
-      const fullName = `${student.lastNamePaternal} ${student.lastNameMaternal || ''}, ${student.firstNames}`
-        .replace(/\s+/g, ' ')
-        .trim();
+      const fullName = formatFullName(student, 'LAST_FIRST');
 
       if (att) {
         counts[att.status]++;
@@ -507,6 +510,25 @@ export class AttendanceRepository {
 
     const recordedCount = attendances.length;
 
+    const activeYear = await prisma.academicYear.findFirst({
+      where: { schoolId, isActive: true },
+      select: { year: true, startDate: true, endDate: true },
+    });
+    const yearNumber = Number(dateStr.slice(0, 4));
+    const natHolidays = !isNaN(yearNumber) ? nationalHolidays(yearNumber) : [];
+    const holidaysMap = new Map<string, string>();
+    for (const nh of natHolidays) holidaysMap.set(nh.date, nh.name);
+
+    const schoolHolidays = await prisma.schoolHoliday.findMany({
+      where: { schoolId },
+      select: { date: true, name: true },
+    });
+    for (const sh of schoolHolidays) {
+      holidaysMap.set(sh.date.toISOString().slice(0, 10), sh.name);
+    }
+
+    const schoolDayCheck = isSchoolDay(dateStr, activeYear, holidaysMap);
+
     return {
       classroomId,
       classroomName,
@@ -516,6 +538,8 @@ export class AttendanceRepository {
       isComplete: enrollments.length > 0 && recordedCount === enrollments.length,
       counts,
       students,
+      isSchoolDay: schoolDayCheck.isSchoolDay,
+      nonSchoolDayReason: schoolDayCheck.message,
     };
   }
 
@@ -1108,7 +1132,11 @@ export class AttendanceRepository {
     const enrollmentScope = {
       schoolId: params.schoolId,
       isActive: true,
-      academicYear: { isActive: true },
+      academicYear: {
+        isActive: true,
+        startDate: { lte: dateObj },
+        endDate: { gte: dateObj },
+      },
       ...(params.classroomId ? { classroomId: params.classroomId } : {}),
       ...(params.educationLevels ? { classroom: { educationLevel: { in: params.educationLevels } } } : {}),
     };

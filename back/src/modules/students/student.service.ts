@@ -1,4 +1,5 @@
 import { getSchoolNow } from '../../utils/timezone.util';
+import { formatFullName } from '../../utils/name.util';
 import { AppError } from '../../core/errors/app-error';
 import { studentQuotaFor } from '../schools/plan.rules';
 import { prisma } from '../../config/prisma';
@@ -136,7 +137,8 @@ export class StudentService {
       schedule: { ...result.schedule, scholarshipsApplied },
       temporaryCredentials: {
         student: { login: student.studentCode || student.documentId, password: studentTemporaryPassword },
-        guardian: dto.guardian.newGuardian
+        // Solo si se creó la cuenta: un apoderado ya registrado conserva su contraseña
+        guardian: dto.guardian.newGuardian && result.guardianCreated
           ? {
               login: dto.guardian.newGuardian.email || dto.guardian.newGuardian.documentId || '',
               password: guardianTemporaryPassword,
@@ -202,7 +204,7 @@ export class StudentService {
       let guardianData = null;
       if (guardianRel?.user) {
         const u = guardianRel.user;
-        const fullName = `${u.lastNamePaternal} ${u.lastNameMaternal ? `${u.lastNameMaternal}, ` : ', '}${u.firstName}`.trim();
+        const fullName = formatFullName(u, 'LAST_FIRST');
         guardianData = {
           relationshipType: guardianRel.relationshipType,
           isLegalGuardian: guardianRel.isLegalGuardian,
@@ -342,7 +344,7 @@ export class StudentService {
       },
       student: {
         id: student.id,
-        fullName: `${student.lastNamePaternal} ${student.lastNameMaternal || ''}, ${student.firstNames}`.trim(),
+        fullName: formatFullName(student, 'LAST_FIRST'),
         documentType: student.documentType,
         documentId: student.documentId,
         studentCode: student.studentCode,
@@ -410,7 +412,7 @@ export class StudentService {
     const pendingObligationsCount = await this.studentRepository.countStudentPendingObligations(studentId, schoolId);
     if (pendingObligationsCount > 0) {
       throw new AppError(
-        `No se puede emitir la Constancia de No Adeudo porque el estudiante presenta ${pendingObligationsCount} obligación(es) de pago pendiente(s).`,
+        `El estudiante presenta ${pendingObligationsCount} cuota(s) vencida(s) sin pagar. Debe regularizar su situación para emitir la Constancia de No Adeudo.`,
         400,
       );
     }
@@ -435,7 +437,7 @@ export class StudentService {
       },
       student: {
         id: student.id,
-        fullName: `${student.lastNamePaternal} ${student.lastNameMaternal || ''}, ${student.firstNames}`.trim(),
+        fullName: formatFullName(student, 'LAST_FIRST'),
         documentType: student.documentType,
         documentId: student.documentId,
         studentCode: student.studentCode,
@@ -488,7 +490,7 @@ export class StudentService {
           },
         });
         invalidatePrincipalCache('student', student.id);
-        const fullName = `${student.lastNamePaternal} ${student.lastNameMaternal || ''}, ${student.firstNames}`.trim();
+        const fullName = formatFullName(student, 'LAST_FIRST');
         const login = student.studentCode || student.documentId;
         results.push({ id: student.id, fullName, login, temporaryPassword });
       }
@@ -515,7 +517,7 @@ export class StudentService {
               },
             });
             invalidatePrincipalCache('user', user.id);
-            const fullName = `${user.lastNamePaternal} ${user.lastNameMaternal || ''}, ${user.firstName}`.trim();
+            const fullName = formatFullName(user, 'LAST_FIRST');
             const login = user.email || user.documentId || '';
             results.push({ id: user.id, fullName, login, temporaryPassword });
           }

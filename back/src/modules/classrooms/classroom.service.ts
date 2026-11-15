@@ -39,8 +39,13 @@ export class ClassroomService {
     }
   }
 
-  async getAllClassrooms(schoolId: string, academicYearId?: string, includeClosed = false): Promise<ClassroomWithStats[]> {
-    return this.classroomRepository.findAllBySchool(schoolId, academicYearId, includeClosed);
+  async getAllClassrooms(
+    schoolId: string,
+    academicYearId?: string,
+    includeClosed = false,
+    teacherId?: string,
+  ): Promise<ClassroomWithStats[]> {
+    return this.classroomRepository.findAllBySchool(schoolId, academicYearId, includeClosed, teacherId);
   }
 
   async getClassroomById(classroomId: string, schoolId: string): Promise<ClassroomWithTutor> {

@@ -19,6 +19,7 @@ import { useUpdateAnnouncementExpiry } from '../api/useAnnouncements';
 import { endOfDayLima, limaDateOf, addDays } from '../lib/expiry';
 import { getPeruToday } from '@/lib/dateUtils';
 import { toast } from 'sonner';
+import { formatEducationLevel } from '@/lib/utils';
 
 interface AnnouncementCardProps {
   announcement: Announcement;
@@ -116,7 +117,7 @@ export const AnnouncementCard: React.FC<AnnouncementCardProps> = ({
           {announcement.classroom && (
             <Badge variant="outline" className="text-xs font-semibold gap-1 bg-secondary/40 text-foreground border-border">
               <School className="w-3.5 h-3.5 text-primary" />
-              <span>{announcement.classroom.grade}° "{announcement.classroom.section}" • {announcement.classroom.educationLevel}</span>
+              <span>{announcement.classroom.grade}° "{announcement.classroom.section}" • {formatEducationLevel(announcement.classroom.educationLevel)}</span>
             </Badge>
           )}
 

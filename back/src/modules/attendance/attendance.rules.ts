@@ -104,3 +104,67 @@ export const RISK_REASON_LABELS: Record<RiskReason, string> = {
   MONTHLY_ABSENCE_RATE: '% de faltas injustificadas (últimos 30 días)',
   REPEATED_LATENESS: 'Tardanzas injustificadas repetidas (últimos 30 días)',
 };
+
+export interface SchoolDayResult {
+  isSchoolDay: boolean;
+  reason?: 'WEEKEND' | 'HOLIDAY' | 'OUT_OF_YEAR';
+  message?: string;
+}
+
+export function isSchoolDay(
+  dateStr: string,
+  year?: { year?: number; startDate: Date | string; endDate: Date | string } | null,
+  holidays?: Map<string, string> | Set<string> | Record<string, string>,
+): SchoolDayResult {
+  const [yearNum, monthNum, dayNum] = dateStr.split('-').map(Number);
+  const dateObj = new Date(Date.UTC(yearNum, monthNum - 1, dayNum, 12, 0, 0));
+  const dayOfWeek = dateObj.getUTCDay();
+
+  if (dayOfWeek === 0 || dayOfWeek === 6) {
+    return {
+      isSchoolDay: false,
+      reason: 'WEEKEND',
+      message: 'No se registra asistencia en fin de semana.',
+    };
+  }
+
+  if (holidays) {
+    let holidayName: string | undefined = undefined;
+    if (holidays instanceof Map) {
+      holidayName = holidays.get(dateStr);
+    } else if (holidays instanceof Set) {
+      if (holidays.has(dateStr)) holidayName = 'Feriado';
+    } else if (typeof holidays === 'object') {
+      holidayName = (holidays as Record<string, string>)[dateStr];
+    }
+
+    if (holidayName) {
+      return {
+        isSchoolDay: false,
+        reason: 'HOLIDAY',
+        message: `La fecha ${dateStr} es feriado (${holidayName}).`,
+      };
+    }
+  }
+
+  if (year) {
+    const startStr =
+      typeof year.startDate === 'string'
+        ? year.startDate.slice(0, 10)
+        : year.startDate.toISOString().slice(0, 10);
+    const endStr =
+      typeof year.endDate === 'string'
+        ? year.endDate.slice(0, 10)
+        : year.endDate.toISOString().slice(0, 10);
+    if (dateStr < startStr || dateStr > endStr) {
+      const yearLabel = year.year ? `${year.year} ` : '';
+      return {
+        isSchoolDay: false,
+        reason: 'OUT_OF_YEAR',
+        message: `La fecha está fuera del año escolar ${yearLabel}(${startStr} – ${endStr}).`.trim(),
+      };
+    }
+  }
+
+  return { isSchoolDay: true };
+}

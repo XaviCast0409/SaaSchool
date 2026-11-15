@@ -25,7 +25,12 @@ export class StudentController {
     const schoolId = request.user!.schoolId;
     const queryFilters = studentFilterSchema.parse(request.query);
     const academicYearId = await selectedAcademicYearId(request);
-    const result = await this.studentService.getAllStudents(schoolId, { ...queryFilters, academicYearId });
+    const result = await this.studentService.getAllStudents(schoolId, {
+      ...queryFilters,
+      academicYearId,
+      actorRole: request.user!.role,
+      actorUserId: request.user!.userId,
+    });
 
     response.status(200).json({
       status: 'success',

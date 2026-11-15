@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { GraduationCap, Loader2, ArrowLeftRight, SearchX } from 'lucide-react';
+import { GraduationCap, Loader2, ArrowLeftRight, SearchX, ShieldAlert } from 'lucide-react';
 import { loginSchema, LoginFormData } from '../schemas/login.schema';
 import { useLogin } from '../api/useLogin';
 import { loginBackgroundSrc, useSchoolLoginPage } from '../api/useSchoolLoginPage';
@@ -23,11 +23,15 @@ export const SchoolLoginPage: React.FC = () => {
   const [backgroundFailed, setBackgroundFailed] = useState(false);
 
   const notFound = (pageError as { response?: { status?: number } } | null)?.response?.status === 404;
+  const isSuspended = (pageError as { response?: { status?: number } } | null)?.response?.status === 403;
+  const suspensionMessage =
+    (pageError as { response?: { data?: { message?: string } } } | null)?.response?.data?.message ||
+    'El acceso de tu colegio está suspendido. Comunícate con la dirección o con soporte de KIPUX.';
 
   useEffect(() => {
-    // Un código guardado que ya no existe no debe volver a abrirse solo
-    if (notFound) clearLastSchoolCode();
-  }, [notFound]);
+    // Un código guardado que ya no existe o está suspendido no debe volver a abrirse solo
+    if (notFound || isSuspended) clearLastSchoolCode();
+  }, [notFound, isSuspended]);
 
   useEffect(() => {
     if (page) document.title = `Ingresar · ${page.name}`;
@@ -55,6 +59,21 @@ export const SchoolLoginPage: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" aria-label="Cargando" />
+      </div>
+    );
+  }
+
+  if (isSuspended) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="w-full max-w-sm rounded-2xl border border-destructive/40 bg-card p-6 text-center shadow-xl space-y-3">
+          <ShieldAlert className="w-10 h-10 mx-auto text-destructive" aria-hidden />
+          <h1 className="text-lg font-bold text-foreground">Colegio Suspendido</h1>
+          <p className="text-sm text-muted-foreground">{suspensionMessage}</p>
+          <Button variant="outline" className="w-full mt-2" onClick={changeSchool}>
+            Ingresar otro código
+          </Button>
+        </div>
       </div>
     );
   }
@@ -151,9 +170,14 @@ export const SchoolLoginPage: React.FC = () => {
             </div>
 
             <div className="space-y-1">
-              <label htmlFor="school-login-password" className="text-xs font-semibold text-foreground tracking-wide uppercase">
-                Contraseña
-              </label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="school-login-password" className="text-xs font-semibold text-foreground tracking-wide uppercase">
+                  Contraseña
+                </label>
+                <Link to="/olvide-contrasena" className="text-xs text-primary hover:underline font-medium">
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
               <Input
                 id="school-login-password"
                 type="password"

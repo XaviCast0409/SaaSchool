@@ -53,11 +53,15 @@ describe('tenantMiddleware (aislamiento entre colegios)', () => {
     await expect(tenantMiddleware(makeReq({ id: 'u', role: 'TEACHER', schoolId: null }), {} as Response, vi.fn())).rejects.toMatchObject({ statusCode: 403 });
   });
 
-  it('rechaza colegios inactivos o inexistentes', async () => {
-    findUnique.mockResolvedValue({ id: SCHOOL_A, isActive: false });
-    await expect(tenantMiddleware(makeReq({ id: 'u', role: 'TEACHER', schoolId: SCHOOL_A }), {} as Response, vi.fn())).rejects.toMatchObject({ statusCode: 401 });
+  it('rechaza colegios inexistentes con 401 y suspendidos con 403', async () => {
     findUnique.mockResolvedValue(null);
     await expect(tenantMiddleware(makeReq({ id: 'u', role: 'TEACHER', schoolId: SCHOOL_A }), {} as Response, vi.fn())).rejects.toMatchObject({ statusCode: 401 });
+
+    findUnique.mockResolvedValue({ id: SCHOOL_A, isActive: false });
+    await expect(tenantMiddleware(makeReq({ id: 'u', role: 'TEACHER', schoolId: SCHOOL_A }), {} as Response, vi.fn())).rejects.toMatchObject({
+      statusCode: 403,
+      message: 'El acceso de tu colegio está suspendido. Comunícate con la dirección o con soporte de KIPUX.',
+    });
   });
 
   describe('plan vencido', () => {

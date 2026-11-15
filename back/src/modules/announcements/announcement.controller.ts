@@ -36,7 +36,12 @@ export class AnnouncementController {
     const authorId = req.user!.userId;
     const body = createAnnouncementSchema.parse(req.body);
 
-    const newAnnouncement = await this.announcementService.createAnnouncement(schoolId, authorId, body);
+    const newAnnouncement = await this.announcementService.createAnnouncement(
+      schoolId,
+      authorId,
+      body,
+      req.user!.role,
+    );
 
     res.status(201).json({
       status: 'success',

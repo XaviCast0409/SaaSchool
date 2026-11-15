@@ -28,6 +28,7 @@ import {
   type GroupRow,
 } from '../api/useFinance';
 import { EXPENSE_CATEGORY_LABEL, PAYMENT_METHODS, PAYMENT_METHOD_LABEL, methodLabel, personName, type CashExpense } from '../types';
+import { formatEducationLevel } from '@/lib/utils';
 import { ExpensesList, soles } from '../components/CashMovements';
 import { StatementView } from '../components/StatementView';
 import { exportFinanceExcel, type ExcelSheet } from '../utils/financeExcel';
@@ -329,7 +330,7 @@ const AgingTab: React.FC = () => {
             <option value="">Todas</option>
             {classrooms.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.grade}° "{c.section}" - {c.educationLevel}
+                {c.grade}° "{c.section}" - {formatEducationLevel(c.educationLevel)}
               </option>
             ))}
           </select>

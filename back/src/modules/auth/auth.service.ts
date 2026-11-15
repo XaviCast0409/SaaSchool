@@ -1,10 +1,15 @@
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
+import { prisma } from '../../config/prisma';
+import { env } from '../../config/env';
 import { AppError } from '../../core/errors/app-error';
 import { hashPassword, comparePassword } from '../../utils/hash.util';
 import { signToken } from '../../utils/jwt.util';
+import { sendEmail } from '../../utils/notification.util';
+import { PASSWORD_POLICY_REGEX, PASSWORD_POLICY_MESSAGE } from '../../utils/password.util';
 import { invalidatePrincipalCache } from '../../core/security/principal-status';
 import type { AuthRepository } from './auth.repository';
-import type { LoginDto, ChangePasswordDto } from './auth.schema';
+import type { LoginDto, ChangePasswordDto, ForgotPasswordDto, ResetPasswordDto } from './auth.schema';
 import type { User, Student } from '@prisma/client';
 import type { AuthenticatedUser } from '../../core/interfaces/global.interfaces';
 
@@ -49,9 +54,15 @@ export class AuthService {
     // Sin código, el comportamiento es el de siempre (búsqueda en toda la plataforma).
     let schoolId: string | undefined;
     if (loginDto.schoolSlug) {
-      const found = await this.authRepository.findActiveSchoolIdBySlug(loginDto.schoolSlug);
-      if (!found) throw new AppError('El código del colegio no es válido. Verifícalo con tu colegio.', 404);
-      schoolId = found;
+      const school = await this.authRepository.findSchoolBySlug(loginDto.schoolSlug);
+      if (!school) throw new AppError('El código del colegio no es válido. Verifícalo con tu colegio.', 404);
+      if (!school.isActive) {
+        throw new AppError(
+          'El acceso de tu colegio está suspendido. Comunícate con la dirección o con soporte de KIPUX.',
+          403,
+        );
+      }
+      schoolId = school.id;
     }
 
     const users = await this.authRepository.findUsersByIdentifier(identifier, schoolId);
@@ -79,6 +90,15 @@ export class AuthService {
   private async loginUser(user: User, password: string): Promise<AuthResponse> {
     if (!user.isActive) {
       throw new AppError('Tu cuenta está desactivada. Contacta al administrador.', 403);
+    }
+    if (user.role !== 'SUPER_ADMIN') {
+      const school = await this.authRepository.findSchoolById(user.schoolId);
+      if (school && !school.isActive) {
+        throw new AppError(
+          'El acceso de tu colegio está suspendido. Comunícate con la dirección o con soporte de KIPUX.',
+          403,
+        );
+      }
     }
     assertNotLocked(user.lockedUntil);
 
@@ -110,6 +130,14 @@ export class AuthService {
   }
 
   private async loginStudent(student: Student, password: string): Promise<AuthResponse> {
+    const school = await this.authRepository.findSchoolById(student.schoolId);
+    if (school && !school.isActive) {
+      throw new AppError(
+        'El acceso de tu colegio está suspendido. Comunícate con la dirección o con soporte de KIPUX.',
+        403,
+      );
+    }
+
     if (!student.passwordHash) {
       throw new AppError(
         'Tu cuenta de estudiante aún no tiene contraseña. Solicita tus credenciales de acceso en Secretaría.',
@@ -203,5 +231,103 @@ export class AuthService {
 
     const token = signToken({ userId: user.id, schoolId: user.schoolId, role: user.role, email: user.email });
     return { message: 'Contraseña actualizada exitosamente', token };
+  }
+
+  /**
+   * Solicita restablecimiento de contraseña vía correo electrónico (P1).
+   * Responde SIEMPRE con el mismo mensaje para evitar enumeración de usuarios.
+   */
+  async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string }> {
+    const cleanEmail = dto.email.trim().toLowerCase();
+    const user = await this.authRepository.findUserByEmail(cleanEmail);
+
+    if (user && user.isActive && user.email) {
+      const rawToken = crypto.randomBytes(32).toString('hex');
+      const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+      const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutos
+
+      await this.authRepository.createPasswordResetToken({
+        userId: user.id,
+        tokenHash,
+        expiresAt,
+      });
+
+      const frontendUrl = env.FRONTEND_URL || 'http://localhost:5173';
+      const resetLink = `${frontendUrl}/restablecer?token=${rawToken}`;
+
+      try {
+        await sendEmail({
+          to: user.email,
+          subject: 'Restablece tu contraseña - KIPUX',
+          text: `Hola ${user.firstName},\n\nHemos recibido una solicitud para restablecer tu contraseña en KIPUX.\nHaz clic en el siguiente enlace o cópialo en tu navegador para crear una nueva contraseña:\n\n${resetLink}\n\nEste enlace expirará en 30 minutos y solo puede usarse una vez.\nSi tú no solicitaste este cambio, puedes ignorar este mensaje de forma segura.\n\nAtentamente,\nEquipo KIPUX`,
+          html: `<div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
+            <h2 style="color: #1e3a8a;">Restablece tu contraseña</h2>
+            <p>Hola <strong>${user.firstName}</strong>,</p>
+            <p>Hemos recibido una solicitud para restablecer tu contraseña en KIPUX.</p>
+            <p style="margin: 24px 0;">
+              <a href="${resetLink}" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">Crear nueva contraseña</a>
+            </p>
+            <p style="color: #64748b; font-size: 13px;">O copia y pega este enlace en tu navegador:<br><a href="${resetLink}">${resetLink}</a></p>
+            <p style="color: #64748b; font-size: 13px;">Este enlace expirará en 30 minutos y solo puede ser usado una sola vez. Si no solicitaste este cambio, ignora este correo.</p>
+          </div>`,
+        });
+      } catch (err) {
+        console.warn('[EMAIL ERROR] No se pudo enviar el correo de recuperación:', err);
+      }
+      console.log(`[RECUPERACIÓN DE CONTRASEÑA] Enlace para ${user.email}: ${resetLink}`);
+    }
+
+    return {
+      message: 'Si el correo está registrado, te enviamos un enlace para restablecer tu contraseña.',
+    };
+  }
+
+  /**
+   * Restablece la contraseña de un usuario mediante token de un solo uso (P1).
+   */
+  async resetPassword(dto: ResetPasswordDto): Promise<{ message: string }> {
+    const tokenHash = crypto.createHash('sha256').update(dto.token.trim()).digest('hex');
+    const record = await this.authRepository.findPasswordResetToken(tokenHash);
+
+    if (!record || record.usedAt !== null || record.expiresAt.getTime() < Date.now()) {
+      throw new AppError('El enlace no es válido o ya venció. Solicita uno nuevo.', 400);
+    }
+
+    const user = record.user;
+    if (!user || !user.isActive) {
+      throw new AppError('El enlace no es válido o ya venció. Solicita uno nuevo.', 400);
+    }
+
+    const cleanPassword = dto.newPassword.trim();
+    if (!PASSWORD_POLICY_REGEX.test(cleanPassword)) {
+      throw new AppError(PASSWORD_POLICY_MESSAGE, 422);
+    }
+
+    if (user.documentId && cleanPassword === user.documentId.trim()) {
+      throw new AppError('La nueva contraseña no puede ser igual a tu número de documento.', 422);
+    }
+
+    const passwordHash = await hashPassword(cleanPassword);
+    await this.authRepository.markPasswordResetTokenUsed(record.id);
+    await this.authRepository.updateUserPassword(user.id, passwordHash, false);
+
+    invalidatePrincipalCache('user', user.id);
+
+    await prisma.auditLog.create({
+      data: {
+        schoolId: user.schoolId,
+        actorId: user.id,
+        actorRole: user.role,
+        actorEmail: user.email,
+        action: 'PASSWORD_RESET',
+        entity: 'User',
+        entityId: user.id,
+        after: { method: 'SELF_SERVICE_TOKEN' },
+      },
+    }).catch(() => {});
+
+    return {
+      message: 'Tu contraseña ha sido actualizada exitosamente. Ya puedes iniciar sesión.',
+    };
   }
 }
