@@ -36,13 +36,13 @@ services:
         value: "400"
       - key: PUBLIC_API_URL
         sync: false
-      - key: GOOGLE_CLIENT_ID
+      - key: R2_ACCOUNT_ID
         sync: false
-      - key: GOOGLE_CLIENT_SECRET
+      - key: R2_ACCESS_KEY_ID
         sync: false
-      - key: GOOGLE_REFRESH_TOKEN
+      - key: R2_SECRET_ACCESS_KEY
         sync: false
-      - key: GOOGLE_DRIVE_FOLDER_ID
+      - key: R2_BUCKET
         sync: false
       - key: SMTP_HOST
         sync: false

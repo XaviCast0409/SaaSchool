@@ -1377,8 +1377,8 @@ model StudentIncident {
 // 14. ARCHIVOS PRIVADOS
 // ============================================================================
 enum FileStorage {
-  GOOGLE_DRIVE
-  LOCAL
+  LOCAL // Solo desarrollo, sin R2 configurado
+  R2 // Cloudflare R2 (compatible con S3)
 }
 
 model StoredFile {
@@ -1388,7 +1388,7 @@ model StoredFile {
   uploaderRole String
   purpose      String // COURSE_MATERIAL | HOMEWORK_SUBMISSION | OTHER
   storage      FileStorage
-  driveFileId  String?     @unique
+  objectKey    String?     @unique // Clave del objeto en R2: <colegio>/<año>/<propósito>/<uuid>.<ext>
   localPath    String?
   fileName     String
   mimeType     String

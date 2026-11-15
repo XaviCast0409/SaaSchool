@@ -291,7 +291,7 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
                   <span>Material / Documento Adjunto:</span>
                 </label>
 
-                {/* Selector de Modo: Archivo local vs Google Drive */}
+                {/* Selector de modo: subir archivo o pegar un enlace de Google Drive */}
                 <div className="flex items-center gap-1 bg-muted/60 p-0.5 rounded-lg border border-border">
                   <button
                     type="button"

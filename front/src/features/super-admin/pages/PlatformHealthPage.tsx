@@ -14,7 +14,7 @@ const formatUptime = (seconds: number) => {
   return d > 0 ? `${d} d ${h} h` : h > 0 ? `${h} h ${m} min` : `${m} min`;
 };
 
-const STORAGE_LABELS: Record<string, string> = { GOOGLE_DRIVE: 'Google Drive', LOCAL: 'Servidor' };
+const STORAGE_LABELS: Record<string, string> = { R2: 'Cloudflare R2', LOCAL: 'Servidor (desarrollo)' };
 
 /** Salud de la plataforma: servidor, base de datos, automatizaciones, archivos y errores recientes */
 export const PlatformHealthPage: React.FC = () => {

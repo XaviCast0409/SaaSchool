@@ -5,7 +5,8 @@ import type { StoredFile } from '@prisma/client';
 import { prisma } from '../../config/prisma';
 import { env } from '../../config/env';
 import { AppError } from '../../core/errors/app-error';
-import { googleDriveService } from '../uploads/google-drive.service';
+import { r2StorageService } from './r2-storage.service';
+import { buildObjectKey, resolveStorageProvider } from './storage-provider.rules';
 
 const LOCAL_DIR = path.join(process.cwd(), 'storage-local');
 
@@ -49,17 +50,20 @@ export class FileStorageService {
       size: input.size,
     };
 
-    if (googleDriveService.isConfigured()) {
-      const driveFileId = await googleDriveService.uploadPrivateFile({
-        tempPath: input.tempPath,
-        fileName,
-        mimeType: base.mimeType,
-        folderPath: [input.schoolId, String(new Date().getFullYear()), input.purpose],
-      });
-      return prisma.storedFile.create({ data: { ...base, storage: 'GOOGLE_DRIVE', driveFileId } });
+    const provider = resolveStorageProvider({
+      r2Configured: r2StorageService.isConfigured(),
+      isProduction: env.NODE_ENV === 'production',
+    });
+
+    if (provider === 'R2') {
+      const id = crypto.randomUUID();
+      const objectKey = buildObjectKey({ schoolId: input.schoolId, purpose: input.purpose, fileName, id });
+      await r2StorageService.upload({ tempPath: input.tempPath, objectKey, mimeType: base.mimeType, size: input.size });
+      return prisma.storedFile.create({ data: { ...base, id, storage: 'R2', objectKey } });
     }
 
-    if (env.NODE_ENV === 'production') {
+    // Disco local: solo en desarrollo y sin R2 configurado
+    if (provider !== 'LOCAL') {
       throw new AppError('El almacenamiento de archivos no está disponible. Intenta nuevamente en unos minutos.', 503);
     }
 
@@ -82,8 +86,8 @@ export class FileStorageService {
   }
 
   async openStream(file: StoredFile): Promise<NodeJS.ReadableStream> {
-    if (file.storage === 'GOOGLE_DRIVE' && file.driveFileId) {
-      return googleDriveService.getFileStream(file.driveFileId);
+    if (file.storage === 'R2' && file.objectKey) {
+      return r2StorageService.getStream(file.objectKey);
     }
     if (file.storage === 'LOCAL' && file.localPath) {
       return fs.createReadStream(path.join(LOCAL_DIR, path.basename(file.localPath)));
@@ -91,14 +95,14 @@ export class FileStorageService {
     throw new AppError('Archivo no disponible.', 404);
   }
 
-  /** Marca el archivo como eliminado y lo envía a la papelera de Drive. No lanza errores. */
+  /** Marca el archivo como eliminado y lo envía a la papelera de R2. No lanza errores. */
   async softDeleteByUrl(url?: string | null): Promise<void> {
     const id = extractStoredFileId(url);
     if (!id) return;
     try {
       const file = await prisma.storedFile.update({ where: { id }, data: { deletedAt: new Date() } });
-      if (file.storage === 'GOOGLE_DRIVE' && file.driveFileId) {
-        await googleDriveService.trashFile(file.driveFileId);
+      if (file.storage === 'R2' && file.objectKey) {
+        await r2StorageService.moveToTrash(file.objectKey);
       } else if (file.storage === 'LOCAL' && file.localPath) {
         await fs.promises.unlink(path.join(LOCAL_DIR, path.basename(file.localPath))).catch(() => undefined);
       }
