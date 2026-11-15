@@ -1375,6 +1375,7 @@ model StudentIncident {
 enum FileStorage {
   GOOGLE_DRIVE
   LOCAL
+  R2 // Cloudflare R2 (compatible con S3)
 }
 
 model StoredFile {
@@ -1385,6 +1386,7 @@ model StoredFile {
   purpose      String // COURSE_MATERIAL | HOMEWORK_SUBMISSION | OTHER
   storage      FileStorage
   driveFileId  String?     @unique
+  objectKey    String?     @unique // Clave del objeto en R2: <colegio>/<año>/<propósito>/<uuid>.<ext>
   localPath    String?
   fileName     String
   mimeType     String

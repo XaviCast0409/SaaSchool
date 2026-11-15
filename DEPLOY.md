@@ -56,6 +56,23 @@ Hazlos en este orden. Los marcados con 🔴 van **antes** de conectar el primer 
    pnpm run drive:migrate-private
    ```
    Corre el segundo comando primero: es una simulación. Revisa los números y recién entonces ejecuta el tercero.
+7.1 **Archivos en Cloudflare R2 (reemplaza a Google Drive para los archivos subidos):**
+   1. Cloudflare → *R2 Object Storage* → *Create bucket* → nombre `saaschool-archivos`, ubicación automática. **No** actives el acceso público ni un dominio público: el bucket es privado y la API entrega los archivos con enlaces firmados.
+   2. R2 → *Manage R2 API Tokens* → *Create API token* → permiso **Object Read & Write**, limitado **solo** a ese bucket. Copia el *Access Key ID* y el *Secret Access Key* (el secreto se muestra una sola vez). El *Account ID* está en la página principal de R2.
+   3. Bucket → *Settings* → *Object lifecycle rules* → *Add rule*: prefijo `papelera/`, **eliminar objetos a los 30 días**. Los archivos borrados en la plataforma se mueven ahí, igual que la papelera de Drive.
+   4. Pon las variables en `back/.env` (local) y en Render: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`.
+   5. Verifica la conexión desde tu PC:
+      ```bash
+      cd back
+      pnpm run r2:check
+      ```
+   6. Desde el siguiente deploy, **los archivos nuevos se guardan en R2**. Los que ya están en Drive se siguen leyendo desde Drive sin hacer nada. Para pasarlos también a R2 (desde tu PC, con `DATABASE_URL` = External URL, las variables de Google y las de R2):
+      ```bash
+      pnpm run r2:migrate-from-drive -- --dry-run
+      pnpm run r2:migrate-from-drive
+      ```
+      El script no borra nada de Drive: conserva `driveFileId` como respaldo. Puedes cortarlo y volver a correrlo; retoma donde quedó.
+   7. Para volver a Drive en una emergencia: `FILE_STORAGE=drive` en Render (solo afecta a los archivos nuevos).
 8. 🔴 **Respaldos:**
    1. GitHub → repo → Settings → *Secrets and variables* → *Actions* → crea `DATABASE_URL_EXTERNAL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN` y `GOOGLE_DRIVE_FOLDER_ID`.
    2. Pestaña *Actions* → "Respaldo semanal de base de datos" → *Run workflow*. Verifica que el archivo aparezca en Drive, en la carpeta `Backups_SaaSchool`.

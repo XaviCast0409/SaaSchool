@@ -20,6 +20,8 @@
     "seed": "ts-node --transpile-only prisma/seed.ts",
     "db:backup": "ts-node --transpile-only scripts/backup-db.ts",
     "drive:check": "ts-node --transpile-only scripts/check-drive.ts",
+    "r2:check": "ts-node --transpile-only scripts/check-r2.ts",
+    "r2:migrate-from-drive": "ts-node --transpile-only scripts/migrate-drive-files-to-r2.ts",
     "academic:normalize": "ts-node --transpile-only scripts/academic-normalize.ts",
     "academic:recompute": "ts-node --transpile-only scripts/academic-recompute.ts"
   },
@@ -27,6 +29,7 @@
     "node": "22.x"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.700.0",
     "@prisma/client": "^5.22.0",
     "@sentry/node": "^11.11.0",
     "bcryptjs": "^2.4.3",

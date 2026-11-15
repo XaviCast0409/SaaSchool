@@ -48,6 +48,16 @@ const envSchema = z.object({
   GOOGLE_REFRESH_TOKEN: z.string().optional(),
   GOOGLE_DRIVE_FOLDER_ID: z.string().optional(),
 
+  // Cloudflare R2 (compatible con S3). Con las 4 variables, los archivos nuevos se guardan en R2.
+  R2_ACCOUNT_ID: z.string().optional(),
+  R2_ACCESS_KEY_ID: z.string().optional(),
+  R2_SECRET_ACCESS_KEY: z.string().optional(),
+  R2_BUCKET: z.string().optional(),
+  // Solo si el bucket usa jurisdicción (p. ej. https://<cuenta>.eu.r2.cloudflarestorage.com)
+  R2_ENDPOINT: z.string().url().optional(),
+  // Fuerza dónde se guardan los archivos NUEVOS: r2 | drive | local. Sin valor: R2 > Drive > local (solo desarrollo).
+  FILE_STORAGE: z.enum(['r2', 'drive', 'local']).optional(),
+
   // Monitoreo (opcional)
   SENTRY_DSN: z.string().optional(),
 });
