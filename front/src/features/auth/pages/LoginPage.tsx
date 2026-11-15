@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { GraduationCap, ShieldCheck, Sparkles } from 'lucide-react';
+import { ShieldCheck, Sparkles } from 'lucide-react';
 import { loginSchema, LoginFormData } from '../schemas/login.schema';
 import { useLogin } from '../api/useLogin';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { KipuxLogo } from '@/components/brand/KipuxLogo';
 
 interface DemoAccount {
   label: string;
@@ -85,10 +86,9 @@ export const LoginPage: React.FC = () => {
 
       <Card className="w-full max-w-lg shadow-xl border-border bg-card relative z-10 my-4">
         <CardHeader className="text-center space-y-2 pb-5 border-b border-border/50">
-          <div className="mx-auto w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-1 shadow-sm">
-            <GraduationCap className="w-7 h-7" />
-          </div>
-          <CardTitle className="text-2xl font-bold tracking-tight text-foreground">SaaSchool B2B</CardTitle>
+          <CardTitle className="flex justify-center">
+            <KipuxLogo className="h-14 sm:h-16" />
+          </CardTitle>
           <CardDescription className="text-sm text-muted-foreground">
             Plataforma de Gestión Escolar Multi-Tenant (MINEDU SIAGIE)
           </CardDescription>

@@ -52,7 +52,7 @@ export const ResetAdminPasswordModal: React.FC<ResetAdminPasswordModalProps> = (
 
   const handleCopyCredentials = () => {
     if (!result) return;
-    const textToCopy = `Hola ${result.adminName},\nAquí tienes tus nuevas credenciales de acceso a SaaSchool para ${school.name}:\n\n🔗 URL: ${window.location.origin}/login\n📧 Usuario: ${result.adminEmail}\n🔑 Contraseña temporal: ${result.newPassword}\n\nPor seguridad, te sugerimos cambiar tu contraseña una vez que ingreses.`;
+    const textToCopy = `Hola ${result.adminName},\nAquí tienes tus nuevas credenciales de acceso a KIPUX para ${school.name}:\n\n🔗 URL: ${window.location.origin}/login\n📧 Usuario: ${result.adminEmail}\n🔑 Contraseña temporal: ${result.newPassword}\n\nPor seguridad, te sugerimos cambiar tu contraseña una vez que ingreses.`;
     navigator.clipboard.writeText(textToCopy);
     setCopied(true);
     toast.success('Credenciales copiadas al portapapeles.');

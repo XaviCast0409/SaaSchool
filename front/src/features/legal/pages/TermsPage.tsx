@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { FileText, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { KipuxLogo } from '@/components/brand/KipuxLogo';
 
 export const TermsPage: React.FC = () => {
   return (
@@ -24,6 +25,7 @@ export const TermsPage: React.FC = () => {
 
         <Card className="p-6 sm:p-10 border-border bg-card shadow-sm space-y-6">
           <div className="border-b border-border pb-6 space-y-2">
+            <KipuxLogo className="h-10 mb-4" />
             <div className="flex items-center gap-2">
               <FileText className="w-6 h-6 text-primary" />
               <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
@@ -31,7 +33,7 @@ export const TermsPage: React.FC = () => {
               </h1>
             </div>
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Reglas de acceso y utilización de la plataforma SaaS de gestión escolar SaaSchool.
+              Reglas de acceso y utilización de la plataforma SaaS de gestión escolar KIPUX.
             </p>
           </div>
 
@@ -41,7 +43,7 @@ export const TermsPage: React.FC = () => {
                 1. Objeto del servicio
               </h2>
               <p>
-                SaaSchool es una plataforma de software como servicio (SaaS) destinada a la gestión administrativa, académica, de asistencia y de cobranzas para instituciones educativas. El acceso y uso de la plataforma se rige por estos Términos y Condiciones.
+                KIPUX es una plataforma de software como servicio (SaaS) destinada a la gestión administrativa, académica, de asistencia y de cobranzas para instituciones educativas. El acceso y uso de la plataforma se rige por estos Términos y Condiciones.
               </p>
             </section>
 
@@ -74,7 +76,7 @@ export const TermsPage: React.FC = () => {
                 4. Contenido subido por los usuarios
               </h2>
               <p>
-                Los docentes, directivos, padres y alumnos son responsables del contenido, tareas, documentos y comentarios que carguen a la plataforma. La institución educativa y SaaSchool se reservan el derecho de suspender o retirar material que contravenga las normas de convivencia o la legislación peruana.
+                Los docentes, directivos, padres y alumnos son responsables del contenido, tareas, documentos y comentarios que carguen a la plataforma. La institución educativa y KIPUX se reservan el derecho de suspender o retirar material que contravenga las normas de convivencia o la legislación peruana.
               </p>
             </section>
 
@@ -101,7 +103,7 @@ export const TermsPage: React.FC = () => {
                 7. Limitación de responsabilidad
               </h2>
               <p>
-                SaaSchool no será responsable por daños indirectos, pérdida de datos ocasionada por negligencia del usuario en la custodia de sus claves, ni por la exactitud de la información pedagógica o calificaciones ingresadas por los docentes o la Dirección del colegio.
+                KIPUX no será responsable por daños indirectos, pérdida de datos ocasionada por negligencia del usuario en la custodia de sus claves, ni por la exactitud de la información pedagógica o calificaciones ingresadas por los docentes o la Dirección del colegio.
               </p>
             </section>
 

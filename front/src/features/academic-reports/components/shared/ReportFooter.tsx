@@ -8,7 +8,7 @@ interface ReportFooterProps {
 
 export const ReportFooter: React.FC<ReportFooterProps> = ({
   reportCode,
-  customText = 'SaaSchool Cloud Suite',
+  customText = 'KIPUX',
   pageText = '-- Pág. 1 de 1 --',
 }) => {
   return (

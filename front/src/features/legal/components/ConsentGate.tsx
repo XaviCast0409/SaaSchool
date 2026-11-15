@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ShieldCheck, LogOut, Loader2 } from 'lucide-react';
+import { LogOut, Loader2 } from 'lucide-react';
 import { useLegalStatus, useAcceptLegal, type LegalDocType } from '../api/useLegal';
 import { useAuthStore } from '@/store/useAuthStore';
+import { KipuxLogo } from '@/components/brand/KipuxLogo';
 
 export const ConsentGate: React.FC = () => {
   const { user, logout } = useAuthStore();
@@ -37,14 +38,14 @@ export const ConsentGate: React.FC = () => {
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/90 backdrop-blur-md p-4 animate-in fade-in duration-300">
       <Card className="w-full max-w-xl p-6 sm:p-8 bg-card border-border shadow-2xl rounded-2xl space-y-6">
         <div className="text-center space-y-2">
-          <div className="mx-auto w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
-            <ShieldCheck className="w-6 h-6" />
+          <div className="flex justify-center pb-1">
+            <KipuxLogo className="h-12" />
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
             Antes de continuar
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            Para continuar utilizando SaaSchool, es necesario que revises y aceptes los siguientes términos legales y consentimientos conforme a la Ley N.° 29733 de Protección de Datos Personales.
+            Para continuar utilizando KIPUX, es necesario que revises y aceptes los siguientes términos legales y consentimientos conforme a la Ley N.° 29733 de Protección de Datos Personales.
           </p>
         </div>
 
@@ -90,7 +91,7 @@ export const ConsentGate: React.FC = () => {
                   )}
                   {item.type === 'MINOR_DATA_CONSENT' && (
                     <>
-                      Como padre, madre o apoderado(a) legal, autorizo de manera previa, libre, expresa, inequívoca e informada al colegio en el que está matriculado(a) mi hijo(a) (responsable del tratamiento) y a SaaSchool (encargado del tratamiento) a tratar los datos personales de mi(s) menor(es) hijo(s), incluidos datos sensibles de salud y discapacidad, con la finalidad de gestionar su matrícula, evaluación, asistencia, comunicación con la familia y pagos, conforme a la{' '}
+                      Como padre, madre o apoderado(a) legal, autorizo de manera previa, libre, expresa, inequívoca e informada al colegio en el que está matriculado(a) mi hijo(a) (responsable del tratamiento) y a KIPUX (encargado del tratamiento) a tratar los datos personales de mi(s) menor(es) hijo(s), incluidos datos sensibles de salud y discapacidad, con la finalidad de gestionar su matrícula, evaluación, asistencia, comunicación con la familia y pagos, conforme a la{' '}
                       <Link
                         to="/privacidad"
                         target="_blank"

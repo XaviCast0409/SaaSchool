@@ -265,7 +265,7 @@ export const NotificationBell: React.FC = () => {
           {/* Footer */}
           <div className="p-2 border-t border-border bg-secondary/20 text-center">
             <span className="text-[10px] text-muted-foreground">
-              Notificaciones en tiempo real y segundo plano • SaaSchool
+              Notificaciones en tiempo real y segundo plano • KIPUX
             </span>
           </div>
         </div>

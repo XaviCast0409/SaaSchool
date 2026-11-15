@@ -161,8 +161,8 @@ export const exportConsolidatedGradesExcel = async (data: ConsolidatedGradesRepo
   const year = new Date().getFullYear();
 
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'SaaSchool Cloud Suite';
-  wb.lastModifiedBy = 'SaaSchool Intranet';
+  wb.creator = 'KIPUX';
+  wb.lastModifiedBy = 'KIPUX';
   wb.created = new Date();
 
   const ws = wb.addWorksheet('Consolidado', {
@@ -191,7 +191,7 @@ export const exportConsolidatedGradesExcel = async (data: ConsolidatedGradesRepo
   ws.getCell(1, lastCol).value = dateStr;
   ws.getCell(1, lastCol).font = { name: 'Calibri', size: 9 };
 
-  ws.getCell(2, 1).value = 'SaaSchool Intranet';
+  ws.getCell(2, 1).value = 'KIPUX';
   ws.getCell(2, 1).font = { name: 'Calibri', size: 9, italic: true, color: { argb: 'FF64748B' } };
 
   ws.getCell(2, lastCol - 1).value = 'Hora:';
@@ -523,7 +523,7 @@ export const exportMeritClassroomExcel = async (data: MeritClassroomReportData):
   const year = new Date().getFullYear();
 
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'SaaSchool Cloud Suite';
+  wb.creator = 'KIPUX';
 
   const ws = wb.addWorksheet('Merito_Salon', {
     pageSetup: {
@@ -545,7 +545,7 @@ export const exportMeritClassroomExcel = async (data: MeritClassroomReportData):
   ws.getCell(1, 9).font = { bold: true, size: 9, color: { argb: 'FF64748B' } };
   ws.getCell(1, 10).value = dateStr;
 
-  ws.getCell(2, 1).value = 'SaaSchool Intranet';
+  ws.getCell(2, 1).value = 'KIPUX';
   ws.getCell(2, 1).font = { italic: true, size: 9, color: { argb: 'FF64748B' } };
   ws.getCell(2, 9).value = 'Hora:';
   ws.getCell(2, 9).font = { bold: true, size: 9, color: { argb: 'FF64748B' } };
@@ -813,7 +813,7 @@ export const exportMeritGradeExcel = async (data: MeritGradeReportData): Promise
   const year = new Date().getFullYear();
 
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'SaaSchool Cloud Suite';
+  wb.creator = 'KIPUX';
 
   const ws = wb.addWorksheet('Merito_Grado', {
     pageSetup: {
@@ -832,7 +832,7 @@ export const exportMeritGradeExcel = async (data: MeritGradeReportData): Promise
   ws.getCell(1, lastCol - 1).value = 'Fecha:';
   ws.getCell(1, lastCol).value = dateStr;
 
-  ws.getCell(2, 1).value = 'SaaSchool Intranet';
+  ws.getCell(2, 1).value = 'KIPUX';
   ws.getCell(2, 1).font = { italic: true, size: 9, color: { argb: 'FF64748B' } };
   ws.getCell(2, lastCol - 1).value = 'Hora:';
   ws.getCell(2, lastCol).value = timeStr;
@@ -1098,7 +1098,7 @@ export const exportDraftRegisterExcel = async (data: DraftRegisterReportData): P
   ws.getCell(1, totalCols - 1).value = 'Fecha:';
   ws.getCell(1, totalCols).value = dateStr;
 
-  ws.getCell(2, 1).value = 'SaaSchool Intranet';
+  ws.getCell(2, 1).value = 'KIPUX';
   ws.getCell(2, 1).font = { italic: true, size: 9, color: { argb: 'FF64748B' } };
   ws.getCell(2, totalCols - 1).value = 'Hora:';
   ws.getCell(2, totalCols).value = timeStr;
@@ -1190,7 +1190,7 @@ export const exportConductCommentsExcel = async (data: ConductCommentsReportData
   ws.getCell(1, 3).value = 'Fecha:';
   ws.getCell(1, 4).value = dateStr;
 
-  ws.getCell(2, 1).value = 'SaaSchool Intranet';
+  ws.getCell(2, 1).value = 'KIPUX';
   ws.getCell(2, 1).font = { italic: true, size: 9, color: { argb: 'FF64748B' } };
   ws.getCell(2, 3).value = 'Hora:';
   ws.getCell(2, 4).value = timeStr;
@@ -1292,7 +1292,7 @@ export const exportClassroomRosterExcel = async (data: ClassroomRosterReportData
   ws.getCell(1, lastCol - 1).value = 'Fecha:';
   ws.getCell(1, lastCol).value = dateStr;
 
-  ws.getCell(2, 1).value = 'SaaSchool Intranet';
+  ws.getCell(2, 1).value = 'KIPUX';
   ws.getCell(2, 1).font = { italic: true, size: 9, color: { argb: 'FF64748B' } };
   ws.getCell(2, lastCol - 1).value = 'Hora:';
   ws.getCell(2, lastCol).value = timeStr;
@@ -1400,7 +1400,7 @@ export const exportFamiliesByStateExcel = async (
   data: FamiliesByStateReportData,
 ): Promise<void> => {
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'SaaSchool Cloud Platform';
+  wb.creator = 'KIPUX';
   wb.created = new Date();
 
   const ws = wb.addWorksheet('Familias por Estado', {
@@ -1417,7 +1417,7 @@ export const exportFamiliesByStateExcel = async (
   ws.getCell(1, lastCol - 1).value = 'Fecha:';
   ws.getCell(1, lastCol).value = dateStr;
 
-  ws.getCell(2, 1).value = 'SaaSchool Intranet';
+  ws.getCell(2, 1).value = 'KIPUX';
   ws.getCell(2, 1).font = { italic: true, size: 9, color: { argb: 'FF64748B' } };
   ws.getCell(2, lastCol - 1).value = 'Hora:';
   ws.getCell(2, lastCol).value = timeStr;
@@ -1532,7 +1532,7 @@ export const exportFamiliesChildrenExcel = async (
   data: FamiliesChildrenReportData,
 ): Promise<void> => {
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'SaaSchool Cloud Platform';
+  wb.creator = 'KIPUX';
   wb.created = new Date();
 
   const ws = wb.addWorksheet('Familias e Hijos', {
@@ -1549,7 +1549,7 @@ export const exportFamiliesChildrenExcel = async (
   ws.getCell(1, lastCol - 1).value = 'Fecha:';
   ws.getCell(1, lastCol).value = dateStr;
 
-  ws.getCell(2, 1).value = 'SaaSchool Intranet';
+  ws.getCell(2, 1).value = 'KIPUX';
   ws.getCell(2, 1).font = { italic: true, size: 9, color: { argb: 'FF64748B' } };
   ws.getCell(2, lastCol - 1).value = 'Hora:';
   ws.getCell(2, lastCol).value = timeStr;
@@ -1668,7 +1668,7 @@ export const exportFamiliesRelativesExcel = async (
   data: FamiliesRelativesReportData,
 ): Promise<void> => {
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'SaaSchool Cloud Platform';
+  wb.creator = 'KIPUX';
   wb.created = new Date();
 
   const ws = wb.addWorksheet('Directorio Familias', {
@@ -1685,7 +1685,7 @@ export const exportFamiliesRelativesExcel = async (
   ws.getCell(1, lastCol - 1).value = 'Fecha:';
   ws.getCell(1, lastCol).value = dateStr;
 
-  ws.getCell(2, 1).value = 'SaaSchool Intranet';
+  ws.getCell(2, 1).value = 'KIPUX';
   ws.getCell(2, 1).font = { italic: true, size: 9, color: { argb: 'FF64748B' } };
   ws.getCell(2, lastCol - 1).value = 'Hora:';
   ws.getCell(2, lastCol).value = timeStr;
@@ -1803,7 +1803,7 @@ export const exportStudentBirthdaysExcel = async (
   data: StudentBirthdaysReportData,
 ): Promise<void> => {
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'SaaSchool Cloud Platform';
+  wb.creator = 'KIPUX';
   wb.created = new Date();
 
   const ws = wb.addWorksheet('Cumpleaños', {
@@ -1820,7 +1820,7 @@ export const exportStudentBirthdaysExcel = async (
   ws.getCell(1, lastCol - 1).value = 'Fecha:';
   ws.getCell(1, lastCol).value = dateStr;
 
-  ws.getCell(2, 1).value = 'SaaSchool Intranet';
+  ws.getCell(2, 1).value = 'KIPUX';
   ws.getCell(2, 1).font = { italic: true, size: 9, color: { argb: 'FF64748B' } };
   ws.getCell(2, lastCol - 1).value = 'Hora:';
   ws.getCell(2, lastCol).value = timeStr;

@@ -156,7 +156,7 @@ export class CashService {
         type: 'PAYMENT',
         link: '/payments/cash',
       },
-      { schoolName: school?.name ?? 'SaaSchool' },
+      { schoolName: school?.name ?? 'KIPUX' },
     );
   }
 

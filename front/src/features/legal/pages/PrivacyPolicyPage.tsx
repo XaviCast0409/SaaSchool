@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ShieldCheck, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { KipuxLogo } from '@/components/brand/KipuxLogo';
 
 export const PrivacyPolicyPage: React.FC = () => {
   return (
@@ -24,6 +25,7 @@ export const PrivacyPolicyPage: React.FC = () => {
 
         <Card className="p-6 sm:p-10 border-border bg-card shadow-sm space-y-6">
           <div className="border-b border-border pb-6 space-y-2">
+            <KipuxLogo className="h-10 mb-4" />
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-6 h-6 text-primary" />
               <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
@@ -41,7 +43,7 @@ export const PrivacyPolicyPage: React.FC = () => {
                 1. Identidad del encargado del tratamiento
               </h2>
               <p>
-                SaaSchool es operado por [COMPLETAR: razón social, RUC, domicilio y correo de contacto] en calidad de <strong>encargado del tratamiento</strong>. La institución educativa en la cual el estudiante se encuentra matriculado actúa como el <strong>responsable del banco de datos personales</strong> de sus alumnos, apoderados y docentes.
+                KIPUX es operado por [COMPLETAR: razón social, RUC, domicilio y correo de contacto] en calidad de <strong>encargado del tratamiento</strong>. La institución educativa en la cual el estudiante se encuentra matriculado actúa como el <strong>responsable del banco de datos personales</strong> de sus alumnos, apoderados y docentes.
               </p>
             </section>
 

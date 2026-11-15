@@ -135,7 +135,7 @@ export const ParentPortalPage: React.FC = () => {
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
             <HeartHandshake className="w-4 h-4" />
-            <span>Portal de la Familia • SaaSchool</span>
+            <span>Portal de la Familia • KIPUX</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-foreground tracking-tight">
             ¡Hola, {user?.firstName}!

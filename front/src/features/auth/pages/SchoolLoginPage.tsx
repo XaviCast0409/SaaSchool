@@ -9,6 +9,7 @@ import { loginBackgroundSrc, useSchoolLoginPage } from '../api/useSchoolLoginPag
 import { clearLastSchoolCode, normalizeSchoolCode } from '../lib/lastSchool';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { KipuxLogo } from '@/components/brand/KipuxLogo';
 
 const DEFAULT_BRAND = '#4F46E5';
 
@@ -31,7 +32,7 @@ export const SchoolLoginPage: React.FC = () => {
   useEffect(() => {
     if (page) document.title = `Ingresar · ${page.name}`;
     return () => {
-      document.title = 'SaaSchool';
+      document.title = 'KIPUX';
     };
   }, [page]);
 
@@ -187,6 +188,11 @@ export const SchoolLoginPage: React.FC = () => {
           >
             <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden /> ¿No es tu colegio? Cambiar de colegio
           </button>
+
+          <div className="mt-3 flex items-center justify-center gap-2 text-[10px] text-muted-foreground">
+            <span>Con la tecnología de</span>
+            <KipuxLogo className="h-5" />
+          </div>
         </section>
       </div>
     </div>

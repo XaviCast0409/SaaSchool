@@ -96,7 +96,7 @@ app.use(ipFloodRateLimiter);
 // HEALTH CHECK
 // ============================================================================
 app.get('/health', (_req, res) => {
-  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString(), service: 'SaaSchool API' });
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString(), service: 'KIPUX API' });
 });
 
 // ============================================================================

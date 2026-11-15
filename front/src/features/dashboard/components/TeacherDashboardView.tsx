@@ -131,7 +131,7 @@ export const TeacherDashboardView: React.FC = () => {
           <div className="flex items-center gap-2 flex-wrap">
             <Badge className="bg-primary/10 text-primary border-primary/20 gap-1 text-[11px] font-bold">
               <GraduationCap className="w-3.5 h-3.5" />
-              <span>Panel Docente • SaaSchool</span>
+              <span>Panel Docente • KIPUX</span>
             </Badge>
 
             {isTutor && tutorClassroom && (

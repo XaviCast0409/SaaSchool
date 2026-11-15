@@ -25,6 +25,7 @@ export const RESERVED_SLUGS = new Set([
   'mail',
   'plataforma',
   'saaschool',
+  'kipux',
   'soporte',
   'staging',
   'static',

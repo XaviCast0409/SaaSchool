@@ -1,6 +1,6 @@
-# SaaSchool Backend API
+# KIPUX Backend API
 
-Backend Multi-Tenant para el sistema de gestión escolar SaaSchool.
+Backend Multi-Tenant para el sistema de gestión escolar KIPUX.
 
 ## Stack Tecnológico
 

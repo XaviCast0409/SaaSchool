@@ -104,7 +104,7 @@ export const DashboardPage: React.FC = () => {
         <div className="relative z-10 space-y-2">
           <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
             <Building2 className="w-4 h-4" />
-            <span>SaaS B2B Escolar • Entorno Seguro</span>
+            <span>KIPUX • Entorno Seguro</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
             ¡Hola, {user?.firstName} {user?.lastNamePaternal}!

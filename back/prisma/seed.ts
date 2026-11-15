@@ -1,6 +1,6 @@
 /// <reference types="node" />
 /**
- * SEED DE PRUEBA — SaaSchool
+ * SEED DE PRUEBA — KIPUX
  *
  * Crea UN colegio en plan PRO ("Innova Academy") y la cuenta SUPER_ADMIN, con un año 2026 en curso:
  *   - Bimestres 1, 2 y 3 CERRADOS con notas completas, conclusiones y algunos ajustes del docente.
@@ -124,7 +124,7 @@ const isSchoolDay = (d: Date) => {
 // MAIN
 // ============================================================================
 async function main(): Promise<void> {
-  console.log('\n🌱 SEED DE PRUEBA SAASCHOOL — Colegio PRO + Super Admin\n');
+  console.log('\n🌱 SEED DE PRUEBA KIPUX — Colegio PRO + Super Admin\n');
 
   // --------------------------------------------------------------------------
   // 0. Limpieza total (todas las tablas excepto el historial de migraciones)

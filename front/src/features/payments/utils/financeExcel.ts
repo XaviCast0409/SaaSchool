@@ -43,7 +43,7 @@ const toDate = (v: unknown) => {
 
 export async function exportFinanceExcel(fileName: string, schoolName: string, sheets: ExcelSheet<any>[]): Promise<void> {
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'SaaSchool';
+  wb.creator = 'KIPUX';
   wb.created = new Date();
 
   for (const sheet of sheets) {

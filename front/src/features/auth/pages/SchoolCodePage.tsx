@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { GraduationCap, ArrowRight, KeyRound } from 'lucide-react';
+import { ArrowRight, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { KipuxLogo } from '@/components/brand/KipuxLogo';
 import { fetchSchoolLoginPage } from '../api/useSchoolLoginPage';
 import { getLastSchoolCode, isSchoolCodeFormat, normalizeSchoolCode } from '../lib/lastSchool';
 
@@ -60,10 +61,10 @@ export const SchoolCodePage: React.FC = () => {
 
       <Card className="w-full max-w-md shadow-xl border-border bg-card relative z-10">
         <CardHeader className="text-center space-y-2 pb-5 border-b border-border/50">
-          <div className="mx-auto w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-1 shadow-sm">
-            <GraduationCap className="w-7 h-7" aria-hidden />
+          <div className="flex justify-center pb-2">
+            <KipuxLogo className="h-14 sm:h-16" />
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight text-foreground">Ingresa a tu colegio</CardTitle>
+          <CardTitle className="text-xl font-bold tracking-tight text-foreground">Ingresa a tu colegio</CardTitle>
           <CardDescription className="text-sm text-muted-foreground">
             Escribe el código de tu colegio para ir a su página de ingreso.
           </CardDescription>

@@ -63,6 +63,7 @@ import { applyBrandColor } from '@/lib/brandColor';
 import { useUnreadMessages } from '@/features/messages/api/useMessages';
 import { usePendingReportsCount } from '@/features/payment-reports/api/usePaymentReports';
 import { Toaster } from 'sonner';
+import { KipuxLogo } from '@/components/brand/KipuxLogo';
 
 export const DashboardLayout: React.FC = () => {
   const { user, logout, impersonatedSchool, setImpersonatedSchool } = useAuthStore();
@@ -585,7 +586,7 @@ export const DashboardLayout: React.FC = () => {
       <div className="md:hidden flex items-center justify-between p-4 border-b border-border bg-card print:hidden">
         <div className="flex items-center gap-2.5">
           {isSuperAdmin && !isImpersonating ? (
-            <ShieldCheck className="w-6 h-6 text-primary" />
+            <KipuxLogo className="h-8" />
           ) : schoolLogoUrl ? (
             <img
               src={schoolLogoUrl}
@@ -593,15 +594,13 @@ export const DashboardLayout: React.FC = () => {
               className="w-7 h-7 object-contain rounded-md"
             />
           ) : (
-            <GraduationCap className="w-6 h-6 text-primary" />
+            <KipuxLogo variant="mark" className="h-7" />
           )}
-          <span className="font-bold text-base truncate max-w-[180px]">
-            {isSuperAdmin && !isImpersonating
-              ? 'SaaSchool Platform'
-              : isImpersonating
-              ? impersonatedSchool.name
-              : school?.name || 'SaaSchool'}
-          </span>
+          {!(isSuperAdmin && !isImpersonating) && (
+            <span className="font-bold text-base truncate max-w-[180px]">
+              {isImpersonating ? impersonatedSchool.name : school?.name || 'KIPUX'}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1.5">
           <NotificationBell />
@@ -624,37 +623,34 @@ export const DashboardLayout: React.FC = () => {
       >
         <div className="p-4 space-y-5 flex-1 overflow-y-auto">
           {/* Dynamic School Brand Header */}
+          {isSuperAdmin && !isImpersonating ? (
+            <div className="hidden md:flex flex-col items-start gap-1 px-1 py-1">
+              <KipuxLogo className="h-11" />
+              <span className="text-[10px] text-muted-foreground font-medium">Torre de Control SaaS</span>
+            </div>
+          ) : (
           <div className="hidden md:flex items-center gap-3 px-1 py-1">
             <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
-              {isSuperAdmin && !isImpersonating ? (
-                <ShieldCheck className="w-5 h-5 text-primary" />
-              ) : schoolLogoUrl ? (
+              {schoolLogoUrl ? (
                 <img
                   src={schoolLogoUrl}
                   alt={isImpersonating ? impersonatedSchool.name : school?.name}
                   className="w-full h-full object-contain p-1"
                 />
               ) : (
-                <GraduationCap className="w-5 h-5 text-primary" />
+                <KipuxLogo variant="mark" className="h-7" />
               )}
             </div>
             <div className="overflow-hidden">
               <h1 className="font-bold text-sm leading-tight truncate text-foreground">
-                {isSuperAdmin && !isImpersonating
-                  ? 'SaaSchool Platform'
-                  : isImpersonating
-                  ? impersonatedSchool.name
-                  : school?.name || 'SaaSchool'}
+                {isImpersonating ? impersonatedSchool.name : school?.name || 'KIPUX'}
               </h1>
               <span className="text-[10px] text-muted-foreground font-medium block truncate">
-                {isSuperAdmin && !isImpersonating
-                  ? 'Torre de Control SaaS'
-                  : isImpersonating
-                  ? 'Modo Soporte Técnico'
-                  : 'Plataforma Escolar SaaS'}
+                {isImpersonating ? 'Modo Soporte Técnico' : 'Plataforma escolar KIPUX'}
               </span>
             </div>
           </div>
+          )}
 
           {/* User & School Context Pill */}
           {user && (
@@ -848,7 +844,7 @@ export const DashboardLayout: React.FC = () => {
         <header className="hidden md:flex items-center justify-between px-8 py-3.5 border-b border-border bg-card/60 backdrop-blur-md sticky top-0 z-30 print:hidden">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <span className="font-semibold text-foreground">
-              {user?.firstName ? `Bienvenido, ${user.firstName}` : 'SaaSchool'}
+              {user?.firstName ? `Bienvenido, ${user.firstName}` : 'KIPUX'}
             </span>
             <span>•</span>
             <span className="capitalize">{isStudent ? 'Estudiante' : userRole.toLowerCase().replace('_', ' ')}</span>

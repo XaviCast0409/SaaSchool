@@ -10,7 +10,7 @@ import { r2StorageService } from '../src/modules/files/r2-storage.service';
  * Uso: pnpm run r2:check
  */
 async function main() {
-  console.log('\n🔍 DIAGNÓSTICO DE CLOUDFLARE R2 — SAASCHOOL\n');
+  console.log('\n🔍 DIAGNÓSTICO DE CLOUDFLARE R2 — KIPUX\n');
 
   const vars = ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET'] as const;
   for (const name of vars) {
@@ -29,7 +29,7 @@ async function main() {
 
   console.log('2. Prueba de subida, lectura y borrado...');
   const key = `_diagnostico/${crypto.randomUUID()}.txt`;
-  const content = `Verificación SaaSchool ${new Date().toISOString()}`;
+  const content = `Verificación KIPUX ${new Date().toISOString()}`;
   const temp = path.join(os.tmpdir(), `r2-check-${crypto.randomUUID()}.txt`);
   fs.writeFileSync(temp, content);
   try {

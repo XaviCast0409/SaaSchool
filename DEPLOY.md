@@ -58,7 +58,7 @@ Hazlos en este orden. Los marcados con 🔴 van **antes** de conectar el primer 
       - `SMTP_SECURE=false`
       - `SMTP_USER=<login SMTP de Brevo>`
       - `SMTP_PASS=<SMTP key>`
-      - `MAIL_FROM=SaaSchool <notificaciones@tudominio.pe>`
+      - `MAIL_FROM=KIPUX <notificaciones@tudominio.pe>`
    4. Mientras no tengas dominio, puedes seguir con Gmail: `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`, `SMTP_SECURE=true`, tu correo y la contraseña de aplicación.
 7. 🔴 **Scripts únicos en producción** (desde tu PC, con `DATABASE_URL` = External URL):
    ```bash

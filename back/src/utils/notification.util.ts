@@ -77,7 +77,7 @@ export const sendEmail = async (options: EmailOptions): Promise<boolean> => {
 
   try {
     const info = await transporter.sendMail({
-      from: env.MAIL_FROM || `"SaaSchool - Notificaciones" <${env.SMTP_USER || env.USER_EMAIL}>`,
+      from: env.MAIL_FROM || `"KIPUX - Notificaciones" <${env.SMTP_USER || env.USER_EMAIL}>`,
       to: options.to,
       subject: options.subject,
       text: options.text,
@@ -110,13 +110,13 @@ export const sendReminderNotification = async (
   };
 
   const email = params.recipientEmail || 'Sin correo registrado';
-  const emailSubject = `Recordatorio de Pago: ${params.obligationTitle} - SaaSchool`;
+  const emailSubject = `Recordatorio de Pago: ${params.obligationTitle} - KIPUX`;
   const emailBody = `Estimado(a) ${params.recipientName},\n\nLe recordamos la obligación de pago registrada a nombre de su hijo(a) ${params.studentName}:\n\n- Concepto: ${params.obligationTitle}\n- Monto a Pagar: ${formattedAmount}\n- Fecha de Vencimiento: ${formattedDate}\n\nPor favor realice el pago a través de los medios autorizados.\n\nAtentamente,\nAdministración Escolar`;
 
   const emailHtml = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
       <div style="text-align: center; margin-bottom: 24px;">
-        <h2 style="color: #1e3a8a; margin: 0; font-size: 22px;">SaaSchool - Recordatorio de Cobranza</h2>
+        <h2 style="color: #1e3a8a; margin: 0; font-size: 22px;">KIPUX - Recordatorio de Cobranza</h2>
         <p style="color: #64748b; font-size: 13px; margin-top: 4px;">Comunicado oficial para apoderados</p>
       </div>
 
@@ -150,7 +150,7 @@ export const sendReminderNotification = async (
       <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
 
       <p style="color: #94a3b8; font-size: 12px; text-align: center; margin: 0;">
-        Mensaje automático generado por la plataforma escolar SaaSchool. Por favor no responda directamente a este correo.
+        Mensaje automático generado por la plataforma escolar KIPUX. Por favor no responda directamente a este correo.
       </p>
     </div>
   `;

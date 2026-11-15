@@ -48,7 +48,7 @@ function setup(ws: ExcelJS.Worksheet) {
 
 export async function buildConsolidationWorkbook(data: Consolidation, logo?: LogoImage | null): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'SaaSchool';
+  wb.creator = 'KIPUX';
   const ws = wb.addWorksheet('Consolidado');
   setup(ws);
   const comps = data.matrix.consolidatedAreas.flatMap((a) => a.competences.map((c) => ({ area: a, comp: c })));
@@ -157,7 +157,7 @@ export async function buildConsolidationWorkbook(data: Consolidation, logo?: Log
 
 export async function buildGradebookWorkbook(data: Gradebook, schoolName: string, logo?: LogoImage | null): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'SaaSchool';
+  wb.creator = 'KIPUX';
   for (const comp of data.competences) {
     const ws = wb.addWorksheet(comp.shortName.slice(0, 28).replace(/[\\/?*[\]:]/g, ' '));
     setup(ws);

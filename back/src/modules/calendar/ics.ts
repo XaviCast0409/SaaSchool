@@ -54,7 +54,7 @@ export function buildIcs(calendarName: string, events: IcsEvent[], now: Date = n
   const lines: string[] = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//SaaSchool//Calendario escolar//ES',
+    'PRODID:-//KIPUX//Calendario escolar//ES',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     `X-WR-CALNAME:${escapeIcs(calendarName)}`,

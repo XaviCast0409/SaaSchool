@@ -26,7 +26,7 @@ const startServer = async (): Promise<void> => {
     console.log(`🤖 Automatizaciones: ${env.automationsEnabled ? 'activas' : 'desactivadas (AUTOMATIONS_ENABLED)'}`);
 
     const server = app.listen(env.PORT, '0.0.0.0', () => {
-      console.log(`🚀 SaaSchool API corriendo en puerto ${env.PORT}`);
+      console.log(`🚀 KIPUX API corriendo en puerto ${env.PORT}`);
       console.log(`📋 Ambiente: ${env.NODE_ENV}`);
       console.log(`❤️  Health check: http://localhost:${env.PORT}/health`);
     });

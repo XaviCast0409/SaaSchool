@@ -1,13 +1,13 @@
 {
-  "name": "SaaSchool - Gestión escolar",
-  "short_name": "SaaSchool",
+  "name": "KIPUX - Gestión escolar",
+  "short_name": "KIPUX",
   "description": "Notas, asistencia, pagos y comunicados de tu colegio.",
   "lang": "es-PE",
   "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f7f8fc",
+  "background_color": "#13111c",
   "theme_color": "#5046e5",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },

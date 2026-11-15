@@ -5,8 +5,8 @@
 // - /assets/*: archivos con hash en el nombre, se sirven desde caché (nunca cambian).
 // - /api/* nunca se guarda en caché: los datos sin conexión los maneja la app (IndexedDB).
 // ---------------------------------------------------------------------------
-const SHELL_CACHE = 'saaschool-shell-v1';
-const SHELL_FILES = ['/', '/index.html', '/manifest.webmanifest', '/favicon.svg', '/icon-192.png'];
+const SHELL_CACHE = 'saaschool-shell-v2';
+const SHELL_FILES = ['/', '/index.html', '/manifest.webmanifest', '/favicon.png', '/icon-192.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -68,7 +68,7 @@ self.addEventListener('fetch', (event) => {
 // Evento PUSH: Se activa en 2do plano cuando el servidor envía una notificación
 self.addEventListener('push', (event) => {
   let data = {
-    title: 'SaaSchool',
+    title: 'KIPUX',
     message: 'Tienes una nueva actualización del colegio',
     link: '/dashboard',
     type: 'GENERAL',
@@ -84,8 +84,8 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: data.message,
-    icon: '/favicon.svg',
-    badge: '/favicon.svg',
+    icon: '/icon-192.png',
+    badge: '/badge-96.png',
     data: {
       link: data.link || '/dashboard',
     },
