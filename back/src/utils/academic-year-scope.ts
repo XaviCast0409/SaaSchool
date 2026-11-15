@@ -8,6 +8,8 @@ import { prisma } from '../config/prisma';
  * no es válido, devuelve undefined y cada consulta usa el año vigente como siempre.
  */
 const YEAR_KEY = Symbol('academicYearScope');
+/** Solo Dirección puede consultar otro año; el resto de roles siempre usa el vigente. */
+const YEAR_SCOPED_ROLES = new Set(['SUPER_ADMIN', 'SCHOOL_ADMIN']);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function selectedAcademicYearId(request: Request): Promise<string | undefined> {
@@ -15,7 +17,7 @@ export async function selectedAcademicYearId(request: Request): Promise<string |
   if (cache[YEAR_KEY] !== undefined) return cache[YEAR_KEY] ?? undefined;
   const raw = request.header('x-academic-year-id');
   let result: string | null = null;
-  if (raw && UUID.test(raw) && request.user?.schoolId) {
+  if (raw && UUID.test(raw) && request.user?.schoolId && YEAR_SCOPED_ROLES.has(request.user.role)) {
     const year = await prisma.academicYear.findFirst({ where: { id: raw, schoolId: request.user.schoolId }, select: { id: true } });
     result = year?.id ?? null;
   }

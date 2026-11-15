@@ -20,5 +20,9 @@ export const useAcademicYearStore = create<AcademicYearState>()(
   ),
 );
 
-/** Roles que trabajan con el selector de año (las familias y alumnos siempre ven el vigente). */
-export const YEAR_SCOPED_ROLES = ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'];
+/**
+ * Roles que pueden ver y cambiar el año con el selector: solo Dirección.
+ * Secretaría, docentes, familias y alumnos siempre trabajan sobre el año vigente.
+ * Mantener alineado con YEAR_SCOPED_ROLES del backend (utils/academic-year-scope.ts).
+ */
+export const YEAR_SCOPED_ROLES = ['SUPER_ADMIN', 'SCHOOL_ADMIN'];
