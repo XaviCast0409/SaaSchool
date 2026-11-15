@@ -32,3 +32,21 @@ export async function selectedAcademicYearId(request: Request): Promise<string |
 export function enrollmentsOfYear(academicYearId?: string): Prisma.EnrollmentWhereInput {
   return academicYearId ? { academicYearId, enrollmentState: 'REGISTERED' } : { isActive: true };
 }
+
+/**
+ * Tutor(a) de un aula en un año: el de la sección de ese año (ClassroomYear) o, si el año no
+ * definió secciones y es el vigente, el del aula. Para un año pasado sin sección: ninguno, en
+ * lugar de mostrar por error al tutor actual.
+ */
+export async function classroomTutorInYear<T>(
+  classroom: { id: string; tutorTeacher: T | null },
+  year: { id: string; isActive: boolean } | null,
+): Promise<T | null> {
+  if (!year) return classroom.tutorTeacher;
+  const section = await prisma.classroomYear.findUnique({
+    where: { classroomId_academicYearId: { classroomId: classroom.id, academicYearId: year.id } },
+    select: { tutorTeacher: { select: { id: true, firstName: true, lastNamePaternal: true, lastNameMaternal: true } } },
+  });
+  if (section) return section.tutorTeacher as T | null;
+  return year.isActive ? classroom.tutorTeacher : null;
+}

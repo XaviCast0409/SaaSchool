@@ -1,4 +1,5 @@
 import { teacherHistoryService } from './teacher-history.service';
+import { classroomTutorInYear } from '../../utils/academic-year-scope';
 import type { EducationLevel } from '@prisma/client';
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
@@ -186,7 +187,7 @@ export class ConsolidationService {
       };
     });
 
-    const tutor = classroom.tutorTeacher;
+    const tutor = await classroomTutorInYear(classroom, year);
     return {
       school,
       classroom: {

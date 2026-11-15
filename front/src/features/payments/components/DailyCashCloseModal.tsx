@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { SchoolLetterhead } from '@/features/schools/components/SchoolLetterhead';
 import { X, Printer, Calendar, Receipt, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,12 +33,11 @@ export const DailyCashCloseDocument: React.FC<{
   return (
     <div className={isPrint ? 'p-6 space-y-5 text-black bg-white max-w-4xl mx-auto' : 'space-y-5'}>
       {isPrint && (
-        <div className="border-b-2 border-black pb-3 text-center space-y-1">
-          <h1 className="text-xl font-black uppercase text-black">Resumen de caja del día</h1>
-          <p className="text-xs text-gray-700">
-            Fecha: <strong>{selectedDate}</strong>
-          </p>
-        </div>
+        <SchoolLetterhead
+          className="border-b-2 border-black"
+          title="Resumen de caja del día"
+          subtitle={<>Fecha: <strong>{selectedDate}</strong></>}
+        />
       )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

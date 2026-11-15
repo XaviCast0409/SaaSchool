@@ -16,6 +16,7 @@ export type GetClassroomsQueryDto = z.infer<typeof getClassroomsQuerySchema>;
 export const getConsolidatedGradesQuerySchema = z.object({
   classroomId: z.string().uuid('El ID del aula debe ser un UUID válido'),
   periodNumber: z.coerce.number().int().min(1).max(4, 'El periodo debe estar entre 1 y 4'),
+  academicYearId: z.string().uuid().optional(),
 });
 
 export type GetConsolidatedGradesQueryDto = z.infer<typeof getConsolidatedGradesQuerySchema>;
@@ -32,6 +33,7 @@ export const getDraftRegisterQuerySchema = z.object({
     .or(z.literal(''))
     .transform((val) => val || undefined),
   periodNumber: z.coerce.number().int().min(1).max(4).optional(),
+  academicYearId: z.string().uuid().optional(),
 });
 
 export type GetDraftRegisterQueryDto = z.infer<typeof getDraftRegisterQuerySchema>;
@@ -42,6 +44,7 @@ export type GetDraftRegisterQueryDto = z.infer<typeof getDraftRegisterQuerySchem
 export const getMeritClassroomQuerySchema = z.object({
   classroomId: z.string().uuid('El ID del aula debe ser un UUID válido'),
   periodNumber: z.coerce.number().int().min(1).max(4, 'El periodo debe estar entre 1 y 4'),
+  academicYearId: z.string().uuid().optional(),
 });
 
 export type GetMeritClassroomQueryDto = z.infer<typeof getMeritClassroomQuerySchema>;
@@ -66,6 +69,7 @@ export type GetMeritGradeQueryDto = z.infer<typeof getMeritGradeQuerySchema>;
 export const getConductCommentsQuerySchema = z.object({
   classroomId: z.string().uuid('El ID del aula debe ser un UUID válido'),
   periodNumber: z.coerce.number().int().min(1).max(4, 'El periodo debe estar entre 1 y 4'),
+  academicYearId: z.string().uuid().optional(),
 });
 
 export type GetConductCommentsQueryDto = z.infer<typeof getConductCommentsQuerySchema>;
@@ -75,6 +79,7 @@ export type GetConductCommentsQueryDto = z.infer<typeof getConductCommentsQueryS
 // ============================================================================
 export const getClassroomRosterQuerySchema = z.object({
   classroomId: z.string().uuid('El ID del aula debe ser un UUID válido'),
+  academicYearId: z.string().uuid().optional(),
 });
 
 export type GetClassroomRosterQueryDto = z.infer<typeof getClassroomRosterQuerySchema>;

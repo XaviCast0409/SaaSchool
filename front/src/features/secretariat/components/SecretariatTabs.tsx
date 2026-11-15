@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { SchoolLetterhead } from '@/features/schools/components/SchoolLetterhead';
 import { toast } from 'sonner';
 import { BellRing, Copy, Download, ExternalLink, FileUp, Loader2, Lock, Printer, QrCode } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -147,6 +148,7 @@ export const RatificationTab: React.FC<{ open: boolean }> = ({ open }) => {
 
   return (
     <div className="space-y-3">
+      <SchoolLetterhead className="hidden print:flex" title={`Ratificación de matrícula ${data.targetYear}`} subtitle={`Impreso el ${new Date().toLocaleDateString('es-PE', { timeZone: 'America/Lima' })}`} />
       <div className="grid gap-3 sm:grid-cols-4">
         <Card className="p-3"><p className="text-xs text-muted-foreground">Avance</p><p className="text-2xl font-semibold">{pct}%</p><div className="mt-1 h-1.5 rounded-full bg-muted"><div className="h-1.5 rounded-full bg-primary" style={{ width: `${pct}%` }} /></div></Card>
         <Card className="p-3"><p className="text-xs text-muted-foreground">Continúan</p><p className="text-2xl font-semibold text-emerald-600">{counts.CONFIRMED}</p></Card>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { SchoolLetterhead } from '@/features/schools/components/SchoolLetterhead';
 import * as Dialog from '@radix-ui/react-dialog';
 import { AlertTriangle, Copy, Check, Printer, X, KeyRound } from 'lucide-react';
 import { Button } from './button';
@@ -27,6 +28,7 @@ export const TemporaryCredentialsDocument: React.FC<{
   isPrint?: boolean;
 }> = ({ title, description, credentials, isPrint }) => (
   <div className={isPrint ? 'p-6 space-y-5 text-black bg-white max-w-2xl mx-auto' : 'space-y-5'}>
+    {isPrint && <SchoolLetterhead title="Credenciales de acceso" subtitle={new Date().toLocaleDateString('es-PE', { timeZone: 'America/Lima' })} />}
     {/* Header */}
     <div className="flex items-center gap-3 border-b border-border pb-3">
       <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-500/20 shrink-0">

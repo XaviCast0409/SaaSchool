@@ -1,5 +1,6 @@
 import React from 'react';
-import { Printer, X, FileCheck2, Building2 } from 'lucide-react';
+import { SchoolLetterhead } from '@/features/schools/components/SchoolLetterhead';
+import { Printer, X, FileCheck2 } from 'lucide-react';
 import { useTransactionReceipt } from '../api/usePayments';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -50,24 +51,14 @@ export const ReceiptDocument: React.FC<{ receipt: ReceiptData; isPrint?: boolean
           {receipt.voided.reason && <p className="mt-1 text-xs font-medium">Motivo: {receipt.voided.reason}</p>}
         </div>
       )}
-      {/* School Header Voucher */}
-      <div className="text-center border-b border-dashed border-border pb-4 space-y-1">
-        <div className="flex items-center justify-center gap-1.5 font-bold text-lg text-foreground">
-          <Building2 className="w-5 h-5 text-primary" />
-          <span>INSTITUCIÓN EDUCATIVA</span>
-        </div>
-        <p className="text-xs text-muted-foreground uppercase font-semibold">
-          {receipt.receiptHeader.receiptType === 'RECIBO_INTERNO'
-            ? 'Recibo interno de pago'
-            : receipt.receiptHeader.receiptType}
-        </p>
-        <p className="text-sm font-mono font-bold text-primary">
-          {receipt.receiptHeader.receiptNumber}
-        </p>
-        <p className="text-[11px] text-muted-foreground">
-          Fecha: {formatPeruDateTime(receipt.receiptHeader.paymentDate)}
-        </p>
-      </div>
+      {/* Membrete del colegio */}
+      <SchoolLetterhead
+        variant="centered"
+        className="border-dashed"
+        title={receipt.receiptHeader.receiptType === 'RECIBO_INTERNO' ? 'Recibo interno de pago' : receipt.receiptHeader.receiptType}
+        subtitle={<>Fecha: {formatPeruDateTime(receipt.receiptHeader.paymentDate)}</>}
+        aside={<p className="text-sm font-mono font-bold text-primary">{receipt.receiptHeader.receiptNumber}</p>}
+      />
 
       {/* Student Info */}
       <div className="space-y-1 bg-muted/30 p-3 rounded-lg border border-border/60 text-xs">

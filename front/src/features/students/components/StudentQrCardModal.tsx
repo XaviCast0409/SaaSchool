@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSchoolBranding } from '@/features/schools/components/SchoolLetterhead';
 import {
   X,
   Printer,
@@ -32,6 +33,7 @@ interface StudentQrCardDocumentProps {
   section: string;
   educationLevel: string;
   schoolName?: string;
+  schoolLogoUrl?: string | null;
   qrDataUrl?: string;
   isPrint?: boolean;
 }
@@ -44,6 +46,7 @@ export const StudentQrCardDocument: React.FC<StudentQrCardDocumentProps> = ({
   section,
   educationLevel,
   schoolName = 'Institución Educativa',
+  schoolLogoUrl,
   qrDataUrl,
   isPrint,
 }) => {
@@ -56,7 +59,11 @@ export const StudentQrCardDocument: React.FC<StudentQrCardDocumentProps> = ({
         {/* Cabecera del Carnet */}
         <div className="bg-slate-900 text-white p-3.5 text-center space-y-1">
           <div className="flex items-center justify-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-slate-300">
-            <School className="w-3.5 h-3.5 text-primary" />
+            {schoolLogoUrl ? (
+              <img src={schoolLogoUrl} alt="" className="h-7 w-7 shrink-0 rounded bg-white object-contain p-0.5" />
+            ) : (
+              <School className="w-3.5 h-3.5 text-primary" />
+            )}
             <span>{schoolName}</span>
           </div>
           <div className="flex items-center justify-center gap-2">
@@ -136,6 +143,7 @@ export const StudentQrCardModal: React.FC<StudentQrCardModalProps> = ({
   schoolName = 'Institución Educativa',
   onClose,
 }) => {
+  const branding = useSchoolBranding();
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const qrPayload = (documentId || studentCode || '').trim();
 
@@ -199,6 +207,7 @@ export const StudentQrCardModal: React.FC<StudentQrCardModalProps> = ({
             section={section}
             educationLevel={educationLevel}
             schoolName={schoolName}
+            schoolLogoUrl={branding?.logoUrl}
             qrDataUrl={qrDataUrl}
           />
         </div>
@@ -243,6 +252,7 @@ export const StudentQrCardModal: React.FC<StudentQrCardModalProps> = ({
             section={section}
             educationLevel={educationLevel}
             schoolName={schoolName}
+            schoolLogoUrl={branding?.logoUrl}
             qrDataUrl={qrDataUrl}
             isPrint
           />

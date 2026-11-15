@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs';
+import { addSchoolLogoToWorkbook } from '@/lib/excelLogo';
 
 /**
  * Exportación genérica a Excel para el contador: una o varias hojas con encabezado del colegio,
@@ -107,6 +108,7 @@ export async function exportFinanceExcel(fileName: string, schoolName: string, s
     ws.autoFilter = { from: { row: 4, column: 1 }, to: { row: 4 + sheet.rows.length, column: n } };
   }
 
+  await addSchoolLogoToWorkbook(wb);
   const buffer = await wb.xlsx.writeBuffer();
   const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const url = window.URL.createObjectURL(blob);

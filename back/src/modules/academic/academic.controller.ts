@@ -14,6 +14,7 @@ import { ProgressService } from './progress.service';
 import { PhraseService } from './phrase.service';
 import { TutorReportService } from './tutor-report.service';
 import { buildConsolidationWorkbook, buildGradebookWorkbook } from './academic-excel.service';
+import { loadSchoolLogo } from '../files/school-logo.loader';
 
 const curriculum = new CurriculumService();
 const load = new TeachingLoadService();
@@ -250,7 +251,7 @@ export const academicController = {
   exportConsolidation: async (req: Request, res: Response) => {
     const q = S.consolidationQuery.parse(req.query);
     const data = await consolidation.getClassroomConsolidation(ctx(req).schoolId, q.classroomId, q.period, q.academicYearId);
-    const buffer = await buildConsolidationWorkbook(data);
+    const buffer = await buildConsolidationWorkbook(data, await loadSchoolLogo(data.school?.logoUrl));
     const name = `consolidado-${data.classroom.grade}${data.classroom.section}-${q.period}.xlsx`.replace(/\s+/g, '');
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${name}"`);
@@ -260,8 +261,8 @@ export const academicController = {
     const q = S.gradebookExportQuery.parse(req.query);
     const { schoolId, user } = ctx(req);
     const data = await gradebook.getGradebook(schoolId, user, q.assignmentId, q.periodNumber);
-    const school = await prisma.school.findUnique({ where: { id: schoolId }, select: { name: true } });
-    const buffer = await buildGradebookWorkbook(data, school?.name ?? 'Colegio');
+    const school = await prisma.school.findUnique({ where: { id: schoolId }, select: { name: true, logoUrl: true } });
+    const buffer = await buildGradebookWorkbook(data, school?.name ?? 'Colegio', await loadSchoolLogo(school?.logoUrl));
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="registro-auxiliar-p${q.periodNumber}.xlsx"`);
     res.send(buffer);

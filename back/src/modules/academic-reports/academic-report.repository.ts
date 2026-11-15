@@ -2,8 +2,30 @@ import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
 import { EducationLevel, EnrollmentState } from '@prisma/client';
 import { getPeriodDateRange } from '../../utils/period-dates.util';
+import { classroomTutorInYear } from '../../utils/academic-year-scope';
 
 export class AcademicReportRepository {
+  /**
+   * Año del reporte: el elegido (parámetro o selector de la cabecera) o, si no hay, el vigente.
+   * Desde que las aulas se reutilizan cada año, todo reporte por aula debe filtrar por año.
+   */
+  private async reportYear(schoolId: string, academicYearId?: string) {
+    if (academicYearId) {
+      const chosen = await prisma.academicYear.findFirst({ where: { id: academicYearId, schoolId } });
+      if (chosen) return chosen;
+    }
+    return prisma.academicYear.findFirst({ where: { schoolId, isActive: true } });
+  }
+
+  /** Matrículas del aula en ese año (todas sus situaciones: también retirados y trasladados). */
+  private enrollmentsInYear(schoolId: string, year: { id: string } | null) {
+    return year ? { schoolId, academicYearId: year.id } : { schoolId, isActive: true };
+  }
+
+  /** Cursos del aula dictados en ese año. */
+  private assignmentsInYear(year: { id: string } | null) {
+    return year ? { deletedAt: null, academicYearId: year.id } : { deletedAt: null, academicYear: { isActive: true } };
+  }
   /**
    * Catálogo de Aulas activas del colegio para el selector transversal de reportes.
    * Accesible para Docentes, Administrativos y Directores sin filtrar por cursos asignados.
@@ -93,8 +115,10 @@ export class AcademicReportRepository {
     schoolId: string,
     classroomId: string,
     periodNumber: number,
+    academicYearId?: string,
   ) {
-    const classroom = await prisma.classroom.findFirst({
+    const year = await this.reportYear(schoolId, academicYearId);
+    const found = await prisma.classroom.findFirst({
       where: { id: classroomId, schoolId },
       include: {
         school: {
@@ -116,7 +140,7 @@ export class AcademicReportRepository {
           },
         },
         assignments: {
-          where: { deletedAt: null, academicYear: { isActive: true } },
+          where: this.assignmentsInYear(year),
           include: {
             area: {
               include: {
@@ -138,7 +162,7 @@ export class AcademicReportRepository {
           ],
         },
         enrollments: {
-          where: { schoolId },
+          where: this.enrollmentsInYear(schoolId, year),
           include: {
             student: {
               select: {
@@ -160,6 +184,7 @@ export class AcademicReportRepository {
         },
       },
     });
+    const classroom = found ? { ...found, tutorTeacher: await classroomTutorInYear(found, year) } : null;
 
     if (!classroom) {
       throw new AppError('El aula seleccionada no existe o no pertenece a su institución.', 404);
@@ -197,11 +222,8 @@ export class AcademicReportRepository {
       select: { enrollmentId: true, courseAssignmentId: true, competenceId: true, computedScore: true, finalLetter: true, isOverridden: true },
     });
 
-    const academicYear = await prisma.academicYear.findFirst({
-      where: { schoolId, isActive: true },
-    });
     const dateRange = getPeriodDateRange(
-      academicYear || {
+      year || {
         startDate: new Date(new Date().getFullYear(), 0, 1),
         endDate: new Date(new Date().getFullYear(), 11, 31),
       },
@@ -242,8 +264,9 @@ export class AcademicReportRepository {
     schoolId: string,
     classroomId: string,
     periodNumber: number,
+    academicYearId?: string,
   ) {
-    return this.findConsolidatedGradesRaw(schoolId, classroomId, periodNumber);
+    return this.findConsolidatedGradesRaw(schoolId, classroomId, periodNumber, academicYearId);
   }
 
   /**
@@ -257,6 +280,7 @@ export class AcademicReportRepository {
     academicYearId?: string,
   ) {
     const school = await this.findSchoolHeader(schoolId);
+    const year = await this.reportYear(schoolId, academicYearId);
     if (!school) {
       throw new AppError('Institución educativa no encontrada.', 404);
     }
@@ -270,7 +294,7 @@ export class AcademicReportRepository {
       },
       include: {
         assignments: {
-          where: { deletedAt: null, academicYear: { isActive: true } },
+          where: this.assignmentsInYear(year),
           include: {
             area: {
               include: {
@@ -281,10 +305,7 @@ export class AcademicReportRepository {
           },
         },
         enrollments: {
-          where: {
-            schoolId,
-            ...(academicYearId ? { academicYearId } : {}),
-          },
+          where: this.enrollmentsInYear(schoolId, year),
           include: {
             student: {
               select: {
@@ -356,8 +377,10 @@ export class AcademicReportRepository {
     schoolId: string,
     classroomId: string,
     courseAssignmentId?: string,
+    academicYearId?: string,
   ) {
-    const classroom = await prisma.classroom.findFirst({
+    const year = await this.reportYear(schoolId, academicYearId);
+    const found = await prisma.classroom.findFirst({
       where: { id: classroomId, schoolId },
       include: {
         school: {
@@ -375,7 +398,7 @@ export class AcademicReportRepository {
           },
         },
         enrollments: {
-          where: { schoolId, isActive: true },
+          where: year ? { schoolId, academicYearId: year.id, enrollmentState: 'REGISTERED' as const } : { schoolId, isActive: true },
           include: {
             student: {
               select: {
@@ -396,6 +419,7 @@ export class AcademicReportRepository {
         },
       },
     });
+    const classroom = found ? { ...found, tutorTeacher: await classroomTutorInYear(found, year) } : null;
 
     if (!classroom) {
       throw new AppError('Aula no encontrada.', 404);
@@ -435,8 +459,10 @@ export class AcademicReportRepository {
     schoolId: string,
     classroomId: string,
     periodNumber: number,
+    academicYearId?: string,
   ) {
-    const classroom = await prisma.classroom.findFirst({
+    const year = await this.reportYear(schoolId, academicYearId);
+    const found = await prisma.classroom.findFirst({
       where: { id: classroomId, schoolId },
       include: {
         school: {
@@ -454,7 +480,7 @@ export class AcademicReportRepository {
           },
         },
         enrollments: {
-          where: { schoolId },
+          where: this.enrollmentsInYear(schoolId, year),
           include: {
             student: {
               select: {
@@ -498,6 +524,7 @@ export class AcademicReportRepository {
         },
       },
     });
+    const classroom = found ? { ...found, tutorTeacher: await classroomTutorInYear(found, year) } : null;
 
     if (!classroom) {
       throw new AppError('Aula no encontrada.', 404);
@@ -509,8 +536,9 @@ export class AcademicReportRepository {
   /**
    * Reporte 0011: Reporte de Alumnos por Salón (Padrón Oficial).
    */
-  async findClassroomRosterRaw(schoolId: string, classroomId: string) {
-    const classroom = await prisma.classroom.findFirst({
+  async findClassroomRosterRaw(schoolId: string, classroomId: string, academicYearId?: string) {
+    const year = await this.reportYear(schoolId, academicYearId);
+    const found = await prisma.classroom.findFirst({
       where: { id: classroomId, schoolId },
       include: {
         school: {
@@ -530,7 +558,7 @@ export class AcademicReportRepository {
           },
         },
         enrollments: {
-          where: { schoolId },
+          where: this.enrollmentsInYear(schoolId, year),
           include: {
             student: {
               include: {
@@ -559,6 +587,7 @@ export class AcademicReportRepository {
         },
       },
     });
+    const classroom = found ? { ...found, tutorTeacher: await classroomTutorInYear(found, year) } : null;
 
     if (!classroom) {
       throw new AppError('Aula no encontrada.', 404);

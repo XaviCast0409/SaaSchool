@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { SchoolLogo } from '@/features/schools/components/SchoolLetterhead';
 import {
   X,
   Printer,
@@ -28,6 +29,7 @@ interface CertificateData {
     modularCode?: string;
     documentId: string;
     address?: string;
+    logoUrl?: string | null;
   };
   certificateNumber: string;
   student: {
@@ -66,6 +68,7 @@ export const StudentCertificateDocument: React.FC<{
           <span>REPÚBLICA DEL PERÚ</span>
           <span>MINISTERIO DE EDUCACIÓN</span>
         </div>
+        <SchoolLogo logoUrl={cert.school.logoUrl} name={cert.school.name} fallback={false} className="mx-auto h-20 w-20 pt-1" />
         <h1 className="text-lg sm:text-xl font-black uppercase tracking-wide text-black pt-1">
           {cert.school.name}
         </h1>

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { AcademicReportService } from './academic-report.service';
+import { selectedAcademicYearId } from '../../utils/academic-year-scope';
 import {
   getClassroomsQuerySchema,
   getConsolidatedGradesQuerySchema,
@@ -13,6 +14,10 @@ import {
   getFamiliesRelativesQuerySchema,
   getStudentBirthdaysQuerySchema,
 } from './academic-report.schema';
+
+/** Año del reporte: el del filtro o el del selector de la cabecera (solo Dirección); si no, el vigente. */
+const reportYearId = async (req: Request, query: { academicYearId?: string }): Promise<string | undefined> =>
+  query.academicYearId ?? (await selectedAcademicYearId(req));
 
 export class AcademicReportController {
   constructor(private readonly academicReportService: AcademicReportService) {}
@@ -41,11 +46,13 @@ export class AcademicReportController {
   getConsolidatedGrades = async (req: Request, res: Response): Promise<void> => {
     const schoolId = req.user!.schoolId;
     const query = getConsolidatedGradesQuerySchema.parse(req.query);
+    const academicYearId = await reportYearId(req, query);
 
     const report = await this.academicReportService.getConsolidatedGrades(
       schoolId,
       query.classroomId,
       query.periodNumber,
+      academicYearId,
     );
 
     res.status(200).json({
@@ -60,11 +67,13 @@ export class AcademicReportController {
   getMeritClassroom = async (req: Request, res: Response): Promise<void> => {
     const schoolId = req.user!.schoolId;
     const query = getMeritClassroomQuerySchema.parse(req.query);
+    const academicYearId = await reportYearId(req, query);
 
     const report = await this.academicReportService.getMeritClassroom(
       schoolId,
       query.classroomId,
       query.periodNumber,
+      academicYearId,
     );
 
     res.status(200).json({
@@ -79,13 +88,14 @@ export class AcademicReportController {
   getMeritGrade = async (req: Request, res: Response): Promise<void> => {
     const schoolId = req.user!.schoolId;
     const query = getMeritGradeQuerySchema.parse(req.query);
+    const academicYearId = await reportYearId(req, query);
 
     const report = await this.academicReportService.getMeritGrade(
       schoolId,
       query.educationLevel,
       query.grade,
       query.periodNumber,
-      query.academicYearId,
+      academicYearId,
     );
 
     res.status(200).json({
@@ -100,11 +110,13 @@ export class AcademicReportController {
   getDraftRegister = async (req: Request, res: Response): Promise<void> => {
     const schoolId = req.user!.schoolId;
     const query = getDraftRegisterQuerySchema.parse(req.query);
+    const academicYearId = await reportYearId(req, query);
 
     const report = await this.academicReportService.getDraftRegister(
       schoolId,
       query.classroomId,
       query.courseAssignmentId,
+      academicYearId,
     );
 
     res.status(200).json({
@@ -119,11 +131,13 @@ export class AcademicReportController {
   getConductComments = async (req: Request, res: Response): Promise<void> => {
     const schoolId = req.user!.schoolId;
     const query = getConductCommentsQuerySchema.parse(req.query);
+    const academicYearId = await reportYearId(req, query);
 
     const report = await this.academicReportService.getConductComments(
       schoolId,
       query.classroomId,
       query.periodNumber,
+      academicYearId,
     );
 
     res.status(200).json({
@@ -138,10 +152,12 @@ export class AcademicReportController {
   getClassroomRoster = async (req: Request, res: Response): Promise<void> => {
     const schoolId = req.user!.schoolId;
     const query = getClassroomRosterQuerySchema.parse(req.query);
+    const academicYearId = await reportYearId(req, query);
 
     const report = await this.academicReportService.getClassroomRoster(
       schoolId,
       query.classroomId,
+      academicYearId,
     );
 
     res.status(200).json({
@@ -156,11 +172,12 @@ export class AcademicReportController {
   getFamiliesByState = async (req: Request, res: Response): Promise<void> => {
     const schoolId = req.user!.schoolId;
     const query = getFamiliesByStateQuerySchema.parse(req.query);
+    const academicYearId = await reportYearId(req, query);
 
     const report = await this.academicReportService.getFamiliesByState(
       schoolId,
       query.state,
-      query.academicYearId,
+      academicYearId,
     );
 
     res.status(200).json({
@@ -175,11 +192,12 @@ export class AcademicReportController {
   getFamiliesWithChildren = async (req: Request, res: Response): Promise<void> => {
     const schoolId = req.user!.schoolId;
     const query = getFamiliesWithChildrenQuerySchema.parse(req.query);
+    const academicYearId = await reportYearId(req, query);
 
     const report = await this.academicReportService.getFamiliesWithChildren(
       schoolId,
       query.classroomId,
-      query.academicYearId,
+      academicYearId,
     );
 
     res.status(200).json({
@@ -194,11 +212,12 @@ export class AcademicReportController {
   getFamiliesRelatives = async (req: Request, res: Response): Promise<void> => {
     const schoolId = req.user!.schoolId;
     const query = getFamiliesRelativesQuerySchema.parse(req.query);
+    const academicYearId = await reportYearId(req, query);
 
     const report = await this.academicReportService.getFamiliesRelatives(
       schoolId,
       query.classroomId,
-      query.academicYearId,
+      academicYearId,
     );
 
     res.status(200).json({
@@ -213,13 +232,14 @@ export class AcademicReportController {
   getStudentBirthdays = async (req: Request, res: Response): Promise<void> => {
     const schoolId = req.user!.schoolId;
     const query = getStudentBirthdaysQuerySchema.parse(req.query);
+    const academicYearId = await reportYearId(req, query);
 
     const report = await this.academicReportService.getStudentBirthdays(
       schoolId,
       query.month,
       query.classroomId,
       query.educationLevel,
-      query.academicYearId,
+      academicYearId,
     );
 
     res.status(200).json({

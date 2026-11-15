@@ -15,11 +15,12 @@ export class AcademicReportService {
   /**
    * Reporte 0021: Consolidado de Estudios (Matriz de Calificaciones).
    */
-  async getConsolidatedGrades(schoolId: string, classroomId: string, periodNumber: number) {
+  async getConsolidatedGrades(schoolId: string, classroomId: string, periodNumber: number, academicYearId?: string) {
     const raw = await this.academicReportRepository.findConsolidatedGradesRaw(
       schoolId,
       classroomId,
       periodNumber,
+      academicYearId,
     );
 
     const { classroom, criteria, detailedGrades, periodResults, attendances } = raw;
@@ -317,8 +318,8 @@ export class AcademicReportService {
   /**
    * Reporte 0048: Orden de Mérito y Tercios por Salón.
    */
-  async getMeritClassroom(schoolId: string, classroomId: string, periodNumber: number) {
-    const consolidated = await this.getConsolidatedGrades(schoolId, classroomId, periodNumber);
+  async getMeritClassroom(schoolId: string, classroomId: string, periodNumber: number, academicYearId?: string) {
+    const consolidated = await this.getConsolidatedGrades(schoolId, classroomId, periodNumber, academicYearId);
 
     // Filtrar y ordenar según mérito
     const rankedStudents = [...consolidated.students]
@@ -646,11 +647,12 @@ export class AcademicReportService {
   /**
    * Reporte 0041: Registro Auxiliar Borrador (Plantilla en blanco).
    */
-  async getDraftRegister(schoolId: string, classroomId: string, courseAssignmentId?: string) {
+  async getDraftRegister(schoolId: string, classroomId: string, courseAssignmentId?: string, academicYearId?: string) {
     const raw = await this.academicReportRepository.findDraftRegisterRaw(
       schoolId,
       classroomId,
       courseAssignmentId,
+      academicYearId,
     );
 
     const { classroom, assignment } = raw;
@@ -686,11 +688,12 @@ export class AcademicReportService {
   /**
    * Reporte 0030: Listado de Comentarios a la Conducta.
    */
-  async getConductComments(schoolId: string, classroomId: string, periodNumber: number) {
+  async getConductComments(schoolId: string, classroomId: string, periodNumber: number, academicYearId?: string) {
     const classroom = await this.academicReportRepository.findConductCommentsRaw(
       schoolId,
       classroomId,
       periodNumber,
+      academicYearId,
     );
 
     const students = classroom.enrollments.map((enr, idx) => {
@@ -738,10 +741,11 @@ export class AcademicReportService {
   /**
    * Reporte 0011: Reporte de Alumnos por Salón (Padrón Oficial).
    */
-  async getClassroomRoster(schoolId: string, classroomId: string) {
+  async getClassroomRoster(schoolId: string, classroomId: string, academicYearId?: string) {
     const classroom = await this.academicReportRepository.findClassroomRosterRaw(
       schoolId,
       classroomId,
+      academicYearId,
     );
 
     const students = classroom.enrollments.map((enr, idx) => {

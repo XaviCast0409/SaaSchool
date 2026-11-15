@@ -1,4 +1,5 @@
 import React from 'react';
+import { SchoolLetterhead } from '@/features/schools/components/SchoolLetterhead';
 import { Download, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -147,8 +148,14 @@ const Document: React.FC<{ data: FamilyStatement | StudentStatement; schoolName:
   return (
     <div className={print ? 'mx-auto max-w-[190mm] space-y-4 bg-white p-4 text-black' : 'space-y-4'}>
       <div className="border-b border-border pb-2">
-        <p className="text-xs font-semibold uppercase text-muted-foreground">{schoolName}</p>
-        <h2 className="text-lg font-bold">Estado de cuenta {isFamily ? 'familiar' : 'del alumno'}</h2>
+        {print ? (
+          <SchoolLetterhead className="mb-2" title={`Estado de cuenta ${isFamily ? 'familiar' : 'del alumno'}`} />
+        ) : (
+          <>
+            <p className="text-xs font-semibold uppercase text-muted-foreground">{schoolName}</p>
+            <h2 className="text-lg font-bold">Estado de cuenta {isFamily ? 'familiar' : 'del alumno'}</h2>
+          </>
+        )}
         {isFamily ? (
           <p className="text-xs text-muted-foreground">
             Apoderado: <strong className="text-foreground">{data.guardian.fullName}</strong>

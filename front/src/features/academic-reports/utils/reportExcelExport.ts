@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs';
+import { addSchoolLogoToWorkbook } from '@/lib/excelLogo';
 import {
   ConsolidatedGradesReportData,
   MeritClassroomReportData,
@@ -82,6 +83,7 @@ const getFormattedDateTime = () => {
  * Descarga en el navegador el libro Excel como archivo .xlsx nativo
  */
 const saveWorkbook = async (workbook: ExcelJS.Workbook, filename: string): Promise<void> => {
+  await addSchoolLogoToWorkbook(workbook);
   const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

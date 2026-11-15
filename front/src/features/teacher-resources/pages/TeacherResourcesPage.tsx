@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { SchoolLetterhead } from '@/features/schools/components/SchoolLetterhead';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Copy, Download, ExternalLink, FileUp, Link2, Loader2, Pencil, Plus, Printer, Search, Share2, Trash2, X } from 'lucide-react';
@@ -355,6 +356,7 @@ const RubricView: React.FC<{ rubric: Rubric | null; onClose: () => void }> = ({ 
     footer={<div className="flex justify-end"><Button variant="outline" className="gap-1.5" onClick={() => window.print()}><Printer className="h-4 w-4" aria-hidden /> Imprimir</Button></div>}>
     {rubric && (
       <div className="overflow-x-auto print:overflow-visible">
+        <SchoolLetterhead className="mb-3 hidden print:flex" title={rubric.title} subtitle={`${rubric.authorName}${rubric.areaName ? ` · ${rubric.areaName}` : ''}`} />
         <table className="w-full min-w-[700px] border-collapse text-xs">
           <thead>
             <tr>

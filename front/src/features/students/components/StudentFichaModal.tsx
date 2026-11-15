@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { SchoolLetterhead } from '@/features/schools/components/SchoolLetterhead';
 import {
   X,
   Printer,
@@ -123,6 +124,7 @@ export const StudentFichaDocument: React.FC<{
 }) => {
   return (
     <div className={isPrint ? 'space-y-6 text-xs text-black bg-white p-6 max-w-4xl mx-auto' : 'space-y-6 text-xs text-foreground'}>
+      {isPrint && <SchoolLetterhead title="Ficha única de matrícula" subtitle="Datos de identificación, historial y familia" />}
       {/* Encabezado Ficha para Impresión */}
       <div className="p-4 rounded-xl border border-border bg-muted/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 avoid-break">
         <div>

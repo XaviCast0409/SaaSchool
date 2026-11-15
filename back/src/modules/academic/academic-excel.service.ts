@@ -1,6 +1,7 @@
 import ExcelJS from 'exceljs';
 import type { ConsolidationService } from './consolidation.service';
 import type { GradebookService } from './gradebook.service';
+import type { LogoImage } from '../files/school-logo.loader';
 
 type Consolidation = Awaited<ReturnType<ConsolidationService['getClassroomConsolidation']>>;
 type Gradebook = Awaited<ReturnType<GradebookService['getGradebook']>>;
@@ -21,6 +22,16 @@ function titleBlock(ws: ExcelJS.Worksheet, lines: string[], width: number) {
   ws.addRow([]);
 }
 
+/** Logo del colegio arriba a la derecha, junto a la tabla, sin tapar datos. */
+function placeLogo(wb: ExcelJS.Workbook, ws: ExcelJS.Worksheet, logo: LogoImage | null | undefined, column: number) {
+  if (!logo) return;
+  const height = 56;
+  const width = Math.min(140, Math.round((logo.width / logo.height) * height));
+  // exceljs tipa el buffer con su propia versión de Buffer
+  const imageId = wb.addImage({ buffer: logo.buffer as unknown as ExcelJS.Buffer, extension: logo.extension });
+  ws.addImage(imageId, { tl: { col: column, row: 0 }, ext: { width, height }, editAs: 'oneCell' });
+}
+
 function styleHeader(row: ExcelJS.Row) {
   row.eachCell((cell) => {
     cell.fill = HEADER_FILL;
@@ -35,7 +46,7 @@ function setup(ws: ExcelJS.Worksheet) {
   ws.pageSetup = { orientation: 'landscape', paperSize: 9, fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.3, right: 0.3, top: 0.4, bottom: 0.4, header: 0.2, footer: 0.2 } };
 }
 
-export async function buildConsolidationWorkbook(data: Consolidation): Promise<Buffer> {
+export async function buildConsolidationWorkbook(data: Consolidation, logo?: LogoImage | null): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
   wb.creator = 'SaaSchool';
   const ws = wb.addWorksheet('Consolidado');
@@ -47,6 +58,7 @@ export async function buildConsolidationWorkbook(data: Consolidation): Promise<B
     `Consolidado de evaluación — ${data.classroom.label} — ${data.academicYear.year} — ${periodLabel}`,
     `Código modular: ${data.school?.modularCode ?? '—'} · Tutor(a): ${data.classroom.tutor ?? '—'}`,
   ], comps.length + 4);
+  placeLogo(wb, ws, logo, comps.length + 4);
 
   const areaRow = ws.addRow(['N.°', 'Código', 'Apellidos y nombres', ...comps.map((x) => x.area.name), ...(data.period === 'FINAL' ? ['Situación'] : [])]);
   let col = 4;
@@ -143,7 +155,7 @@ export async function buildConsolidationWorkbook(data: Consolidation): Promise<B
   return Buffer.from(await wb.xlsx.writeBuffer());
 }
 
-export async function buildGradebookWorkbook(data: Gradebook, schoolName: string): Promise<Buffer> {
+export async function buildGradebookWorkbook(data: Gradebook, schoolName: string, logo?: LogoImage | null): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
   wb.creator = 'SaaSchool';
   for (const comp of data.competences) {
@@ -156,6 +168,7 @@ export async function buildGradebookWorkbook(data: Gradebook, schoolName: string
       `Competencia: ${comp.name}`,
       `Docente: ${data.assignment.teacher.firstName} ${data.assignment.teacher.lastNamePaternal}`,
     ], cols);
+    placeLogo(wb, ws, logo, cols);
     const header = ws.addRow(['N.°', 'Apellidos y nombres', ...data.criteria.map((c) => `${c.shortName}\n(peso ${c.weight})`), 'Sugerido', 'Final', 'Conclusión descriptiva']);
     styleHeader(header);
     data.students.forEach((s, i) => {

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useSchoolBranding } from '@/features/schools/components/SchoolLetterhead';
 import {
   X,
   Printer,
@@ -28,6 +29,7 @@ interface SectionQrCardsDocumentProps {
   qrMap: Record<string, string>;
   activeClassroom?: { grade: number; section: string; educationLevel: string };
   schoolName?: string;
+  schoolLogoUrl?: string | null;
   isPrint?: boolean;
 }
 
@@ -36,6 +38,7 @@ export const SectionQrCardsDocument: React.FC<SectionQrCardsDocumentProps> = ({
   qrMap,
   activeClassroom,
   schoolName = 'Institución Educativa',
+  schoolLogoUrl,
   isPrint,
 }) => {
   return (
@@ -73,7 +76,11 @@ export const SectionQrCardsDocument: React.FC<SectionQrCardsDocumentProps> = ({
                 {/* Cabecera del carnet */}
                 <div className="border-b border-slate-300 pb-1.5 flex items-center justify-between">
                   <div className="flex items-center gap-1 text-[10px] font-black uppercase text-slate-900 tracking-wider truncate max-w-[170px]">
-                    <School className="w-3 h-3 text-slate-800 shrink-0" />
+                    {schoolLogoUrl ? (
+                      <img src={schoolLogoUrl} alt="" className="h-4 w-4 shrink-0 object-contain" />
+                    ) : (
+                      <School className="w-3 h-3 text-slate-800 shrink-0" />
+                    )}
                     <span className="truncate">{schoolName}</span>
                   </div>
                   <span className="bg-slate-100 text-slate-800 text-[8px] font-bold px-1.5 py-0.5 rounded font-mono border border-slate-200">
@@ -136,6 +143,7 @@ export const SectionQrCardsModal: React.FC<SectionQrCardsModalProps> = ({
   schoolName = 'Institución Educativa',
   onClose,
 }) => {
+  const branding = useSchoolBranding();
   const { data: classrooms = [] } = useClassrooms();
   const [selectedClassroomId, setSelectedClassroomId] = useState<string>(
     initialClassroomId || (classrooms.length > 0 ? classrooms[0].id : '')
@@ -337,6 +345,7 @@ export const SectionQrCardsModal: React.FC<SectionQrCardsModalProps> = ({
               qrMap={qrMap}
               activeClassroom={activeClassroom}
               schoolName={schoolName}
+              schoolLogoUrl={branding?.logoUrl}
             />
           )}
         </div>
@@ -360,6 +369,7 @@ export const SectionQrCardsModal: React.FC<SectionQrCardsModalProps> = ({
             qrMap={qrMap}
             activeClassroom={activeClassroom}
             schoolName={schoolName}
+            schoolLogoUrl={branding?.logoUrl}
             isPrint
           />
         </PrintPortal>
