@@ -37,7 +37,7 @@ schoolRouter.get('/:id/notes', SUPER_ADMIN, overviewController.listNotes);
 schoolRouter.post('/:id/notes', SUPER_ADMIN, overviewController.createNote);
 schoolRouter.patch('/:id/notes/:noteId', SUPER_ADMIN, overviewController.updateNote);
 schoolRouter.delete('/:id/notes/:noteId', SUPER_ADMIN, overviewController.deleteNote);
-schoolRouter.get('/:id', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT'), schoolController.getById);
+schoolRouter.get('/:id', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT'), schoolController.getById);
 schoolRouter.patch('/:id/reactivate', authorizeRoles('SUPER_ADMIN'), schoolController.reactivate);
 schoolRouter.patch('/:id', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'), schoolController.update);
 schoolRouter.delete('/:id', authorizeRoles('SUPER_ADMIN'), schoolController.deactivate);

@@ -8,9 +8,9 @@ import { dateOnlyKey, getSchoolTimeParts } from '../../utils/timezone.util';
  * en School.monthlyFee; si está vacío se usa el precio de lista.
  */
 export const PLAN_CATALOG: Record<SubscriptionPlan, { label: string; monthlyPrice: number; studentQuota: number | null }> = {
-  BASIC: { label: 'Básico', monthlyPrice: 400, studentQuota: 150 },
-  PRO: { label: 'Pro', monthlyPrice: 650, studentQuota: 500 },
-  ENTERPRISE: { label: 'Enterprise', monthlyPrice: 1200, studentQuota: null }, // null = ilimitado
+  BASIC: { label: 'Básico', monthlyPrice: 300, studentQuota: 150 },
+  PRO: { label: 'Pro', monthlyPrice: 350, studentQuota: 500 },
+  ENTERPRISE: { label: 'Enterprise', monthlyPrice: 450, studentQuota: null }, // null = ilimitado
 };
 
 /**

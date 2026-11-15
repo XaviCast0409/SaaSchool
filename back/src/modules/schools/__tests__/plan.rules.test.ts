@@ -65,7 +65,7 @@ describe('catálogo de planes', () => {
   });
 
   it('la mensualidad pactada reemplaza al precio de lista', () => {
-    expect(effectiveMonthlyFee({ plan: 'PRO', monthlyFee: null })).toBe(650);
+    expect(effectiveMonthlyFee({ plan: 'PRO', monthlyFee: null })).toBe(350);
     expect(effectiveMonthlyFee({ plan: 'PRO', monthlyFee: '520.50' })).toBe(520.5);
     expect(effectiveMonthlyFee({ plan: 'BASIC', monthlyFee: 0 })).toBe(0);
   });
