@@ -125,7 +125,7 @@ export const BeforeAfter: React.FC = () => {
 /* ------------------------------------------------------------------ Un día con KIPUX */
 
 const DAY = [
-  { time: '7:30 a. m.', icon: Sun, title: 'Entrada sin colas', text: 'Los alumnos pasan su carné por el kiosco. Las tardanzas se marcan solas y los padres reciben el aviso.' },
+  { time: '7:30 a. m.', icon: Sun, title: 'Entrada sin colas', text: 'Los alumnos escanean su carnet con su codigo QR. Las tardanzas se marcan solas y los padres reciben el aviso.' },
   { time: '10:00 a. m.', icon: GraduationCap, title: 'El docente registra notas en clase', text: 'Desde la computadora o el celular. La libreta se arma sola con la escala del CNEB.' },
   { time: '1:00 p. m.', icon: Coffee, title: 'Secretaría cobra y cuadra caja', text: 'Recibos numerados y cierre del día por efectivo, transferencia o tarjeta, sin hojas sueltas.' },
   { time: '4:00 p. m.', icon: MessageCircle, title: 'Los padres preguntan, el sistema responde', text: 'Semáforo de cada hijo, comunicados y mensajes con horario de atención para el docente.' },

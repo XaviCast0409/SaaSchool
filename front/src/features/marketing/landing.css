@@ -4,7 +4,7 @@
  * Web de marketing de KIPUX. Paleta propia de la marca (no depende del tema claro/oscuro de la app),
  * definida una sola vez como variables y usada en todo el sitio.
  */
-.kx {
+:root, .kx {
   --kx-navy: #0b1530;
   --kx-navy-2: #13213f;
   --kx-navy-3: #1c2d52;
@@ -22,7 +22,9 @@
   --kx-red: #d9534f;
   --kx-on-dark: #c3cadc;
   --kx-on-dark-2: #8c96b1;
+}
 
+.kx {
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   color: var(--kx-ink);
   background: var(--kx-paper);
@@ -240,8 +242,8 @@
 }
 .kx-input:focus { outline: none; border-color: var(--kx-purple); box-shadow: 0 0 0 4px rgba(108, 79, 163, 0.15); }
 .kx-input[aria-invalid='true'] { border-color: var(--kx-red); }
-.kx-chip { border: 1.5px solid var(--kx-line); border-radius: 12px; background: var(--kx-white); transition: all 0.2s ease; }
-.kx-chip:hover { border-color: var(--kx-purple-2); }
+.kx-chip { border: 1.5px solid var(--kx-line); border-radius: 12px; background: var(--kx-white); color: var(--kx-ink); transition: all 0.2s ease; }
+.kx-chip:hover { border-color: var(--kx-purple-2); color: var(--kx-purple); }
 .kx-chip.is-active { border-color: var(--kx-purple); background: rgba(108, 79, 163, 0.08); color: var(--kx-purple); }
 
 /* WhatsApp flotante */
