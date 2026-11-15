@@ -2,24 +2,14 @@ import { describe, it, expect } from 'vitest';
 import { buildObjectKey, resolveStorageProvider, trashKeyFor } from '../storage-provider.rules';
 
 describe('elección del almacenamiento para archivos nuevos', () => {
-  const base = { r2Configured: false, driveConfigured: false, isProduction: false };
-
-  it('prefiere R2, luego Drive, luego disco local en desarrollo', () => {
-    expect(resolveStorageProvider({ ...base, r2Configured: true, driveConfigured: true })).toBe('R2');
-    expect(resolveStorageProvider({ ...base, driveConfigured: true })).toBe('GOOGLE_DRIVE');
-    expect(resolveStorageProvider(base)).toBe('LOCAL');
+  it('con R2 configurado siempre usa R2', () => {
+    expect(resolveStorageProvider({ r2Configured: true, isProduction: true })).toBe('R2');
+    expect(resolveStorageProvider({ r2Configured: true, isProduction: false })).toBe('R2');
   });
 
-  it('en producción nunca usa el disco local', () => {
-    expect(resolveStorageProvider({ ...base, isProduction: true })).toBeNull();
-    expect(resolveStorageProvider({ ...base, isProduction: true, forced: 'local' })).toBeNull();
-  });
-
-  it('respeta FILE_STORAGE y no cae en otro almacenamiento si el forzado falta', () => {
-    expect(resolveStorageProvider({ ...base, r2Configured: true, driveConfigured: true, forced: 'drive' })).toBe('GOOGLE_DRIVE');
-    expect(resolveStorageProvider({ ...base, driveConfigured: true, forced: 'r2' })).toBeNull();
-    expect(resolveStorageProvider({ ...base, r2Configured: true, forced: 'drive' })).toBeNull();
-    expect(resolveStorageProvider({ ...base, r2Configured: true, forced: 'local' })).toBe('LOCAL');
+  it('sin R2, el disco local solo se usa en desarrollo', () => {
+    expect(resolveStorageProvider({ r2Configured: false, isProduction: false })).toBe('LOCAL');
+    expect(resolveStorageProvider({ r2Configured: false, isProduction: true })).toBeNull();
   });
 });
 

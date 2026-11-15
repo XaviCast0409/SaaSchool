@@ -41,22 +41,13 @@ const envSchema = z.object({
   VAPID_PRIVATE_KEY: z.string().min(20),
   VAPID_SUBJECT: z.string().startsWith('mailto:'),
 
-  // Google Drive (OAuth2 de la cuenta propietaria)
-  GOOGLE_APPLICATION_CREDENTIALS: z.string().optional(),
-  GOOGLE_CLIENT_ID: z.string().optional(),
-  GOOGLE_CLIENT_SECRET: z.string().optional(),
-  GOOGLE_REFRESH_TOKEN: z.string().optional(),
-  GOOGLE_DRIVE_FOLDER_ID: z.string().optional(),
-
-  // Cloudflare R2 (compatible con S3). Con las 4 variables, los archivos nuevos se guardan en R2.
+  // Cloudflare R2 (compatible con S3): archivos subidos y respaldos. Sin R2, en producción no se pueden subir archivos.
   R2_ACCOUNT_ID: z.string().optional(),
   R2_ACCESS_KEY_ID: z.string().optional(),
   R2_SECRET_ACCESS_KEY: z.string().optional(),
   R2_BUCKET: z.string().optional(),
   // Solo si el bucket usa jurisdicción (p. ej. https://<cuenta>.eu.r2.cloudflarestorage.com)
   R2_ENDPOINT: z.string().url().optional(),
-  // Fuerza dónde se guardan los archivos NUEVOS: r2 | drive | local. Sin valor: R2 > Drive > local (solo desarrollo).
-  FILE_STORAGE: z.enum(['r2', 'drive', 'local']).optional(),
 
   // Monitoreo (opcional)
   SENTRY_DSN: z.string().optional(),
@@ -67,6 +58,13 @@ const parsedEnv = envSchema.safeParse(process.env);
 if (!parsedEnv.success) {
   console.error('❌ Variables de entorno inválidas:', parsedEnv.error.format());
   process.exit(1);
+}
+
+const missingR2 = (['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET'] as const).filter(
+  (name) => !parsedEnv.data[name]?.trim(),
+);
+if (parsedEnv.data.NODE_ENV === 'production' && missingR2.length > 0) {
+  console.error(`⚠️  Faltan variables de Cloudflare R2 (${missingR2.join(', ')}): no se podrán subir ni descargar archivos.`);
 }
 
 export const env = {

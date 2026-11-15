@@ -88,7 +88,7 @@ export const SupervisedContentCard: React.FC<SupervisedContentCardProps> = ({
           )}
         </div>
 
-        {/* Archivo adjunto (Directo a Google Drive) */}
+        {/* Archivo adjunto (subido a la plataforma o enlace externo) */}
         {item.fileUrl && (
           <div className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border/80">
             <div className="flex items-center gap-2 min-w-0">

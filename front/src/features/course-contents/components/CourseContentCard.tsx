@@ -248,7 +248,7 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
         </div>
       )}
 
-      {/* Archivo Adjunto (Google Drive 5TB o Local) con Descarga Directa en 1 Clic */}
+      {/* Archivo adjunto (subido a la plataforma o enlace externo) con descarga directa */}
       {content.fileUrl && (
         <div className="p-3 rounded-xl border border-border bg-muted/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3 overflow-hidden">

@@ -2,30 +2,13 @@ import path from 'path';
 import type { FileStorage } from '@prisma/client';
 
 /**
- * Elige dónde se guardan los archivos NUEVOS. Los ya guardados se siguen leyendo
- * desde donde estén (cada StoredFile indica su almacenamiento).
- *
- * Sin preferencia: R2 > Google Drive > disco local (solo en desarrollo).
- * Devuelve null cuando no hay ningún almacenamiento utilizable.
+ * Elige dónde se guardan los archivos NUEVOS: siempre Cloudflare R2.
+ * Solo en desarrollo, si R2 no está configurado, se usa el disco local.
+ * Devuelve null cuando no hay almacenamiento utilizable (producción sin R2).
  */
-export const resolveStorageProvider = (input: {
-  forced?: 'r2' | 'drive' | 'local';
-  r2Configured: boolean;
-  driveConfigured: boolean;
-  isProduction: boolean;
-}): FileStorage | null => {
-  switch (input.forced) {
-    case 'r2':
-      return input.r2Configured ? 'R2' : null;
-    case 'drive':
-      return input.driveConfigured ? 'GOOGLE_DRIVE' : null;
-    case 'local':
-      return input.isProduction ? null : 'LOCAL';
-    default:
-      if (input.r2Configured) return 'R2';
-      if (input.driveConfigured) return 'GOOGLE_DRIVE';
-      return input.isProduction ? null : 'LOCAL';
-  }
+export const resolveStorageProvider = (input: { r2Configured: boolean; isProduction: boolean }): FileStorage | null => {
+  if (input.r2Configured) return 'R2';
+  return input.isProduction ? null : 'LOCAL';
 };
 
 /** Extensión segura para la clave: minúsculas, solo letras y números, máximo 10 caracteres. */
@@ -53,3 +36,6 @@ export const buildObjectKey = (input: {
 /** Prefijo de la "papelera": un archivo borrado se mueve aquí y una regla de R2 lo elimina a los 30 días. */
 export const TRASH_PREFIX = 'papelera/';
 export const trashKeyFor = (objectKey: string): string => `${TRASH_PREFIX}${objectKey}`;
+
+/** Prefijo de los respaldos de la base de datos dentro del bucket. */
+export const BACKUP_PREFIX = 'respaldos/';

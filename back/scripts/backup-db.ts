@@ -3,7 +3,9 @@ import { execFile } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import { promisify } from 'util';
-import { google } from 'googleapis';
+import { DeleteObjectsCommand, ListObjectsV2Command, PutObjectCommand } from '@aws-sdk/client-s3';
+import { createR2Client, readR2Config } from '../src/modules/files/r2-client';
+import { BACKUP_PREFIX } from '../src/modules/files/storage-provider.rules';
 
 const execFileAsync = promisify(execFile);
 
@@ -25,86 +27,47 @@ function findPgDump(): string {
   return 'pg_dump';
 }
 
-// 2. Subir a Google Drive
-async function uploadToGoogleDrive(filePath: string, fileName: string): Promise<{ fileId: string; folderName: string; folderId: string }> {
-  const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
-  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN?.trim();
-  const mainFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID?.trim();
-
-  if (!clientId || !clientSecret || !refreshToken) {
-    throw new Error('Credenciales de Google Drive (CLIENT_ID, SECRET, REFRESH_TOKEN) no configuradas en .env');
+// 2. Subir a Cloudflare R2 (mismo bucket de los archivos, carpeta respaldos/)
+function getR2() {
+  const config = readR2Config(process.env);
+  if (!config) {
+    throw new Error('Variables de Cloudflare R2 (R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET) no configuradas');
   }
-
-  const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
-  oauth2Client.setCredentials({ refresh_token: refreshToken });
-  const drive = google.drive({ version: 'v3', auth: oauth2Client });
-
-  // Buscar o crear subcarpeta "Backups_SaaSchool"
-  let targetFolderId = mainFolderId;
-  const folderName = 'Backups_SaaSchool';
-
-  if (mainFolderId) {
-    try {
-      const listRes = await drive.files.list({
-        q: `'${mainFolderId}' in parents and name = '${folderName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
-        fields: 'files(id, name)',
-      });
-
-      if (listRes.data.files && listRes.data.files.length > 0) {
-        targetFolderId = listRes.data.files[0].id || mainFolderId;
-      } else {
-        const createFolderRes = await drive.files.create({
-          requestBody: {
-            name: folderName,
-            mimeType: 'application/vnd.google-apps.folder',
-            parents: [mainFolderId],
-          },
-          fields: 'id',
-        });
-        targetFolderId = createFolderRes.data.id || mainFolderId;
-      }
-    } catch {
-      targetFolderId = mainFolderId;
-    }
-  }
-
-  const fileStream = fs.createReadStream(filePath);
-  const uploadRes = await drive.files.create({
-    requestBody: {
-      name: fileName,
-      parents: targetFolderId ? [targetFolderId] : undefined,
-    },
-    media: {
-      mimeType: 'application/octet-stream',
-      body: fileStream,
-    },
-    fields: 'id, name',
-  });
-
-  return {
-    fileId: uploadRes.data.id || 'OK',
-    folderName,
-    folderId: targetFolderId || '',
-  };
+  return { client: createR2Client(config), bucket: config.bucket };
 }
 
-async function pruneOldBackups(folderId: string, retentionDays: number): Promise<number> {
-  const oauth2Client = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
-  oauth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
-  const drive = google.drive({ version: 'v3', auth: oauth2Client });
-  const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000).toISOString();
-  const list = await drive.files.list({
-    q: `'${folderId}' in parents and name contains 'saaschool_backup_' and createdTime < '${cutoff}' and trashed = false`,
-    fields: 'files(id, name)',
-  });
+async function uploadToR2(filePath: string, fileName: string): Promise<string> {
+  const { client, bucket } = getR2();
+  const key = `${BACKUP_PREFIX}${fileName}`;
+  await client.send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: fs.createReadStream(filePath),
+      ContentLength: fs.statSync(filePath).size,
+      ContentType: 'application/octet-stream',
+    }),
+  );
+  return key;
+}
+
+/** Elimina de R2 los respaldos con más de `retentionDays` días. */
+async function pruneOldBackups(retentionDays: number): Promise<number> {
+  const { client, bucket } = getR2();
+  const cutoff = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
   let removed = 0;
-  for (const file of list.data.files ?? []) {
-    if (file.id) {
-      await drive.files.update({ fileId: file.id, requestBody: { trashed: true } });
-      removed++;
+  let continuationToken: string | undefined;
+  do {
+    const page = await client.send(
+      new ListObjectsV2Command({ Bucket: bucket, Prefix: `${BACKUP_PREFIX}saaschool_backup_`, ContinuationToken: continuationToken }),
+    );
+    const old = (page.Contents ?? []).filter((o) => o.Key && o.LastModified && o.LastModified.getTime() < cutoff);
+    if (old.length > 0) {
+      await client.send(new DeleteObjectsCommand({ Bucket: bucket, Delete: { Objects: old.map((o) => ({ Key: o.Key! })) } }));
+      removed += old.length;
     }
-  }
+    continuationToken = page.IsTruncated ? page.NextContinuationToken : undefined;
+  } while (continuationToken);
   return removed;
 }
 
@@ -162,17 +125,17 @@ async function main() {
     console.log(`   📂 Ruta: ${outputPath}`);
     console.log(`   ⚖️  Tamaño: ${readableSize}\n`);
 
-    // Subir a la nube (Google Drive)
-    console.log(`☁️  [2/2] Subiendo respaldo a Google Drive...`);
+    // Subir a la nube (Cloudflare R2)
+    console.log(`☁️  [2/2] Subiendo respaldo a Cloudflare R2...`);
     try {
-      const driveResult = await uploadToGoogleDrive(outputPath, fileName);
+      const key = await uploadToR2(outputPath, fileName);
       console.log(`✅ Respaldo subido a la nube correctamente:`);
-      console.log(`   📁 Carpeta Drive: ${driveResult.folderName}`);
-      console.log(`   🆔 ID de archivo: ${driveResult.fileId}\n`);
+      console.log(`   📁 R2: ${key}\n`);
 
-      if (process.env.BACKUP_RETENTION_DAYS && driveResult.folderId) {
-        const removed = await pruneOldBackups(driveResult.folderId, Number(process.env.BACKUP_RETENTION_DAYS));
-        console.log(`🧹 Depuración de respaldos antiguos (> ${process.env.BACKUP_RETENTION_DAYS} días): ${removed} archivo(s) enviados a la papelera.\n`);
+      const retentionDays = Number(process.env.BACKUP_RETENTION_DAYS);
+      if (retentionDays > 0) {
+        const removed = await pruneOldBackups(retentionDays);
+        console.log(`🧹 Depuración de respaldos antiguos (> ${retentionDays} días): ${removed} archivo(s) eliminados.\n`);
       }
     } catch (cloudError: any) {
       console.warn(`⚠️  Advertencia: No se pudo subir a la nube: ${cloudError.message}`);

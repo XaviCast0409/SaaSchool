@@ -25,7 +25,7 @@ Este documento contiene la especificación quirúrgica y detallada de **cada fun
 17. [Módulo Announcements](#17-módulo-announcements)
 18. [Módulo Notifications & Web Push](#18-módulo-notifications--web-push)
 19. [Módulo Academic Reports](#19-módulo-academic-reports)
-20. [Módulo Uploads & Google Drive](#20-módulo-uploads--google-drive)
+20. [Módulo Uploads & Cloudflare R2](#20-módulo-uploads--cloudflare-r2)
 21. [Módulo Catalog](#21-módulo-catalog)
 22. [Módulo Incidents & Agenda Escolar](#22-módulo-incidents--agenda-escolar)
 23. [Scripts y Crons del Sistema](#23-scripts-y-crons-del-sistema)
@@ -795,21 +795,24 @@ Este documento contiene la especificación quirúrgica y detallada de **cada fun
 
 ---
 
-## 20. Módulo Uploads & Google Drive
+## 20. Módulo Uploads & Cloudflare R2
 
-### Archivos: `upload.routes.ts` y `google-drive.service.ts`
+### Archivos: `upload.routes.ts`, `files/file-storage.service.ts`, `files/r2-storage.service.ts`, `files/r2-client.ts` y `files/storage-provider.rules.ts`
 
 * **`POST /api/uploads/material` y `POST /api/uploads/materials`**:
-  * Utiliza almacenamiento temporal en disco `multer.diskStorage({ destination: os.tmpdir() })` con límite de **30 MB** y lista blanca de extensiones (`.pdf`, `.pptx`, `.docx`, `.xlsx`, imágenes, `.zip`, `.txt`), protegiendo a Node.js de caídas por saturación de RAM (`OOM`).
-  * **Estrategia Híbrida Optimizada con Streams y Anti-Bloqueo:**
-    1. Si `googleDriveService.isConfigured()` es verdadero, sube el archivo a Google Drive leyendo en streaming con `fs.createReadStream(filePath)`. Envuelto en un bloque `try / finally` que borra el archivo temporal del disco local (`fs.promises.unlink`) apenas termina la transferencia.
-    2. Genera y retorna tanto la URL de visualización embebida (`viewUrl`: `https://drive.google.com/file/d/${fileId}/view?usp=sharing`) como el enlace de descarga directa, asignando el visor como URL principal para PDFs y documentos para eludir bloqueos por tráfico simultáneo.
-    3. Si Google Drive no estuviese disponible, mantiene el archivo en el disco local (`uploads/materials/`) y genera la URL estática de Express `/uploads/materials/<filename>`.
-* **Métodos de `GoogleDriveService`:**
-  * **`initialize()`**: Carga credenciales OAuth2 (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`) o Service Account JSON.
-  * **`isConfigured()`**: Retorna si el cliente de Google Drive está listo para operar.
-  * **`uploadFile(filePath: string, originalName: string, mimeType: string): Promise<UploadResult>`**: Transmite el archivo a Google Drive leyendo mediante `fs.createReadStream(filePath)` en streaming y retorna `{ fileId, downloadUrl, viewUrl }`. Aplica permisos públicos de lectura (`anyone / reader`) y construye el enlace de previsualización `viewUrl` anti-bloqueo.
-  * **`getFolderId()`**: Obtiene o autodescubre la carpeta compartida `SaaSchool` en Google Drive.
+  * Utiliza almacenamiento temporal en disco `multer.diskStorage({ destination: os.tmpdir() })` con límite de **30 MB** y lista blanca de extensiones (`.pdf`, `.pptx`, `.docx`, `.xlsx`, imágenes, `.zip`, `.txt`), protegiendo a Node.js de caídas por saturación de RAM (`OOM`). El archivo temporal se borra en un `finally`.
+  * Delega en `fileStorageService.store()`, que sube a R2 y registra el `StoredFile`. La respuesta usa siempre la URL interna `/api/files/<id>`.
+* **`FileStorageService`:**
+  * **`store(input)`**: elige el destino con `resolveStorageProvider` (R2; disco local solo en desarrollo sin R2), arma la clave con `buildObjectKey` y guarda `storage` + `objectKey`.
+  * **`openStream(file)`**: transmite el archivo desde R2 (o desde `storage-local` en desarrollo).
+  * **`softDeleteByUrl(url)`**: marca `deletedAt` y mueve el objeto a `papelera/`.
+* **Métodos de `R2StorageService`:**
+  * **`isConfigured()`**: `true` si están `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` y `R2_BUCKET`.
+  * **`upload({ tempPath, objectKey, mimeType, size })`**: `PutObject` en streaming.
+  * **`getStream(objectKey)`**: `GetObject`; devuelve `404` si el objeto no existe.
+  * **`moveToTrash(objectKey)`**: copia a `papelera/<clave>` y borra el original.
+  * **`checkBucket()`**: `HeadBucket` para diagnosticar credenciales.
+* **`r2-client.ts`**: `readR2Config(vars)` y `createR2Client(config)`; no depende de `config/env`, por eso lo reutiliza el script de respaldo.
 
 ---
 
@@ -865,6 +868,6 @@ Este documento contiene la especificación quirúrgica y detallada de **cada fun
 * **Qué hace:**
   1. Detecta automáticamente la ruta del ejecutable `pg_dump` en Windows o en Linux.
   2. Extrae un respaldo completo de la base de datos PostgreSQL con compresión binaria.
-  3. Se conecta a Google Drive mediante credenciales OAuth2.
-  4. Crea o reutiliza la carpeta `Backups_SaaSchool` y sube el archivo generado.
+  3. Lo sube al bucket de Cloudflare R2 en `respaldos/` (solo necesita `DATABASE_URL` y las variables `R2_*`).
+  4. Con `BACKUP_RETENTION_DAYS`, elimina de R2 los respaldos más antiguos.
 

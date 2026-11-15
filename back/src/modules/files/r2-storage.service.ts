@@ -11,6 +11,7 @@ import {
 import { env } from '../../config/env';
 import { AppError } from '../../core/errors/app-error';
 import { trashKeyFor } from './storage-provider.rules';
+import { createR2Client, readR2Config } from './r2-client';
 
 /**
  * Cloudflare R2 mediante la API compatible con S3.
@@ -19,24 +20,16 @@ import { trashKeyFor } from './storage-provider.rules';
  */
 export class R2StorageService {
   private client: S3Client | null = null;
-  private readonly bucket = env.R2_BUCKET?.trim() || '';
+  private readonly config = readR2Config(env);
+  private readonly bucket = this.config?.bucket ?? '';
 
   isConfigured(): boolean {
-    return Boolean(env.R2_ACCOUNT_ID?.trim() && env.R2_ACCESS_KEY_ID?.trim() && env.R2_SECRET_ACCESS_KEY?.trim() && this.bucket);
+    return this.config !== null;
   }
 
   private getClient(): S3Client {
-    if (!this.isConfigured()) throw new AppError('El almacenamiento R2 no está configurado.', 503);
-    if (!this.client) {
-      this.client = new S3Client({
-        region: 'auto',
-        endpoint: env.R2_ENDPOINT?.trim() || `https://${env.R2_ACCOUNT_ID!.trim()}.r2.cloudflarestorage.com`,
-        credentials: {
-          accessKeyId: env.R2_ACCESS_KEY_ID!.trim(),
-          secretAccessKey: env.R2_SECRET_ACCESS_KEY!.trim(),
-        },
-      });
-    }
+    if (!this.config) throw new AppError('El almacenamiento de archivos (R2) no está configurado.', 503);
+    if (!this.client) this.client = createR2Client(this.config);
     return this.client;
   }
 

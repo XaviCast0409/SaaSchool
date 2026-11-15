@@ -4,7 +4,7 @@
 > **Plataforma:** SaaSchool — SaaS B2B Multi-Tenant para Gestión Escolar (Perú / MINEDU / SIAGIE / CNEB)  
 > **Entorno de Ejecución:** Node.js 18+ | Express 4.x | TypeScript 5.x (Strict Mode)  
 > **Base de Datos y ORM:** PostgreSQL 16+ con Prisma ORM 5.22  
-> **Protocolos & Servicios:** JWT, Web Push (VAPID RFC 8292), Nodemailer SMTP, Google Drive API v3, Multer Temporary Disk Storage  
+> **Protocolos & Servicios:** JWT, Web Push (VAPID RFC 8292), Nodemailer SMTP, Cloudflare R2 (API S3), Multer Temporary Disk Storage  
 
 ---
 
@@ -25,7 +25,7 @@ flowchart TD
     Repository --> DB[(PostgreSQL Database)]
     Service -.-> Push[Web Push Notifications]
     Service -.-> Mail[Nodemailer SMTP]
-    Service -.-> Drive[Google Drive API v3]
+    Service -.-> R2[Cloudflare R2]
     Controller -.-> GlobalErr[globalErrorHandler: Error Handling Centralizado]
 ```
 
@@ -53,7 +53,7 @@ Valida mediante Zod que todas las variables requeridas existan al inicializar el
   * `BCRYPT_ROUNDS`: Rondas de sal para encriptación de claves (por defecto `12`).
   * `USER_EMAIL` y `PASS_EMAIL`: Credenciales SMTP de Gmail para Nodemailer.
   * `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`: Claves VAPID para notificaciones Web Push.
-  * `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`, `GOOGLE_DRIVE_FOLDER_ID`: Credenciales OAuth2 para almacenamiento en Google Drive.
+  * `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` (y opcional `R2_ENDPOINT`): bucket privado de Cloudflare R2 para archivos subidos y respaldos.
 
 ### 2.2 Prisma Client Singleton (`src/config/prisma.ts`)
 Exporta una instancia única de `PrismaClient` asignada a `globalThis` en entornos de desarrollo para evitar saturar el pool de conexiones de PostgreSQL con recargas en caliente (`ts-node-dev`). En desarrollo registra `['query', 'info', 'warn', 'error']` y en producción solo `['error']`.
@@ -822,19 +822,20 @@ erDiagram
 
 ---
 
-### Módulo 19: `uploads` y `google-drive` — Almacenamiento Dual de Archivos
+### Módulo 19: `uploads` y `files` — Almacenamiento de Archivos en Cloudflare R2
 
-* **Ruta Base:** `/api/uploads`
-* **Seguridad:** `authMiddleware`, `tenantMiddleware`.
+* **Ruta Base:** `/api/uploads` (subida) y `/api/files` (descarga firmada)
+* **Seguridad:** `authMiddleware`, `tenantMiddleware`; la descarga usa enlaces firmados (HMAC) de 10 minutos.
 
 #### Funciones y Métodos
 * **`POST /api/uploads/material` y `POST /api/uploads/materials`**:
-  * Procesa archivos de hasta **30 MB** (PDF, PPTX, DOCX, XLSX, imágenes, ZIP, TXT) mediante almacenamiento temporal en disco `multer.diskStorage({ destination: os.tmpdir() })`, eliminando desbordamientos de memoria RAM (`OOM`).
-  * **Estrategia Dual Optimizada:**
-    1. **Google Drive API v3 (Prioridad con Streams):** Lee el archivo mediante `fs.createReadStream(filePath)` y sube por fragmentos al Google Drive institucional. La subida se ejecuta dentro de un bloque `try / finally` que garantiza la eliminación inmediata del archivo temporal local con `fs.promises.unlink`.
-    2. **Prevención de Bloqueos por Descarga Simultánea:** Retorna tanto la URL de visualización embebida (`viewUrl`: `https://drive.google.com/file/d/${fileId}/view?usp=sharing`) como el enlace de descarga directa, asignando el visor embebido como URL principal para PDFs y documentos para evitar que Google Drive bloquee la IP por descargas masivas de alumnos.
-    3. **Fallback Local:** Si Google Drive no estuviese configurado o fallara temporalmente, mantiene el archivo en disco (`/uploads/materials/<hash>.ext`), sirviéndolo como ruta estática en Express.
-  * **Retorna:** `201 Created` con `{ url, viewUrl, downloadUrl, fileName, fileType, fileSize, storage: 'GOOGLE_DRIVE' | 'LOCAL' }`.
+  * Procesa archivos de hasta **30 MB** (PDF, PPTX, DOCX, XLSX, imágenes, ZIP, TXT) mediante almacenamiento temporal en disco `multer.diskStorage({ destination: os.tmpdir() })`, eliminando desbordamientos de memoria RAM (`OOM`). Verifica la firma real del archivo y la cuota diaria.
+  * **Almacenamiento (`FileStorageService` + `R2StorageService`):**
+    1. Sube el archivo al bucket **privado** de R2 con la clave `<colegio>/<año>/<propósito>/<uuid>.<ext>` (el nombre original solo queda en la BD) y registra un `StoredFile` con `storage: 'R2'` y `objectKey`.
+    2. Solo en desarrollo y sin variables de R2, guarda en `back/storage-local` (`storage: 'LOCAL'`). En producción sin R2 responde `503`.
+    3. Al eliminar, el objeto se mueve a `papelera/` (una regla de ciclo de vida de R2 lo borra a los 30 días).
+  * **Retorna:** `201 Created` con `{ fileId, url: '/api/files/<id>', viewUrl, downloadUrl, fileName, fileType, fileSize, storage: 'R2' | 'LOCAL' }`.
+* **`GET /api/files/:id/link`** genera la URL firmada; **`GET /api/files/:id/content`** la valida y transmite el archivo desde R2.
 
 ---
 
@@ -878,13 +879,16 @@ erDiagram
 
 ## 5. Scripts de Soporte y Tareas Operativas
 
-### 5.1 Backup Automatizado a Google Drive (`scripts/backup-db.ts`)
-* **Comando:** `npm run db:backup`
+### 5.1 Backup Automatizado a Cloudflare R2 (`scripts/backup-db.ts`)
+* **Comando:** `npm run db:backup` (semanal en GitHub Actions)
 * **Qué hace:**
   1. Detecta automáticamente la ruta del ejecutable `pg_dump` en Windows (`C:\Program Files\PostgreSQL\1x\bin\pg_dump.exe`) o en entornos Linux/Docker.
   2. Genera un dump binario completo de la base de datos PostgreSQL con timestamp: `backups/saaschool_backup_YYYY-MM-DD_HH-mm-ss.dump`.
-  3. Autentica contra Google Drive mediante OAuth2.
-  4. Crea o reutiliza la carpeta `Backups_SaaSchool` en Google Drive y sube el backup automáticamente.
+  3. Lo sube al bucket de R2 en `respaldos/` usando solo las variables `R2_*` (no requiere el resto de la configuración de la app).
+  4. Con `BACKUP_RETENTION_DAYS`, elimina de R2 los respaldos más antiguos.
+
+### 5.1.1 Diagnóstico de R2 (`scripts/check-r2.ts`)
+* **Comando:** `npm run r2:check` — verifica variables, acceso al bucket y una subida/lectura/borrado de prueba.
 
 ### 5.2 Seeding Institucional (`prisma/seed.ts`)
 * **Comando:** `npm run prisma:seed`
@@ -901,7 +905,7 @@ erDiagram
 | `PORT` | No | Puerto de escucha Express | Toma el puerto 3000 por defecto. |
 | `USER_EMAIL` / `PASS_EMAIL` | No | SMTP Nodemailer para recordatorios | No envía correos reales; simula en log. |
 | `VAPID_PUBLIC_KEY` / `PRIVATE` | **SÍ** | Web Push para celulares | Toma llaves por defecto o falla push. |
-| `GOOGLE_REFRESH_TOKEN` / `ID` | No | Almacenamiento en Google Drive | Usa almacenamiento local en disco (`/uploads`). |
+| `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_BUCKET` | **SÍ** (producción) | Archivos subidos y respaldos en Cloudflare R2 | En producción no se pueden subir ni descargar archivos; en desarrollo usa `back/storage-local`. |
 | Extensión PostgreSQL UUID | **SÍ** | Generación de `@default(uuid())` | Falla la creación de tablas en migraciones. |
 
 ---

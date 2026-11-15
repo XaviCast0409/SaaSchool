@@ -17,7 +17,6 @@ async function main() {
     console.log(`   - ${name}: ${process.env[name]?.trim() ? '✅ configurado' : '❌ falta'}`);
   }
   if (process.env.R2_ENDPOINT) console.log(`   - R2_ENDPOINT: ${process.env.R2_ENDPOINT}`);
-  if (process.env.FILE_STORAGE) console.log(`   - FILE_STORAGE: ${process.env.FILE_STORAGE}`);
 
   if (!r2StorageService.isConfigured()) {
     console.error('\n❌ Faltan variables de R2 en back/.env.');
