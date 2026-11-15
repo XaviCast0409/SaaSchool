@@ -62,6 +62,7 @@ import { DEFAULT_WA_TEMPLATE, buildWhatsAppLink, remainingOf } from '../utils/wh
 import { useGetActiveSchool } from '@/features/schools/api/useSchool';
 import { PaymentObligation, ObligationStatus } from '../types';
 import { formatPeruShortDate } from '@/lib/dateUtils';
+import { formatFullName, formatEducationLevel } from '@/lib/utils';
 
 export const PaymentsPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -145,6 +146,25 @@ export const PaymentsPage: React.FC = () => {
 
   const obligations = isParent ? parentObligations : adminObligations;
   const isLoading = isParent ? isLoadingParentObligations : isLoadingAdminObligations;
+
+  const displayObligations = React.useMemo(() => {
+    if (!isParent) return obligations;
+    const now = new Date();
+    return [...obligations].sort((a, b) => {
+      const isOverdueA = (a.status === 'PENDING' || a.status === 'PARTIAL') && new Date(a.dueDate) < now;
+      const isOverdueB = (b.status === 'PENDING' || b.status === 'PARTIAL') && new Date(b.dueDate) < now;
+      const isPaidA = a.status === 'PAID';
+      const isPaidB = b.status === 'PAID';
+
+      if (isOverdueA && !isOverdueB) return -1;
+      if (!isOverdueA && isOverdueB) return 1;
+
+      if (isPaidA && !isPaidB) return 1;
+      if (!isPaidA && isPaidB) return -1;
+
+      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+    });
+  }, [obligations, isParent]);
 
   const handleBulkReminders = async () => {
     if (await confirmDialog({ title: '¿Enviar recordatorios masivos?', description: 'Se enviará un correo electrónico a todos los apoderados con deudas vencidas.', confirmText: 'Enviar recordatorios' })) {
@@ -391,7 +411,7 @@ export const PaymentsPage: React.FC = () => {
                 <option value="">Todas las Aulas</option>
                 {classrooms.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.grade}° "{c.section}" - {c.educationLevel}
+                    {c.grade}° "{c.section}" - {formatEducationLevel(c.educationLevel)}
                   </option>
                 ))}
               </select>
@@ -406,7 +426,104 @@ export const PaymentsPage: React.FC = () => {
             <Skeleton className="h-64 w-full rounded-xl" />
           </div>
         ) : (
-          <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+          <>
+            {/* Mobile View for Parent (< 768px) */}
+            {isParent && (
+              <div className="md:hidden space-y-3">
+                {displayObligations.length ? (
+                  displayObligations.map((item) => {
+                    const student = item.enrollment?.student;
+                    const classroom = item.enrollment?.classroom;
+                    const isOverdue = (item.status === 'PENDING' || item.status === 'PARTIAL') && new Date(item.dueDate) < new Date();
+                    const studentName = student ? formatFullName(student, 'LAST_FIRST') : 'Alumno s/n';
+
+                    return (
+                      <div key={item.id} className="rounded-xl border border-border bg-card p-4 shadow-sm space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="font-semibold text-foreground text-sm">{studentName}</div>
+                            <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                              {student?.documentId && <span className="font-mono">DNI: {student.documentId}</span>}
+                              {classroom && (
+                                <span className="px-1.5 py-0.5 rounded text-xs font-semibold bg-secondary text-secondary-foreground">
+                                  {classroom.grade}° "{classroom.section}"
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div>
+                            {item.status === 'PAID' && <Badge variant="success">Pagado</Badge>}
+                            {item.status === 'PENDING' && !isOverdue && <Badge variant="warning">Pendiente</Badge>}
+                            {item.status === 'PENDING' && isOverdue && <Badge variant="destructive">Vencido</Badge>}
+                            {item.status === 'PARTIAL' && <Badge variant="secondary">Pago Parcial</Badge>}
+                            {item.status === 'CANCELLED' && <Badge variant="outline">Anulado</Badge>}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs pt-1 border-t border-border">
+                          <div>
+                            <div className="font-medium text-foreground text-xs">{item.title}</div>
+                            <div className="text-xs text-muted-foreground">{item.concept}</div>
+                            <div className={`mt-1 ${isOverdue ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
+                              Vence: {formatPeruShortDate(item.dueDate)}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-base font-extrabold text-foreground">
+                              S/ {item.amountDue.toFixed(2)}
+                            </div>
+                            {remainingOf(item) > 0 && remainingOf(item) !== item.amountDue && (
+                              <div className="text-[11px] text-muted-foreground">
+                                Saldo: S/ {remainingOf(item).toFixed(2)}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
+                          {item.status !== 'PAID' && item.status !== 'CANCELLED' && remainingOf(item) > 0 && (
+                            <Button
+                              size="sm"
+                              className="h-8 text-xs gap-1 bg-emerald-600 hover:bg-emerald-700 text-white w-full"
+                              onClick={() =>
+                                setReportFor({
+                                  id: item.id,
+                                  title: item.title,
+                                  balance: remainingOf(item),
+                                  studentName: student ? `${student.firstNames} ${student.lastNamePaternal}` : undefined,
+                                })
+                              }
+                            >
+                              <Send className="w-3.5 h-3.5" />
+                              <span>Reportar pago</span>
+                            </Button>
+                          )}
+                          {item.transactions && item.transactions.length > 0 && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 text-xs gap-1 w-full"
+                              onClick={() => setSelectedTransactionIdForReceipt(item.transactions[item.transactions.length - 1].id)}
+                            >
+                              <FileText className="w-3.5 h-3.5 text-primary" />
+                              <span>Boleta</span>
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="rounded-xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
+                    No hay obligaciones de pago registradas.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Desktop Table (and full view for non-parents) */}
+            <div className={`rounded-xl border border-border bg-card shadow-sm overflow-hidden ${isParent ? 'hidden md:block' : ''}`}>
             <Table>
               <TableHeader className="bg-muted/40">
                 <TableRow>
@@ -419,8 +536,8 @@ export const PaymentsPage: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {obligations.length ? (
-                  obligations.map((item) => {
+                {displayObligations.length ? (
+                  displayObligations.map((item) => {
                     const student = item.enrollment?.student;
                     const classroom = item.enrollment?.classroom;
                     const isOverdue = item.status === 'PENDING' && new Date(item.dueDate) < new Date();
@@ -430,7 +547,7 @@ export const PaymentsPage: React.FC = () => {
                         <TableCell>
                           <div>
                             <div className="font-semibold text-foreground text-sm">
-                              {student ? `${student.lastNamePaternal} ${student.lastNameMaternal}, ${student.firstNames}` : 'Alumno s/n'}
+                              {student ? formatFullName(student, 'LAST_FIRST') : 'Alumno s/n'}
                             </div>
                             <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                               {student?.documentId && <span className="font-mono">DNI: {student.documentId}</span>}
@@ -616,6 +733,7 @@ export const PaymentsPage: React.FC = () => {
               />
             )}
           </div>
+          </>
         )}
       </div>
 

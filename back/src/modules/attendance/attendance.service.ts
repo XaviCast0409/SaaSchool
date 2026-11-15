@@ -9,7 +9,9 @@ import {
   computeRiskSignals,
   RISK_REASON_LABELS,
   type RiskThresholds,
+  isSchoolDay,
 } from './attendance.rules';
+import { nationalHolidays } from '../calendar/official-dates';
 import type {
   AttendanceRepository,
   AttendanceMonthlySummary,
@@ -48,6 +50,41 @@ export interface AttendanceUserContext {
 
 export class AttendanceService {
   constructor(private readonly attendanceRepository: AttendanceRepository) {}
+
+  private async assertSchoolDayForAttendance(schoolId: string, dateInput: string | Date): Promise<void> {
+    const dateStr =
+      typeof dateInput === 'string'
+        ? dateInput.slice(0, 10)
+        : dateInput.toISOString().slice(0, 10);
+
+    const activeYear = await prisma.academicYear.findFirst({
+      where: { schoolId, isActive: true },
+      select: { year: true, startDate: true, endDate: true },
+    });
+
+    const yearNumber = Number(dateStr.slice(0, 4));
+    const natHolidays = !isNaN(yearNumber) ? nationalHolidays(yearNumber) : [];
+    const holidaysMap = new Map<string, string>();
+    for (const nh of natHolidays) {
+      holidaysMap.set(nh.date, nh.name);
+    }
+
+    const schoolHolidays = await prisma.schoolHoliday.findMany({
+      where: { schoolId },
+      select: { date: true, name: true },
+    });
+    for (const sh of schoolHolidays) {
+      holidaysMap.set(sh.date.toISOString().slice(0, 10), sh.name);
+    }
+
+    const check = isSchoolDay(dateStr, activeYear, holidaysMap);
+    if (!check.isSchoolDay) {
+      throw new AppError(
+        'No se puede registrar asistencia en un día no lectivo (fin de semana, feriado o fuera del año escolar).',
+        400,
+      );
+    }
+  }
 
   /**
    * Valida si el usuario tiene permiso para REGISTRAR o MODIFICAR la asistencia de un aula específica:
@@ -161,6 +198,7 @@ export class AttendanceService {
     createAttendanceDto: CreateAttendanceDto,
     userContext?: AttendanceUserContext,
   ): Promise<Attendance> {
+    await this.assertSchoolDayForAttendance(schoolId, createAttendanceDto.date);
     await this.verifyTutorOrAdminEnrollmentWriteAccess(
       schoolId,
       createAttendanceDto.enrollmentId,
@@ -174,6 +212,7 @@ export class AttendanceService {
     bulkAttendanceDto: BulkAttendanceDto,
     userContext?: AttendanceUserContext,
   ): Promise<{ count: number }> {
+    await this.assertSchoolDayForAttendance(schoolId, bulkAttendanceDto.date);
     if (userContext?.role === 'TEACHER' && bulkAttendanceDto.records.length > 0) {
       const enrollmentIds = bulkAttendanceDto.records.map((r) => r.enrollmentId);
       const invalidCount = await prisma.enrollment.count({
@@ -220,6 +259,7 @@ export class AttendanceService {
     userContext?: AttendanceUserContext,
   ): Promise<{ count: number }> {
     await this.verifyTutorOrAdminClassroomWriteAccess(schoolId, dto.classroomId, userContext);
+    await this.assertSchoolDayForAttendance(schoolId, dto.date);
 
     // Validar que todas las matrículas pertenezcan al aula y al colegio
     const enrollmentIds = dto.records.map((r) => r.enrollmentId);
@@ -343,6 +383,8 @@ export class AttendanceService {
     const schoolNow = getSchoolTimeParts(instant);
     const todayDate = schoolNow.dateObj;
     const now = schoolNow.fullDate;
+
+    await this.assertSchoolDayForAttendance(schoolId, schoolNow.dateStr);
 
     const existing = await this.attendanceRepository.findAttendanceByDate(
       schoolId,
@@ -492,6 +534,7 @@ export class AttendanceService {
     }
 
     const dateStr = dto.date || getSchoolNow().dateStr;
+    await this.assertSchoolDayForAttendance(schoolId, dateStr);
 
     const holiday = await prisma.schoolHoliday.findUnique({
       where: { schoolId_date: { schoolId, date: parseSchoolDate(dateStr) } },
@@ -1015,7 +1058,8 @@ export class AttendanceService {
         minute: '2-digit',
         timeZone: 'America/Lima',
       });
-      throw new AppError(`El estudiante ya registró su salida a las ${outTime}.`, 409);
+      const dot = outTime.endsWith('.') ? '' : '.';
+      throw new AppError(`El estudiante ya registró su salida a las ${outTime}${dot}`, 409);
     }
 
     if (dto.pickupType === 'SELF' && enrollment.classroom.educationLevel !== 'SECONDARY') {

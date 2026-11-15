@@ -13,5 +13,16 @@ export const changePasswordSchema = z.object({
   newPassword: z.string().max(200).regex(PASSWORD_POLICY_REGEX, PASSWORD_POLICY_MESSAGE),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().email('Correo electrónico no válido').max(150),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().trim().min(1, 'Token requerido'),
+  newPassword: z.string().max(200).regex(PASSWORD_POLICY_REGEX, PASSWORD_POLICY_MESSAGE),
+});
+
 export type LoginDto = z.infer<typeof loginSchema>;
 export type ChangePasswordDto = z.infer<typeof changePasswordSchema>;
+export type ForgotPasswordDto = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordDto = z.infer<typeof resetPasswordSchema>;

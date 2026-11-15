@@ -68,14 +68,25 @@ export const ChildFinancialCard: React.FC<ChildFinancialCardProps> = ({ enrollme
           </span>
         </div>
 
-        {hasPending && fin?.nextDueDate && (
-          <div className="text-right">
-            <span className="text-xs text-muted-foreground block">Próximo Vencimiento</span>
-            <span className="text-xs font-bold text-destructive block">
-              {formatPeruDate(fin.nextDueDate, { day: '2-digit', month: 'short' })}
-            </span>
-          </div>
-        )}
+        {hasPending && fin?.nextDueDate && (() => {
+          const dueDateObj = new Date(fin.nextDueDate);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const isOverdue = dueDateObj < today;
+          const formattedDate = formatPeruDate(fin.nextDueDate, { day: '2-digit', month: 'short' });
+          return (
+            <div className="text-right">
+              <span className={`text-xs block ${isOverdue ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
+                {isOverdue ? `Vencida desde ${formattedDate}` : 'Próximo Vencimiento'}
+              </span>
+              {!isOverdue && (
+                <span className="text-xs font-bold text-foreground block">
+                  {formattedDate}
+                </span>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Button */}

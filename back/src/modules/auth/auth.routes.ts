@@ -3,7 +3,7 @@ import { AuthRepository } from './auth.repository';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { authMiddleware } from '../../core/middlewares/auth.middleware';
-import { loginRateLimiter } from '../../core/middlewares/rate-limiter.middleware';
+import { authIpRateLimiter, forgotPasswordRateLimiter, loginRateLimiter } from '../../core/middlewares/rate-limiter.middleware';
 
 const authRepository = new AuthRepository();
 const authService = new AuthService(authRepository);
@@ -17,6 +17,20 @@ export const authRouter = Router();
  * @access  Public
  */
 authRouter.post('/login', loginRateLimiter, authController.login);
+
+/**
+ * @route   POST /api/auth/forgot-password
+ * @desc    Solicitar enlace de recuperación de contraseña vía email
+ * @access  Public
+ */
+authRouter.post('/forgot-password', authIpRateLimiter, forgotPasswordRateLimiter, authController.forgotPassword);
+
+/**
+ * @route   POST /api/auth/reset-password
+ * @desc    Restablecer contraseña usando token de un solo uso
+ * @access  Public
+ */
+authRouter.post('/reset-password', authIpRateLimiter, authController.resetPassword);
 
 /**
  * @route   POST /api/auth/change-password

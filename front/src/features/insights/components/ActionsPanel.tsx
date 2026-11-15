@@ -8,8 +8,12 @@ import { useActions } from '../api/useInsights';
 
 const DOT: Record<string, string> = { high: 'bg-rose-500', medium: 'bg-amber-400', low: 'bg-sky-400' };
 
+interface ActionsPanelProps {
+  isBoardingComplete?: boolean;
+}
+
 /** Panel de la Dirección: qué hay que resolver hoy, con un clic a cada pantalla. */
-export const ActionsPanel: React.FC = () => {
+export const ActionsPanel: React.FC<ActionsPanelProps> = ({ isBoardingComplete = true }) => {
   const { data, isLoading } = useActions(true);
   return (
     <Card className="p-4 sm:p-5">
@@ -22,7 +26,8 @@ export const ActionsPanel: React.FC = () => {
         <div className="space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
       ) : !data || data.length === 0 ? (
         <p className="flex items-center gap-2 text-sm text-muted-foreground">
-          <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden /> Todo en orden: no hay pendientes urgentes.
+          <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden />
+          {!isBoardingComplete ? 'Completa la puesta en marcha para empezar.' : 'Todo en orden: no hay pendientes urgentes.'}
         </p>
       ) : (
         <ul className="divide-y divide-border">

@@ -8,6 +8,7 @@ import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
 import { toast } from 'sonner';
 import { getPeruToday, formatPeruDate } from '@/lib/dateUtils';
 import { endOfDayLima, expiryPresets, UNDATED_ARCHIVE_DAYS } from '../lib/expiry';
+import { useAuthStore } from '@/store/useAuthStore';
 
 interface CreateAnnouncementModalProps {
   isOpen: boolean;
@@ -19,6 +20,8 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
   onClose,
 }) => {
   const { mutateAsync: createAnnouncement, isPending } = useCreateAnnouncement();
+  const currentUser = useAuthStore((s) => s.user);
+  const isTeacher = currentUser?.role === 'TEACHER';
 
   const {
     register,
@@ -33,7 +36,7 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
       title: '',
       content: '',
       priority: 'NORMAL',
-      targetRoles: ['PARENT', 'TEACHER'],
+      targetRoles: isTeacher ? ['PARENT'] : ['PARENT', 'TEACHER'],
       responseType: 'NONE',
       classroomId: '',
       expiresAt: '',
@@ -61,6 +64,10 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
   };
 
   const onSubmit = async (data: CreateAnnouncementFormData) => {
+    if (isTeacher && !data.classroomId) {
+      toast.error('Elige un aula para publicar el comunicado.');
+      return;
+    }
     try {
       await createAnnouncement({
         title: data.title,
@@ -151,12 +158,18 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
               Destinatarios *
             </label>
             <div className="flex flex-wrap gap-2">
-              {[
-                { role: 'PARENT', label: 'Apoderados / Padres' },
-                { role: 'TEACHER', label: 'Profesores / Docentes' },
-                { role: 'ADMINISTRATIVE', label: 'Personal Administrativo' },
-                { role: 'SCHOOL_ADMIN', label: 'Dirección' },
-              ].map(({ role, label }) => {
+              {(isTeacher
+                ? [
+                    { role: 'PARENT' as const, label: 'Apoderados / Padres' },
+                    { role: 'TEACHER' as const, label: 'Profesores / Docentes' },
+                  ]
+                : [
+                    { role: 'PARENT' as const, label: 'Apoderados / Padres' },
+                    { role: 'TEACHER' as const, label: 'Profesores / Docentes' },
+                    { role: 'ADMINISTRATIVE' as const, label: 'Personal Administrativo' },
+                    { role: 'SCHOOL_ADMIN' as const, label: 'Dirección' },
+                  ]
+              ).map(({ role, label }) => {
                 const isSelected = selectedRoles.includes(role as any);
                 return (
                   <button
@@ -182,14 +195,15 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
 
           <div>
             <label htmlFor="announcement-classroom" className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
-              Alcance
+              Alcance {isTeacher && <span className="text-destructive">*</span>}
             </label>
             <select
               id="announcement-classroom"
               {...register('classroomId')}
               className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             >
-              <option value="">Todo el colegio</option>
+              {!isTeacher && <option value="">Todo el colegio</option>}
+              {isTeacher && <option value="">-- Selecciona tu aula (obligatorio) --</option>}
               {classrooms.map((c) => (
                 <option key={c.id} value={c.id}>
                   Solo {c.educationLevel === 'INITIAL' ? `${c.grade} años` : `${c.grade}.°`} "{c.section}" ·{' '}

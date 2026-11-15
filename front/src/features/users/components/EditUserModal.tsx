@@ -11,6 +11,7 @@ import type { DirectoryUser } from '../types';
 import { FinanceRoleField } from './FinanceRoleField';
 import { AvatarUploader } from './AvatarUploader';
 import { useAuthStore } from '@/store/useAuthStore';
+import { canChangeRole } from '../rules';
 
 const STAFF_ROLES = ['SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'];
 
@@ -22,7 +23,9 @@ interface EditUserModalProps {
 
 export const EditUserModal: React.FC<EditUserModalProps> = ({ user, isOpen, onClose }) => {
   const { mutate: updateUser, isPending, error } = useUpdateUser();
-  const currentRole = useAuthStore((s) => s.user?.role);
+  const currentUser = useAuthStore((s) => s.user);
+  const currentRole = currentUser?.role;
+  const allowRoleChange = canChangeRole(currentRole, currentUser?.id, user?.id);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   useEffect(() => setAvatarUrl(user?.avatarUrl ?? null), [user]);
   // Dirección puede poner o cambiar la foto de su personal (docentes, secretaría, dirección)
@@ -55,8 +58,12 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ user, isOpen, onCl
   if (!isOpen || !user) return null;
 
   const onSubmit = (data: UpdateUserFormData) => {
+    const payload = { ...data };
+    if (!allowRoleChange) {
+      delete payload.role;
+    }
     updateUser(
-      { id: user.id, data },
+      { id: user.id, data: payload },
       {
         onSuccess: () => {
           toast.success(`✅ Usuario ${data.firstName} ${data.lastNamePaternal} actualizado correctamente.`);
@@ -109,18 +116,27 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ user, isOpen, onCl
           )}
 
           {/* Role */}
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-foreground">Rol del Usuario *</label>
-            <select
-              {...register('role')}
-              className="flex h-9 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            >
-              <option value="TEACHER">Profesor(a)</option>
-              <option value="PARENT">Apoderado / Padre de Familia</option>
-              <option value="ADMINISTRATIVE">Personal Administrativo (Secretaría / Caja)</option>
-              <option value="SCHOOL_ADMIN">Director / Promotor (Administrador General)</option>
-            </select>
-          </div>
+          {allowRoleChange ? (
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-foreground">Rol del Usuario *</label>
+              <select
+                {...register('role')}
+                className="flex h-9 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                <option value="TEACHER">Profesor(a)</option>
+                <option value="PARENT">Apoderado / Padre de Familia</option>
+                <option value="ADMINISTRATIVE">Personal Administrativo (Secretaría / Caja)</option>
+                <option value="SCHOOL_ADMIN">Director / Promotor (Administrador General)</option>
+              </select>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-foreground">Rol del Usuario</label>
+              <div className="flex h-9 w-full items-center rounded-md border border-border bg-muted/40 px-3 text-xs text-muted-foreground">
+                {user.role} (no modificable)
+              </div>
+            </div>
+          )}
 
           <FinanceRoleField user={user} />
 

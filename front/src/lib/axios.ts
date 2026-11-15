@@ -30,11 +30,27 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Interceptor para manejar tokens o sesiones invalidadas (401) automáticamente
+// Interceptor para manejar tokens o sesiones invalidadas (401) o colegios suspendidos (403) automáticamente
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error.response?.status;
+    const message = error.response?.data?.message || '';
+
+    // Colegio suspendido: 403 con mensaje de suspensión
+    const isSuspension =
+      status === 403 &&
+      typeof message === 'string' &&
+      message.toLowerCase().includes('suspendido');
+
+    if (isSuspension) {
+      useAuthStore.getState().logout();
+      sessionStorage.setItem('suspension_message', message);
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login?suspendido=1';
+      }
+      return Promise.reject(error);
+    }
 
     // Un 401 del propio login es "credenciales inválidas": se muestra en el formulario, sin redirigir
     const isLoginRequest = String(error.config?.url ?? '').endsWith('/auth/login');

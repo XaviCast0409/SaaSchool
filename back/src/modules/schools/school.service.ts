@@ -53,9 +53,20 @@ export class SchoolService {
   }
 
   async createSchool(createSchoolDto: CreateSchoolDto): Promise<SchoolView> {
-    // Sin clave indicada, el director quedaría con una clave que nadie conoce
-    if (createSchoolDto.adminEmail && !createSchoolDto.adminPassword) {
-      throw new AppError('Indica la contraseña inicial del director.', 400);
+    const existingSchool = await this.schoolRepository.findByDocumentId(createSchoolDto.documentId);
+    if (existingSchool) {
+      throw new AppError('Ya existe un colegio registrado con ese RUC.', 409);
+    }
+
+    if (createSchoolDto.adminEmail) {
+      // Sin clave indicada, el director quedaría con una clave que nadie conoce
+      if (!createSchoolDto.adminPassword) {
+        throw new AppError('Indica la contraseña inicial del director.', 400);
+      }
+      const existingUser = await this.schoolRepository.findUserByEmail(createSchoolDto.adminEmail);
+      if (existingUser) {
+        throw new AppError('Ese correo ya está registrado en la plataforma.', 409);
+      }
     }
     return toView(await this.schoolRepository.create(createSchoolDto));
   }

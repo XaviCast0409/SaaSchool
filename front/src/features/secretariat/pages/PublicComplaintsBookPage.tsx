@@ -64,7 +64,11 @@ export const PublicComplaintsBookPage: React.FC = () => {
             </p>
           </div>
           <dl className="grid gap-x-4 gap-y-2 rounded-md bg-muted/50 p-4 text-sm sm:grid-cols-[160px_1fr]">
-            <dt className="text-muted-foreground">Fecha</dt><dd>{formatPeruShortDate(getPeruToday())}</dd>
+            <dt className="text-muted-foreground">Colegio / Proveedor</dt><dd>{school?.name} · RUC {school?.documentId || '—'}</dd>
+            <dt className="text-muted-foreground">Dirección</dt><dd>{school?.address ? `${school.address}${school.district ? `, ${school.district}` : ''}` : '—'}</dd>
+            <dt className="text-muted-foreground">Código de hoja</dt><dd className="font-mono font-semibold">{result.code}</dd>
+            <dt className="text-muted-foreground">Fecha de registro</dt><dd>{formatPeruShortDate(getPeruToday())}</dd>
+            <dt className="text-muted-foreground">Fecha límite respuesta</dt><dd className="font-semibold text-primary">{formatPeruShortDate(result.dueDate)}</dd>
             <dt className="text-muted-foreground">Tipo</dt><dd>{form.kind === 'RECLAMO' ? 'Reclamo' : 'Queja'}</dd>
             <dt className="text-muted-foreground">Consumidor</dt><dd>{form.consumerName} · {form.consumerDocType} {form.consumerDocId}</dd>
             <dt className="text-muted-foreground">Bien contratado</dt><dd>{form.itemDescription}</dd>
@@ -81,10 +85,16 @@ export const PublicComplaintsBookPage: React.FC = () => {
         <form onSubmit={submit} className="space-y-5">
           <div className="flex items-start gap-3 rounded-lg border bg-background p-5">
             <BookOpenText className="mt-0.5 h-6 w-6 shrink-0 text-primary" aria-hidden />
-            <div>
+            <div className="space-y-1">
               <h1 className="text-xl font-semibold">Libro de Reclamaciones</h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Conforme al Código de Protección y Defensa del Consumidor, este establecimiento cuenta con un Libro de Reclamaciones a su disposición.
+              {school && (
+                <div className="text-sm text-muted-foreground">
+                  <p className="font-semibold text-foreground">{school.name}</p>
+                  <p>RUC: {school.documentId || '—'}{school.address ? ` · Dirección: ${school.address}${school.district ? `, ${school.district}` : ''}` : ''}</p>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Conforme al Código de Protección y Defensa del Consumidor (D.S. 011-2011-PCM), este establecimiento cuenta con un Libro de Reclamaciones a su disposición.
                 Fecha: {formatPeruShortDate(getPeruToday())}.
               </p>
             </div>

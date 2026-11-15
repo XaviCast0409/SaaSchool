@@ -5,6 +5,7 @@ import { Request, Response } from 'express';
 import { recordAudit } from '../../utils/audit.util';
 import { createUserSchema, updateUserSchema, userFilterSchema } from './user.schema';
 import type { UserService } from './user.service';
+import type { Role } from '@prisma/client';
 
 export class UserController {
   constructor(private readonly userService: UserService) {}
@@ -19,7 +20,12 @@ export class UserController {
       ? ((await selectedAcademicYearId(request)) ??
         (await prisma.academicYear.findFirst({ where: { schoolId, isActive: true }, select: { id: true } }))?.id)
       : undefined;
-    const result = await this.userService.getAllUsers(schoolId, { ...queryFilters, staffYearId });
+    const result = await this.userService.getAllUsers(schoolId, {
+      ...queryFilters,
+      staffYearId,
+      actorRole: request.user?.role ? (request.user.role as Role) : undefined,
+      actorUserId: request.user?.userId,
+    });
 
     response.status(200).json({
       status: 'success',
@@ -31,7 +37,11 @@ export class UserController {
   getById = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
     const id = request.params.id as string;
-    const user = await this.userService.getUserById(id, schoolId);
+    const user = await this.userService.getUserById(
+      id,
+      schoolId,
+      request.user?.role ? (request.user.role as Role) : undefined,
+    );
     response.status(200).json({ status: 'success', data: user });
   };
 
@@ -39,7 +49,10 @@ export class UserController {
     const schoolId = request.user!.schoolId;
     const createUserDto = createUserSchema.parse(request.body);
     const { academicYearIds } = z.object({ academicYearIds: z.array(z.string().uuid()).max(5).optional() }).parse(request.body);
-    const user = await this.userService.createUser(schoolId, createUserDto);
+    const user = await this.userService.createUser(schoolId, createUserDto, {
+      role: request.user!.role as Role,
+      userId: request.user!.userId,
+    });
     // Personal: queda contratado en los años elegidos (por defecto, el vigente)
     if (user.role === 'SCHOOL_ADMIN' || user.role === 'ADMINISTRATIVE' || user.role === 'TEACHER') {
       const years = academicYearIds?.length
@@ -60,7 +73,10 @@ export class UserController {
     const schoolId = request.user!.schoolId;
     const id = request.params.id as string;
     const updateUserDto = updateUserSchema.parse(request.body);
-    const user = await this.userService.updateUser(id, schoolId, updateUserDto);
+    const user = await this.userService.updateUser(id, schoolId, updateUserDto, {
+      role: request.user!.role as Role,
+      userId: request.user!.userId,
+    });
     recordAudit(request, {
       action: 'USER_UPDATED',
       entity: 'User',
@@ -74,7 +90,10 @@ export class UserController {
   deactivate = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
     const id = request.params.id as string;
-    const user = await this.userService.deactivateUser(id, schoolId);
+    const user = await this.userService.deactivateUser(id, schoolId, {
+      role: request.user!.role as Role,
+      userId: request.user!.userId,
+    });
     recordAudit(request, {
       action: 'USER_DEACTIVATED',
       entity: 'User',
@@ -88,7 +107,10 @@ export class UserController {
   reactivate = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
     const id = request.params.id as string;
-    const user = await this.userService.reactivateUser(id, schoolId);
+    const user = await this.userService.reactivateUser(id, schoolId, {
+      role: request.user!.role as Role,
+      userId: request.user!.userId,
+    });
     response.status(200).json({ status: 'success', data: user });
   };
 
@@ -96,7 +118,10 @@ export class UserController {
     const schoolId = request.user!.schoolId;
     const id = request.params.id as string;
     const { newPassword } = request.body || {};
-    const result = await this.userService.resetPassword(id, schoolId, newPassword);
+    const result = await this.userService.resetPassword(id, schoolId, newPassword, {
+      role: request.user!.role as Role,
+      userId: request.user!.userId,
+    });
     recordAudit(request, {
       action: 'USER_PASSWORD_RESET',
       entity: 'User',

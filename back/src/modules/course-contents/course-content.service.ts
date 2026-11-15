@@ -7,6 +7,7 @@ import type {
 } from './course-content.schema';
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
+import { assertStudentAccess } from '../../core/security/student-access';
 import { fileStorageService } from '../files/file-storage.service';
 import { assertPeriod } from '../academic/academic.context';
 
@@ -119,11 +120,11 @@ export class CourseContentService {
     studentId: string,
     user?: { id: string; role: string; studentId?: string },
   ) {
-    if (user?.role === 'STUDENT') {
-      const callerStudentId = user.studentId || user.id;
-      if (callerStudentId !== studentId) {
-        throw new AppError('No tienes permiso para consultar cursos de otro estudiante.', 403);
-      }
+    if (user) {
+      await assertStudentAccess(
+        { userId: user.id, role: user.role as any, schoolId, studentId: user.studentId },
+        studentId,
+      );
     }
     const studentData = await this.repository.findStudentCourses(schoolId, studentId);
     if (!studentData) {
@@ -137,11 +138,11 @@ export class CourseContentService {
     studentId: string,
     user?: { id: string; role: string; studentId?: string },
   ) {
-    if (user?.role === 'STUDENT') {
-      const callerStudentId = user.studentId || user.id;
-      if (callerStudentId !== studentId) {
-        throw new AppError('No tienes permiso para consultar tareas de otro estudiante.', 403);
-      }
+    if (user) {
+      await assertStudentAccess(
+        { userId: user.id, role: user.role as any, schoolId, studentId: user.studentId },
+        studentId,
+      );
     }
     return this.repository.findStudentTasks(schoolId, studentId);
   }

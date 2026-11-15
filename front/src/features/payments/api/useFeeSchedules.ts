@@ -135,5 +135,7 @@ export const useSchedulePreview = (input: { academicYearId?: string; classroomId
 /** Número de pensiones y total anual estimado (sin cuota de ingreso). */
 export const feeSummary = (f: Pick<FeeSchedule, 'enrollmentFee' | 'monthlyFee' | 'firstMonth' | 'lastMonth'>) => {
   const months = Math.max(0, f.lastMonth - f.firstMonth + 1);
-  return { months, annual: Math.round((Number(f.enrollmentFee) + Number(f.monthlyFee) * months) * 100) / 100 };
+  const rawAnnual = Number(f.enrollmentFee) + Number(f.monthlyFee) * months;
+  const annual = Math.max(0, Math.round(rawAnnual * 100) / 100);
+  return { months, annual };
 };

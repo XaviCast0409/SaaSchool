@@ -13,21 +13,59 @@ export class StudentRepository {
     schoolId: string,
     filters: StudentFilterDto = { page: 1, limit: 10 },
   ): Promise<PaginatedResult<Student>> {
-    const { page, limit, search, classroomId, educationLevel, grade, section, academicYearId, scope } = filters;
+    const { page, limit, search, classroomId, educationLevel, grade, section, academicYearId, scope, actorRole, actorUserId } = filters;
     const skip = (page - 1) * limit;
+
+    let teacherClassroomIds: string[] | undefined = undefined;
+    if (actorRole === 'TEACHER' && actorUserId) {
+      const teacherClassrooms = await prisma.classroom.findMany({
+        where: {
+          schoolId,
+          OR: [
+            { tutorTeacherId: actorUserId },
+            { years: { some: { tutorTeacherId: actorUserId, ...(academicYearId ? { academicYearId } : {}) } } },
+            { assignments: { some: { teacherId: actorUserId, deletedAt: null, ...(academicYearId ? { academicYearId } : {}) } } },
+          ],
+        },
+        select: { id: true },
+      });
+      teacherClassroomIds = teacherClassrooms.map((c) => c.id);
+      if (teacherClassroomIds.length === 0) {
+        return {
+          data: [],
+          meta: { total: 0, page, limit, totalPages: 1 },
+        };
+      }
+    }
+
     // Matrículas del año elegido en la cabecera (o las vigentes si no se eligió año)
     const ofYear = enrollmentsOfYear(academicYearId);
     const hasClassroomFilter = Boolean(classroomId || educationLevel || grade !== undefined || section);
 
+    let effectiveClassroomId: Prisma.StringFilter | string | undefined = classroomId;
+    if (teacherClassroomIds !== undefined) {
+      if (classroomId) {
+        if (!teacherClassroomIds.includes(classroomId)) {
+          return {
+            data: [],
+            meta: { total: 0, page, limit, totalPages: 1 },
+          };
+        }
+        effectiveClassroomId = classroomId;
+      } else {
+        effectiveClassroomId = { in: teacherClassroomIds };
+      }
+    }
+
     const where: Prisma.StudentWhereInput = {
       schoolId,
-      // Con año elegido, la lista es "matriculados en ese año" salvo que se pida el directorio completo
-      ...(hasClassroomFilter || (academicYearId && scope !== 'all')
+      // Con año elegido o para docente, la lista es "matriculados en ese año"
+      ...(hasClassroomFilter || (academicYearId && scope !== 'all') || teacherClassroomIds !== undefined
         ? {
             enrollments: {
               some: {
                 ...ofYear,
-                ...(classroomId ? { classroomId } : {}),
+                ...(effectiveClassroomId ? { classroomId: effectiveClassroomId } : {}),
                 ...(educationLevel || grade !== undefined || section
                   ? {
                       classroom: {
@@ -54,7 +92,7 @@ export class StudentRepository {
         : {}),
     };
 
-    const [data, total] = await Promise.all([
+    const [rawStudents, total] = await Promise.all([
       prisma.student.findMany({
         where,
         skip,
@@ -97,6 +135,24 @@ export class StudentRepository {
       }),
       prisma.student.count({ where }),
     ]);
+
+    const data =
+      actorRole === 'TEACHER'
+        ? rawStudents.map((s) => ({
+            ...s,
+            familyRelations: s.familyRelations.map((fr) => ({
+              ...fr,
+              user: fr.user
+                ? {
+                    ...fr.user,
+                    documentId: '',
+                    cellphone: '',
+                    email: '',
+                  }
+                : fr.user,
+            })),
+          }))
+        : rawStudents;
 
     return {
       data,
@@ -182,6 +238,7 @@ export class StudentRepository {
   }
 
   async countStudentPendingObligations(studentId: string, schoolId: string): Promise<number> {
+    const today = getSchoolNow().dateObj;
     return prisma.paymentObligation.count({
       where: {
         schoolId,
@@ -189,6 +246,7 @@ export class StudentRepository {
           studentId,
         },
         status: { in: ['PENDING', 'PARTIAL'] },
+        dueDate: { lt: today },
       },
     });
   }

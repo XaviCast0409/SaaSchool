@@ -94,6 +94,24 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
   const [editingNoteStudent, setEditingNoteStudent] = useState<AttendanceSheetStudentItem | null>(null);
   const [noteText, setNoteText] = useState('');
 
+  const isWeekend = useMemo(() => {
+    if (!date) return false;
+    const parts = date.split('-').map(Number);
+    if (parts.length === 3) {
+      const d = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2], 12, 0, 0));
+      const day = d.getUTCDay();
+      return day === 0 || day === 6;
+    }
+    return false;
+  }, [date]);
+
+  const isNonSchoolDay = Boolean(sheetData?.isSchoolDay === false || isWeekend);
+  const nonSchoolDayMessage =
+    sheetData?.nonSchoolDayReason ||
+    (isWeekend
+      ? 'No se puede registrar asistencia en fin de semana (sábado y domingo).'
+      : 'Día no lectivo.');
+
   // Sincronizar datos iniciales del backend
   useEffect(() => {
     if (sheetData?.students) {
@@ -110,7 +128,7 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
   }, [sheetData]);
 
   const handleStatusChange = (enrollmentId: string, status: AttendanceStatus) => {
-    if (!canWrite) return;
+    if (!canWrite || isNonSchoolDay) return;
     setDraftState((prev) => ({
       ...prev,
       [enrollmentId]: {
@@ -122,7 +140,7 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
   };
 
   const handleSetAll = (status: AttendanceStatus) => {
-    if (!canWrite || !sheetData?.students) return;
+    if (!canWrite || isNonSchoolDay || !sheetData?.students) return;
     const next: Record<string, { status: AttendanceStatus | null; notes: string }> = {};
     sheetData.students.forEach((s) => {
       next[s.enrollmentId] = {
@@ -149,6 +167,10 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
 
   const handleCloseUnrecorded = () => {
     if (!canWrite) return;
+    if (isNonSchoolDay) {
+      toast.error(nonSchoolDayMessage);
+      return;
+    }
     closeAttendance(
       { classroomId, date },
       {
@@ -184,6 +206,10 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
 
   const handleSaveAll = () => {
     if (!canWrite || !sheetData?.students.length) return;
+    if (isNonSchoolDay) {
+      toast.error(nonSchoolDayMessage);
+      return;
+    }
 
     const records = sheetData.students.map((s) => ({
       enrollmentId: s.enrollmentId,
@@ -315,7 +341,7 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
                   variant="outline"
                   size="sm"
                   onClick={handleCloseUnrecorded}
-                  disabled={isClosing}
+                  disabled={isClosing || isNonSchoolDay}
                   className="h-8 text-xs font-bold text-amber-700 dark:text-amber-300 border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 gap-1.5 shadow-xs"
                   title="Asigna Falta Injustificada a quienes aún no hayan registrado ingreso en portería"
                 >
@@ -328,6 +354,7 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={() => handleSetAll('PRESENT')}
+                disabled={!canWrite || isNonSchoolDay}
                 className="h-8 text-xs text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 font-bold"
               >
                 <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
@@ -338,6 +365,7 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={() => handleSetAll('ABSENT_UNJUSTIFIED')}
+                disabled={!canWrite || isNonSchoolDay}
                 className="h-8 text-xs text-destructive border-destructive/30 hover:bg-destructive/10 font-bold"
               >
                 <XCircle className="w-3.5 h-3.5 mr-1" />
@@ -360,8 +388,9 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
                 size="sm"
                 onClick={handleSaveAll}
                 isLoading={isSaving}
+                disabled={!canWrite || isNonSchoolDay || isSaving}
                 className={`h-9 px-4 text-xs font-bold gap-1.5 shadow-sm transition-all ${
-                  hasChanges
+                  hasChanges && !isNonSchoolDay
                     ? 'bg-primary text-primary-foreground hover:bg-primary/90 animate-pulse'
                     : 'bg-primary/90 text-primary-foreground'
                 }`}
@@ -372,6 +401,15 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
             </div>
           )}
         </div>
+
+        {isNonSchoolDay && (
+          <div className="flex items-center gap-2.5 p-3 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-xs font-medium">
+            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>
+              <strong>Día no lectivo:</strong> {nonSchoolDayMessage} No se permite registrar ni modificar asistencia en esta fecha.
+            </span>
+          </div>
+        )}
 
         {/* Pestañas de Filtrado y Auditoría Rápida */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border">
@@ -461,7 +499,125 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
 
       {/* Roster / Nómina Interactiva de la Sección */}
       <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Vista Mobile: Lista de tarjetas (< 768px) */}
+        <div className="md:hidden flex flex-col divide-y divide-border">
+          {filteredStudents.length === 0 ? (
+            <div className="py-12 text-center text-muted-foreground text-sm">
+              {searchFilter
+                ? 'No hay estudiantes que coincidan con la búsqueda.'
+                : 'No hay estudiantes activos matriculados en esta sección.'}
+            </div>
+          ) : (
+            filteredStudents.map((student, idx) => {
+              const currentDraft = draftState[student.enrollmentId];
+              const currentStatus = currentDraft?.status || student.status || 'PRESENT';
+              const currentNotes = currentDraft?.notes ?? student.notes;
+
+              return (
+                <div key={student.enrollmentId} className="p-3.5 space-y-3 bg-card">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] font-mono font-bold text-muted-foreground">#{idx + 1}</span>
+                        <span className="font-semibold text-foreground text-sm">{student.studentName}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground mt-0.5">
+                        <span>DNI: {student.documentId}</span>
+                        {student.studentCode && <span>• Cod: {student.studentCode}</span>}
+                      </div>
+                    </div>
+                    {/* Badge de portería / QR */}
+                    <div>
+                      {student.origin === 'QR_SCAN' ? (
+                        <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 text-[10px] font-bold gap-1">
+                          <QrCode className="w-3 h-3 text-emerald-600" />
+                          <span>QR {student.checkInTime ? formatPeruTime(student.checkInTime) : ''}</span>
+                        </Badge>
+                      ) : student.origin === 'AUTO_CLOSE' ? (
+                        <Badge variant="outline" className="border-destructive/30 bg-destructive/10 text-destructive text-[10px] font-bold">
+                          Auto-Cierre
+                        </Badge>
+                      ) : student.checkInTime ? (
+                        <Badge variant="outline" className="text-[10px] font-semibold gap-1">
+                          <Clock className="w-3 h-3 text-muted-foreground" />
+                          <span>{formatPeruTime(student.checkInTime)}</span>
+                        </Badge>
+                      ) : !student.status ? (
+                        <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[10px] font-semibold gap-1">
+                          <AlertTriangle className="w-3 h-3 text-amber-500" />
+                          <span>No pasó QR</span>
+                        </Badge>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {/* Salida si existe */}
+                  {student.checkOutTime && (
+                    <div className="text-[11px] text-muted-foreground bg-muted/40 rounded px-2 py-1">
+                      Salida: <span className="font-semibold text-foreground">{formatPeruTime(student.checkOutTime)}</span>
+                      {student.pickedUpByName && <span> (Retirado por: {student.pickedUpByName})</span>}
+                    </div>
+                  )}
+
+                  {/* Botones de estado instantáneo */}
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {STATUS_OPTS.map((opt) => {
+                      const isSelected = currentStatus === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          disabled={!canWrite || isNonSchoolDay}
+                          onClick={() => handleStatusChange(student.enrollmentId, opt.value)}
+                          className={`py-2 px-1 rounded-lg text-xs font-bold border text-center transition-all ${
+                            isSelected
+                              ? opt.activeClass
+                              : 'border-border bg-background text-muted-foreground hover:bg-muted'
+                          }`}
+                        >
+                          {opt.shortLabel}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Acciones: Nota / Incidencia */}
+                  <div className="flex items-center justify-between text-xs pt-1 border-t border-border/50">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenNoteModal(student)}
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium border ${
+                        currentNotes
+                          ? 'border-primary/40 bg-primary/10 text-primary font-semibold'
+                          : 'border-border text-muted-foreground hover:bg-muted'
+                      }`}
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      <span>{currentNotes ? 'Obs: ' + currentNotes.slice(0, 20) + (currentNotes.length > 20 ? '...' : '') : 'Agregar nota'}</span>
+                    </button>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs text-amber-600 dark:text-amber-400 hover:text-amber-700 hover:bg-amber-500/10"
+                      onClick={() => {
+                        navigate(
+                          `/incidents?studentId=${student.studentId || ''}&enrollmentId=${student.enrollmentId}&studentName=${encodeURIComponent(student.studentName)}`,
+                        );
+                      }}
+                    >
+                      <ShieldAlert className="w-3.5 h-3.5 mr-1 text-amber-500" />
+                      Incidencia
+                    </Button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Vista Desktop: Tabla completa (>= 768px) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-xs text-left border-collapse min-w-[700px]">
             <thead>
               <tr className="bg-muted/50 border-b border-border text-muted-foreground font-bold uppercase text-[11px]">

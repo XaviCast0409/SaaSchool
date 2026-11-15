@@ -7,6 +7,7 @@ import { useCreateUser } from '../api/useCreateUser';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useSelectedAcademicYear } from '@/components/AcademicYearSwitcher';
+import { useAuthStore } from '@/store/useAuthStore';
 import {
   TemporaryCredentialsDialog,
   type TemporaryCredential,
@@ -27,6 +28,11 @@ const ROLE_LABELS: Record<string, string> = {
 export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PARENT', onClose }) => {
   const { mutate: createUser, isPending, error } = useCreateUser();
   const [tempCredentials, setTempCredentials] = useState<TemporaryCredential[] | null>(null);
+  const currentUser = useAuthStore((s) => s.user);
+  const isAdministrative = currentUser?.role === 'ADMINISTRATIVE';
+  const effectiveDefaultRole = isAdministrative && (defaultRole === 'SCHOOL_ADMIN' || defaultRole === 'ADMINISTRATIVE')
+    ? 'TEACHER'
+    : defaultRole;
 
   const {
     register,
@@ -36,7 +42,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PAR
   } = useForm<CreateUserFormData>({
     resolver: zodResolver(createUserSchema),
     defaultValues: {
-      role: defaultRole,
+      role: effectiveDefaultRole,
       documentType: 'DNI',
     },
   });
@@ -121,8 +127,12 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PAR
             >
               <option value="TEACHER">Profesor(a)</option>
               <option value="PARENT">Apoderado / Padre de Familia</option>
-              <option value="ADMINISTRATIVE">Personal Administrativo (Secretaría / Caja)</option>
-              <option value="SCHOOL_ADMIN">Director / Promotor (Administrador General)</option>
+              {!isAdministrative && (
+                <>
+                  <option value="ADMINISTRATIVE">Personal Administrativo (Secretaría / Caja)</option>
+                  <option value="SCHOOL_ADMIN">Director / Promotor (Administrador General)</option>
+                </>
+              )}
             </select>
           </div>
 

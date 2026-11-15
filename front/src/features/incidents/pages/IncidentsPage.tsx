@@ -25,6 +25,7 @@ import { CreateIncidentModal } from '../components/CreateIncidentModal';
 import type { IncidentType, IncidentSeverity } from '../types';
 import { toast } from 'sonner';
 import { formatPeruDateTime, formatPeruShortDate } from '@/lib/dateUtils';
+import { formatEducationLevel } from '@/lib/utils';
 
 const TYPE_CONFIG: Record<
   IncidentType,
@@ -183,7 +184,7 @@ export const IncidentsPage: React.FC = () => {
           <option value="">— Todas las Aulas —</option>
           {classrooms.map((c) => (
             <option key={c.id} value={c.id}>
-              {c.grade}° "{c.section}" - {c.educationLevel}
+              {c.grade}° "{c.section}" - {formatEducationLevel(c.educationLevel)}
             </option>
           ))}
         </select>
@@ -215,7 +216,7 @@ export const IncidentsPage: React.FC = () => {
               : '—';
             const classroom = inc.enrollment?.classroom;
             const classroomLabel = classroom
-              ? `${classroom.grade}° "${classroom.section}" (${classroom.educationLevel})`
+              ? `${classroom.grade}° "${classroom.section}" (${formatEducationLevel(classroom.educationLevel)})`
               : '';
             const isAcknowledged = Boolean(inc.acknowledgedAt);
 

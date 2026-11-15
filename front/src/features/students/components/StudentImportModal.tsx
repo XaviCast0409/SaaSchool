@@ -17,14 +17,14 @@ import { StudentImportPreview } from './StudentImportPreview';
 export const StudentImportModal: React.FC<{ open: boolean; onClose: () => void }> = ({ open, onClose }) => {
   const [file, setFile] = useState<File | null>(null);
   const [plan, setPlan] = useState<StudentImportPlan | null>(null);
-  const [generateFees, setGenerateFees] = useState(false);
+  const [generateFees, setGenerateFees] = useState(true);
   const { selected: viewedYear } = useSelectedAcademicYear();
   const template = useDownloadImportTemplate();
   const preview = useStudentImportPreview();
   const rejected = useDownloadRejectedRows();
   const commit = useStudentImportCommit();
 
-  const reset = () => { setFile(null); setPlan(null); setGenerateFees(false); };
+  const reset = () => { setFile(null); setPlan(null); setGenerateFees(true); };
   const close = () => { reset(); onClose(); };
 
   const downloadTemplate = async () => {
@@ -140,15 +140,22 @@ export const StudentImportModal: React.FC<{ open: boolean; onClose: () => void }
               </div>
             )}
 
-            <label className="flex items-start gap-2 text-sm">
-              <input type="checkbox" className="mt-1" checked={generateFees} onChange={(event) => setGenerateFees(event.target.checked)} />
-              <span>
-                Generar las cuotas del tarifario para las matrículas nuevas
-                <span className="block text-xs text-muted-foreground">
-                  Déjalo apagado si el colegio ya venía cobrando este año: evita crear deuda que ya fue pagada fuera de la plataforma.
+            <div className="space-y-1.5">
+              <label className="flex items-start gap-2 text-sm">
+                <input type="checkbox" className="mt-1" checked={generateFees} onChange={(event) => setGenerateFees(event.target.checked)} />
+                <span>
+                  Generar las cuotas del tarifario para las matrículas nuevas
+                  <span className="block text-xs text-muted-foreground">
+                    Crea automáticamente las pensiones del año según el tarifario vigente.
+                  </span>
                 </span>
-              </span>
-            </label>
+              </label>
+              {!generateFees && (
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-700 dark:text-amber-300">
+                  Los alumnos importados quedarán sin pensiones. Podrás generarlas luego con “Generar cuotas faltantes” en el Tarifario.
+                </div>
+              )}
+            </div>
 
             {loadable > 0 && pendingWork === 0 && plan.blocking.length === 0 && (
               <p className="text-xs text-muted-foreground">Estos alumnos ya están cargados: confirmar solo completa los vínculos con apoderados que falten.</p>

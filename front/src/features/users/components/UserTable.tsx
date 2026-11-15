@@ -18,6 +18,7 @@ import { TemporaryCredentialsDialog, type TemporaryCredential } from '@/componen
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { formatFullName } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -29,6 +30,7 @@ import {
 } from '@/components/ui/table';
 import type { DirectoryUser } from '../types';
 import { useAuthStore } from '@/store/useAuthStore';
+import { canManage } from '../rules';
 
 interface UserTableProps {
   users: DirectoryUser[];
@@ -64,7 +66,6 @@ export const UserTable: React.FC<UserTableProps> = ({
   renderExtraActions,
 }) => {
   const { user: currentUser } = useAuthStore();
-  const isAdmin = currentUser?.role === 'SCHOOL_ADMIN' || currentUser?.role === 'SUPER_ADMIN';
 
   const [globalFilter, setGlobalFilter] = useState('');
   const [selectedUserForEdit, setSelectedUserForEdit] = useState<DirectoryUser | null>(null);
@@ -76,16 +77,15 @@ export const UserTable: React.FC<UserTableProps> = ({
 
   const columns: ColumnDef<DirectoryUser>[] = [
     {
-      accessorFn: (row) =>
-        `${row.lastNamePaternal} ${row.lastNameMaternal}, ${row.firstName}`,
+      accessorFn: (row) => formatFullName(row, 'LAST_FIRST'),
       id: 'fullName',
       header: 'Apellidos y Nombres',
       cell: ({ row }) => (
         <div className="flex items-center gap-2.5">
-          <UserAvatar name={`${row.original.firstName} ${row.original.lastNamePaternal}`} src={row.original.avatarUrl} />
+          <UserAvatar name={formatFullName(row.original, 'FIRST_LAST')} src={row.original.avatarUrl} />
           <div>
             <div className="font-semibold text-foreground text-sm">
-              {row.original.lastNamePaternal} {row.original.lastNameMaternal}
+              {[row.original.lastNamePaternal, row.original.lastNameMaternal].filter(Boolean).join(' ')}
             </div>
             <div className="text-xs text-muted-foreground">{row.original.firstName}</div>
           </div>
@@ -150,11 +150,14 @@ export const UserTable: React.FC<UserTableProps> = ({
       header: 'Acciones',
       cell: ({ row }) => {
         const user = row.original;
+        const canManageUser = canManage(currentUser?.role, user.role);
+        const canResetPassword = canManageUser && Boolean(user.documentId || user.email);
+        const canDeactivate = canManageUser && currentUser?.id !== user.id;
 
         return (
           <div className="flex items-center gap-1.5">
-            {/* Botón Editar Usuario (Solo Admins) */}
-            {isAdmin && (
+            {/* Botón Editar Usuario */}
+            {canManageUser && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -167,7 +170,7 @@ export const UserTable: React.FC<UserTableProps> = ({
             )}
 
             {/* Restablecer Clave Temporal */}
-            {isAdmin && user.documentId && (
+            {canResetPassword && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -201,8 +204,8 @@ export const UserTable: React.FC<UserTableProps> = ({
 
             {renderExtraActions?.(user)}
 
-            {/* Toggle Activo/Inactivo (Solo Admins) */}
-            {isAdmin &&
+            {/* Toggle Activo/Inactivo */}
+            {canDeactivate &&
               (user.isActive ? (
                 <Button
                   variant="ghost"

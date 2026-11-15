@@ -15,6 +15,8 @@ import {
   StickyNote,
   Trash2,
   Wallet,
+  Copy,
+  Link2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -146,6 +148,38 @@ export const SchoolDetailPage: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      {/* Código y enlace de ingreso para el colegio */}
+      {school.slug && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-border bg-card shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <Link2 className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-foreground">Código de ingreso:</span>
+                <span className="text-xs font-mono font-bold bg-muted px-2 py-0.5 rounded text-primary">{school.slug}</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Enlace público: <span className="font-mono">{`${window.location.origin}/c/${school.slug}`}</span>
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-xs gap-1.5 shrink-0"
+            onClick={() => {
+              navigator.clipboard.writeText(`${window.location.origin}/c/${school.slug}`);
+              toast.success('Enlace de ingreso copiado al portapapeles.');
+            }}
+          >
+            <Copy className="w-3.5 h-3.5" />
+            Copiar enlace
+          </Button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4">
         {/* Plan y cobros */}

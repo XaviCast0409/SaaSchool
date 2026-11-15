@@ -72,6 +72,8 @@ export interface CreateSchoolPayload {
   department?: string;
   province?: string;
   district?: string;
+  slug?: string;
+  monthlyFee?: number;
   plan?: SubscriptionPlan;
   planExpiresAt?: string;
   adminEmail?: string;

@@ -63,9 +63,42 @@ export function pickFeeSchedule<T extends { educationLevel: string; grade: numbe
   return sameLevel.find((s) => s.grade === classroom.grade) ?? sameLevel.find((s) => s.grade === null) ?? null;
 }
 
+export function calculateMatriculaDueDate(
+  enrollmentDate: string,
+  academicYearStartDate?: string | Date | null,
+): string {
+  if (academicYearStartDate) {
+    const startStr =
+      typeof academicYearStartDate === 'string'
+        ? academicYearStartDate.slice(0, 10)
+        : academicYearStartDate.toISOString().slice(0, 10);
+
+    if (enrollmentDate < startStr) {
+      // Día anterior al inicio del año escolar (startDate - 1 día)
+      const d = new Date(`${startStr}T12:00:00Z`);
+      d.setUTCDate(d.getUTCDate() - 1);
+      return d.toISOString().slice(0, 10);
+    } else {
+      // Año escolar ya iniciado: generación + 7 días calendario (o fin de mes, el menor)
+      const d = new Date(`${enrollmentDate}T12:00:00Z`);
+      d.setUTCDate(d.getUTCDate() + 7);
+      const plus7 = d.toISOString().slice(0, 10);
+
+      const [y, m] = enrollmentDate.split('-').map(Number);
+      const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+      const endOfMonth = `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+      return plus7 < endOfMonth ? plus7 : endOfMonth;
+    }
+  }
+
+  // Fallback si no hay fecha de inicio configurada
+  return enrollmentDate;
+}
+
 /**
  * Cronograma de una matrícula:
- * - Matrícula (si tiene monto), vence el día en que se matricula.
+ * - Matrícula (si tiene monto): vence el día anterior al inicio de clases si se matricula antes,
+ *   o a los 7 días (o fin de mes) si se matricula con el año ya iniciado.
  * - Cuota de ingreso solo para la condición INGRESANTE (si tiene monto), vence el mismo día.
  * - Pensiones del primer al último mes del tarifario; si se matricula a mitad de año, solo desde
  *   el mes de ingreso. Si el vencimiento de su primer mes ya pasó, vence el día de la matrícula.
@@ -78,9 +111,10 @@ export function buildEnrollmentSchedule(input: {
   condition: string;
   /** 'YYYY-MM-DD' (fecha de Lima) */
   enrollmentDate: string;
+  academicYearStartDate?: string | Date | null;
   customPensionAmount?: Money | null;
 }): PlannedObligation[] {
-  const { year, terms, condition, enrollmentDate } = input;
+  const { year, terms, condition, enrollmentDate, academicYearStartDate } = input;
   const items: PlannedObligation[] = [];
 
   const enrollmentCents = toCents(terms.enrollmentFee);
@@ -90,7 +124,7 @@ export function buildEnrollmentSchedule(input: {
       period: enrollmentPeriod(year),
       title: `Matrícula ${year}`,
       amountDue: fromCents(enrollmentCents),
-      dueDate: enrollmentDate,
+      dueDate: calculateMatriculaDueDate(enrollmentDate, academicYearStartDate),
     });
   }
 

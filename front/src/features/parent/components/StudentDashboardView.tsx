@@ -23,6 +23,7 @@ import { BadgesCard } from '@/features/family/components/FamilyWidgets';
 import { NextDayCard } from '@/features/schedule/components/NextDayCard';
 import { StudentPendingTasksCard } from '@/features/course-contents/components/StudentPendingTasksCard';
 import { StudentRecentForumsCard } from '@/features/course-contents/components/StudentRecentForumsCard';
+import { formatEducationLevel } from '@/lib/utils';
 
 interface StudentDashboardViewProps {
   child: ParentChildInfo;
@@ -81,7 +82,7 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
             </Badge>
             {classroom && (
               <Badge variant="outline" className="text-xs font-bold">
-                {classroom.grade}° "{classroom.section}" • {classroom.educationLevel}
+                {classroom.grade}° "{classroom.section}" • {formatEducationLevel(classroom.educationLevel)}
               </Badge>
             )}
           </div>

@@ -33,7 +33,10 @@ auditLogRouter.get('/actors', async (req: Request, res: Response) => {
   const schoolId = req.user!.schoolId;
   const actorIds = await prisma.auditLog.findMany({ where: { schoolId }, distinct: ['actorId'], select: { actorId: true } });
   const users = await prisma.user.findMany({
-    where: { id: { in: actorIds.map((a) => a.actorId) } },
+    where: {
+      id: { in: actorIds.map((a) => a.actorId) },
+      ...(req.user!.role !== 'SUPER_ADMIN' ? { role: { not: 'SUPER_ADMIN' } } : {}),
+    },
     select: { id: true, firstName: true, lastNamePaternal: true, role: true },
     orderBy: [{ lastNamePaternal: 'asc' }, { firstName: 'asc' }],
   });

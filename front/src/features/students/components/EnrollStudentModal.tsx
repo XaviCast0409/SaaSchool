@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SchedulePreviewCard } from '@/features/payments/components/SchedulePreviewCard';
 import type { ScheduleResult } from '@/features/payments/api/useFeeSchedules';
+import { formatEducationLevel, formatShift } from '@/lib/utils';
 
 const enrollWizardSchema = z
   .object({
@@ -71,8 +72,9 @@ const enrollWizardSchema = z
 
     // Atributos de Relación Familiar
     relationshipType: z
-      .enum(['MOTHER', 'FATHER', 'TUTOR_LEGAL', 'GRANDPARENT', 'UNCLE_AUNT', 'OTHER'])
-      .default('FATHER'),
+      .enum(['MOTHER', 'FATHER', 'TUTOR_LEGAL', 'GRANDPARENT', 'UNCLE_AUNT', 'OTHER'], {
+        errorMap: () => ({ message: 'Selecciona el parentesco con el alumno' }),
+      }),
     isLegalGuardian: z.boolean().default(true),
     isFinancialResponsible: z.boolean().default(true),
     livesWithStudent: z.boolean().default(true),
@@ -247,7 +249,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
       condition: 'CONTINUO',
       repeatingGrade: false,
       parentMode: 'EXISTING',
-      relationshipType: 'FATHER',
+      relationshipType: '' as unknown as 'FATHER',
       newParentDocumentType: 'DNI',
       newParentEducationLevel: 'SECUNDARIA_COMPLETA',
       isLegalGuardian: true,
@@ -276,6 +278,16 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
       p.lastNamePaternal.toLowerCase().includes(parentSearch.toLowerCase()) ||
       (p.documentId && p.documentId.includes(parentSearch)),
   );
+
+  // Preseleccionar el año lectivo activo o el único año disponible (P7)
+  React.useEffect(() => {
+    if (!selectedYearId && academicYears.length > 0) {
+      const active = academicYears.find((ay) => ay.isActive) || academicYears[0];
+      if (active) {
+        setValue('academicYearId', active.id);
+      }
+    }
+  }, [academicYears, selectedYearId, setValue]);
 
   if (!isOpen) return null;
 
@@ -815,7 +827,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                   <option value="">-- Selecciona Aula y Sección --</option>
                   {classrooms.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.educationLevel} - {c.grade}° "{c.section}" ({c.shift === 'MORNING' ? 'Turno Mañana' : 'Turno Tarde'}) · Capacidad: {c.capacity}
+                      {formatEducationLevel(c.educationLevel)} - {c.grade}° "{c.section}" ({formatShift(c.shift) ? `Turno ${formatShift(c.shift)}` : ''}) · Capacidad: {c.capacity}
                     </option>
                   ))}
                 </select>
@@ -1135,6 +1147,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                     {...register('relationshipType')}
                     className="w-full text-xs rounded-xl border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   >
+                    <option value="">— Selecciona —</option>
                     <option value="FATHER">Padre</option>
                     <option value="MOTHER">Madre</option>
                     <option value="TUTOR_LEGAL">Tutor / Apoderado Legal</option>
@@ -1142,6 +1155,9 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                     <option value="UNCLE_AUNT">Tío / Tía</option>
                     <option value="OTHER">Otro Apoderado</option>
                   </select>
+                  {errors.relationshipType && (
+                    <p className="text-xs text-destructive mt-1 font-medium">{errors.relationshipType.message}</p>
+                  )}
                 </div>
               </div>
 

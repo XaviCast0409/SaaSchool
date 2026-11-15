@@ -9,6 +9,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { formatEducationLevel, formatShift } from '@/lib/utils';
 import type { ParentChildInfo } from '../types';
 
 interface StudentOverviewCardProps {
@@ -76,8 +77,8 @@ export const StudentOverviewCard: React.FC<StudentOverviewCardProps> = ({ child 
               {classroom ? `${classroom.grade}° "${classroom.section}"` : 'Sin aula asignada'}
             </span>
             <p className="text-muted-foreground text-xs mt-0.5">
-              Nivel {classroom?.educationLevel === 'INITIAL' ? 'Inicial' : classroom?.educationLevel === 'SECONDARY' ? 'Secundaria' : 'Primaria'}
-              {classroom?.shift && ` • Turno ${classroom.shift}`}
+              Nivel {formatEducationLevel(classroom?.educationLevel)}
+              {classroom?.shift && ` • Turno ${formatShift(classroom.shift)}`}
             </p>
           </div>
         </div>

@@ -8,10 +8,12 @@ export class ClassroomController {
   constructor(private readonly classroomService: ClassroomService) {}
 
   getAll = async (request: Request, response: Response): Promise<void> => {
+    const isTeacher = request.user!.role === 'TEACHER';
     const classrooms = await this.classroomService.getAllClassrooms(
       request.user!.schoolId,
       await selectedAcademicYearId(request),
       request.query.includeClosed === 'true',
+      isTeacher ? request.user!.userId : undefined,
     );
     response.status(200).json({ status: 'success', data: classrooms });
   };

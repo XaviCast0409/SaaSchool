@@ -19,8 +19,13 @@ const optionalText = (max: number, label: string) =>
 
 export const createSchoolSchema = z.object({
   name: z.string().min(3, 'El nombre del colegio es requerido'),
-  documentId: z.string().min(11, 'RUC debe tener 11 dígitos').max(11, 'RUC debe tener 11 dígitos'),
-  modularCode: z.string().optional().nullable().or(emptyToUndefined),
+  documentId: z.string().regex(/^\d{11}$/, 'El RUC debe tener 11 dígitos numéricos'),
+  modularCode: z
+    .string()
+    .regex(/^\d{7}$/, 'El código modular debe tener 7 dígitos numéricos')
+    .optional()
+    .nullable()
+    .or(emptyToUndefined),
   localCode: z.string().optional().nullable().or(emptyToUndefined),
   email: z.string().email('Email institucional inválido').optional().nullable().or(emptyToUndefined),
   phone: z
@@ -52,7 +57,12 @@ export const createSchoolSchema = z.object({
   adminFirstName: z.string().optional().nullable().or(emptyToUndefined),
   adminLastNamePaternal: z.string().optional().nullable().or(emptyToUndefined),
   adminLastNameMaternal: z.string().optional().nullable().or(emptyToUndefined),
-  adminDocumentId: z.string().optional().nullable().or(emptyToUndefined),
+  adminDocumentId: z
+    .string()
+    .regex(/^\d{8}$/, 'El DNI del director debe tener 8 dígitos numéricos')
+    .optional()
+    .nullable()
+    .or(emptyToUndefined),
   adminCellphone: z.string().optional().nullable().or(emptyToUndefined),
 });
 

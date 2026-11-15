@@ -2,6 +2,7 @@ import { AppError } from '../../core/errors/app-error';
 import { computeObligationStatus, validateNewPayment } from './payment.rules';
 import { periodForConcept } from './fee-schedule.rules';
 import { enrollmentsOfYear } from '../../utils/academic-year-scope';
+import { formatFullName } from '../../utils/name.util';
 
 type EducationLevelCode = 'INITIAL' | 'PRIMARY' | 'SECONDARY';
 import { formatReceiptNumber, PAYMENT_METHOD_LABEL, voidBlockReason, type PaymentMethodCode } from './finance.rules';
@@ -572,7 +573,7 @@ export class PaymentService {
           student: {
             firstNames: string;
             lastNamePaternal: string;
-            lastNameMaternal: string;
+            lastNameMaternal: string | null;
             documentId: string;
           };
           classroom: {
@@ -607,7 +608,7 @@ export class PaymentService {
             }
           : null,
       student: {
-        fullName: `${student.lastNamePaternal} ${student.lastNameMaternal}, ${student.firstNames}`,
+        fullName: formatFullName(student, 'LAST_FIRST'),
         documentId: student.documentId,
         classroom: `${classroom.grade}° ${classroom.section}`,
       },

@@ -92,8 +92,11 @@ const FeeScheduleModal: React.FC<{
     dueDay: Number(f.dueDay),
   };
   const errors: string[] = [];
-  if (f.monthlyFee === '' || nums.monthlyFee < 0) errors.push('Ingresa la pensión mensual.');
-  if (nums.enrollmentFee < 0 || nums.admissionFee < 0) errors.push('Los montos no pueden ser negativos.');
+  if (nums.monthlyFee < 0 || nums.enrollmentFee < 0 || nums.admissionFee < 0) {
+    errors.push('El monto no puede ser negativo.');
+  } else if (f.monthlyFee === '' || nums.monthlyFee === 0) {
+    errors.push('Ingresa la pensión mensual.');
+  }
   if (f.firstMonth > f.lastMonth) errors.push('El primer mes no puede ser posterior al último.');
   if (!Number.isInteger(nums.dueDay) || nums.dueDay < 1 || nums.dueDay > 31) errors.push('El día de vencimiento va de 1 a 31.');
   const summary = feeSummary({ ...nums, firstMonth: f.firstMonth, lastMonth: f.lastMonth });
@@ -247,7 +250,7 @@ const FeeScheduleModal: React.FC<{
             </span>
           </label>
         )}
-        {errors.length > 0 && f.monthlyFee !== '' && <p className="text-xs text-destructive font-medium">{errors[0]}</p>}
+        {errors.length > 0 && <p className="text-xs text-destructive font-medium">{errors[0]}</p>}
       </div>
     </Modal>
   );

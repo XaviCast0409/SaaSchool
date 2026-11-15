@@ -33,6 +33,8 @@ describe('login desde la página del colegio', () => {
   beforeEach(() => {
     repo = {
       findActiveSchoolIdBySlug: vi.fn(),
+      findSchoolBySlug: vi.fn(),
+      findSchoolById: vi.fn(),
       findUsersByIdentifier: vi.fn(async () => []),
       findStudentsByIdentifier: vi.fn(async () => []),
       registerFailedUserLogin: vi.fn(),
@@ -50,26 +52,52 @@ describe('login desde la página del colegio', () => {
   });
 
   it('con código limita la búsqueda a ese colegio', async () => {
-    repo.findActiveSchoolIdBySlug.mockResolvedValue('s2');
+    repo.findSchoolBySlug.mockResolvedValue({ id: 's2', isActive: true });
     repo.findUsersByIdentifier.mockResolvedValue([user('s2')]);
+    repo.findSchoolById.mockResolvedValue({ id: 's2', isActive: true });
     const res = await service.login({ email: '12345678', password: 'Clave123', schoolSlug: 'innova' });
     expect(res.user.schoolId).toBe('s2');
     expect(repo.findUsersByIdentifier).toHaveBeenCalledWith('12345678', 's2');
   });
 
   it('una cuenta de otro colegio no entra por esta página', async () => {
-    repo.findActiveSchoolIdBySlug.mockResolvedValue('s2');
+    repo.findSchoolBySlug.mockResolvedValue({ id: 's2', isActive: true });
     await expect(service.login({ email: 'padre@x.pe', password: 'Clave123', schoolSlug: 'innova' })).rejects.toMatchObject({
       statusCode: 401,
     });
     expect(repo.findStudentsByIdentifier).toHaveBeenCalledWith('padre@x.pe', 's2');
   });
 
-  it('un código inexistente o de un colegio inactivo se rechaza', async () => {
-    repo.findActiveSchoolIdBySlug.mockResolvedValue(null);
+  it('un código inexistente se rechaza con 404', async () => {
+    repo.findSchoolBySlug.mockResolvedValue(null);
     await expect(service.login({ email: 'padre@x.pe', password: 'Clave123', schoolSlug: 'nada' })).rejects.toMatchObject({
       statusCode: 404,
     });
     expect(repo.findUsersByIdentifier).not.toHaveBeenCalled();
+  });
+
+  it('A6: login contra colegio suspendido responde 403 con mensaje de suspensión', async () => {
+    repo.findSchoolBySlug.mockResolvedValue({ id: 's-suspended', isActive: false });
+    await expect(service.login({ email: 'padre@x.pe', password: 'Clave123', schoolSlug: 'suspendido' })).rejects.toMatchObject({
+      statusCode: 403,
+      message: 'El acceso de tu colegio está suspendido. Comunícate con la dirección o con soporte de KIPUX.',
+    });
+  });
+
+  it('A6: login directo de usuario con colegio suspendido responde 403', async () => {
+    repo.findUsersByIdentifier.mockResolvedValue([user('s-suspended')]);
+    repo.findSchoolById.mockResolvedValue({ id: 's-suspended', isActive: false });
+    await expect(service.login({ email: 'padre@x.pe', password: 'Clave123' })).rejects.toMatchObject({
+      statusCode: 403,
+      message: 'El acceso de tu colegio está suspendido. Comunícate con la dirección o con soporte de KIPUX.',
+    });
+  });
+
+  it('A6: SUPER_ADMIN puede ingresar incluso si el colegio está suspendido', async () => {
+    const superAdmin = { ...user('s-suspended'), role: 'SUPER_ADMIN' };
+    repo.findUsersByIdentifier.mockResolvedValue([superAdmin]);
+    repo.findSchoolById.mockResolvedValue({ id: 's-suspended', isActive: false });
+    const res = await service.login({ email: 'padre@x.pe', password: 'Clave123' });
+    expect(res.user.role).toBe('SUPER_ADMIN');
   });
 });

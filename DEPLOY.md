@@ -64,6 +64,8 @@ Hazlos en este orden. Los marcados con 🔴 van **antes** de conectar el primer 
    ```bash
    cd back
    pnpm run flag:dni-passwords
+   # Crear la cuenta SUPER_ADMIN aislada en el colegio interno «KIPUX Plataforma»:
+   npx ts-node src/scratch/create-superadmin.ts
    ```
 8. 🔴 **Respaldos:**
    1. GitHub → repo → Settings → *Secrets and variables* → *Actions* → crea `DATABASE_URL_EXTERNAL`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` y `R2_BUCKET`. Si tenías los secretos `GOOGLE_*`, ya puedes borrarlos.

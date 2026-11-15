@@ -26,6 +26,16 @@ export const authIpRateLimiter = rateLimit({
   message: { status: 'fail', message: 'Demasiadas solicitudes de autenticación desde esta red. Intenta más tarde.' },
 });
 
+/** Límite para olvido de contraseña: 5 solicitudes por hora por IP (P1). */
+export const forgotPasswordRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 5,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  keyGenerator: ipKey,
+  message: { status: 'fail', message: 'Demasiadas solicitudes de recuperación de contraseña. Intenta nuevamente en 1 hora.' },
+});
+
 /** API autenticada: 600 peticiones por usuario cada 15 min. */
 export const apiRateLimiter = rateLimit({
   windowMs: FIFTEEN_MINUTES,

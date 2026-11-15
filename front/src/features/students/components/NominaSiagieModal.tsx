@@ -5,6 +5,7 @@ import { useNominaMatricula } from '../api/useStudents';
 import { exportNominaToExcel } from '../utils/exportNominaExcel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { formatEducationLevel } from '@/lib/utils';
 
 interface NominaSiagieModalProps {
   isOpen: boolean;
@@ -92,7 +93,7 @@ export const NominaSiagieModal: React.FC<NominaSiagieModalProps> = ({
             >
               {classrooms.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.grade}° "{c.section}" - {c.educationLevel} (Capacidad: {c.capacity})
+                  {c.grade}° "{c.section}" - {formatEducationLevel(c.educationLevel)} (Capacidad: {c.capacity})
                 </option>
               ))}
             </select>

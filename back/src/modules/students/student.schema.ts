@@ -260,6 +260,8 @@ export type UpdateStudentDto = z.infer<typeof updateStudentSchema>;
 export type StudentFilterDto = z.infer<typeof studentFilterSchema> & {
   /** Año elegido en la cabecera (lo pone el controlador, no el cliente) */
   academicYearId?: string;
+  actorRole?: string;
+  actorUserId?: string;
 };
 export type RegisterFichaMatriculaDto = z.infer<typeof registerFichaMatriculaSchema>;
 export type NominaClassroomParamDto = z.infer<typeof nominaClassroomParamSchema>;

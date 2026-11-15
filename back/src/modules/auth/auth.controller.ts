@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { loginSchema, changePasswordSchema } from './auth.schema';
+import { loginSchema, changePasswordSchema, forgotPasswordSchema, resetPasswordSchema } from './auth.schema';
 import type { AuthService } from './auth.service';
 
 /**
@@ -24,5 +24,17 @@ export class AuthController {
     const dto = changePasswordSchema.parse(request.body);
     const result = await this.authService.changePassword(request.user!, dto);
     response.status(200).json({ status: 'success', data: result });
+  };
+
+  forgotPassword = async (request: Request, response: Response): Promise<void> => {
+    const dto = forgotPasswordSchema.parse(request.body);
+    const result = await this.authService.forgotPassword(dto);
+    response.status(200).json({ status: 'success', message: result.message });
+  };
+
+  resetPassword = async (request: Request, response: Response): Promise<void> => {
+    const dto = resetPasswordSchema.parse(request.body);
+    const result = await this.authService.resetPassword(dto);
+    response.status(200).json({ status: 'success', message: result.message });
   };
 }

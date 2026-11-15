@@ -19,7 +19,7 @@ export function attendanceLight(statuses: string[]): LightResult {
   const pct = Math.round((ok / statuses.length) * 100);
   const unjustified = statuses.filter((s) => s === 'ABSENT_UNJUSTIFIED').length;
   const light: Light = pct >= 95 ? 'GREEN' : pct >= 85 ? 'YELLOW' : 'RED';
-  return { light, label: 'Asistencia', detail: `${pct} % · ${unjustified} falta${unjustified === 1 ? '' : 's'} sin justificar` };
+  return { light, label: 'Asistencia', detail: `${pct} % (últimos 30 días) · ${unjustified} falta${unjustified === 1 ? '' : 's'} sin justificar` };
 }
 
 /** Notas publicadas (último periodo cerrado): alguna C = rojo, alguna B = amarillo. */

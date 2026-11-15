@@ -83,7 +83,7 @@ export const ChildAttendanceCard: React.FC<ChildAttendanceCardProps> = ({ enroll
       {/* Progress & Stats */}
       <div className="space-y-2 pt-1">
         <div className="flex items-center justify-between text-xs font-bold">
-          <span className="text-muted-foreground">Asistencia del Mes</span>
+          <span className="text-muted-foreground">Asistencia en el año escolar</span>
           <span className="text-foreground text-sm font-extrabold">{percentage}%</span>
         </div>
         <div className="w-full h-2.5 rounded-full bg-secondary overflow-hidden">
