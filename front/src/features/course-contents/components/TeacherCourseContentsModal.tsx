@@ -23,7 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { useActiveAcademicYear } from '@/features/academic-years/api/useAcademicYears';
+import { usePeriods } from '@/features/academic/api';
 
 interface CourseAssignmentMeta {
   id: string;
@@ -75,8 +75,9 @@ export const TeacherCourseContentsModal: React.FC<TeacherCourseContentsModalProp
     });
   }, [contents, filterType, searchQuery]);
 
-  const { activeYear } = useActiveAcademicYear();
-  const isTrimester = activeYear?.periodType === 'TRIMESTER';
+  const { data: academicPeriods } = usePeriods();
+  // /academic/periods es legible por docentes; /academic-years no (403 para TEACHER)
+  const isTrimester = academicPeriods?.periods.length === 3;
   const periods = isTrimester ? [1, 2, 3] : [1, 2, 3, 4];
   const periodLabel = isTrimester ? 'Trimestre' : 'Bimestre';
 

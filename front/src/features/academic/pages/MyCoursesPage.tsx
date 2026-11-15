@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, BookOpenCheck, MonitorPlay } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { TeacherCourseContentsModal } from '@/features/course-contents/components/TeacherCourseContentsModal';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
@@ -20,6 +22,8 @@ export const MyCoursesPage: React.FC = () => {
     if (periods && period === null) setPeriod(periods.periods.find((p) => p.status === 'OPEN')?.periodNumber ?? periods.periods[periods.periods.length - 1]?.periodNumber ?? 1);
   }, [periods, period]);
   const { data: progress } = useMyProgress(period);
+  const [virtualClassroom, setVirtualClassroom] = useState<React.ComponentProps<typeof TeacherCourseContentsModal>['assignment']>(null);
+  const gradebookUrl = (assignmentId: string) => `/gradebook/${assignmentId}?period=${period ?? 1}`;
   const current = periods?.periods.find((p) => p.periodNumber === period);
   const tutorRooms = useMemo(
     () => [...new Map((data?.courses ?? []).filter((c) => c.classroom.tutorTeacherId === user?.id).map((c) => [c.classroom.id, c.classroom])).values()],
@@ -47,8 +51,8 @@ export const MyCoursesPage: React.FC = () => {
           {courses.map((c) => {
             const p = progress?.rows.find((r) => r.assignmentId === c.id);
             return (
-              <Link key={c.id} to={`/gradebook/${c.id}?period=${period ?? 1}`} className="group">
-                <Card className="h-full p-4 transition-colors group-hover:border-primary/50">
+              <Card key={c.id} className="flex h-full flex-col p-4 transition-colors hover:border-primary/50">
+                <Link to={gradebookUrl(c.id)} className="flex-1">
                   <p className="text-sm font-semibold">{c.area.name}</p>
                   <p className="text-sm text-muted-foreground">{classroomLabel(c.classroom)}</p>
                   <div className="mt-3">{p?.noStudents ? <span className="text-xs text-muted-foreground">Sin estudiantes matriculados</span> : <ProgressBar percent={p?.percent ?? 0} />}</div>
@@ -59,8 +63,30 @@ export const MyCoursesPage: React.FC = () => {
                       {p.missingConclusions > 0 && `${p.missingConclusions} conclusiones`}
                     </p>
                   )}
-                </Card>
-              </Link>
+                </Link>
+                <div className="mt-3 grid grid-cols-2 gap-2 border-t border-border pt-3">
+                  <Button asChild size="sm" variant="outline" className="gap-1.5">
+                    <Link to={gradebookUrl(c.id)}>
+                      <BookOpenCheck className="h-4 w-4" />
+                      Notas
+                    </Link>
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => setVirtualClassroom({
+                      id: c.id,
+                      areaName: c.area.name,
+                      grade: c.classroom.grade,
+                      section: c.classroom.section,
+                      educationLevel: c.classroom.educationLevel,
+                    })}
+                  >
+                    <MonitorPlay className="h-4 w-4" />
+                    Aula virtual
+                  </Button>
+                </div>
+              </Card>
             );
           })}
         </div>
@@ -82,6 +108,11 @@ export const MyCoursesPage: React.FC = () => {
           </div>
         </Card>
       )}
+      <TeacherCourseContentsModal
+        isOpen={virtualClassroom !== null}
+        onClose={() => setVirtualClassroom(null)}
+        assignment={virtualClassroom}
+      />
     </div>
   );
 };
