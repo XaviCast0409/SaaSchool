@@ -112,7 +112,7 @@ export const ForumCommentsModal: React.FC<ForumCommentsModalProps> = ({
                         variant={isTeacherOrAdmin ? 'default' : 'outline'}
                         className="text-[9px] px-1.5 py-0 h-4"
                       >
-                        {comment.user.role === 'TEACHER' ? 'Docente' : comment.user.role === 'PARENT' ? 'Familia / Alumno' : comment.user.role}
+                        {comment.user.role === 'TEACHER' ? 'Docente' : comment.user.role === 'PARENT' ? 'Familia' : comment.user.role === 'STUDENT' ? 'Alumno' : comment.user.role}
                       </Badge>
                     </div>
                     <span className="text-[10px] text-muted-foreground">

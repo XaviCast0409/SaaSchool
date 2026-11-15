@@ -96,7 +96,12 @@ export class CourseContentService {
     return this.repository.findComments(schoolId, courseContentId);
   }
 
-  async addComment(schoolId: string, userId: string, courseContentId: string, content: string) {
+  async addComment(
+    schoolId: string,
+    author: { userId?: string; studentId?: string },
+    courseContentId: string,
+    content: string,
+  ) {
     const forum = await this.repository.findById(schoolId, courseContentId);
     if (!forum) {
       throw new AppError('Foro de discusión no encontrado.', 404);
@@ -106,7 +111,7 @@ export class CourseContentService {
       throw new AppError('Solo se pueden agregar comentarios a publicaciones de tipo FORO.', 400);
     }
 
-    return this.repository.addComment(schoolId, courseContentId, userId, content);
+    return this.repository.addComment(schoolId, courseContentId, author, content);
   }
 
   async getStudentCourses(

@@ -4,14 +4,15 @@ export interface ForumCommentUser {
   id: string;
   firstName: string;
   lastNamePaternal: string;
-  role: 'SUPER_ADMIN' | 'SCHOOL_ADMIN' | 'ADMINISTRATIVE' | 'TEACHER' | 'PARENT';
+  role: 'SUPER_ADMIN' | 'SCHOOL_ADMIN' | 'ADMINISTRATIVE' | 'TEACHER' | 'PARENT' | 'STUDENT';
 }
 
 export interface ForumComment {
   id: string;
   schoolId: string;
   courseContentId: string;
-  userId: string;
+  userId: string | null;
+  studentId: string | null;
   content: string;
   createdAt: string;
   user: ForumCommentUser;

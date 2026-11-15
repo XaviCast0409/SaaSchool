@@ -2,6 +2,24 @@ import { prisma } from '../../config/prisma';
 import { Prisma } from '@prisma/client';
 import type { CreateCourseContentDto, SupervisionFilterDto } from './course-content.schema';
 
+const forumCommentAuthorInclude = {
+  user: { select: { id: true, firstName: true, lastNamePaternal: true, role: true } },
+  student: { select: { id: true, firstNames: true, lastNamePaternal: true } },
+} as const;
+
+type ForumCommentWithAuthor = Prisma.ForumCommentGetPayload<{ include: typeof forumCommentAuthorInclude }>;
+
+// Unifica el autor (personal/familia o alumno) en un solo campo `user` para el frontend
+function toForumCommentDto({ student, user, ...comment }: ForumCommentWithAuthor) {
+  return {
+    ...comment,
+    user: student
+      ? { id: student.id, firstName: student.firstNames, lastNamePaternal: student.lastNamePaternal, role: 'STUDENT' as const }
+      : user,
+  };
+}
+
+
 export class CourseContentRepository {
   async findAssignmentById(schoolId: string, courseAssignmentId: string) {
     return prisma.courseAssignment.findFirst({
@@ -125,46 +143,36 @@ export class CourseContentRepository {
   }
 
   async findComments(schoolId: string, courseContentId: string) {
-    return prisma.forumComment.findMany({
+    const comments = await prisma.forumComment.findMany({
       where: {
         schoolId,
         courseContentId,
       },
-      include: {
-        user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastNamePaternal: true,
-            role: true,
-          },
-        },
-      },
+      include: forumCommentAuthorInclude,
       orderBy: {
         createdAt: 'asc',
       },
     });
+    return comments.map(toForumCommentDto);
   }
 
-  async addComment(schoolId: string, courseContentId: string, userId: string, content: string) {
-    return prisma.forumComment.create({
+  async addComment(
+    schoolId: string,
+    courseContentId: string,
+    author: { userId?: string; studentId?: string },
+    content: string,
+  ) {
+    const comment = await prisma.forumComment.create({
       data: {
         schoolId,
         courseContentId,
-        userId,
+        userId: author.userId ?? null,
+        studentId: author.studentId ?? null,
         content,
       },
-      include: {
-        user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastNamePaternal: true,
-            role: true,
-          },
-        },
-      },
+      include: forumCommentAuthorInclude,
     });
+    return toForumCommentDto(comment);
   }
 
   async findStudentCourses(schoolId: string, studentId: string) {

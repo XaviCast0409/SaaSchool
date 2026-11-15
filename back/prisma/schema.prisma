@@ -420,6 +420,7 @@ model Student {
   admissionApplications  AdmissionApplication[]
   ratifications          EnrollmentRatification[]
   documentRequests       DocumentRequest[]
+  forumComments          ForumComment[]
 
   @@unique([schoolId, documentType, documentId])
   @@index([schoolId, documentId])
@@ -1312,14 +1313,16 @@ model ForumComment {
   id              String   @id @default(uuid())
   schoolId        String
   courseContentId String
-  userId          String
+  userId          String? // Autor personal/familia (User)
+  studentId       String? // Autor alumno (los alumnos inician sesión con su Student, no con User)
   content         String   @db.Text
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   school        School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   courseContent CourseContent @relation(fields: [courseContentId], references: [id], onDelete: Cascade)
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  student       Student?      @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([schoolId, courseContentId, createdAt])
 }

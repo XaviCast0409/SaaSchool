@@ -56,11 +56,15 @@ export class CourseContentController {
 
   addComment = async (req: Request, res: Response): Promise<void> => {
     const schoolId = req.user!.schoolId;
-    const userId = req.user!.userId;
     const id = req.params.id as string;
     const validatedBody = createForumCommentSchema.parse(req.body);
+    // Los alumnos no son User: su token trae el id de Student
+    const author =
+      req.user!.role === 'STUDENT'
+        ? { studentId: req.user!.studentId ?? req.user!.userId }
+        : { userId: req.user!.userId };
 
-    const data = await this.service.addComment(schoolId, userId, id, validatedBody.content);
+    const data = await this.service.addComment(schoolId, author, id, validatedBody.content);
     res.status(201).json({ status: 'success', data });
   };
 
