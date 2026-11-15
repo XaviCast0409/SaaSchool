@@ -253,8 +253,9 @@ export class StudentRepository {
     data: RegisterFichaMatriculaDto,
     guardianPasswordHash: string,
     studentPasswordHash: string,
-  ): Promise<{ student: Student; enrollmentId: string; schedule: ScheduleResult }> {
+  ): Promise<{ student: Student; enrollmentId: string; schedule: ScheduleResult; guardianCreated: boolean }> {
     return prisma.$transaction(async (tx) => {
+      let guardianCreated = false;
       // 1. Verificar si ya existe estudiante con ese documento en el colegio
       let student = await tx.student.findFirst({
         where: {
@@ -326,17 +327,32 @@ export class StudentRepository {
       let parentUserId = data.guardian.existingUserId;
 
       if (data.guardian.mode === 'NEW' && data.guardian.newGuardian) {
-        const existingUser = await tx.user.findUnique({
-          where: { email: data.guardian.newGuardian.email! },
-        });
+        const guardianEmail = data.guardian.newGuardian.email?.toLowerCase().trim() || null;
+        const guardianDocumentId = data.guardian.newGuardian.documentId?.trim() || null;
+
+        // Mismo apoderado ya registrado: por correo (único en la plataforma) o por documento en este colegio
+        const existingByEmail = guardianEmail
+          ? await tx.user.findUnique({ where: { email: guardianEmail } })
+          : null;
+        if (existingByEmail && existingByEmail.schoolId !== schoolId) {
+          throw new AppError('Ese correo ya está registrado en otra institución. Usa otro correo o déjalo vacío.', 409);
+        }
+        const existingUser =
+          existingByEmail ??
+          (guardianDocumentId
+            ? await tx.user.findFirst({ where: { schoolId, documentId: guardianDocumentId } })
+            : null);
 
         if (existingUser) {
+          if (existingUser.role !== 'PARENT') {
+            throw new AppError('Ese correo o documento pertenece a un miembro del personal, no a un apoderado.', 409);
+          }
           parentUserId = existingUser.id;
         } else {
           const newParent = await tx.user.create({
             data: {
               schoolId,
-              email: data.guardian.newGuardian.email!,
+              email: guardianEmail,
               passwordHash: guardianPasswordHash,
               mustChangePassword: true,
               firstName: data.guardian.newGuardian.firstName!,
@@ -344,12 +360,13 @@ export class StudentRepository {
               lastNameMaternal: data.guardian.newGuardian.lastNameMaternal || '',
               role: 'PARENT',
               documentType: data.guardian.newGuardian.documentType || 'DNI',
-              documentId: data.guardian.newGuardian.documentId || null,
+              documentId: guardianDocumentId,
               cellphone: data.guardian.newGuardian.cellphone || null,
               educationLevel: data.guardian.newGuardian.educationLevel || null,
             },
           });
           parentUserId = newParent.id;
+          guardianCreated = true;
         }
       }
 
@@ -382,6 +399,7 @@ export class StudentRepository {
         student,
         enrollmentId: enrollment.id,
         schedule,
+        guardianCreated,
       };
     });
   }

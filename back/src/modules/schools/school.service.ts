@@ -53,6 +53,10 @@ export class SchoolService {
   }
 
   async createSchool(createSchoolDto: CreateSchoolDto): Promise<SchoolView> {
+    // Sin clave indicada, el director quedaría con una clave que nadie conoce
+    if (createSchoolDto.adminEmail && !createSchoolDto.adminPassword) {
+      throw new AppError('Indica la contraseña inicial del director.', 400);
+    }
     return toView(await this.schoolRepository.create(createSchoolDto));
   }
 

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { isValidSlug, normalizeSlug, SLUG_INVALID_MESSAGE } from './school-slug.rules';
+import { PASSWORD_POLICY_MESSAGE, PASSWORD_POLICY_REGEX } from '../../utils/password.util';
 
 const emptyToUndefined = z.literal('').transform(() => undefined);
 
@@ -40,7 +41,14 @@ export const createSchoolSchema = z.object({
   slug: slugField.optional().or(emptyToUndefined),
   // Datos opcionales para crear el usuario Administrador Inicial en el onboarding
   adminEmail: z.string().email('Email de administrador inválido').optional().nullable().or(emptyToUndefined),
-  adminPassword: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres').optional().nullable().or(emptyToUndefined),
+  // Misma regla que el resto de cuentas: antes se aceptaba aquí una clave débil y luego se reemplazaba en silencio
+  adminPassword: z
+    .string()
+    .trim()
+    .regex(PASSWORD_POLICY_REGEX, PASSWORD_POLICY_MESSAGE)
+    .optional()
+    .nullable()
+    .or(emptyToUndefined),
   adminFirstName: z.string().optional().nullable().or(emptyToUndefined),
   adminLastNamePaternal: z.string().optional().nullable().or(emptyToUndefined),
   adminLastNameMaternal: z.string().optional().nullable().or(emptyToUndefined),

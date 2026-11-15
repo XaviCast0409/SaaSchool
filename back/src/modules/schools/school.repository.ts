@@ -128,11 +128,11 @@ export class SchoolRepository {
 
       // 2. Si se pasaron credenciales para el Administrador Inicial, crear el usuario
       if (adminEmail) {
-        const passwordToSet =
-          adminPassword && PASSWORD_POLICY_REGEX.test(adminPassword.trim())
-            ? adminPassword.trim()
-            : generateTemporaryPassword(12);
-        const passwordHash = await hashPassword(passwordToSet);
+        // La clave ya viene validada (school.schema + school.service): se usa tal cual se le entrega al director
+        if (!adminPassword) {
+          throw new AppError('Indica la contraseña inicial del director.', 400);
+        }
+        const passwordHash = await hashPassword(adminPassword.trim());
         await tx.user.create({
           data: {
             schoolId: school.id,

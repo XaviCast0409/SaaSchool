@@ -20,7 +20,13 @@ interface DemoAccount {
   badgeColor?: string;
 }
 
-const DEMO_CATEGORIES: Record<string, { title: string; accounts: DemoAccount[] }> = {
+/**
+ * Cuentas del seed solo en desarrollo (`pnpm dev`). En el build de producción la condición es
+ * falsa en tiempo de compilación y estos usuarios y claves no llegan al navegador.
+ */
+const SHOW_DEMO_ACCOUNTS = import.meta.env.DEV;
+
+const DEMO_CATEGORIES: Record<string, { title: string; accounts: DemoAccount[] }> = !SHOW_DEMO_ACCOUNTS ? {} : {
   PRO: {
     title: 'Colegio PRO (Innova)',
     accounts: [
@@ -63,10 +69,9 @@ export const LoginPage: React.FC = () => {
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: 'admin.pro@innova.edu.pe',
-      password: 'Admin123!',
-    },
+    defaultValues: SHOW_DEMO_ACCOUNTS
+      ? { email: 'admin.pro@innova.edu.pe', password: 'Admin123!' }
+      : { email: '', password: '' },
   });
 
   const onSubmit = (data: LoginFormData) => {
@@ -161,7 +166,8 @@ export const LoginPage: React.FC = () => {
             </p>
           </form>
 
-          {/* Quick Demo Accesses from Seed Data */}
+          {/* Quick Demo Accesses from Seed Data (solo desarrollo) */}
+          {SHOW_DEMO_ACCOUNTS && (
           <div className="mt-5 pt-3.5 border-t border-border space-y-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
@@ -223,6 +229,7 @@ export const LoginPage: React.FC = () => {
               ))}
             </div>
           </div>
+          )}
         </CardContent>
       </Card>
     </div>

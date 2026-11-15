@@ -136,7 +136,8 @@ export class StudentService {
       schedule: { ...result.schedule, scholarshipsApplied },
       temporaryCredentials: {
         student: { login: student.studentCode || student.documentId, password: studentTemporaryPassword },
-        guardian: dto.guardian.newGuardian
+        // Solo si se creó la cuenta: un apoderado ya registrado conserva su contraseña
+        guardian: dto.guardian.newGuardian && result.guardianCreated
           ? {
               login: dto.guardian.newGuardian.email || dto.guardian.newGuardian.documentId || '',
               password: guardianTemporaryPassword,

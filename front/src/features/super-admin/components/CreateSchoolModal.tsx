@@ -159,8 +159,22 @@ export const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({ isOpen, on
                   <Shield className="w-3 h-3 text-primary" />
                   <span>Contraseña Inicial *</span>
                 </label>
-                <Input placeholder="Contraseña segura" type="password" {...register('adminPassword', { required: true, minLength: 6 })} className="h-9 text-xs font-mono" />
-                {errors.adminPassword && <p className="text-xs text-destructive">Mínimo 6 caracteres</p>}
+                <Input
+                  placeholder="Mín. 8 caracteres, letras y números"
+                  type="text"
+                  autoComplete="off"
+                  {...register('adminPassword', {
+                    required: true,
+                    // Misma regla que el servidor (PASSWORD_POLICY_REGEX)
+                    pattern: /^(?=.*[A-Za-z])(?=.*\d).{8,}$/,
+                  })}
+                  className="h-9 text-xs font-mono"
+                />
+                {errors.adminPassword ? (
+                  <p className="text-xs text-destructive">Mínimo 8 caracteres, con letras y números</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Visible para que la copies y se la entregues al director.</p>
+                )}
               </div>
             </div>
           </div>
