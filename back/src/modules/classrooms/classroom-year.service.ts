@@ -9,7 +9,7 @@ const LEVEL: Record<string, string> = { INITIAL: 'Inicial', PRIMARY: 'Primaria',
 const label = (c: { educationLevel: string; grade: number; section: string }) =>
   `${c.educationLevel === 'INITIAL' ? `${c.grade} años` : `${c.grade}.° ${LEVEL[c.educationLevel]}`} "${c.section}"`;
 
-const TUTOR = { select: { id: true, firstName: true, lastNamePaternal: true, lastNameMaternal: true, email: true } } as const;
+const TUTOR = { select: { id: true, firstName: true, lastNamePaternal: true, lastNameMaternal: true, email: true, avatarUrl: true } } as const;
 
 /**
  * Secciones por año: qué aulas abre el colegio cada año, con qué vacantes y qué tutor. El año

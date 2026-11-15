@@ -55,6 +55,8 @@ import { secretariatPublicRouter } from './modules/secretariat/secretariat.publi
 import { notificationPreferenceRouter } from './modules/notifications/notification-preference.routes';
 import { platformRouter } from './modules/platform/platform.routes';
 import { schoolLoginPageRouter } from './modules/schools/school-login-page.routes';
+import { publicMediaRouter } from './modules/files/public-media.routes';
+import { profileMediaRouter } from './modules/files/profile-media.routes';
 
 const app = express();
 
@@ -110,11 +112,15 @@ app.use(`${API_PREFIX}/files`, fileContentRateLimiter, fileRouter);
 // Página de ingreso de cada colegio (pública): va antes del límite general para no agotar el cupo por IP
 app.use(`${API_PREFIX}/public/login-pages`, loginPageRateLimiter, schoolLoginPageRouter);
 
+// Logo del colegio y fotos de perfil (públicas, se cachean en el navegador)
+app.use(`${API_PREFIX}/public/media`, fileContentRateLimiter, publicMediaRouter);
+
 app.use(API_PREFIX, apiRateLimiter);
 
 app.use(`${API_PREFIX}/schools`, schoolRouter);
 app.use(`${API_PREFIX}/platform`, platformRouter);
 app.use(`${API_PREFIX}/users`, userRouter);
+app.use(`${API_PREFIX}/media`, profileMediaRouter);
 app.use(`${API_PREFIX}/students`, studentRouter);
 app.use(`${API_PREFIX}/academic-years`, academicYearRouter);
 app.use(`${API_PREFIX}/classrooms`, classroomRouter);

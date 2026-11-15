@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -13,7 +14,7 @@ interface StaffLoad {
   withLoad: number;
   withoutLoad: number;
   rows: Array<{
-    teacher: { id: string; firstName: string; lastNamePaternal: string; lastNameMaternal: string | null; email: string | null };
+    teacher: { id: string; firstName: string; lastNamePaternal: string; lastNameMaternal: string | null; email: string | null; avatarUrl?: string | null };
     courses: number;
     classrooms: number;
     tutorOf: { educationLevel: string; grade: number; section: string } | null;
@@ -74,10 +75,15 @@ export const StaffLoadPanel: React.FC = () => {
             {rows.map((r) => (
               <tr key={r.teacher.id} className={r.hasLoad ? '' : 'text-muted-foreground'}>
                 <td className="px-4 py-3">
-                  <div className="font-bold text-foreground">
-                    {r.teacher.lastNamePaternal} {r.teacher.lastNameMaternal ?? ''}, {r.teacher.firstName}
+                  <div className="flex items-center gap-2.5">
+                    <UserAvatar name={`${r.teacher.firstName} ${r.teacher.lastNamePaternal}`} src={r.teacher.avatarUrl} size="sm" />
+                    <div>
+                      <div className="font-bold text-foreground">
+                        {r.teacher.lastNamePaternal} {r.teacher.lastNameMaternal ?? ''}, {r.teacher.firstName}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">{r.teacher.email}</div>
+                    </div>
                   </div>
-                  <div className="text-[10px] text-muted-foreground">{r.teacher.email}</div>
                 </td>
                 <td className="px-4 py-3 text-right font-mono">{r.courses || '—'}</td>
                 <td className="px-4 py-3 text-right font-mono">{r.classrooms || '—'}</td>

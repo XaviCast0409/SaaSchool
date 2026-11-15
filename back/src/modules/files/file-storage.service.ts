@@ -10,7 +10,7 @@ import { buildObjectKey, resolveStorageProvider } from './storage-provider.rules
 
 const LOCAL_DIR = path.join(process.cwd(), 'storage-local');
 
-export type FilePurpose = 'COURSE_MATERIAL' | 'HOMEWORK_SUBMISSION' | 'PAYMENT_VOUCHER' | 'SCHOOL_ASSET' | 'OTHER';
+export type FilePurpose = 'COURSE_MATERIAL' | 'HOMEWORK_SUBMISSION' | 'PAYMENT_VOUCHER' | 'SCHOOL_ASSET' | 'PROFILE_PHOTO' | 'OTHER';
 
 const sanitizeFileName = (name: string): string =>
   path.basename(name).replace(/[\u0000-\u001f<>:"/\\|?*]+/g, '_').slice(0, 150) || 'archivo';
@@ -98,7 +98,11 @@ export class FileStorageService {
   /** Marca el archivo como eliminado y lo envía a la papelera de R2. No lanza errores. */
   async softDeleteByUrl(url?: string | null): Promise<void> {
     const id = extractStoredFileId(url);
-    if (!id) return;
+    if (id) await this.softDeleteById(id);
+  }
+
+  /** Igual que softDeleteByUrl, a partir del id del archivo. No lanza errores. */
+  async softDeleteById(id: string): Promise<void> {
     try {
       const file = await prisma.storedFile.update({ where: { id }, data: { deletedAt: new Date() } });
       if (file.storage === 'R2' && file.objectKey) {

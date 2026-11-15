@@ -181,7 +181,7 @@ model School {
   email                      String?
   phone                      String?
   address                    String?
-  logoUrl                    String? // URL pública del logo cargado en Cloudinary
+  logoUrl                    String? // URL pública del logo: subido a la plataforma (/api/public/media/logos/...) o externa
   department                 String? // Ej: LIMA
   province                   String?
   district                   String?
@@ -311,6 +311,7 @@ model User {
   passwordChangedAt   DateTime?
   failedLoginAttempts Int          @default(0)
   lockedUntil         DateTime?
+  avatarUrl           String? // Foto de perfil pública (/api/public/media/avatars/<usuario>/<archivo>)
   lastSeenAt          DateTime? // Última actividad en la plataforma (se actualiza como máximo cada 15 min)
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt

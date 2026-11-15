@@ -4,7 +4,7 @@ import { api } from '@/lib/axios';
 export interface ConversationSummary {
   id: string;
   student: { id: string; name: string };
-  counterpart: { id: string; name: string; roleLabel: string };
+  counterpart: { id: string; name: string; roleLabel: string; avatarUrl?: string | null };
   lastMessageAt: string;
   lastMessageText: string | null;
   unread: number;
@@ -22,7 +22,7 @@ export interface ConversationDetail {
   conversation: {
     id: string;
     student: { id: string; name: string };
-    counterpart: { id: string; name: string; roleLabel: string; isActive: boolean };
+    counterpart: { id: string; name: string; roleLabel: string; isActive: boolean; avatarUrl?: string | null };
     otherLastReadAt: string | null;
     officeHours: { start: string; end: string } | null;
   };
@@ -33,6 +33,7 @@ export interface ConversationDetail {
 export interface StaffContact {
   id: string;
   name: string;
+  avatarUrl?: string | null;
   roleLabel: string;
   subjects?: string[];
   isTutor?: boolean;

@@ -1,4 +1,5 @@
 import React from 'react';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import {
   School,
   UserCheck,
@@ -82,7 +83,11 @@ export const StudentOverviewCard: React.FC<StudentOverviewCardProps> = ({ child 
         </div>
 
         <div className="p-3 rounded-xl bg-secondary/30 border border-border/40 flex items-start gap-2.5">
-          <UserCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+          {tutor ? (
+            <UserAvatar name={tutor.fullName} src={tutor.avatarUrl} size="md" />
+          ) : (
+            <UserCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+          )}
           <div className="overflow-hidden">
             <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
               Docente Tutor(a) de Aula

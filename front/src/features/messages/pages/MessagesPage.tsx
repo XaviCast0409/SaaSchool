@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ArrowLeft, Check, CheckCheck, Clock, Loader2, MessageSquarePlus, MessagesSquare, Search, Send } from 'lucide-react';
@@ -27,17 +28,6 @@ function shortWhen(iso: string): string {
   const day = new Date(iso).toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
   return day === getPeruToday() ? formatPeruTime(iso) : formatPeruDate(iso, { day: '2-digit', month: 'short' });
 }
-
-const Initials: React.FC<{ name: string; className?: string }> = ({ name, className }) => (
-  <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary', className)} aria-hidden>
-    {name
-      .split(' ')
-      .slice(0, 2)
-      .map((p) => p[0])
-      .join('')
-      .toUpperCase()}
-  </div>
-);
 
 /** Selector para iniciar una conversación nueva. */
 const NewConversationModal: React.FC<{ open: boolean; onClose: () => void; onOpened: (id: string) => void }> = ({ open, onClose, onOpened }) => {
@@ -89,7 +79,7 @@ const NewConversationModal: React.FC<{ open: boolean; onClose: () => void; onOpe
                         onClick={() => start(child.student.id, c.id)}
                         className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-muted/60 disabled:opacity-60"
                       >
-                        <Initials name={c.name} />
+                        <UserAvatar name={c.name} src={c.avatarUrl} />
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-foreground">{c.name}</p>
                           <p className="truncate text-xs text-muted-foreground">
@@ -165,7 +155,7 @@ const ConversationList: React.FC<{
             className={cn('flex w-full items-start gap-3 px-3 py-3 text-left transition-colors hover:bg-muted/50', selectedId === c.id && 'bg-primary/5')}
             aria-current={selectedId === c.id}
           >
-            <Initials name={c.counterpart.name} />
+            <UserAvatar name={c.counterpart.name} src={c.counterpart.avatarUrl} />
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline justify-between gap-2">
                 <p className={cn('truncate text-sm', c.unread ? 'font-semibold text-foreground' : 'font-medium text-foreground')}>{c.counterpart.name}</p>
@@ -248,7 +238,7 @@ const ChatPanel: React.FC<{ conversationId: string; onBack: () => void }> = ({ c
         <Button variant="ghost" size="icon" className="md:hidden" onClick={onBack} aria-label="Volver a la lista">
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <Initials name={conversation.counterpart.name} />
+        <UserAvatar name={conversation.counterpart.name} src={conversation.counterpart.avatarUrl} />
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-foreground">{conversation.counterpart.name}</p>
           <p className="truncate text-xs text-muted-foreground">

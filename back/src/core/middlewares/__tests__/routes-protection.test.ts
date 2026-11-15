@@ -15,6 +15,8 @@ const PUBLIC_ROUTE_FILES = new Set<string>([
   'secretariat/secretariat.public.routes.ts',
   // Página de ingreso de cada colegio: se ve antes de iniciar sesión (solo marca pública del colegio)
   'schools/school-login-page.routes.ts',
+  // Logo del colegio y fotos de perfil: se muestran en documentos impresos y páginas públicas
+  'files/public-media.routes.ts',
   // agregar aquí otras rutas públicas intencionales
 ]);
 

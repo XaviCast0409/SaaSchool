@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { X, Save } from 'lucide-react';
@@ -9,6 +9,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { DirectoryUser } from '../types';
 import { FinanceRoleField } from './FinanceRoleField';
+import { AvatarUploader } from './AvatarUploader';
+import { useAuthStore } from '@/store/useAuthStore';
+
+const STAFF_ROLES = ['SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'];
 
 interface EditUserModalProps {
   user: DirectoryUser | null;
@@ -18,6 +22,11 @@ interface EditUserModalProps {
 
 export const EditUserModal: React.FC<EditUserModalProps> = ({ user, isOpen, onClose }) => {
   const { mutate: updateUser, isPending, error } = useUpdateUser();
+  const currentRole = useAuthStore((s) => s.user?.role);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  useEffect(() => setAvatarUrl(user?.avatarUrl ?? null), [user]);
+  // Dirección puede poner o cambiar la foto de su personal (docentes, secretaría, dirección)
+  const canEditPhoto = (currentRole === 'SCHOOL_ADMIN' || currentRole === 'SUPER_ADMIN') && !!user && STAFF_ROLES.includes(user.role);
 
   const {
     register,
@@ -84,6 +93,18 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ user, isOpen, onCl
           {error && (
             <div className="p-3 rounded-xl bg-destructive/10 text-destructive text-xs font-medium border border-destructive/20">
               {(error as any)?.response?.data?.message || 'Error al actualizar el usuario.'}
+            </div>
+          )}
+
+          {canEditPhoto && (
+            <div className="space-y-1.5">
+              <span className="text-xs font-medium text-foreground">Foto de perfil</span>
+              <AvatarUploader
+                userId={user.id}
+                name={`${user.firstName} ${user.lastNamePaternal}`}
+                avatarUrl={avatarUrl}
+                onChange={setAvatarUrl}
+              />
             </div>
           )}
 

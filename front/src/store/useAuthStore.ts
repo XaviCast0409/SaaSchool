@@ -13,6 +13,7 @@ export interface User {
   documentId?: string | null;
   mustChangePassword?: boolean;
   studentId?: string;
+  avatarUrl?: string | null;
 }
 
 export interface ImpersonatedSchool {

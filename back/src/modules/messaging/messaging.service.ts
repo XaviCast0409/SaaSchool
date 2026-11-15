@@ -66,30 +66,30 @@ async function assertSchoolSettings(schoolId: string) {
 /** Personal con quien un apoderado puede conversar sobre su hijo: tutor, docentes del aula y Dirección. */
 export async function staffContactsForStudent(schoolId: string, studentId: string) {
   const enrollment = await currentEnrollment(schoolId, studentId);
-  const contacts = new Map<string, { id: string; name: string; roleLabel: string; subjects: string[]; isTutor: boolean }>();
+  const contacts = new Map<string, { id: string; name: string; avatarUrl: string | null; roleLabel: string; subjects: string[]; isTutor: boolean }>();
 
   if (enrollment) {
     const assignments = await prisma.courseAssignment.findMany({
       where: { schoolId, classroomId: enrollment.classroomId, academicYearId: enrollment.academicYearId, deletedAt: null, teacher: { isActive: true } },
-      select: { area: { select: { name: true } }, teacher: { select: { id: true, firstName: true, lastNamePaternal: true } } },
+      select: { area: { select: { name: true } }, teacher: { select: { id: true, firstName: true, lastNamePaternal: true, avatarUrl: true } } },
     });
     for (const a of assignments) {
-      const c = contacts.get(a.teacher.id) ?? { id: a.teacher.id, name: fullName(a.teacher), roleLabel: 'Docente', subjects: [], isTutor: false };
+      const c = contacts.get(a.teacher.id) ?? { id: a.teacher.id, name: fullName(a.teacher), avatarUrl: a.teacher.avatarUrl, roleLabel: 'Docente', subjects: [], isTutor: false };
       if (!c.subjects.includes(a.area.name)) c.subjects.push(a.area.name);
       contacts.set(a.teacher.id, c);
     }
     const tutorId = enrollment.classroom.tutorTeacherId;
     if (tutorId) {
-      const tutor = contacts.get(tutorId) ?? (await prisma.user.findFirst({ where: { id: tutorId, schoolId, isActive: true }, select: { id: true, firstName: true, lastNamePaternal: true } }).then((t) => (t ? { id: t.id, name: fullName(t), roleLabel: 'Docente', subjects: [], isTutor: false } : null)));
+      const tutor = contacts.get(tutorId) ?? (await prisma.user.findFirst({ where: { id: tutorId, schoolId, isActive: true }, select: { id: true, firstName: true, lastNamePaternal: true, avatarUrl: true } }).then((t) => (t ? { id: t.id, name: fullName(t), avatarUrl: t.avatarUrl, roleLabel: 'Docente', subjects: [], isTutor: false } : null)));
       if (tutor) contacts.set(tutorId, { ...tutor, isTutor: true, roleLabel: 'Tutor(a)' });
     }
   }
 
   const admins = await prisma.user.findMany({
     where: { schoolId, role: 'SCHOOL_ADMIN', isActive: true },
-    select: { id: true, firstName: true, lastNamePaternal: true },
+    select: { id: true, firstName: true, lastNamePaternal: true, avatarUrl: true },
   });
-  for (const a of admins) if (!contacts.has(a.id)) contacts.set(a.id, { id: a.id, name: fullName(a), roleLabel: 'Dirección', subjects: [], isTutor: false });
+  for (const a of admins) if (!contacts.has(a.id)) contacts.set(a.id, { id: a.id, name: fullName(a), avatarUrl: a.avatarUrl, roleLabel: 'Dirección', subjects: [], isTutor: false });
 
   return [...contacts.values()].sort((a, b) => Number(b.isTutor) - Number(a.isTutor) || a.roleLabel.localeCompare(b.roleLabel) || a.name.localeCompare(b.name));
 }
@@ -200,7 +200,7 @@ export async function listConversations(user: MessagingUser) {
       staffLastReadAt: true,
       student: { select: { id: true, firstNames: true, lastNamePaternal: true } },
       parent: { select: { id: true, firstName: true, lastNamePaternal: true } },
-      staff: { select: { id: true, firstName: true, lastNamePaternal: true, role: true } },
+      staff: { select: { id: true, firstName: true, lastNamePaternal: true, role: true, avatarUrl: true } },
     },
   });
   const unreadCounts = await Promise.all(
@@ -217,7 +217,7 @@ export async function listConversations(user: MessagingUser) {
     return {
       id: c.id,
       student: { id: c.student.id, name: studentShortName(c.student) },
-      counterpart: { id: other.id, name: fullName(other), roleLabel: iAmParent ? ROLE_LABEL[(c.staff as { role: string }).role] ?? 'Personal' : 'Apoderado(a)' },
+      counterpart: { id: other.id, name: fullName(other), avatarUrl: iAmParent ? c.staff.avatarUrl : null, roleLabel: iAmParent ? ROLE_LABEL[(c.staff as { role: string }).role] ?? 'Personal' : 'Apoderado(a)' },
       lastMessageAt: c.lastMessageAt,
       lastMessageText: c.lastMessageText,
       unread: unreadCounts[i],
@@ -266,7 +266,7 @@ async function loadConversationForUser(user: MessagingUser, conversationId: stri
     include: {
       student: { select: { id: true, firstNames: true, lastNamePaternal: true } },
       parent: { select: { id: true, firstName: true, lastNamePaternal: true, email: true, isActive: true } },
-      staff: { select: { id: true, firstName: true, lastNamePaternal: true, role: true, email: true, isActive: true } },
+      staff: { select: { id: true, firstName: true, lastNamePaternal: true, role: true, email: true, isActive: true, avatarUrl: true } },
     },
   });
   if (!conv || (conv.parentId !== user.userId && conv.staffId !== user.userId)) {
@@ -291,7 +291,7 @@ export async function getMessages(user: MessagingUser, conversationId: string, b
     conversation: {
       id: conv.id,
       student: { id: conv.student.id, name: studentShortName(conv.student) },
-      counterpart: { id: other.id, name: fullName(other), roleLabel: iAmParent ? ROLE_LABEL[conv.staff.role] ?? 'Personal' : 'Apoderado(a)', isActive: other.isActive },
+      counterpart: { id: other.id, name: fullName(other), avatarUrl: iAmParent ? conv.staff.avatarUrl : null, roleLabel: iAmParent ? ROLE_LABEL[conv.staff.role] ?? 'Personal' : 'Apoderado(a)', isActive: other.isActive },
       otherLastReadAt: otherLastRead,
       officeHours: school ? { start: school.messagingStartTime, end: school.messagingEndTime } : null,
     },

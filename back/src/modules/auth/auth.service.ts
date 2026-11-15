@@ -25,6 +25,7 @@ interface AuthResponse {
     documentId?: string | null;
     mustChangePassword?: boolean;
     studentId?: string;
+    avatarUrl?: string | null;
   };
 }
 
@@ -103,6 +104,7 @@ export class AuthService {
         schoolId: user.schoolId,
         documentId: user.documentId,
         mustChangePassword: user.mustChangePassword,
+        avatarUrl: user.avatarUrl,
       },
     };
   }

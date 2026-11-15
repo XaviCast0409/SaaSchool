@@ -20,6 +20,7 @@ export interface ActiveEnrollmentInfo {
       fullName: string;
       cellphone?: string | null;
       email?: string | null;
+      avatarUrl?: string | null;
     } | null;
   };
   attendanceSummary: {

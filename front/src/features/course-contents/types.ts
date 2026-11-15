@@ -81,6 +81,7 @@ export interface StudentCourseAssignment {
     firstName: string;
     lastNamePaternal: string;
     email?: string | null;
+    avatarUrl?: string | null;
   } | null;
   _count: {
     contents: number;

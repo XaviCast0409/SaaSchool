@@ -4,6 +4,7 @@ import type { CreateSchoolDto, UpdateSchoolDto } from './school.schema';
 import type { School } from '@prisma/client';
 import { getPlanStatus, effectiveMonthlyFee, type PlanStatus } from './plan.rules';
 import { extractStoredFileId } from '../files/file-storage.service';
+import { parsePublicMediaUrl } from '../files/public-media.rules';
 
 /** Colegio tal como lo devuelve la API: mensualidad como número y estado de su plan. */
 export type SchoolView = Omit<School, 'monthlyFee'> & {
@@ -56,7 +57,11 @@ export class SchoolService {
   }
 
   async updateSchool(schoolId: string, updateSchoolDto: UpdateSchoolDto): Promise<SchoolView> {
-    await this.findOrFail(schoolId);
+    const current = await this.findOrFail(schoolId);
+    // Un logo subido a la plataforma solo se cambia con /api/media/school-logo (que valida la imagen)
+    if (updateSchoolDto.logoUrl && updateSchoolDto.logoUrl !== current.logoUrl && parsePublicMediaUrl(updateSchoolDto.logoUrl)) {
+      throw new AppError('Para cambiar el logo, súbelo desde Ajustes de la Institución.', 400);
+    }
     if (updateSchoolDto.loginBackgroundUrl) {
       // El fondo se publica sin sesión: solo se acepta una imagen subida por este mismo colegio
       const fileId = extractStoredFileId(updateSchoolDto.loginBackgroundUrl);

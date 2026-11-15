@@ -17,6 +17,7 @@ const USER_PUBLIC_SELECT = {
   cellphone: true,
   educationLevel: true,
   isActive: true,
+  avatarUrl: true,
   mustChangePassword: true,
   passwordChangedAt: true,
   failedLoginAttempts: true,

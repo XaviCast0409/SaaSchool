@@ -19,6 +19,7 @@ export class CourseContentRepository {
             firstName: true,
             lastNamePaternal: true,
             email: true,
+            avatarUrl: true,
           },
         },
       },
@@ -187,6 +188,7 @@ export class CourseContentRepository {
                     firstName: true,
                     lastNamePaternal: true,
                     email: true,
+                    avatarUrl: true,
                   },
                 },
                 _count: {

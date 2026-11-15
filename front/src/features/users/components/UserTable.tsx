@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { useDeactivateUser, useReactivateUser } from '../api/useUserMutations';
 import { useResetUserPassword } from '../api/useUsers';
 import { EditUserModal } from './EditUserModal';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { TemporaryCredentialsDialog, type TemporaryCredential } from '@/components/ui/TemporaryCredentialsDialog';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -79,11 +80,14 @@ export const UserTable: React.FC<UserTableProps> = ({
       id: 'fullName',
       header: 'Apellidos y Nombres',
       cell: ({ row }) => (
-        <div>
-          <div className="font-semibold text-foreground text-sm">
-            {row.original.lastNamePaternal} {row.original.lastNameMaternal}
+        <div className="flex items-center gap-2.5">
+          <UserAvatar name={`${row.original.firstName} ${row.original.lastNamePaternal}`} src={row.original.avatarUrl} />
+          <div>
+            <div className="font-semibold text-foreground text-sm">
+              {row.original.lastNamePaternal} {row.original.lastNameMaternal}
+            </div>
+            <div className="text-xs text-muted-foreground">{row.original.firstName}</div>
           </div>
-          <div className="text-xs text-muted-foreground">{row.original.firstName}</div>
         </div>
       ),
     },

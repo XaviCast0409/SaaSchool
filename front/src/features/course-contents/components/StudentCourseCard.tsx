@@ -1,4 +1,5 @@
 import React from 'react';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import {
   ChevronRight,
   ClipboardList,
@@ -31,9 +32,6 @@ export const StudentCourseCard: React.FC<StudentCourseCardProps> = ({
   const teacherFullName = assignment.teacher
     ? `${assignment.teacher.firstName} ${assignment.teacher.lastNamePaternal}`
     : 'Docente por asignar';
-  const teacherInitials = assignment.teacher
-    ? `${assignment.teacher.firstName[0]}${assignment.teacher.lastNamePaternal[0]}`.toUpperCase()
-    : 'D';
   const contentsCount = assignment._count?.contents || 0;
 
   if (viewMode === 'list') {
@@ -125,9 +123,7 @@ export const StudentCourseCard: React.FC<StudentCourseCardProps> = ({
 
           {/* Teacher metadata */}
           <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/50">
-            <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-[10px] font-bold text-muted-foreground shrink-0 border border-border">
-              {teacherInitials}
-            </div>
+            <UserAvatar name={teacherFullName} src={assignment.teacher?.avatarUrl} size="xs" className="h-6 w-6 border border-border" />
             <p className="text-xs text-muted-foreground truncate font-medium">
               Prof. {teacherFullName}
             </p>

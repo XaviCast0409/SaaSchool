@@ -503,6 +503,7 @@ export class StudentRepository {
                     lastNameMaternal: true,
                     cellphone: true,
                     email: true,
+                    avatarUrl: true,
                   },
                 },
               },
@@ -584,6 +585,7 @@ export class StudentRepository {
                       fullName: `${activeEnrollment.classroom.tutorTeacher.firstName} ${activeEnrollment.classroom.tutorTeacher.lastNamePaternal}`,
                       cellphone: activeEnrollment.classroom.tutorTeacher.cellphone,
                       email: activeEnrollment.classroom.tutorTeacher.email,
+                      avatarUrl: activeEnrollment.classroom.tutorTeacher.avatarUrl,
                     }
                   : null,
               },
@@ -646,6 +648,7 @@ export class StudentRepository {
                     lastNameMaternal: true,
                     cellphone: true,
                     email: true,
+                    avatarUrl: true,
                   },
                 },
               },
@@ -716,6 +719,7 @@ export class StudentRepository {
                     fullName: `${activeEnrollment.classroom.tutorTeacher.firstName} ${activeEnrollment.classroom.tutorTeacher.lastNamePaternal}`,
                     cellphone: activeEnrollment.classroom.tutorTeacher.cellphone,
                     email: activeEnrollment.classroom.tutorTeacher.email,
+                    avatarUrl: activeEnrollment.classroom.tutorTeacher.avatarUrl,
                   }
                 : null,
             },

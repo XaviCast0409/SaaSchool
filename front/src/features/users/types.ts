@@ -16,6 +16,8 @@ export interface DirectoryUser {
   documentId?: string;
   cellphone?: string;
   isActive: boolean;
+  /** Foto de perfil (solo personal del colegio) */
+  avatarUrl?: string | null;
   createdAt: string;
   updatedAt: string;
   /** Contratación en el año que se está viendo (vacío = no contratado ese año) */

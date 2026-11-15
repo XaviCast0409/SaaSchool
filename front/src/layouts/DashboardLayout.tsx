@@ -15,6 +15,7 @@ import {
   Calendar,
   LayoutDashboard,
   LogOut,
+  Camera,
   Moon,
   Sun,
   Menu,
@@ -52,6 +53,8 @@ import { useGetActiveSchool } from '@/features/schools/api/useSchool';
 import { PlanStatusBanner, PlanBlockedScreen } from '@/features/schools/components/PlanStatusBanner';
 import { PlatformAnnouncementsBanner } from '@/features/super-admin/components/PlatformAnnouncementsBanner';
 import { SchoolSettingsModal } from '@/features/schools/components/SchoolSettingsModal';
+import { MyProfilePhotoModal } from '@/features/users/components/MyProfilePhotoModal';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { ChangePasswordModal } from '@/features/auth/components/ChangePasswordModal';
 import { ConsentGate } from '@/features/legal/components/ConsentGate';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
@@ -75,6 +78,7 @@ export const DashboardLayout: React.FC = () => {
   const { data: pendingReports = 0 } = usePendingReportsCount(canSeeVouchers);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isPhotoOpen, setIsPhotoOpen] = useState(false);
 
   const { data: school } = useGetActiveSchool();
 
@@ -85,6 +89,10 @@ export const DashboardLayout: React.FC = () => {
 
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const isImpersonating = !!impersonatedSchool;
+  // Logo del colegio activo (en modo soporte, el del colegio visitado)
+  const schoolLogoUrl = school?.logoUrl ?? (isImpersonating ? impersonatedSchool.logoUrl : null);
+  // Docentes, Dirección y Secretaría pueden tener foto de perfil
+  const canHavePhoto = Boolean(user && ['SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'].includes(user.role));
 
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
@@ -578,9 +586,9 @@ export const DashboardLayout: React.FC = () => {
         <div className="flex items-center gap-2.5">
           {isSuperAdmin && !isImpersonating ? (
             <ShieldCheck className="w-6 h-6 text-primary" />
-          ) : (isImpersonating ? impersonatedSchool.logoUrl : school?.logoUrl) ? (
+          ) : schoolLogoUrl ? (
             <img
-              src={(isImpersonating ? impersonatedSchool.logoUrl : school?.logoUrl)!}
+              src={schoolLogoUrl}
               alt={isImpersonating ? impersonatedSchool.name : (school?.name || 'Logo institucional')}
               className="w-7 h-7 object-contain rounded-md"
             />
@@ -620,9 +628,9 @@ export const DashboardLayout: React.FC = () => {
             <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
               {isSuperAdmin && !isImpersonating ? (
                 <ShieldCheck className="w-5 h-5 text-primary" />
-              ) : (isImpersonating ? impersonatedSchool.logoUrl : school?.logoUrl) ? (
+              ) : schoolLogoUrl ? (
                 <img
-                  src={(isImpersonating ? impersonatedSchool.logoUrl : school?.logoUrl)!}
+                  src={schoolLogoUrl}
                   alt={isImpersonating ? impersonatedSchool.name : school?.name}
                   className="w-full h-full object-contain p-1"
                 />
@@ -651,10 +659,25 @@ export const DashboardLayout: React.FC = () => {
           {/* User & School Context Pill */}
           {user && (
             <div className="p-3 rounded-xl bg-secondary/40 border border-border/60 space-y-1.5 shadow-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold truncate text-foreground">
-                  {user?.firstName} {user?.lastNamePaternal}
-                </span>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  {canHavePhoto ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsPhotoOpen(true)}
+                      title="Cambiar mi foto de perfil"
+                      aria-label="Cambiar mi foto de perfil"
+                      className="rounded-full focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <UserAvatar name={`${user.firstName} ${user.lastNamePaternal}`} src={user.avatarUrl} size="sm" />
+                    </button>
+                  ) : (
+                    <UserAvatar name={`${user.firstName} ${user.lastNamePaternal}`} size="sm" />
+                  )}
+                  <span className="text-xs font-bold truncate text-foreground">
+                    {user?.firstName} {user?.lastNamePaternal}
+                  </span>
+                </div>
                 <Badge variant={user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN' ? 'default' : 'secondary'} className="text-[9px] px-1.5 py-0 font-bold">
                   {user?.role || 'USER'}
                 </Badge>
@@ -740,6 +763,21 @@ export const DashboardLayout: React.FC = () => {
             >
               <Settings className="w-4 h-4 text-primary" />
               <span>Ajustes del Colegio</span>
+            </Button>
+          )}
+
+          {canHavePhoto && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full justify-start gap-2 text-xs rounded-xl"
+              onClick={() => {
+                setIsPhotoOpen(true);
+                setIsMobileOpen(false);
+              }}
+            >
+              <Camera className="w-4 h-4 text-primary" />
+              <span>Mi foto de perfil</span>
             </Button>
           )}
 
@@ -846,6 +884,8 @@ export const DashboardLayout: React.FC = () => {
           onClose={() => setIsSettingsOpen(false)}
         />
       )}
+
+      {canHavePhoto && <MyProfilePhotoModal open={isPhotoOpen} onClose={() => setIsPhotoOpen(false)} />}
 
       {/* Modal Obligatorio de Cambio de Contraseña en Primer Ingreso */}
       <ChangePasswordModal />

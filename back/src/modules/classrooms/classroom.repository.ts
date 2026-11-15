@@ -10,6 +10,7 @@ export const TUTOR_TEACHER_SELECT = {
   lastNamePaternal: true,
   lastNameMaternal: true,
   email: true,
+  avatarUrl: true,
 } as const;
 
 const CLASSROOM_INCLUDE = {

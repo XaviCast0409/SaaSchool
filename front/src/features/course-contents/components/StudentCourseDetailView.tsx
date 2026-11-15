@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import {
   ArrowLeft,
   Search,
@@ -42,9 +43,6 @@ export const StudentCourseDetailView: React.FC<StudentCourseDetailViewProps> = (
   const teacherFullName = assignment.teacher
     ? `${assignment.teacher.firstName} ${assignment.teacher.lastNamePaternal}`
     : 'Docente por asignar';
-  const teacherInitials = assignment.teacher
-    ? `${assignment.teacher.firstName[0]}${assignment.teacher.lastNamePaternal[0]}`.toUpperCase()
-    : 'D';
 
   const { data: rawContents, isLoading } = useGetCourseContents(
     assignment.id,
@@ -113,9 +111,7 @@ export const StudentCourseDetailView: React.FC<StudentCourseDetailViewProps> = (
               {assignment.area.name}
             </h1>
             <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
-              <div className="w-5 h-5 rounded-full bg-secondary flex items-center justify-center text-[10px] font-bold text-foreground">
-                {teacherInitials}
-              </div>
+              <UserAvatar name={teacherFullName} src={assignment.teacher?.avatarUrl} size="sm" className="h-6 w-6" />
               <span>Prof. {teacherFullName}</span>
             </div>
           </div>

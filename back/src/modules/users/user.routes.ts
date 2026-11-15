@@ -94,7 +94,7 @@ userRouter.get('/staff-load', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADM
         isActive: true,
         ...((await prisma.staffYear.count({ where: { schoolId, academicYearId: year.id } })) > 0 ? { staffYears: { some: { academicYearId: year.id } } } : {}),
       },
-      select: { id: true, firstName: true, lastNamePaternal: true, lastNameMaternal: true, email: true },
+      select: { id: true, firstName: true, lastNamePaternal: true, lastNameMaternal: true, email: true, avatarUrl: true },
       orderBy: [{ lastNamePaternal: 'asc' }, { firstName: 'asc' }],
     }),
     prisma.courseAssignment.findMany({

@@ -4,6 +4,7 @@ import { X, School as SchoolIcon, Save, Loader2, Lock, ShieldAlert, Palette, Rot
 import { useGetActiveSchool, useUpdateSchool } from '../api/useSchool';
 import { toast } from 'sonner';
 import { LoginPageSettingsSection } from './LoginPageSettingsSection';
+import { SchoolLogoUploader } from './SchoolLogoUploader';
 
 interface SchoolSettingsModalProps {
   isOpen: boolean;
@@ -12,7 +13,6 @@ interface SchoolSettingsModalProps {
 
 interface SchoolFormValues {
   name: string;
-  logoUrl: string;
   phone: string;
   email: string;
   address: string;
@@ -42,7 +42,6 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
   const { mutateAsync: updateSchool, isPending } = useUpdateSchool();
 
   const { register, handleSubmit, reset, watch, setValue } = useForm<SchoolFormValues>();
-  const logoUrlValue = watch('logoUrl');
   const brandColorValue = watch('brandColor');
   const loginPageValues = {
     loginBackgroundUrl: watch('loginBackgroundUrl') ?? '',
@@ -54,7 +53,6 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
     if (school) {
       reset({
         name: school.name || '',
-        logoUrl: school.logoUrl || '',
         phone: school.phone || '',
         email: school.email || '',
         address: school.address || '',
@@ -152,44 +150,8 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
           </div>
         ) : (
           <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-4">
-            {/* Previsualización del Logo */}
-            <div className="p-4 rounded-xl bg-secondary/30 border border-border flex flex-col items-center gap-3">
-              <span className="text-xs font-semibold text-muted-foreground uppercase">
-                Logo Institucional (Previsualización)
-              </span>
-              <div className="w-20 h-20 rounded-2xl bg-card border border-border flex items-center justify-center overflow-hidden shadow-sm">
-                {logoUrlValue ? (
-                  <img
-                    src={logoUrlValue}
-                    alt="Logo institucional del colegio"
-                    className="w-full h-full object-contain p-1"
-                    onError={(e) => {
-                      (e.target as HTMLElement).style.display = 'none';
-                    }}
-                  />
-                ) : (
-                  <SchoolIcon className="w-10 h-10 text-muted-foreground/40" />
-                )}
-              </div>
-
-              <div className="w-full">
-                <label htmlFor="school-logo-url" className="block text-xs font-medium text-muted-foreground mb-1">
-                  URL del Logo (Cloudinary / HTTPS)
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    id="school-logo-url"
-                    type="url"
-                    placeholder="https://res.cloudinary.com/..."
-                    {...register('logoUrl')}
-                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  Sube el logo desde tu frontend a Cloudinary y pega aquí la URL generada.
-                </p>
-              </div>
-            </div>
+            {/* Logo: se sube como imagen y se guarda al instante */}
+            <SchoolLogoUploader logoUrl={school?.logoUrl} schoolName={school?.name || 'el colegio'} />
 
             {/* Color Institucional */}
             <div className="p-4 rounded-xl bg-secondary/30 border border-border space-y-3">
