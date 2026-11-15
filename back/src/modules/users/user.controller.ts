@@ -41,6 +41,7 @@ export class UserController {
       id,
       schoolId,
       request.user?.role ? (request.user.role as Role) : undefined,
+      request.user?.userId,
     );
     response.status(200).json({ status: 'success', data: user });
   };

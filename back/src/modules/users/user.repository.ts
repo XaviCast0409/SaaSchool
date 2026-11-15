@@ -57,63 +57,26 @@ export class UserRepository {
       }
     }
 
-    let teacherTeacherFilter: Prisma.UserWhereInput | undefined = undefined;
-    if (actorRole === 'TEACHER' && actorUserId) {
-      const teacherClassrooms = await prisma.classroom.findMany({
-        where: {
-          schoolId,
-          OR: [
-            { tutorTeacherId: actorUserId },
-            { years: { some: { tutorTeacherId: actorUserId, ...(staffYearId ? { academicYearId: staffYearId } : {}) } } },
-            { assignments: { some: { teacherId: actorUserId, deletedAt: null, ...(staffYearId ? { academicYearId: staffYearId } : {}) } } },
-          ],
-        },
-        select: { id: true },
-      });
-      const classroomIds = teacherClassrooms.map((c) => c.id);
+    const teacherVisibility =
+      actorRole === 'TEACHER' && actorUserId ? await this.teacherVisibilityFilter(schoolId, actorUserId, staffYearId) : undefined;
 
-      const parentRelations = await prisma.familyRelationship.findMany({
-        where: {
-          student: {
-            schoolId,
-            enrollments: {
-              some: {
-                classroomId: { in: classroomIds },
-                isActive: true,
-                ...(staffYearId ? { academicYearId: staffYearId } : {}),
-              },
-            },
-          },
-        },
-        select: { userId: true },
-      });
-      const allowedParentUserIds = [...new Set(parentRelations.map((r) => r.userId))];
-
-      teacherTeacherFilter = {
-        OR: [
-          { role: { in: ['SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'] } },
-          { role: 'PARENT', id: { in: allowedParentUserIds } },
-        ],
-      };
-    }
-
+    // Cada filtro va en su propio AND: así la búsqueda no puede pisar la visibilidad del docente
+    const searchFields: Prisma.UserWhereInput[] = search
+      ? [
+          { firstName: { contains: search, mode: 'insensitive' } },
+          { lastNamePaternal: { contains: search, mode: 'insensitive' } },
+          { lastNameMaternal: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } },
+          // Un docente no puede buscar personas por DNI
+          ...(actorRole === 'TEACHER' ? [] : [{ documentId: { contains: search, mode: 'insensitive' as const } }]),
+        ]
+      : [];
     const where: Prisma.UserWhereInput = {
       schoolId,
       ...(roleFilter ? { role: roleFilter } : {}),
-      ...(teacherTeacherFilter ? teacherTeacherFilter : {}),
       // Personal contratado en el año elegido
       ...(yearScope === 'year' && staffYearId ? { staffYears: { some: { academicYearId: staffYearId } } } : {}),
-      ...(search
-        ? {
-            OR: [
-              { firstName: { contains: search, mode: 'insensitive' } },
-              { lastNamePaternal: { contains: search, mode: 'insensitive' } },
-              { lastNameMaternal: { contains: search, mode: 'insensitive' } },
-              { email: { contains: search, mode: 'insensitive' } },
-              { documentId: { contains: search, mode: 'insensitive' } },
-            ],
-          }
-        : {}),
+      AND: [...(teacherVisibility ? [teacherVisibility] : []), ...(searchFields.length ? [{ OR: searchFields }] : [])],
     };
 
     const [rawRows, total] = await Promise.all([
@@ -130,15 +93,7 @@ export class UserRepository {
       prisma.user.count({ where }),
     ]);
 
-    const data: PublicUser[] =
-      actorRole === 'TEACHER'
-        ? rawRows.map((u) => ({
-            ...u,
-            documentId: '',
-            cellphone: '',
-            educationLevel: '',
-          }))
-        : rawRows;
+    const data: PublicUser[] = actorRole === 'TEACHER' ? rawRows.map(maskForTeacher) : rawRows;
 
     return {
       data,
@@ -151,15 +106,59 @@ export class UserRepository {
     };
   }
 
-  async findById(userId: string, schoolId: string, actorRole?: Role): Promise<PublicUser | null> {
-    return prisma.user.findFirst({
+  async findById(userId: string, schoolId: string, actorRole?: Role, actorUserId?: string): Promise<PublicUser | null> {
+    const teacherVisibility =
+      actorRole === 'TEACHER' && actorUserId ? await this.teacherVisibilityFilter(schoolId, actorUserId) : undefined;
+    const user = await prisma.user.findFirst({
       where: {
         id: userId,
         schoolId,
         ...(actorRole !== 'SUPER_ADMIN' ? { role: { not: 'SUPER_ADMIN' } } : {}),
+        ...(teacherVisibility ? { AND: [teacherVisibility] } : {}),
       },
       select: USER_PUBLIC_SELECT,
     });
+    if (!user) return null;
+    return actorRole === 'TEACHER' && user.id !== actorUserId ? maskForTeacher(user) : user;
+  }
+
+  /**
+   * Lo que un docente puede ver de otras personas: el personal del colegio y los apoderados de los
+   * alumnos de sus aulas (como tutor o con cursos asignados). Nunca a todos los apoderados.
+   */
+  private async teacherVisibilityFilter(schoolId: string, teacherId: string, academicYearId?: string): Promise<Prisma.UserWhereInput> {
+    const teacherClassrooms = await prisma.classroom.findMany({
+      where: {
+        schoolId,
+        OR: [
+          { tutorTeacherId: teacherId },
+          { years: { some: { tutorTeacherId: teacherId, ...(academicYearId ? { academicYearId } : {}) } } },
+          { assignments: { some: { teacherId, deletedAt: null, ...(academicYearId ? { academicYearId } : {}) } } },
+        ],
+      },
+      select: { id: true },
+    });
+    const parentRelations = await prisma.familyRelationship.findMany({
+      where: {
+        student: {
+          schoolId,
+          enrollments: {
+            some: {
+              classroomId: { in: teacherClassrooms.map((c) => c.id) },
+              isActive: true,
+              ...(academicYearId ? { academicYearId } : {}),
+            },
+          },
+        },
+      },
+      select: { userId: true },
+    });
+    return {
+      OR: [
+        { role: { in: ['SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'] } },
+        { role: 'PARENT', id: { in: [...new Set(parentRelations.map((r) => r.userId))] } },
+      ],
+    };
   }
 
   async findByEmail(email: string): Promise<User | null> {
@@ -251,4 +250,9 @@ export class UserRepository {
       },
     });
   }
+}
+
+/** Datos personales que un docente no necesita ver de otras personas (Ley 29733). */
+function maskForTeacher<T extends { documentId?: string | null; cellphone?: string | null; educationLevel?: string | null }>(u: T): T {
+  return { ...u, documentId: '', cellphone: '', educationLevel: '' };
 }

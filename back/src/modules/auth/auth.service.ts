@@ -44,6 +44,10 @@ const assertNotLocked = (lockedUntil: Date | null): void => {
   }
 };
 
+/** Escapa texto que se inserta en el HTML de un correo. */
+const escapeHtml = (value: string): string =>
+  value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
 export class AuthService {
   constructor(private readonly authRepository: AuthRepository) {}
 
@@ -262,7 +266,7 @@ export class AuthService {
           text: `Hola ${user.firstName},\n\nHemos recibido una solicitud para restablecer tu contraseña en KIPUX.\nHaz clic en el siguiente enlace o cópialo en tu navegador para crear una nueva contraseña:\n\n${resetLink}\n\nEste enlace expirará en 30 minutos y solo puede usarse una vez.\nSi tú no solicitaste este cambio, puedes ignorar este mensaje de forma segura.\n\nAtentamente,\nEquipo KIPUX`,
           html: `<div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
             <h2 style="color: #1e3a8a;">Restablece tu contraseña</h2>
-            <p>Hola <strong>${user.firstName}</strong>,</p>
+            <p>Hola <strong>${escapeHtml(user.firstName)}</strong>,</p>
             <p>Hemos recibido una solicitud para restablecer tu contraseña en KIPUX.</p>
             <p style="margin: 24px 0;">
               <a href="${resetLink}" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">Crear nueva contraseña</a>
@@ -274,7 +278,10 @@ export class AuthService {
       } catch (err) {
         console.warn('[EMAIL ERROR] No se pudo enviar el correo de recuperación:', err);
       }
-      console.log(`[RECUPERACIÓN DE CONTRASEÑA] Enlace para ${user.email}: ${resetLink}`);
+      // El enlace da acceso a la cuenta: nunca debe quedar en los logs de producción.
+      if (env.NODE_ENV === 'development') {
+        console.log(`[RECUPERACIÓN DE CONTRASEÑA] Enlace para ${user.email}: ${resetLink}`);
+      }
     }
 
     return {

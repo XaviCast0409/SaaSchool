@@ -39,8 +39,9 @@ export class UserService {
     userId: string,
     schoolId: string,
     actorRole?: Role,
+    actorUserId?: string,
   ): Promise<PublicUser> {
-    const user = await this.userRepository.findById(userId, schoolId, actorRole);
+    const user = await this.userRepository.findById(userId, schoolId, actorRole, actorUserId);
 
     if (!user) {
       throw new AppError('Usuario no encontrado', 404);

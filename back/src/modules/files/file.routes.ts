@@ -5,6 +5,8 @@ import { AppError } from '../../core/errors/app-error';
 import { authMiddleware } from '../../core/middlewares/auth.middleware';
 import { tenantMiddleware } from '../../core/middlewares/tenant.middleware';
 import { fileStorageService } from './file-storage.service';
+import { assertCanReadFile } from './file-access.rules';
+import { assertStudentAccess } from '../../core/security/student-access';
 
 export const fileRouter = Router();
 
@@ -19,6 +21,8 @@ const sign = (id: string, exp: number): string =>
  */
 fileRouter.get('/:id/link', authMiddleware, tenantMiddleware, async (req: Request, res: Response) => {
   const file = await fileStorageService.getForSchool(String(req.params.id), req.user!.schoolId);
+  // Mismo colegio no basta: capturas de pago y tareas solo las ve quien corresponde
+  await assertCanReadFile(req.user!, file, assertStudentAccess);
   const exp = Math.floor(Date.now() / 1000) + SIGNED_URL_TTL_SECONDS;
   const url = `${env.PUBLIC_API_URL.replace(/\/$/, '')}/api/files/${file.id}/content?exp=${exp}&sig=${sign(file.id, exp)}`;
   res.status(200).json({
