@@ -12,6 +12,7 @@ export const useGetAnnouncements = (filters: AnnouncementFilters) => {
       if (filters.search) params.append('search', filters.search);
       if (filters.priority) params.append('priority', filters.priority);
       if (filters.classroomId) params.append('classroomId', filters.classroomId);
+      if (filters.status) params.append('status', filters.status);
 
       const response = await api.get<AnnouncementsResponse>(`/announcements?${params.toString()}`);
       return response.data;
@@ -30,6 +31,16 @@ export const useCreateAnnouncement = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['announcements'] });
     },
+  });
+};
+
+/** Cambia la fecha "visible hasta" (null = sin fecha). Sirve para extender o archivar ya. */
+export const useUpdateAnnouncementExpiry = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, expiresAt }: { id: string; expiresAt: string | null }) =>
+      (await api.put(`/announcements/${id}`, { expiresAt })).data,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['announcements'] }),
   });
 };
 

@@ -13,6 +13,8 @@ export interface Announcement {
   targetRoles: UserRole[];
   publishedAt: string;
   expiresAt?: string | null;
+  /** Cuándo deja (o dejó) de estar vigente: expiresAt o, sin fecha, 60 días tras publicarse. */
+  endsAt?: string;
   isActive: boolean;
   responseType?: AnnouncementResponseType;
   responseDeadline?: string | null;
@@ -41,7 +43,11 @@ export interface AnnouncementFilters {
   search?: string;
   priority?: AnnouncementPriority;
   classroomId?: string;
+  /** current = vigentes (por defecto en el servidor), past = anteriores. */
+  status?: AnnouncementStatus;
 }
+
+export type AnnouncementStatus = 'current' | 'past';
 
 export interface AnnouncementsResponse {
   status: string;
@@ -60,7 +66,7 @@ export interface CreateAnnouncementPayload {
   priority: AnnouncementPriority;
   targetRoles: UserRole[];
   classroomId?: string;
-  expiresAt?: string;
+  expiresAt?: string | null;
   responseType?: AnnouncementResponseType;
   responseDeadline?: string | null;
   pollOptions?: string[];

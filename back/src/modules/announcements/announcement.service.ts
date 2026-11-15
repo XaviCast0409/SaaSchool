@@ -4,6 +4,7 @@ import type { AnnouncementRepository } from './announcement.repository';
 import type { CreateAnnouncementDto, UpdateAnnouncementDto, AnnouncementFilterDto } from './announcement.schema';
 import type { Announcement, Role } from '@prisma/client';
 import { deliver } from '../automations/delivery';
+import { announcementEndsAt } from './announcement-status.rules';
 import { announcementRecipients, enrichForViewer, visibilityWhere, type Viewer } from './announcement-responses.service';
 
 export class AnnouncementService {
@@ -12,7 +13,9 @@ export class AnnouncementService {
   async getAnnouncements(viewer: Viewer, filters: AnnouncementFilterDto) {
     const visibility = await visibilityWhere(viewer);
     const result = await this.announcementRepository.findAllBySchool(viewer.schoolId, viewer.role as Role, filters, visibility);
-    return { ...result, data: await enrichForViewer(viewer, result.data) };
+    const data = await enrichForViewer(viewer, result.data);
+    // endsAt: cuándo deja (o dejó) de estar vigente, para mostrar "Vence el…" / "Venció el…"
+    return { ...result, data: data.map((a) => ({ ...a, endsAt: announcementEndsAt(a) })) };
   }
 
   async getAnnouncementById(announcementId: string, schoolId: string): Promise<Announcement> {
@@ -61,8 +64,13 @@ export class AnnouncementService {
     announcementId: string,
     schoolId: string,
     updateDto: UpdateAnnouncementDto,
+    editor?: { userId: string; role: string },
   ): Promise<Announcement> {
-    await this.getAnnouncementById(announcementId, schoolId);
+    const current = await this.getAnnouncementById(announcementId, schoolId);
+    // Un docente solo puede modificar sus propios comunicados
+    if (editor?.role === 'TEACHER' && current.authorId !== editor.userId) {
+      throw new AppError('Solo puedes modificar tus propios comunicados.', 403);
+    }
     return this.announcementRepository.update(announcementId, schoolId, updateDto);
   }
 

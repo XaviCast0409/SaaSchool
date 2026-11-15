@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Megaphone, Bell, AlertTriangle, X } from 'lucide-react';
+import { Plus, Search, Megaphone, Bell, AlertTriangle, X, Archive } from 'lucide-react';
 import { useGetAnnouncements, useDeleteAnnouncement } from '../api/useAnnouncements';
 import { AnnouncementCard } from '../components/AnnouncementCard';
 import { CreateAnnouncementModal } from '../components/CreateAnnouncementModal';
@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import type { AnnouncementPriority } from '../types';
+import type { AnnouncementPriority, AnnouncementStatus } from '../types';
 
 export const AnnouncementsPage: React.FC = () => {
   const currentUser = useAuthStore((state) => state.user);
@@ -18,12 +18,15 @@ export const AnnouncementsPage: React.FC = () => {
   const [limit, setLimit] = useState(10);
   const [search, setSearch] = useState('');
   const [priority, setPriority] = useState<AnnouncementPriority | undefined>(undefined);
+  const [status, setStatus] = useState<AnnouncementStatus>('current');
+  const isPast = status === 'past';
 
   const { data, isLoading, isError } = useGetAnnouncements({
     page,
     limit,
     search,
     priority,
+    status,
   });
 
   const { mutateAsync: deleteAnnouncement } = useDeleteAnnouncement();
@@ -71,7 +74,32 @@ export const AnnouncementsPage: React.FC = () => {
         )}
       </div>
 
-      {/* 2. Barra de Filtros y Búsqueda */}
+      {/* 2. Pestañas: vigentes / anteriores */}
+      <div role="tablist" aria-label="Vigencia de los comunicados" className="inline-flex rounded-xl border border-border bg-card p-1 gap-1">
+        {[
+          { value: 'current' as const, label: 'Vigentes', icon: Megaphone },
+          { value: 'past' as const, label: 'Anteriores', icon: Archive },
+        ].map(({ value, label, icon: Icon }) => (
+          <button
+            key={value}
+            type="button"
+            role="tab"
+            aria-selected={status === value}
+            onClick={() => {
+              setStatus(value);
+              setPage(1);
+            }}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-xs font-bold transition-colors ${
+              status === value ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+            }`}
+          >
+            <Icon className="w-3.5 h-3.5" aria-hidden />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Barra de Filtros y Búsqueda */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card p-3 rounded-2xl border border-border">
         {/* Buscador */}
         <div className="relative flex-1 max-w-md">
@@ -147,6 +175,7 @@ export const AnnouncementsPage: React.FC = () => {
               key={announcement.id}
               announcement={announcement}
               onDelete={handleDelete}
+              isPast={isPast}
             />
           ))}
 
@@ -167,11 +196,19 @@ export const AnnouncementsPage: React.FC = () => {
         </div>
       ) : (
         <Card className="p-12 text-center rounded-2xl border-dashed border-border bg-card">
-          <Bell className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
-          <h3 className="text-base font-bold text-foreground">No hay comunicados disponibles</h3>
+          {isPast ? (
+            <Archive className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
+          ) : (
+            <Bell className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
+          )}
+          <h3 className="text-base font-bold text-foreground">
+            {isPast ? 'No hay comunicados anteriores' : 'No hay comunicados vigentes'}
+          </h3>
           <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
             {search || priority
               ? 'No hay avisos que coincidan con la búsqueda o el filtro seleccionado.'
+              : isPast
+              ? 'Aquí quedan los comunicados cuya fecha de vigencia ya pasó, para consultarlos cuando quieras.'
               : 'Los avisos e informes oficiales del colegio aparecerán publicados en este muro.'}
           </p>
           {(search || priority) && (

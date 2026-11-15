@@ -2,6 +2,7 @@ import { prisma } from '../../config/prisma';
 import type { Announcement, Prisma, Role } from '@prisma/client';
 import type { CreateAnnouncementDto, UpdateAnnouncementDto, AnnouncementFilterDto } from './announcement.schema';
 import type { PaginatedResult } from '../../core/interfaces/global.interfaces';
+import { statusWhere } from './announcement-status.rules';
 
 export class AnnouncementRepository {
   async findAllBySchool(
@@ -10,7 +11,7 @@ export class AnnouncementRepository {
     filters: AnnouncementFilterDto,
     visibility: Prisma.AnnouncementWhereInput = {},
   ): Promise<PaginatedResult<Announcement>> {
-    const { page, limit, search, priority, classroomId } = filters;
+    const { page, limit, search, priority, classroomId, status } = filters;
     const skip = (page - 1) * limit;
 
     const where: Prisma.AnnouncementWhereInput = {
@@ -21,7 +22,7 @@ export class AnnouncementRepository {
           ? { targetRoles: { has: 'PARENT' as Role } }
           : { targetRoles: { has: userRole } }
         : {}),
-      AND: [visibility], // en AND para no chocar con el OR de la búsqueda
+      AND: [visibility, statusWhere(status)], // en AND para no chocar con el OR de la búsqueda
       ...(priority ? { priority } : {}),
       ...(classroomId ? { classroomId } : {}),
       ...(search

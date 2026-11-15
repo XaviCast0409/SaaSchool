@@ -50,7 +50,10 @@ export class AnnouncementController {
     const id = req.params.id as string;
     const body = updateAnnouncementSchema.parse(req.body);
 
-    const updated = await this.announcementService.updateAnnouncement(id, schoolId, body);
+    const updated = await this.announcementService.updateAnnouncement(id, schoolId, body, {
+      userId: req.user!.userId,
+      role: req.user!.role,
+    });
 
     res.status(200).json({
       status: 'success',

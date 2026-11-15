@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { getPeruToday } from '@/lib/dateUtils';
 
 export const createAnnouncementSchema = z.object({
   title: z.string().min(3, 'El título debe tener al menos 3 caracteres').max(200),
@@ -17,6 +18,13 @@ export const createAnnouncementSchema = z.object({
   }
   if (v.responseType !== 'NONE' && !v.targetRoles.includes('PARENT')) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['responseType'], message: 'Para pedir respuesta, incluye a los apoderados como destinatarios.' });
+  }
+  // Fechas 'YYYY-MM-DD': la comparación de texto equivale a la de fechas
+  if (v.expiresAt && v.expiresAt < getPeruToday()) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['expiresAt'], message: 'La fecha no puede ser anterior a hoy.' });
+  }
+  if (v.expiresAt && v.responseType !== 'NONE' && v.responseDeadline && v.expiresAt < v.responseDeadline) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['expiresAt'], message: 'Debe seguir visible al menos hasta la fecha límite para responder.' });
   }
 });
 

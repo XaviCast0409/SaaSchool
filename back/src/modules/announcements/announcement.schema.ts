@@ -7,7 +7,13 @@ const baseAnnouncementSchema = z.object({
   priority: z.nativeEnum(AnnouncementPriority).default(AnnouncementPriority.NORMAL),
   targetRoles: z.array(z.nativeEnum(Role)).min(1, 'Debe especificar al menos un rol de destino'),
   classroomId: z.string().uuid('ID de aula inválido').optional(),
-  expiresAt: z.string().datetime().optional().transform((val) => (val ? new Date(val) : undefined)),
+  // "Visible hasta": null = sin fecha (se archiva solo a los 60 días de publicado)
+  expiresAt: z
+    .string()
+    .datetime({ offset: true })
+    .optional()
+    .nullable()
+    .transform((val) => (val ? new Date(val) : val)),
   responseType: z.enum(['NONE', 'ACKNOWLEDGE', 'AUTHORIZATION', 'POLL']).default('NONE'),
   responseDeadline: z
     .string()
@@ -46,6 +52,8 @@ export const announcementFilterSchema = z.object({
   search: z.string().optional(),
   priority: z.nativeEnum(AnnouncementPriority).optional(),
   classroomId: z.string().uuid().optional(),
+  /** current = vigentes (por defecto), past = anteriores/vencidos. */
+  status: z.enum(['current', 'past']).default('current'),
 });
 
 export type CreateAnnouncementDto = z.infer<typeof createAnnouncementSchema>;

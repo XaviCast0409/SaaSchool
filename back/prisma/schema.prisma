@@ -1222,6 +1222,7 @@ model Announcement {
   responses AnnouncementResponse[]
 
   @@index([schoolId, isActive])
+  @@index([schoolId, isActive, expiresAt])
 }
 
 // ============================================================================

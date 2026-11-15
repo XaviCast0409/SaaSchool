@@ -1,11 +1,13 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { X, Send, AlertTriangle, Bell, Info, Loader2 } from 'lucide-react';
+import { X, Send, AlertTriangle, Bell, Info, Loader2, CalendarClock } from 'lucide-react';
 import { createAnnouncementSchema, parsePollOptions, type CreateAnnouncementFormData } from '../schemas/announcement.schema';
 import { useCreateAnnouncement } from '../api/useAnnouncements';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
 import { toast } from 'sonner';
+import { getPeruToday, formatPeruDate } from '@/lib/dateUtils';
+import { endOfDayLima, expiryPresets, UNDATED_ARCHIVE_DAYS } from '../lib/expiry';
 
 interface CreateAnnouncementModalProps {
   isOpen: boolean;
@@ -34,6 +36,7 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
       targetRoles: ['PARENT', 'TEACHER'],
       responseType: 'NONE',
       classroomId: '',
+      expiresAt: '',
       responseDeadline: '',
       pollOptionsText: '',
     },
@@ -42,6 +45,10 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
   const responseType = watch('responseType');
 
   const selectedRoles = watch('targetRoles') || [];
+  const expiresAt = watch('expiresAt') || '';
+  const responseDeadline = watch('responseDeadline') || '';
+  const today = getPeruToday();
+  const presets = expiryPresets(today, responseType !== 'NONE' ? responseDeadline || undefined : undefined);
 
   if (!isOpen) return null;
 
@@ -61,7 +68,8 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
         priority: data.priority,
         targetRoles: data.targetRoles,
         classroomId: data.classroomId || undefined,
-        expiresAt: data.expiresAt ? new Date(data.expiresAt).toISOString() : undefined,
+        // Visible hasta el final del día indicado (hora de Lima)
+        expiresAt: data.expiresAt ? endOfDayLima(data.expiresAt) : null,
         responseType: data.responseType,
         // Fecha límite al final del día indicado (hora de Lima)
         responseDeadline:
@@ -262,6 +270,41 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
                 />
               </div>
             )}
+          </div>
+
+          <div className="rounded-xl border border-border p-3 space-y-2.5">
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase">
+              <CalendarClock className="w-3.5 h-3.5" aria-hidden /> Visible en el muro hasta
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {presets.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setValue('expiresAt', p.value, { shouldValidate: true })}
+                  className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    expiresAt === p.value ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-background text-muted-foreground hover:bg-secondary'
+                  }`}
+                  aria-pressed={expiresAt === p.value}
+                >
+                  {p.label}
+                </button>
+              ))}
+              <input
+                id="announcement-expires"
+                type="date"
+                min={today}
+                aria-label="Otra fecha"
+                {...register('expiresAt')}
+                className="rounded-lg border border-border bg-background px-2.5 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              {expiresAt
+                ? `Se verá en “Vigentes” hasta el ${formatPeruDate(expiresAt)}. Después pasa a “Anteriores”, donde se puede seguir consultando.`
+                : `Sin fecha: pasa a “Anteriores” a los ${UNDATED_ARCHIVE_DAYS} días de publicado. Si es sobre un evento, elige la fecha del evento.`}
+            </p>
+            {errors.expiresAt && <p className="text-xs text-destructive">{errors.expiresAt.message}</p>}
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
