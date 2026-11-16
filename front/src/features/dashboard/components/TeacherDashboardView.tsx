@@ -108,9 +108,10 @@ export const TeacherDashboardView: React.FC = () => {
       title: 'Control de Asistencia',
       desc: isTutor
         ? `Toma de asistencia para tu aula tutoriada (${tutorClassroom.grade}° "${tutorClassroom.section}")`
-        : 'Pase de lista diario, tardanzas y justificaciones escolares',
+        : 'Pase de lista en tus cursos (la asistencia diaria la lleva el tutor)',
       icon: CalendarCheck,
-      path: '/attendance',
+      // Sin tutoría el docente no consulta la asistencia diaria: pasa lista por curso
+      path: isTutor ? '/attendance' : '/course-attendance',
       color: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20',
       actionLabel: 'Tomar Asistencia',
     },

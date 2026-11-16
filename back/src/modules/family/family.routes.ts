@@ -273,6 +273,7 @@ familyRouter.get('/gate/today', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'A
     select: {
       id: true,
       checkOutTime: true,
+      pickupPersonId: true,
       pickedUpByName: true,
       pickedUpByDocument: true,
       earlyLeaveReason: true,
@@ -303,8 +304,9 @@ familyRouter.get('/gate/today', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'A
         checkOutTime: r.checkOutTime,
         student: `${r.enrollment.student.firstNames} ${r.enrollment.student.lastNamePaternal} ${r.enrollment.student.lastNameMaternal ?? ''}`.trim(),
         classroom: classroomLabel(r.enrollment.classroom),
-        pickedUpByName: r.pickedUpByName,
-        pickedUpByDocument: r.pickedUpByDocument,
+        // Salida por su cuenta (SELF): no hay persona que recoja; el backend guarda el nombre del propio alumno
+        pickedUpByName: r.pickupPersonId ? r.pickedUpByName : null,
+        pickedUpByDocument: r.pickupPersonId ? r.pickedUpByDocument : null,
         earlyLeaveReason: r.earlyLeaveReason,
       })),
     },

@@ -82,6 +82,11 @@ export class AttendanceController {
     const enrollmentId = String(request.params.enrollmentId);
 
     await assertEnrollmentAccess(request.user!, enrollmentId);
+    await this.attendanceService.assertTeacherTutorsEnrollment(schoolId, enrollmentId, {
+      userId: request.user!.userId,
+      role: request.user!.role,
+      schoolId,
+    });
 
     const query = studentAttendanceQuerySchema.parse(request.query);
     const detail = await this.attendanceService.getStudentMonthlyDetail(
@@ -98,6 +103,11 @@ export class AttendanceController {
     const enrollmentId = String(request.params.enrollmentId);
 
     await assertEnrollmentAccess(request.user!, enrollmentId);
+    await this.attendanceService.assertTeacherTutorsEnrollment(schoolId, enrollmentId, {
+      userId: request.user!.userId,
+      role: request.user!.role,
+      schoolId,
+    });
 
     const attendances = await this.attendanceService.getAttendanceByEnrollment(
       enrollmentId,

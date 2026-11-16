@@ -323,26 +323,30 @@ const StaffDashboard: React.FC = () => {
 
         {/* Asistencia de hoy con datos reales (Solo Dirección) */}
         {isAdmin && (
-          <Card
-            className="hover:shadow-md transition-shadow cursor-pointer"
+          <button
+            type="button"
             onClick={() => navigate('/attendance')}
+            aria-label="Ver la asistencia de hoy"
+            className="text-left rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Asistencia Hoy</CardTitle>
-              <CalendarCheck className="w-4 h-4 text-amber-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-extrabold text-foreground">
-                {todayAttended}
-                <span className="text-sm font-semibold text-muted-foreground"> / {todayStats?.total ?? 0}</span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {todayStats?.total
-                  ? `${todayStats.late} tardanza(s) · ${todayStats.absent} falta(s)`
-                  : 'Aún no hay marcaciones hoy'}
-              </p>
-            </CardContent>
-          </Card>
+            <Card className="h-full hover:shadow-md transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Asistencia Hoy</CardTitle>
+                <CalendarCheck className="w-4 h-4 text-amber-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-extrabold text-foreground">
+                  {todayAttended}
+                  <span className="text-sm font-semibold text-muted-foreground"> / {todayStats?.total ?? 0}</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {todayStats?.total
+                    ? `${todayStats.late} tardanza(s) · ${todayStats.absent} falta(s)`
+                    : 'Aún no hay marcaciones hoy'}
+                </p>
+              </CardContent>
+            </Card>
+          </button>
         )}
       </div>
 

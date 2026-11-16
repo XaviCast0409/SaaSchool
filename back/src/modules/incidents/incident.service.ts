@@ -157,6 +157,12 @@ export class IncidentService {
       });
     }
 
+    if (userContext.role === 'TEACHER') {
+      return this.incidentRepository.findAll(schoolId, filters, {
+        teacherUserId: userContext.userId,
+      });
+    }
+
     return this.incidentRepository.findAll(schoolId, filters);
   }
 
@@ -178,6 +184,12 @@ export class IncidentService {
       );
       if (!isParent) {
         throw new AppError('No tienes permisos para ver esta incidencia.', 403);
+      }
+    } else if (userContext.role === 'TEACHER' && incData.isViolenceCase) {
+      const isAuthor = incData.authorId === userContext.userId;
+      const isTutor = incData.enrollment?.classroom?.tutorTeacherId === userContext.userId;
+      if (!isAuthor && !isTutor) {
+        throw new AppError('Los casos de violencia solo los ve la Dirección, quien los registró y el tutor del aula.', 403);
       }
     }
 

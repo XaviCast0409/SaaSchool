@@ -772,7 +772,7 @@ async function main(): Promise<void> {
         receipt++;
         transactions.push({
           schoolId: S, obligationId: id, amountPaid: partial ? Math.round(it.amount / 2) : it.amount, paymentDate: new Date(it.due.getTime() - between(0, 6) * 86400000),
-          paymentMethod: pick([...methods]), operationNumber: `OP-${between(100000, 999999)}`, receiptType: 'RECIBO_INTERNO', receiptNumber: `REC-${String(receipt).padStart(6, '0')}`,
+          paymentMethod: pick([...methods]), operationNumber: `OP-${String(100000 + receipt)}`, receiptType: 'RECIBO_INTERNO', receiptNumber: `REC-${String(receipt).padStart(6, '0')}`,
         });
       }
     }

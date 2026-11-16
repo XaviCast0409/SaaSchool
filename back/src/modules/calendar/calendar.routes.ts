@@ -116,15 +116,19 @@ calendarRouter.post('/events', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'AD
   const dto = eventSchema.parse(req.body);
   const viewer = viewerOf(req);
   await assertCanTarget(viewer, dto.classroomId);
-  if (dto.classroomId) {
-    const c = await prisma.classroom.findFirst({ where: { id: dto.classroomId, schoolId: viewer.schoolId }, select: { id: true } });
-    if (!c) throw new AppError('Aula no encontrada.', 404);
-  }
+  await assertClassroomInSchool(viewer, dto.classroomId);
   const event = await prisma.schoolEvent.create({ data: { ...toData(dto), schoolId: viewer.schoolId, createdById: viewer.userId } });
   const notified = dto.notifyFamilies && dto.visibleToFamilies ? await notifyFamilies(viewer.schoolId, event) : 0;
   recordAudit(req, { action: 'CALENDAR_EVENT_CREATED', entity: 'SchoolEvent', entityId: event.id, after: { titulo: event.title } });
   res.status(201).json({ status: 'success', data: { ...event, notified } });
 });
+
+/** El aula de destino de un evento tiene que ser del mismo colegio (al crear y al editar). */
+async function assertClassroomInSchool(viewer: Viewer, classroomId?: string | null) {
+  if (!classroomId) return;
+  const c = await prisma.classroom.findFirst({ where: { id: classroomId, schoolId: viewer.schoolId }, select: { id: true } });
+  if (!c) throw new AppError('Aula no encontrada.', 404);
+}
 
 async function loadEditable(viewer: Viewer, id: string) {
   const event = await prisma.schoolEvent.findFirst({ where: { id, schoolId: viewer.schoolId } });
@@ -140,6 +144,7 @@ calendarRouter.put('/events/:id', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 
   const viewer = viewerOf(req);
   await loadEditable(viewer, id);
   await assertCanTarget(viewer, dto.classroomId);
+  await assertClassroomInSchool(viewer, dto.classroomId);
   const updated = await prisma.schoolEvent.update({ where: { id }, data: toData(dto) });
   recordAudit(req, { action: 'CALENDAR_EVENT_UPDATED', entity: 'SchoolEvent', entityId: id, after: { titulo: updated.title } });
   res.status(200).json({ status: 'success', data: updated });

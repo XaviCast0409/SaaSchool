@@ -170,6 +170,7 @@ export const useUpdateAttendance = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attendance'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance-sheet'] });
       queryClient.invalidateQueries({ queryKey: ['attendance-summary'] });
       queryClient.invalidateQueries({ queryKey: ['attendance-matrix'] });
       queryClient.invalidateQueries({ queryKey: ['student-attendance-detail'] });
@@ -198,6 +199,7 @@ export const useBulkAttendance = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attendance'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance-sheet'] });
       queryClient.invalidateQueries({ queryKey: ['attendance-summary'] });
       queryClient.invalidateQueries({ queryKey: ['attendance-matrix'] });
       queryClient.invalidateQueries({ queryKey: ['student-attendance-detail'] });

@@ -11,9 +11,8 @@ import {
   computeRiskSignals,
   RISK_REASON_LABELS,
   type RiskThresholds,
-  isSchoolDay,
 } from './attendance.rules';
-import { nationalHolidays } from '../calendar/official-dates';
+import { assertSchoolDay } from './school-day';
 import type {
   AttendanceRepository,
   AttendanceMonthlySummary,
@@ -53,37 +52,8 @@ export interface AttendanceUserContext {
 export class AttendanceService {
   constructor(private readonly attendanceRepository: AttendanceRepository) {}
 
-  private async assertSchoolDayForAttendance(schoolId: string, dateInput: string | Date): Promise<void> {
-    const dateStr =
-      typeof dateInput === 'string'
-        ? dateInput.slice(0, 10)
-        : dateInput.toISOString().slice(0, 10);
-
-    const activeYear = await prisma.academicYear.findFirst({
-      where: { schoolId, isActive: true },
-      select: { year: true, startDate: true, endDate: true },
-    });
-
-    const yearNumber = Number(dateStr.slice(0, 4));
-    const natHolidays = !isNaN(yearNumber) ? nationalHolidays(yearNumber) : [];
-    const holidaysMap = new Map<string, string>();
-    for (const nh of natHolidays) {
-      holidaysMap.set(nh.date, nh.name);
-    }
-
-    const schoolHolidays = await prisma.schoolHoliday.findMany({
-      where: { schoolId },
-      select: { date: true, name: true },
-    });
-    for (const sh of schoolHolidays) {
-      holidaysMap.set(sh.date.toISOString().slice(0, 10), sh.name);
-    }
-
-    const check = isSchoolDay(dateStr, activeYear, holidaysMap);
-    if (!check.isSchoolDay) {
-      // Mensaje concreto: fin de semana, qué feriado o fuera de qué año escolar
-      throw new AppError(check.message || 'No se puede registrar asistencia en un día no lectivo.', 400);
-    }
+  private assertSchoolDayForAttendance(schoolId: string, dateInput: string | Date): Promise<void> {
+    return assertSchoolDay(schoolId, dateInput);
   }
 
   /**
@@ -186,20 +156,69 @@ export class AttendanceService {
     }
   }
 
+  /** Aulas de las que el docente es tutor: lo único que puede consultar de la asistencia diaria. */
+  private async tutoredClassroomIds(schoolId: string, userId: string): Promise<string[]> {
+    const rooms = await prisma.classroom.findMany({
+      where: { schoolId, tutorTeacherId: userId },
+      select: { id: true },
+    });
+    return rooms.map((r) => r.id);
+  }
+
+  /** Lectura: un docente solo consulta la asistencia de su aula de tutoría. Dirección y Secretaría ven todo. */
+  private async assertTeacherTutorsClassroom(
+    schoolId: string,
+    classroomId: string | undefined,
+    userContext?: AttendanceUserContext,
+  ): Promise<void> {
+    if (userContext?.role !== 'TEACHER') return;
+    if (!classroomId) {
+      throw new AppError('Elige tu aula de tutoría para consultar la asistencia.', 400);
+    }
+    const tutored = await this.tutoredClassroomIds(schoolId, userContext.userId);
+    if (!tutored.includes(classroomId)) {
+      throw new AppError('Solo puedes consultar la asistencia de tu aula de tutoría.', 403);
+    }
+  }
+
+  /** Lectura del expediente de un alumno: para un docente, solo los de su aula de tutoría. */
+  async assertTeacherTutorsEnrollment(
+    schoolId: string,
+    enrollmentId: string,
+    userContext?: AttendanceUserContext,
+  ): Promise<void> {
+    if (userContext?.role !== 'TEACHER') return;
+    const enrollment = await prisma.enrollment.findFirst({
+      where: { id: enrollmentId, schoolId },
+      select: { classroom: { select: { tutorTeacherId: true } } },
+    });
+    if (!enrollment) throw new AppError('Matrícula no encontrada', 404);
+    if (enrollment.classroom?.tutorTeacherId !== userContext.userId) {
+      throw new AppError('Solo puedes consultar la asistencia de los alumnos de tu aula de tutoría.', 403);
+    }
+  }
+
   async getAttendanceByFilters(
     schoolId: string,
     filters: AttendanceFilterDto,
     userContext?: AttendanceUserContext,
   ): Promise<AttendancePaginatedWithStats> {
-    // Si es docente y no seleccionó aula específica, intentar preseleccionar su aula tutoriada
-    if (userContext?.role === 'TEACHER' && !filters.classroomId) {
-      const tutoredClassrooms = await prisma.classroom.findMany({
-        where: { schoolId, tutorTeacherId: userContext.userId },
-        select: { id: true },
-      });
-
-      if (tutoredClassrooms.length > 0) {
-        filters = { ...filters, classroomId: tutoredClassrooms[0].id };
+    // Un docente solo ve su aula de tutoría: sin aula elegida se usa la suya; sin tutoría, nada
+    if (userContext?.role === 'TEACHER') {
+      const tutored = await this.tutoredClassroomIds(schoolId, userContext.userId);
+      if (tutored.length === 0) {
+        const limit = filters.limit ?? 15;
+        return {
+          data: [],
+          meta: { total: 0, page: filters.page ?? 1, limit, totalPages: 1 },
+          stats: { total: 0, present: 0, absent: 0, late: 0 },
+        };
+      }
+      if (filters.classroomId && !tutored.includes(filters.classroomId)) {
+        throw new AppError('Solo puedes consultar la asistencia de tu aula de tutoría.', 403);
+      }
+      if (!filters.classroomId) {
+        filters = { ...filters, classroomId: tutored[0] };
       }
     }
 
@@ -264,8 +283,9 @@ export class AttendanceService {
   async getAttendanceSheet(
     schoolId: string,
     query: AttendanceSheetQueryDto,
-    _userContext?: AttendanceUserContext,
+    userContext?: AttendanceUserContext,
   ): Promise<AttendanceSheetData> {
+    await this.assertTeacherTutorsClassroom(schoolId, query.classroomId, userContext);
     return this.attendanceRepository.getClassroomAttendanceSheet(
       schoolId,
       query.classroomId,
@@ -349,8 +369,9 @@ export class AttendanceService {
   async getMonthlyMatrixData(
     schoolId: string,
     query: AttendanceMatrixQueryDto,
-    _userContext?: AttendanceUserContext,
+    userContext?: AttendanceUserContext,
   ): Promise<AttendanceMatrixData> {
+    await this.assertTeacherTutorsClassroom(schoolId, query.classroomId, userContext);
     return this.attendanceRepository.getMonthlyMatrixData(schoolId, query);
   }
 
@@ -1090,8 +1111,10 @@ export class AttendanceService {
       throw new AppError('En Inicial y Primaria el estudiante debe ser recogido por un apoderado o una persona autorizada.', 422);
     }
 
-    let pickedUpByName: string;
-    let pickedUpByDocument: string;
+    // En una salida por su cuenta nadie lo recoge: se dejan vacíos para que las pantallas
+    // muestren «salió por su cuenta» en vez de «retirado por <el propio alumno>»
+    let pickedUpByName: string | null;
+    let pickedUpByDocument: string | null;
     let relationshipLabel = '';
 
     if (dto.pickupType === 'GUARDIAN') {
@@ -1119,8 +1142,8 @@ export class AttendanceService {
       relationshipLabel = authPickup.relationship;
     } else {
       // SELF
-      pickedUpByName = `${enrollment.student.firstNames} ${enrollment.student.lastNamePaternal}`;
-      pickedUpByDocument = enrollment.student.documentId;
+      pickedUpByName = null;
+      pickedUpByDocument = null;
       relationshipLabel = 'Por su cuenta';
     }
 
