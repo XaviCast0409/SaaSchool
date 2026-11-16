@@ -13,6 +13,11 @@ const ROOT_DOMAIN = String(import.meta.env.VITE_ROOT_DOMAIN ?? '')
 const RESERVED = new Set(['www', 'app', 'api', 'admin', 'administrador', 'staging', 'static', 'mail', 'soporte', 'support', 'demo', 'test', 'kipux', 'login', 'dashboard']);
 const SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]{1,38})[a-z0-9]$/;
 
+/** true si el código puede usarse como subdominio de colegio (formato válido y no reservado). */
+export function isSubdomainSlug(slug: string): boolean {
+  return !RESERVED.has(slug) && SLUG_REGEX.test(slug) && !slug.includes('--');
+}
+
 /** Código del colegio según el nombre del servidor, o null si no es un subdominio de colegio. */
 export function schoolSlugFromHost(hostname: string, rootDomain: string = ROOT_DOMAIN): string | null {
   if (!rootDomain) return null;
@@ -22,8 +27,33 @@ export function schoolSlugFromHost(hostname: string, rootDomain: string = ROOT_D
   if (labels[0] === 'www') labels.shift();
   if (labels.length !== 1) return null;
   const slug = labels[0];
-  if (RESERVED.has(slug) || !SLUG_REGEX.test(slug) || slug.includes('--')) return null;
-  return slug;
+  return isSubdomainSlug(slug) ? slug : null;
+}
+
+/**
+ * true si la app corre en el dominio raíz o en uno de sus subdominios (kipuxedu.com, www.kipuxedu.com,
+ * <colegio>.kipuxedu.com). Solo ahí se redirige entre subdominios; en localhost u otros nombres
+ * todo sigue funcionando con /c/<código>.
+ */
+export function onSchoolDomain(hostname: string = typeof window === 'undefined' ? '' : window.location.hostname): boolean {
+  if (!ROOT_DOMAIN) return false;
+  const host = hostname.toLowerCase().replace(/\.$/, '');
+  return host === ROOT_DOMAIN || host.endsWith(`.${ROOT_DOMAIN}`);
+}
+
+/** true si el ingreso de este colegio debe abrirse en su propio subdominio en lugar de /c/<código>. */
+export function shouldUseSchoolSubdomain(slug: string): boolean {
+  return onSchoolDomain() && isSubdomainSlug(slug);
+}
+
+function currentPortSuffix(): string {
+  const port = typeof window === 'undefined' ? '' : window.location.port;
+  return port && !['80', '443'].includes(port) ? `:${port}` : '';
+}
+
+/** Dirección en el sitio principal de KIPUX (www.<dominio raíz>), por ejemplo para cambiar de colegio. */
+export function mainSiteUrl(path: string): string {
+  return `${window.location.protocol}//www.${ROOT_DOMAIN}${currentPortSuffix()}${path}`;
 }
 
 /** Colegio del subdominio actual (se calcula una vez al cargar la app). */
@@ -33,8 +63,7 @@ export const currentSchoolSlug: string | null =
 /** Dirección pública de ingreso de un colegio: su subdominio si está configurado, si no /c/<código>. */
 export function schoolLoginUrl(slug: string): string {
   if (ROOT_DOMAIN && typeof window !== 'undefined') {
-    const port = window.location.port && !['80', '443'].includes(window.location.port) ? `:${window.location.port}` : '';
-    return `${window.location.protocol}//${slug}.${ROOT_DOMAIN}${port}`;
+    return `${window.location.protocol}//${slug}.${ROOT_DOMAIN}${currentPortSuffix()}`;
   }
   return `${typeof window === 'undefined' ? '' : window.location.origin}/c/${slug}`;
 }

@@ -7,6 +7,7 @@ import { loginSchema, LoginFormData } from '../schemas/login.schema';
 import { useLogin } from '../api/useLogin';
 import { loginBackgroundSrc, useSchoolLoginPage } from '../api/useSchoolLoginPage';
 import { clearLastSchoolCode, normalizeSchoolCode } from '../lib/lastSchool';
+import { mainSiteUrl, onSchoolDomain, schoolLoginUrl, shouldUseSchoolSubdomain } from '@/lib/schoolDomain';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { KipuxLogo } from '@/components/brand/KipuxLogo';
@@ -20,7 +21,13 @@ export const SchoolLoginPage: React.FC<{ codeOverride?: string }> = ({ codeOverr
   const rawCode = codeOverride ?? routeCode;
   const code = normalizeSchoolCode(rawCode);
   const navigate = useNavigate();
-  const { data: page, isLoading, error: pageError } = useSchoolLoginPage(code);
+  // Enlaces antiguos kipuxedu.com/c/<código>: se abren en el subdominio del colegio
+  const redirectToSubdomain = !codeOverride && shouldUseSchoolSubdomain(code);
+  const { data: page, isLoading, error: pageError } = useSchoolLoginPage(redirectToSubdomain ? '' : code);
+
+  useEffect(() => {
+    if (redirectToSubdomain) window.location.replace(schoolLoginUrl(code));
+  }, [redirectToSubdomain, code]);
   const { mutate: login, isPending, error } = useLogin();
   const [backgroundFailed, setBackgroundFailed] = useState(false);
 
@@ -54,10 +61,16 @@ export const SchoolLoginPage: React.FC<{ codeOverride?: string }> = ({ codeOverr
 
   const changeSchool = () => {
     clearLastSchoolCode();
+    // En el subdominio de un colegio, /login vuelve a ser la página de ese colegio:
+    // para escribir otro código hay que volver al sitio principal.
+    if (codeOverride && onSchoolDomain()) {
+      window.location.assign(mainSiteUrl('/login?cambiar=1'));
+      return;
+    }
     navigate('/login?cambiar=1');
   };
 
-  if (isLoading) {
+  if (isLoading || redirectToSubdomain) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" aria-label="Cargando" />
