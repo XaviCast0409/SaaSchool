@@ -1,9 +1,25 @@
 import { rateLimit, ipKeyGenerator } from 'express-rate-limit';
-import jwt from 'jsonwebtoken';
 import type { Request } from 'express';
+import { verifyToken } from '../../utils/jwt.util';
 
 const FIFTEEN_MINUTES = 15 * 60 * 1000;
 const ipKey = (request: Request): string => `ip:${ipKeyGenerator(request.ip ?? '')}`;
+
+/**
+ * Usuario del token SOLO si la firma es válida. Antes se usaba jwt.decode (sin verificar): con un token
+ * falsificado alguien podía agotar el cupo de otro usuario (dejarlo con 429) o saltarse el límite
+ * inventando ids. Un token inválido o vencido cuenta contra la IP.
+ */
+export const verifiedUserKey = (request: Request): string | null => {
+  const header = request.headers.authorization;
+  if (!header?.startsWith('Bearer ')) return null;
+  try {
+    const { userId } = verifyToken(header.slice(7).trim());
+    return userId ?? null;
+  } catch {
+    return null;
+  }
+};
 
 /** Login: 10 intentos por IP + identificador cada 15 min (no bloquea a todo un colegio que comparte IP). */
 export const loginRateLimiter = rateLimit({
@@ -46,12 +62,8 @@ export const apiRateLimiter = rateLimit({
   legacyHeaders: false,
   skip: (request) => request.path.startsWith('/attendance/scan'),
   keyGenerator: (request) => {
-    const header = request.headers.authorization;
-    if (header?.startsWith('Bearer ')) {
-      const decoded = jwt.decode(header.slice(7)) as { userId?: string } | null;
-      if (decoded?.userId) return `u:${decoded.userId}`;
-    }
-    return ipKey(request);
+    const userId = verifiedUserKey(request);
+    return userId ? `u:${userId}` : ipKey(request);
   },
   message: { status: 'fail', message: 'Límite de peticiones alcanzado. Intenta nuevamente en unos minutos.' },
 });
@@ -93,12 +105,8 @@ export const scanRateLimiter = rateLimit({
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   keyGenerator: (request) => {
-    const header = request.headers.authorization;
-    if (header?.startsWith('Bearer ')) {
-      const decoded = jwt.decode(header.slice(7)) as { userId?: string } | null;
-      if (decoded?.userId) return `scan:${decoded.userId}`;
-    }
-    return `scan:${ipKey(request)}`;
+    const userId = verifiedUserKey(request);
+    return userId ? `scan:${userId}` : `scan:${ipKey(request)}`;
   },
   message: { status: 'fail', message: 'Demasiados escaneos en poco tiempo. Espera unos segundos.' },
 });
