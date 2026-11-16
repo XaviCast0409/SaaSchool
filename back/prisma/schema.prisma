@@ -2325,3 +2325,12 @@ model EmailOutbox {
   @@index([schoolId, category, createdAt])
   @@index([to, createdAt])
 }
+
+/// Sesiones cerradas antes de vencer (cierre de sesión): el token deja de valer aunque no haya expirado.
+model RevokedToken {
+  jti       String   @id
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+}

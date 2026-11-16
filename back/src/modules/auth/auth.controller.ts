@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { loginSchema, changePasswordSchema, forgotPasswordSchema, resetPasswordSchema, mfaConfirmSchema } from './auth.schema';
 import type { AuthService } from './auth.service';
+import { revokeToken } from '../../core/security/token-revocation';
 
 /**
  * AuthController: Maneja las solicitudes HTTP de autenticación.
@@ -35,6 +36,13 @@ export class AuthController {
     const { code } = mfaConfirmSchema.parse(request.body);
     const result = await this.authService.confirmMfaSetup(request.user!, code);
     response.status(200).json({ status: 'success', data: result });
+  };
+
+  /** Cierra la sesión en el servidor: el token deja de valer aunque no haya vencido. */
+  logout = async (request: Request, response: Response): Promise<void> => {
+    const { jti, exp } = request.tokenInfo ?? {};
+    if (jti) await revokeToken(jti, exp);
+    response.status(204).send();
   };
 
   forgotPassword = async (request: Request, response: Response): Promise<void> => {

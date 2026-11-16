@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
 import { AppError } from '../core/errors/app-error';
@@ -7,8 +8,11 @@ import type { AuthenticatedUser } from '../core/interfaces/global.interfaces';
  * Genera un JWT firmado con el payload del usuario autenticado.
  */
 export const signToken = (payload: AuthenticatedUser): string => {
-  return jwt.sign(payload, env.JWT_SECRET, {
+  // Copia limpia (sin jti/iat/exp de un token anterior) y un id único para poder revocarlo al cerrar sesión
+  const { userId, studentId, schoolId, role, email } = payload;
+  return jwt.sign({ userId, studentId, schoolId, role, email }, env.JWT_SECRET, {
     expiresIn: env.JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'],
+    jwtid: crypto.randomUUID(),
   });
 };
 

@@ -109,6 +109,13 @@ export const useAuthStore = create<AuthState>((set, getState) => {
         });
         if (!ok) return;
       }
+      // Revoca el token en el servidor: si alguien lo copió, deja de servir. Si no hay red, igual se cierra aquí.
+      try {
+        const { api } = await import('@/lib/axios');
+        await api.post('/auth/logout', undefined, { timeout: 5000 });
+      } catch {
+        /* sin conexión o sesión ya vencida: se cierra igual en este dispositivo */
+      }
       await clearOfflineData({ includePending: true });
       clearSession();
     },
