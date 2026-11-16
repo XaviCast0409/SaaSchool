@@ -41,7 +41,8 @@ export function applyBrandColor(hex?: string | null): void {
     root.style.removeProperty('--ring');
     return;
   }
-  let [h, s, l] = rgbToHsl(hexToRgb(hex));
+  const [h, s, initialL] = rgbToHsl(hexToRgb(hex));
+  let l = initialL;
   while (l > 10 && (1.05 / (relativeLuminance(hslToRgb(h, s, l)) + 0.05)) < 4.5) {
     l -= 2;
   }
