@@ -12,10 +12,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import type { AnnouncementPriority, AnnouncementStatus } from '../types';
+import { useQueryAction } from '@/lib/useQueryAction';
 
 export const AnnouncementsPage: React.FC = () => {
   const currentUser = useAuthStore((state) => state.user);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const openAction = useQueryAction();
+  const [isModalOpen, setIsModalOpen] = useState(() => openAction === 'nuevo');
   // Filtros en la URL: sobreviven a recargar, al botón Atrás y se pueden compartir como enlace
   const [urlFilters, setUrlFilters] = useUrlFilters({ page: 1, limit: 10, q: '', priority: '', status: 'current' });
   const { page, limit, q: search } = urlFilters;
@@ -236,7 +238,7 @@ export const AnnouncementsPage: React.FC = () => {
 
       {/* 4. Modal para Crear Comunicado */}
       <CreateAnnouncementModal
-        isOpen={isModalOpen}
+        isOpen={isModalOpen && Boolean(canCreate)}
         onClose={() => setIsModalOpen(false)}
       />
     </div>

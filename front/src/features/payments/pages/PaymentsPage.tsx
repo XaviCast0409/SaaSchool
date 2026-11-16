@@ -63,6 +63,7 @@ import { useGetActiveSchool } from '@/features/schools/api/useSchool';
 import { PaymentObligation, ObligationStatus } from '../types';
 import { formatPeruShortDate } from '@/lib/dateUtils';
 import { formatFullName, formatEducationLevel } from '@/lib/utils';
+import { useQueryAction } from '@/lib/useQueryAction';
 
 export const PaymentsPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -92,9 +93,11 @@ export const PaymentsPage: React.FC = () => {
   const [selectedObligationForReminder, setSelectedObligationForReminder] = useState<PaymentObligation | null>(null);
   const [selectedObligationForEdit, setSelectedObligationForEdit] = useState<PaymentObligation | null>(null);
   const [selectedTransactionIdForReceipt, setSelectedTransactionIdForReceipt] = useState<string | null>(null);
-  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  // Un acceso rápido del Inicio puede abrir un formulario con ?abrir=
+  const openAction = useQueryAction();
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(() => openAction === 'pensiones');
   const [isDailyCashCloseOpen, setIsDailyCashCloseOpen] = useState(false);
-  const [isCreateIndividualOpen, setIsCreateIndividualOpen] = useState(false);
+  const [isCreateIndividualOpen, setIsCreateIndividualOpen] = useState(() => openAction === 'cobro');
   const [isWhatsAppQueueOpen, setIsWhatsAppQueueOpen] = useState(false);
   const [reportFor, setReportFor] = useState<ReportableObligation | null>(null);
   const [paymentsOf, setPaymentsOf] = useState<string | null>(null);
@@ -745,7 +748,7 @@ export const PaymentsPage: React.FC = () => {
         />
       )}
 
-      {isBulkModalOpen && (
+      {isBulkModalOpen && canManage && (
         <BulkObligationModal onClose={() => setIsBulkModalOpen(false)} />
       )}
 
@@ -805,7 +808,7 @@ export const PaymentsPage: React.FC = () => {
         onConfirm={confirmCancel}
       />
 
-      {isCreateIndividualOpen && (
+      {isCreateIndividualOpen && canManage && (
         <CreateIndividualObligationModal
           isOpen={isCreateIndividualOpen}
           onClose={() => setIsCreateIndividualOpen(false)}

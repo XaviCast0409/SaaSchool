@@ -19,6 +19,7 @@ import {
   CalendarDays,
   Flag,
   Landmark,
+  CalendarOff,
 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card } from '@/components/ui/card';
@@ -31,6 +32,8 @@ import { formatPeruDate, getPeruToday } from '@/lib/dateUtils';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
 import { apiErrorMessage } from '@/features/academic/api';
+import { useQueryClient } from '@tanstack/react-query';
+import { HolidaysModal } from '@/features/attendance/components/HolidaysModal';
 import {
   EVENT_TYPE_LABEL,
   useCalendar,
@@ -275,6 +278,10 @@ export const CalendarPage: React.FC = () => {
   const { user } = useAuthStore();
   const role = user?.role;
   const canCreate = role === 'SCHOOL_ADMIN' || role === 'SUPER_ADMIN' || role === 'ADMINISTRATIVE' || role === 'TEACHER';
+  // Días sin clases propios del colegio (antes «Feriados» en Asistencia): Dirección y Secretaría
+  const canManageHolidays = role === 'SCHOOL_ADMIN' || role === 'SUPER_ADMIN' || role === 'ADMINISTRATIVE';
+  const [holidaysOpen, setHolidaysOpen] = useState(false);
+  const queryClient = useQueryClient();
   const today = getPeruToday();
   const [ym, setYm] = useState(() => ({ y: Number(today.slice(0, 4)), m: Number(today.slice(5, 7)) }));
   const [selected, setSelected] = useState(today);
@@ -340,6 +347,11 @@ export const CalendarPage: React.FC = () => {
                 }}
               >
                 <Landmark className="h-4 w-4" aria-hidden /> Cargar fechas oficiales
+              </Button>
+            )}
+            {canManageHolidays && (
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setHolidaysOpen(true)}>
+                <CalendarOff className="h-4 w-4" aria-hidden /> Días sin clases
               </Button>
             )}
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setFeedOpen(true)}>
@@ -463,6 +475,16 @@ export const CalendarPage: React.FC = () => {
 
       {editor && <EventModal open onClose={() => setEditor(null)} initial={editor.initial} editingId={editor.id} isTeacher={role === 'TEACHER'} />}
       <FeedModal open={feedOpen} onClose={() => setFeedOpen(false)} />
+      {holidaysOpen && (
+        <HolidaysModal
+          isOpen={holidaysOpen}
+          onClose={() => {
+            setHolidaysOpen(false);
+            // Los días sin clases se pintan en el calendario
+            queryClient.invalidateQueries({ queryKey: ['calendar'] });
+          }}
+        />
+      )}
     </div>
   );
 };

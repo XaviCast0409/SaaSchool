@@ -10,6 +10,7 @@ import {
   Clock,
   Loader2,
   ArrowLeft,
+  CheckCircle2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -48,6 +49,26 @@ const PickupPhotoAvatar: React.FC<{
   );
 };
 
+/** Pitido corto de confirmación (sin archivos de audio). Si el navegador no lo permite, no pasa nada. */
+const playConfirmBeep = () => {
+  try {
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.35);
+    osc.onended = () => void ctx.close();
+  } catch {
+    /* sin sonido */
+  }
+};
+
 export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) => {
   const [scannedCode, setScannedCode] = useState<string | null>(null);
   const [manualCode, setManualCode] = useState('');
@@ -57,6 +78,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
   const [selectedPickupType, setSelectedPickupType] = useState<'GUARDIAN' | 'AUTHORIZED' | 'SELF' | null>(null);
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [earlyLeaveReason, setEarlyLeaveReason] = useState('');
+  // Confirmación grande tras registrar: el portero ve de un vistazo que quedó hecho
+  const [lastCheckout, setLastCheckout] = useState<{ student: string; detail: string; familyNotified: boolean } | null>(null);
 
   const { data: previewData, isLoading: isLoadingPreview, error: previewError } = useCheckoutPreview(scannedCode);
   const { mutateAsync: doCheckout, isPending: isCheckingOut } = useCheckout();
@@ -98,7 +121,26 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
       earlyLeaveReason: earlyLeaveReason.trim() || undefined,
     });
 
-    onClose();
+    const pickerName =
+      selectedPickupType === 'GUARDIAN'
+        ? guardians.find((g) => g.id === selectedPersonId)?.fullName
+        : selectedPickupType === 'AUTHORIZED'
+          ? authorizedPickups.find((p) => p.id === selectedPersonId)?.fullName
+          : null;
+    setLastCheckout({
+      student: student?.fullName ?? 'Estudiante',
+      detail: pickerName ? `Recogido(a) por ${pickerName}` : 'Salió por su cuenta',
+      // El backend avisa a los apoderados vinculados; sin apoderados no hay a quién avisar
+      familyNotified: guardians.length > 0,
+    });
+    playConfirmBeep();
+    handleResetSearch();
+  };
+
+  /** Deja el modal listo para el siguiente alumno */
+  const handleNextCheckout = () => {
+    setLastCheckout(null);
+    handleResetSearch();
   };
 
   const student = previewData?.student;
@@ -138,8 +180,28 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
 
         {/* Contenido */}
         <div className="p-5 space-y-5 overflow-y-auto flex-1">
-          {/* PASO 1: Búsqueda o escaneo si no hay código */}
-          {!scannedCode ? (
+          {lastCheckout ? (
+            <div role="status" aria-live="polite" className="flex flex-col items-center gap-3 py-8 text-center animate-in zoom-in-95">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg">
+                <CheckCircle2 className="h-12 w-12" aria-hidden />
+              </div>
+              <p className="text-2xl font-black text-foreground">Salida registrada</p>
+              <p className="text-lg font-semibold text-foreground">{lastCheckout.student}</p>
+              <p className="text-sm text-muted-foreground">
+                {lastCheckout.detail}
+                {lastCheckout.familyNotified ? ' · se avisó a la familia' : ''}
+              </p>
+              <div className="mt-2 flex gap-2">
+                <Button onClick={handleNextCheckout} autoFocus className="h-11 px-6 text-base font-bold rounded-xl">
+                  Registrar otra salida
+                </Button>
+                <Button variant="outline" onClick={onClose} className="h-11 px-6 rounded-xl">
+                  Cerrar
+                </Button>
+              </div>
+            </div>
+          ) : /* PASO 1: Búsqueda o escaneo si no hay código */
+          !scannedCode ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-foreground">
@@ -172,6 +234,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
                   value={manualCode}
                   onChange={(e) => setManualCode(e.target.value)}
                   placeholder="Ingresa DNI o código del estudiante..."
+                  aria-label="DNI o código del estudiante"
+                  // Listo para escribir o escanear (lector USB) sin tocar la pantalla
+                  autoFocus
                   className="flex-1 rounded-xl border border-border bg-background px-3.5 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
                 <Button type="submit" size="sm" className="rounded-xl text-xs font-bold gap-1 px-4">
@@ -406,7 +471,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
           ) : null}
         </div>
 
-        {/* Footer */}
+        {/* Footer (la confirmación trae sus propios botones) */}
+        {!lastCheckout && (
         <div className="p-4 border-t border-border flex items-center justify-end gap-2 bg-muted/20">
           <Button variant="outline" size="sm" onClick={onClose} className="rounded-xl text-xs font-bold">
             Cancelar
@@ -428,6 +494,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
             </Button>
           )}
         </div>
+        )}
       </div>
     </div>
   );
