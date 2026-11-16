@@ -3,6 +3,7 @@ import type { EducationLevel } from '@prisma/client';
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
 import { assertPeriod, fullNameOf, getActiveYear, periodCount } from '../academic/academic.context';
+import { countsInPeriod } from '../enrollments/withdrawal.rules';
 import { CNEB_AREAS, CNEB_COMPETENCES, gradeLabel } from '../academic/cneb.catalog';
 import { ConsolidationService } from '../academic/consolidation.service';
 import { CONCLUSION_MIN_LENGTH, sanitizeConclusion } from '../academic/grade-engine';
@@ -22,7 +23,8 @@ const areaName = (level: EducationLevel | null, code: string | null, sheet: Temp
 interface ClassroomContext {
   year: { id: string; year: number; periodType: string; isActive: boolean };
   classroom: { id: string; educationLevel: EducationLevel; grade: number; section: string; shift: string } | null;
-  enrollments: Array<{ id: string; enrollmentState: string; studentCode: string | null; fullName: string }>;
+  /** activeInPeriod: el alumno cuenta en el periodo de la plantilla (matriculado, o retirado después de completarlo) */
+  enrollments: Array<{ id: string; enrollmentState: string; activeInPeriod: boolean; studentCode: string | null; fullName: string }>;
   planCodes: Set<string>;
   issues: string[];
   warnings: string[];
@@ -41,8 +43,9 @@ function matchStudents(t: ParsedTemplate, enrollments: ClassroomContext['enrollm
     else notInApp.push(s.fullName);
   }
   const inFile = new Set([...matched.values()].map((e) => e.id));
-  const notInFile = enrollments.filter((e) => e.enrollmentState === 'REGISTERED' && !inFile.has(e.id)).map((e) => e.fullName);
-  const inactive = [...matched.values()].filter((e) => e.enrollmentState !== 'REGISTERED').map((e) => e.fullName);
+  const notInFile = enrollments.filter((e) => e.activeInPeriod && !inFile.has(e.id)).map((e) => e.fullName);
+  // Retirados o trasladados antes de terminar este periodo: sus celdas no se tocan
+  const inactive = [...matched.values()].filter((e) => !e.activeInPeriod).map((e) => e.fullName);
   return { matched, notInApp, notInFile, inactive, total: rows.length };
 }
 
@@ -86,14 +89,21 @@ export class TemplateService {
         const [enr, plan] = await Promise.all([
           prisma.enrollment.findMany({
             where: { schoolId, classroomId: classroom.id, academicYearId: year.id },
-            select: { id: true, enrollmentState: true, student: { select: { studentCode: true, firstNames: true, lastNamePaternal: true, lastNameMaternal: true } } },
+            select: { id: true, enrollmentState: true, withdrawalDate: true, student: { select: { studentCode: true, firstNames: true, lastNamePaternal: true, lastNameMaternal: true } } },
           }),
           prisma.studyPlanCourse.findMany({
             where: { academicYearId: year.id, educationLevel: t.level, grade: t.grade, area: { kind: { not: 'WORKSHOP' } } },
             select: { area: { select: { officialAreaCode: true } } },
           }),
         ]);
-        enrollments = enr.map((e) => ({ id: e.id, enrollmentState: e.enrollmentState, studentCode: e.student.studentCode, fullName: fullNameOf(e.student) }));
+        const periodNumber = t.periodNumber;
+        enrollments = enr.map((e) => ({
+          id: e.id,
+          enrollmentState: e.enrollmentState,
+          activeInPeriod: periodNumber !== null && periodNumber <= periodCount(year) ? countsInPeriod(e, year, periodNumber) : e.enrollmentState === 'REGISTERED',
+          studentCode: e.student.studentCode,
+          fullName: fullNameOf(e.student),
+        }));
         planCodes = new Set(plan.map((p) => p.area.officialAreaCode).filter((c): c is string => !!c));
       }
     }
@@ -198,7 +208,7 @@ export class TemplateService {
           if (!comp) continue;
           for (const s of a.students) {
             const enr = m.matched.get(s.studentCode);
-            if (!enr || enr.enrollmentState !== 'REGISTERED') continue;
+            if (!enr || !enr.activeInPeriod) continue;
             const letter = (a.cells.get(cellRef(c.nlCol, s.row)) ?? '').trim().toUpperCase();
             const conclusion = c.conclusionCol ? sanitizeConclusion(a.cells.get(cellRef(c.conclusionCol, s.row))) : '';
             const key = { enrollmentId: enr.id, courseAssignmentId: assignment.id, competenceId: comp.id, periodNumber: t.periodNumber };
@@ -301,7 +311,8 @@ export class TemplateService {
             const student = byCode.get(s.studentCode) ?? byName.get(normalizeLabel(s.fullName));
             if (!student) continue;
             matchedNames.add(s.studentCode);
-            if (student.enrollmentState !== 'REGISTERED') continue;
+            // Retirado o trasladado antes de terminar este periodo: no se sube al SIAGIE
+            if (!student.activeInPeriod) continue;
             const value = student.consolidatedGrades[a.areaCode]?.competences[key];
 
             // 1. Nivel de logro. Regla: lo de la app manda; si la app no tiene nota, se respeta la plantilla.

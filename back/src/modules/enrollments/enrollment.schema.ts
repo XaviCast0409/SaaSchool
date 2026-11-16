@@ -12,8 +12,15 @@ export const createEnrollmentSchema = z.object({
 export const updateEnrollmentSchema = z.object({
   classroomId: z.string().uuid().optional(),
   enrollmentState: z.enum(['REGISTERED', 'TRANSFERRED', 'WITHDRAWN']).optional(),
-  /** Fecha del retiro o traslado (AAAA-MM-DD); por defecto, hoy. Las cuotas que vencen después se anulan. */
+  /**
+   * Último día que el alumno estudió (AAAA-MM-DD); por defecto, hoy. Se guarda en la matrícula:
+   * las notas de los periodos que terminaron hasta ese día y la asistencia hasta ese día siguen
+   * contando, y las cuotas que vencen después se anulan.
+   */
   stateChangeDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida (AAAA-MM-DD)').optional(),
+  withdrawalReason: z.string().trim().max(500).optional().nullable(),
+  /** Colegio de destino (solo traslados) */
+  transferSchool: z.string().trim().max(200).optional().nullable(),
 });
 
 export const schedulePreviewSchema = z.object({

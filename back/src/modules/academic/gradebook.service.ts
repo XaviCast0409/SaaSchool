@@ -6,6 +6,7 @@ import {
 } from './academic.context';
 import { PeriodService } from './period.service';
 import { ResultsService } from './results.service';
+import { countsInPeriod, lastStudyDay } from '../enrollments/withdrawal.rules';
 
 export interface ScoreItem {
   enrollmentId: string;
@@ -37,12 +38,13 @@ export class GradebookService {
     return criteria.map((c) => ({ id: c.id, name: c.name, shortName: c.shortName, weight: c.weight, isCustom: false }));
   }
 
-  private async activeEnrollmentIds(schoolId: string, a: LoadedAssignment): Promise<Set<string>> {
+  /** Matrículas que reciben notas en el periodo: matriculados y retirados que completaron ese periodo. */
+  private async activeEnrollmentIds(schoolId: string, a: LoadedAssignment, periodNumber: number): Promise<Set<string>> {
     const rows = await prisma.enrollment.findMany({
-      where: { schoolId, classroomId: a.classroomId, academicYearId: a.academicYearId, enrollmentState: 'REGISTERED' },
-      select: { id: true },
+      where: { schoolId, classroomId: a.classroomId, academicYearId: a.academicYearId },
+      select: { id: true, enrollmentState: true, withdrawalDate: true },
     });
-    return new Set(rows.map((r) => r.id));
+    return new Set(rows.filter((r) => countsInPeriod(r, a.academicYear, periodNumber)).map((r) => r.id));
   }
 
   /**
@@ -74,7 +76,7 @@ export class GradebookService {
           schoolId, classroomId: a.classroomId, academicYearId: a.academicYearId,
         },
         select: {
-          id: true, enrollmentState: true,
+          id: true, enrollmentState: true, withdrawalDate: true,
           student: { select: { id: true, firstNames: true, lastNamePaternal: true, lastNameMaternal: true, studentCode: true, documentId: true } },
         },
         orderBy: [{ student: { lastNamePaternal: 'asc' } }, { student: { lastNameMaternal: 'asc' } }, { student: { firstNames: 'asc' } }],
@@ -114,7 +116,11 @@ export class GradebookService {
       competences: competences.map((c) => ({ id: c.id, cnebNumber: c.cnebNumber, name: c.name, shortName: shortNameOf(c) })),
       criteria,
       students: enrollments.map((e) => ({
-        enrollmentId: e.id, state: e.enrollmentState, fullName: fullNameOf(e.student), studentCode: e.student.studentCode, documentId: e.student.documentId,
+        enrollmentId: e.id, state: e.enrollmentState,
+        // Retirado o trasladado: se califica solo en los periodos que completó antes de irse
+        activeInPeriod: countsInPeriod(e, a.academicYear, periodNumber),
+        withdrawalDate: lastStudyDay(e),
+        fullName: fullNameOf(e.student), studentCode: e.student.studentCode, documentId: e.student.documentId,
       })),
       scores,
       results,
@@ -131,11 +137,11 @@ export class GradebookService {
     if (items.length === 0) return { saved: 0, results: [], correction };
     const compIds = new Set(a.area.competences.map((c) => c.id));
     const critIds = new Set((await this.getCourseCriteria(schoolId, a)).map((c) => c.id));
-    const enrollmentIds = await this.activeEnrollmentIds(schoolId, a);
+    const enrollmentIds = await this.activeEnrollmentIds(schoolId, a, periodNumber);
     for (const it of items) {
       if (!compIds.has(it.competenceId)) throw new AppError('Hay notas para competencias que no pertenecen a este curso.', 400);
       if (!critIds.has(it.criterionId)) throw new AppError('Hay notas para criterios que no se usan en este curso.', 400);
-      if (!enrollmentIds.has(it.enrollmentId)) throw new AppError('Hay notas para estudiantes que no están matriculados en esta aula.', 400);
+      if (!enrollmentIds.has(it.enrollmentId)) throw new AppError('Hay notas para estudiantes que no están matriculados en esta aula o que se retiraron antes de terminar este periodo.', 400);
       if (it.numericScore !== null && (it.numericScore < 0 || it.numericScore > 20)) throw new AppError('Las notas numéricas van de 0 a 20.', 400);
     }
     await prisma.$transaction(
@@ -177,7 +183,7 @@ export class GradebookService {
     input: { enrollmentId: string; competenceId: string; finalLetter: ResultLetter | null },
   ) {
     if (!a.area.competences.some((c) => c.id === input.competenceId)) throw new AppError('La competencia no pertenece a este curso.', 400);
-    if (!(await this.activeEnrollmentIds(schoolId, a)).has(input.enrollmentId)) throw new AppError('El estudiante no está matriculado en esta aula.', 400);
+    if (!(await this.activeEnrollmentIds(schoolId, a, periodNumber)).has(input.enrollmentId)) throw new AppError('El estudiante no está matriculado en esta aula o se retiró antes de terminar este periodo.', 400);
     if (input.finalLetter !== null && !isResultLetter(input.finalLetter)) throw new AppError('Calificativo no válido.', 400);
     const key = { enrollmentId: input.enrollmentId, courseAssignmentId: a.id, competenceId: input.competenceId, periodNumber };
     const prev = await prisma.competencePeriodResult.findUnique({ where: { enrollmentId_courseAssignmentId_competenceId_periodNumber: key } });
@@ -210,10 +216,10 @@ export class GradebookService {
     const a = await loadAssignmentForUser(schoolId, user, assignmentId, { write: true });
     const { correction } = await this.assertEditable(user, a, periodNumber);
     const compIds = new Set(a.area.competences.map((c) => c.id));
-    const enrollmentIds = await this.activeEnrollmentIds(schoolId, a);
+    const enrollmentIds = await this.activeEnrollmentIds(schoolId, a, periodNumber);
     for (const it of items) {
       if (!compIds.has(it.competenceId)) throw new AppError('La competencia no pertenece a este curso.', 400);
-      if (!enrollmentIds.has(it.enrollmentId)) throw new AppError('El estudiante no está matriculado en esta aula.', 400);
+      if (!enrollmentIds.has(it.enrollmentId)) throw new AppError('El estudiante no está matriculado en esta aula o se retiró antes de terminar este periodo.', 400);
       const text = sanitizeConclusion(it.conclusion);
       if (text && text.length < CONCLUSION_MIN_LENGTH) {
         throw new AppError(`La conclusión debe tener al menos ${CONCLUSION_MIN_LENGTH} caracteres (el SIAGIE rechaza textos más cortos).`, 400);

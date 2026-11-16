@@ -520,6 +520,11 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
                       <div className="flex items-center gap-1.5">
                         <span className="text-[11px] font-mono font-bold text-muted-foreground">#{idx + 1}</span>
                         <span className="font-semibold text-foreground text-sm">{student.studentName}</span>
+                        {student.withdrawnOn && (
+                          <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 font-semibold" title="Se retiró después de esta fecha: su asistencia de este día se puede registrar.">
+                            Retirado el {new Date(`${student.withdrawnOn}T12:00:00`).toLocaleDateString('es-PE')}
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground mt-0.5">
                         <span>DNI: {student.documentId}</span>
@@ -657,6 +662,11 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
                       <td className="p-3">
                         <div className="font-semibold text-foreground text-sm">
                           {student.studentName}
+                          {student.withdrawnOn && (
+                          <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 font-semibold" title="Se retiró después de esta fecha: su asistencia de este día se puede registrar.">
+                            Retirado el {new Date(`${student.withdrawnOn}T12:00:00`).toLocaleDateString('es-PE')}
+                          </span>
+                        )}
                         </div>
                         <div className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground">
                           <span>DNI: {student.documentId}</span>

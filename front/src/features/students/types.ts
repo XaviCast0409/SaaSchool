@@ -1,14 +1,23 @@
+import type { PeriodDateConfig } from '@/features/academic-years/api/useAcademicYears';
+
 export interface StudentEnrollment {
   id: string;
   condition?: 'INGRESANTE' | 'CONTINUO' | 'TRASLADO' | 'REENTRANTE';
   enrollmentDate: string;
   enrollmentState?: string;
+  /** Último día que estudió (retiro o traslado) */
+  withdrawalDate?: string | null;
+  withdrawalReason?: string | null;
+  transferSchool?: string | null;
   previousSchoolModularCode?: string | null;
   repeatingGrade?: boolean;
   academicYear?: {
     id: string;
     year: number;
     name?: string;
+    startDate: string;
+    endDate: string;
+    periodsConfig?: PeriodDateConfig[] | null;
   };
   classroom?: {
     id: string;

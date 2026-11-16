@@ -79,7 +79,7 @@ export async function buildConsolidationWorkbook(data: Consolidation, logo?: Log
     const row = ws.addRow([i + 1, s.studentCode ?? '', s.fullName, ...values, ...(data.period === 'FINAL' ? [s.finalSituation ? situationLabel[s.finalSituation] : ''] : [])]);
     row.eachCell((cell, n) => {
       cell.border = BORDER;
-      cell.font = { size: 9, color: s.enrollmentState !== 'REGISTERED' ? { argb: 'FF94A3B8' } : undefined };
+      cell.font = { size: 9, color: !s.activeInPeriod ? { argb: 'FF94A3B8' } : undefined };
       if (n > 3) cell.alignment = { horizontal: 'center' };
       const v = String(cell.value ?? '');
       if (LETTER_FILL[v]) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: LETTER_FILL[v] } };
@@ -133,7 +133,7 @@ export async function buildConsolidationWorkbook(data: Consolidation, logo?: Log
       const row = wc.addRow([i + 1, s.studentCode ?? '', s.fullName, ...cols.map((c) => c.get(s))]);
       row.eachCell((cell, n) => {
         cell.border = BORDER;
-        cell.font = { size: 9, color: s.enrollmentState !== 'REGISTERED' ? { argb: 'FF94A3B8' } : undefined };
+        cell.font = { size: 9, color: !s.activeInPeriod ? { argb: 'FF94A3B8' } : undefined };
         if (n > 3) cell.alignment = { horizontal: 'center' };
         const v = String(cell.value ?? '');
         if (LETTER_FILL[v]) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: LETTER_FILL[v] } };
@@ -181,7 +181,7 @@ export async function buildGradebookWorkbook(data: Gradebook, schoolName: string
       const row = ws.addRow([i + 1, s.fullName, ...scores, r?.suggestedLetter ?? '', r?.finalLetter ?? '', c?.conclusion ?? '']);
       row.eachCell((cell, n) => {
         cell.border = BORDER;
-        cell.font = { size: 9, color: s.state !== 'REGISTERED' ? { argb: 'FF94A3B8' } : undefined };
+        cell.font = { size: 9, color: !s.activeInPeriod ? { argb: 'FF94A3B8' } : undefined };
         if (n > 2 && n < cols + 1) cell.alignment = { horizontal: 'center' };
         const v = String(cell.value ?? '');
         if (n >= data.criteria.length + 3 && LETTER_FILL[v]) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: LETTER_FILL[v] } };

@@ -89,7 +89,7 @@ export const GradebookGrid: React.FC<Props> = ({ data, competenceId, reason, onN
     el?.select();
   };
 
-  const activeStudents = useMemo(() => data.students.filter((s) => s.state === 'REGISTERED'), [data.students]);
+  const activeStudents = useMemo(() => data.students.filter((s) => s.activeInPeriod), [data.students]);
 
   const onPaste = (e: React.ClipboardEvent<HTMLInputElement>, row: number, col: number) => {
     const text = e.clipboardData.getData('text');
@@ -121,7 +121,7 @@ export const GradebookGrid: React.FC<Props> = ({ data, competenceId, reason, onN
         </thead>
         <tbody>
           {data.students.map((s, idx) => {
-            const active = s.state === 'REGISTERED';
+            const active = s.activeInPeriod;
             const row = activeStudents.findIndex((x) => x.enrollmentId === s.enrollmentId);
             const r = resultOf(s.enrollmentId);
             return (
@@ -129,7 +129,15 @@ export const GradebookGrid: React.FC<Props> = ({ data, competenceId, reason, onN
                 <td className="px-2 py-1 text-xs tabular-nums text-muted-foreground">{idx + 1}</td>
                 <td className="sticky left-0 bg-card px-2 py-1">
                   <span className="whitespace-nowrap">{s.fullName}</span>
-                  {!active && <span className="ml-2 text-xs text-muted-foreground">{s.state === 'WITHDRAWN' ? 'Retirado' : 'Trasladado'}</span>}
+                  {s.state !== 'REGISTERED' && (
+                    <span
+                      className="ml-2 text-xs text-muted-foreground"
+                      title={active ? 'Completó este periodo antes de irse: sus notas se registran y se suben al SIAGIE.' : 'Se fue antes de terminar este periodo: no recibe notas.'}
+                    >
+                      {s.state === 'WITHDRAWN' ? 'Retirado' : 'Trasladado'}
+                      {s.withdrawalDate ? ` el ${new Date(`${s.withdrawalDate}T12:00:00`).toLocaleDateString('es-PE')}` : ''}
+                    </span>
+                  )}
                 </td>
                 {data.criteria.map((c, col) => {
                   const k = keyOf(s.enrollmentId, c.id);

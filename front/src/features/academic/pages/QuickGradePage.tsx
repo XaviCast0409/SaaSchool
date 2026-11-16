@@ -130,7 +130,7 @@ export const QuickGradePage: React.FC = () => {
   };
 
   const students = useMemo(
-    () => (data?.students ?? []).filter((s) => s.state === 'REGISTERED' && (!q || s.fullName.toLowerCase().includes(q.toLowerCase()))),
+    () => (data?.students ?? []).filter((s) => s.activeInPeriod && (!q || s.fullName.toLowerCase().includes(q.toLowerCase()))),
     [data, q],
   );
   const filled = students.filter((s) => {

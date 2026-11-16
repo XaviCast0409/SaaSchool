@@ -1,4 +1,5 @@
 import type { EducationLevel } from '@prisma/client';
+import { countsInPeriod } from '../enrollments/withdrawal.rules';
 import { prisma } from '../../config/prisma';
 import { NotificationService } from '../notifications/notification.service';
 import { NotificationRepository } from '../notifications/notification.repository';
@@ -26,10 +27,11 @@ export class ProgressService {
       orderBy: [{ classroom: { educationLevel: 'asc' } }, { classroom: { grade: 'asc' } }, { classroom: { section: 'asc' } }],
     });
     const classroomIds = [...new Set(assignments.map((a) => a.classroomId))];
-    const enrollments = await prisma.enrollment.findMany({
-      where: { schoolId, academicYearId: year.id, classroomId: { in: classroomIds }, enrollmentState: 'REGISTERED' },
-      select: { id: true, classroomId: true },
-    });
+    // Matriculados y retirados que completaron este periodo (sus notas también se suben al SIAGIE)
+    const enrollments = (await prisma.enrollment.findMany({
+      where: { schoolId, academicYearId: year.id, classroomId: { in: classroomIds } },
+      select: { id: true, classroomId: true, enrollmentState: true, withdrawalDate: true },
+    })).filter((e) => countsInPeriod(e, year, periodNumber));
     const activeIds = new Set(enrollments.map((e) => e.id));
     const [results, conclusions] = await Promise.all([
       prisma.competencePeriodResult.findMany({

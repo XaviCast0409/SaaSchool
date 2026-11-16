@@ -123,7 +123,7 @@ export const AcademicReportsPage: React.FC = () => {
               </thead>
               <tbody>
                 {data.matrix.students.map((s) => (
-                  <tr key={s.enrollmentId} className={`border-t border-border ${s.enrollmentState !== 'REGISTERED' ? 'opacity-50' : ''}`}>
+                  <tr key={s.enrollmentId} className={`border-t border-border ${(s.activeInPeriod ?? s.enrollmentState === 'REGISTERED') ? '' : 'opacity-50'}`}>
                     <td className="sticky left-0 whitespace-nowrap bg-card px-3 py-1.5">{s.fullName}</td>
                     {data.matrix.consolidatedAreas?.map((a) => [
                       ...coursesOf(a.code).map((course, i) => (

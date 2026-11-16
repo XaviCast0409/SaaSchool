@@ -327,6 +327,9 @@ export interface SiagieConsolidatedArea {
 export interface SiagieMatrixStudent {
   enrollmentId: string;
   enrollmentState?: 'REGISTERED' | 'TRANSFERRED' | 'WITHDRAWN';
+  /** Cuenta en el periodo consultado (matriculado, o retirado después de completarlo) */
+  activeInPeriod?: boolean;
+  withdrawalDate?: string | null;
   orderIndex: number;
   documentId: string;
   studentCode: string | null;

@@ -22,6 +22,8 @@ import type { PaginatedResult } from '../../core/interfaces/global.interfaces';
 
 export interface AttendanceSheetStudentItem {
   enrollmentId: string;
+  /** Último día que estudió, si se retiró o trasladó después de la fecha de la hoja */
+  withdrawnOn?: string | null;
   studentId: string;
   studentName: string;
   documentId: string;
@@ -440,7 +442,15 @@ export class AttendanceRepository {
         where: {
           schoolId,
           classroomId,
-          isActive: true,
+          OR: [
+            { isActive: true },
+            // Retirado o trasladado que ese día todavía estudiaba: su asistencia de esa fecha sigue editable
+            {
+              enrollmentState: { not: 'REGISTERED' },
+              withdrawalDate: { gte: dateObj },
+              academicYear: { startDate: { lte: dateObj }, endDate: { gte: dateObj } },
+            },
+          ],
         },
         include: {
           student: {
@@ -506,6 +516,7 @@ export class AttendanceRepository {
         pickedUpByName: att?.pickedUpByName || null,
         origin: att?.origin || null,
         notes: att?.notes || null,
+        withdrawnOn: e.enrollmentState !== 'REGISTERED' && e.withdrawalDate ? e.withdrawalDate.toISOString().slice(0, 10) : null,
       };
     });
 

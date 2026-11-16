@@ -39,3 +39,35 @@ export const useCreateEnrollment = () => {
     },
   });
 };
+
+export type EnrollmentState = 'REGISTERED' | 'WITHDRAWN' | 'TRANSFERRED';
+
+export interface ChangeEnrollmentStatePayload {
+  enrollmentId: string;
+  enrollmentState: EnrollmentState;
+  /** Último día que el alumno estudió (AAAA-MM-DD). Solo para retiro o traslado. */
+  stateChangeDate?: string;
+  withdrawalReason?: string | null;
+  transferSchool?: string | null;
+}
+
+/**
+ * Retira, traslada o reincorpora a un alumno. Con la fecha de retiro, sus notas de los periodos ya
+ * completados y su asistencia hasta ese día se mantienen (y se suben al SIAGIE); lo posterior se bloquea.
+ */
+export const useChangeEnrollmentState = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ enrollmentId, ...body }: ChangeEnrollmentStatePayload) => {
+      const response = await api.patch<{ status: string; data: Enrollment & { cancelledObligations?: number } }>(
+        `/enrollments/${enrollmentId}`,
+        body,
+      );
+      return response.data.data;
+    },
+    onSuccess: () => {
+      // El cambio afecta listas, notas, asistencia y cobranza
+      queryClient.invalidateQueries();
+    },
+  });
+};

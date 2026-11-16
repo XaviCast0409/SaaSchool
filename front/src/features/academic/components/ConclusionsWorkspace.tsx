@@ -167,7 +167,7 @@ export const ConclusionsWorkspace: React.FC<{ data: GradebookData; reason: strin
 
   useEffect(() => setSelected(new Set()), [competenceId, filter]);
 
-  const rowsFor = (compId: string): Row[] => data.students.filter((s) => s.state === 'REGISTERED').map((s) => ({
+  const rowsFor = (compId: string): Row[] => data.students.filter((s) => s.activeInPeriod).map((s) => ({
     enrollmentId: s.enrollmentId,
     fullName: s.fullName,
     letter: data.results.find((x) => x.enrollmentId === s.enrollmentId && x.competenceId === compId)?.finalLetter ?? null,

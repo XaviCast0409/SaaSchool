@@ -6,7 +6,7 @@ import {
   flexRender,
   type ColumnDef,
 } from '@tanstack/react-table';
-import { Search, UserCheck, ChevronDown, ChevronUp, Users, Filter, Accessibility, BookOpen, Pencil, FileText, QrCode, FileSpreadsheet, FileCheck2, KeyRound, Repeat2 } from 'lucide-react';
+import { Search, UserCheck, ChevronDown, ChevronUp, Users, Filter, Accessibility, BookOpen, Pencil, FileText, QrCode, FileSpreadsheet, FileCheck2, KeyRound, Repeat2, UserMinus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Student } from '../types';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -19,6 +19,7 @@ import { EditStudentModal } from './EditStudentModal';
 import { StudentFichaModal } from './StudentFichaModal';
 import { StudentQrCardModal } from './StudentQrCardModal';
 import { StudentCertificateModal } from './StudentCertificateModal';
+import { WithdrawStudentModal, type WithdrawTarget } from './WithdrawStudentModal';
 import { TemporaryCredentialsDialog, type TemporaryCredential } from '@/components/ui/TemporaryCredentialsDialog';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -82,6 +83,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({
   const [selectedStudentForFicha, setSelectedStudentForFicha] = useState<string | null>(null);
   const [selectedStudentForQr, setSelectedStudentForQr] = useState<Student | null>(null);
   const [selectedStudentForCertificates, setSelectedStudentForCertificates] = useState<Student | null>(null);
+  const [withdrawTarget, setWithdrawTarget] = useState<WithdrawTarget | null>(null);
 
   const { data: allParents = [] } = useUsers('PARENT');
   const { data: classrooms = [] } = useClassrooms();
@@ -324,6 +326,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({
                   const isExpanded = expandedStudentId === student.id;
                   const activeEnrollment = student.enrollments?.find((e) => e.classroom);
                   const classroom = activeEnrollment?.classroom;
+                  const hasLeft = !!activeEnrollment?.enrollmentState && activeEnrollment.enrollmentState !== 'REGISTERED';
 
                   return (
                     <React.Fragment key={student.id}>
@@ -346,10 +349,18 @@ export const StudentTable: React.FC<StudentTableProps> = ({
                         </TableCell>
                         <TableCell>
                           {classroom ? (
-                            <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-md bg-secondary text-secondary-foreground font-semibold">
-                              <BookOpen className="w-3 h-3 text-primary" />
-                              {classroom.grade}° "{classroom.section}" - {formatEducationLevel(classroom.educationLevel)}
-                            </span>
+                            <div className="flex flex-col items-start gap-1">
+                              <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-md bg-secondary text-secondary-foreground font-semibold ${hasLeft ? 'opacity-60' : ''}`}>
+                                <BookOpen className="w-3 h-3 text-primary" />
+                                {classroom.grade}° "{classroom.section}" - {formatEducationLevel(classroom.educationLevel)}
+                              </span>
+                              {hasLeft && (
+                                <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300 font-semibold">
+                                  {activeEnrollment?.enrollmentState === 'TRANSFERRED' ? 'Trasladado' : 'Retirado'}
+                                  {activeEnrollment?.withdrawalDate ? ` el ${new Date(`${activeEnrollment.withdrawalDate.slice(0, 10)}T12:00:00`).toLocaleDateString('es-PE')}` : ''}
+                                </span>
+                              )}
+                            </div>
                           ) : (
                             <span className="text-xs text-muted-foreground italic">Sin asignación</span>
                           )}
@@ -375,6 +386,34 @@ export const StudentTable: React.FC<StudentTableProps> = ({
                               >
                                 <Pencil className="w-3.5 h-3.5" />
                                 <span>Editar</span>
+                              </Button>
+                            )}
+
+                            {canManageStudents && activeEnrollment && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className={`h-8 px-2 gap-1 text-xs font-bold ${
+                                  hasLeft
+                                    ? 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10'
+                                    : 'text-rose-600 dark:text-rose-400 hover:bg-rose-500/10'
+                                }`}
+                                onClick={() =>
+                                  setWithdrawTarget({
+                                    enrollmentId: activeEnrollment.id,
+                                    studentName: formatFullName(student, 'LAST_FIRST'),
+                                    enrollmentState: activeEnrollment.enrollmentState ?? 'REGISTERED',
+                                    withdrawalDate: activeEnrollment.withdrawalDate,
+                                    classroomLabel: classroom
+                                      ? `${classroom.grade}° "${classroom.section}" - ${formatEducationLevel(classroom.educationLevel)}`
+                                      : undefined,
+                                    academicYear: activeEnrollment.academicYear,
+                                  })
+                                }
+                                title={hasLeft ? 'Reincorporar al estudiante' : 'Registrar retiro o traslado a mitad de año'}
+                              >
+                                {hasLeft ? <UserCheck className="w-3.5 h-3.5" /> : <UserMinus className="w-3.5 h-3.5" />}
+                                <span>{hasLeft ? 'Reincorporar' : 'Retirar'}</span>
                               </Button>
                             )}
 
@@ -542,6 +581,9 @@ export const StudentTable: React.FC<StudentTableProps> = ({
           onClose={() => setSelectedStudentForQr(null)}
         />
       )}
+
+      {/* Retiro / traslado / reincorporación */}
+      <WithdrawStudentModal target={withdrawTarget} onClose={() => setWithdrawTarget(null)} />
 
       {/* Modal de Constancias Oficiales */}
       {selectedStudentForCertificates && (

@@ -53,7 +53,7 @@ export const GradebookPage: React.FC = () => {
   if (isLoading) return <Skeleton className="h-96 w-full" />;
   if (error || !data) return <p className="text-sm text-red-600">No se pudo abrir el curso.</p>;
 
-  const active = data.students.filter((s) => s.state === 'REGISTERED');
+  const active = data.students.filter((s) => s.activeInPeriod);
   const missingGrades = active.length * data.competences.length - data.results.filter((r) => r.finalLetter && active.some((s) => s.enrollmentId === r.enrollmentId)).length;
   const missingConclusions = data.results.filter((r) => (r.finalLetter === 'B' || r.finalLetter === 'C') && active.some((s) => s.enrollmentId === r.enrollmentId)
     && !data.conclusions.some((c) => c.enrollmentId === r.enrollmentId && c.competenceId === r.competenceId && c.conclusion.trim())).length;

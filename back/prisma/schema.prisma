@@ -529,6 +529,12 @@ model Enrollment {
   discountReason            String?
   finalSituation            String? // PROMOTED, RECOVERY, RETAINED, TRANSFERRED, WITHDRAWN
   isActive                  Boolean             @default(true)
+  /// Último día que el alumno estudió (retiro o traslado). Los periodos que terminan hasta esa fecha
+  /// siguen contando para notas y SIAGIE; la asistencia se puede registrar hasta ese día.
+  withdrawalDate            DateTime?           @db.Date
+  withdrawalReason          String?
+  /// Colegio de destino (solo traslados)
+  transferSchool            String?
 
   student      Student      @relation(fields: [studentId], references: [id])
   academicYear AcademicYear @relation(fields: [academicYearId], references: [id])

@@ -192,6 +192,8 @@ export interface AttendanceSheetStudentItem {
   pickedUpByName?: string | null;
   origin: 'MANUAL' | 'QR_SCAN' | 'BARCODE' | 'AUTO_CLOSE' | null;
   notes: string | null;
+  /** Último día que estudió, si se retiró o trasladó después de la fecha de la hoja */
+  withdrawnOn?: string | null;
 }
 
 export interface AttendanceSheetData {

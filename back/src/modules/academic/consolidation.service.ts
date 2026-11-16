@@ -10,6 +10,7 @@ import {
   type AnnualMode, type ResultLetter,
 } from './grade-engine';
 import { assertPeriod, fullNameOf, getThresholds, periodCount, resolveYear } from './academic.context';
+import { countsInPeriod, lastStudyDay } from '../enrollments/withdrawal.rules';
 
 export type ConsolidationPeriod = number | 'FINAL';
 
@@ -100,7 +101,10 @@ export class ConsolidationService {
     const mode = (year.annualCalculationMode === 'AVERAGE' ? 'AVERAGE' : 'LAST_PERIOD') as AnnualMode;
     const students = enrollments.map((enr, idx) => {
       const fullName = fullNameOf(enr.student);
-      const inactive = enr.enrollmentState !== 'REGISTERED';
+      // Un alumno retirado o trasladado sigue contando en los periodos que completó antes de irse.
+      // En el resultado final (anual) ya no cuenta: su situación final es Retirado / Trasladado.
+      const activeInPeriod = period === 'FINAL' ? enr.enrollmentState === 'REGISTERED' : countsInPeriod(enr, year, period);
+      const inactive = !activeInPeriod;
       const consolidatedGrades: Record<string, { periodScore: null; letter: null; competences: Record<string, { score: number | null; letter: ResultLetter | null; conclusion: string }> }> = {};
       const areasForRules: Array<{ areaCode: string; letters: Letter[] }> = [];
 
@@ -173,6 +177,8 @@ export class ConsolidationService {
       return {
         enrollmentId: enr.id,
         enrollmentState: enr.enrollmentState,
+        activeInPeriod,
+        withdrawalDate: lastStudyDay(enr),
         orderIndex: idx + 1,
         documentId: enr.student.documentId ?? '',
         studentCode: enr.student.studentCode,
@@ -204,7 +210,7 @@ export class ConsolidationService {
       },
       issues,
       summary: {
-        totalStudents: students.filter((s) => s.enrollmentState === 'REGISTERED').length,
+        totalStudents: students.filter((s) => s.activeInPeriod).length,
         missingGrades: issues.filter((i) => i.type === 'MISSING_GRADE').length,
         missingConclusions: issues.filter((i) => i.type === 'MISSING_CONCLUSION').length,
         missingStudentCodes: issues.filter((i) => i.type === 'MISSING_STUDENT_CODE').length,

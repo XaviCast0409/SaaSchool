@@ -24,7 +24,7 @@ export const SummaryTable: React.FC<{ data: GradebookData; onPick: (competenceId
       </thead>
       <tbody>
         {data.students.map((s) => (
-          <tr key={s.enrollmentId} className={cn('border-t border-border', s.state !== 'REGISTERED' && 'opacity-50')}>
+          <tr key={s.enrollmentId} className={cn('border-t border-border', !s.activeInPeriod && 'opacity-50')}>
             <td className="whitespace-nowrap px-2 py-1.5">{s.fullName}</td>
             {data.competences.map((c) => {
               const r = data.results.find((x) => x.enrollmentId === s.enrollmentId && x.competenceId === c.id);

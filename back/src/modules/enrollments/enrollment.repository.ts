@@ -53,16 +53,44 @@ export class EnrollmentRepository {
     actorUserId: string | null = null,
   ): Promise<Enrollment & { cancelledObligations?: number }> {
     // isActive nunca lo decide el cliente: se deriva del estado y del año activo
-    const { isActive: _ignored, stateChangeDate, ...rest } = input as UpdateEnrollmentDto & { isActive?: boolean };
+    const { isActive: _ignored, stateChangeDate, withdrawalReason, transferSchool, ...rest } = input as UpdateEnrollmentDto & { isActive?: boolean };
     void _ignored;
-    const data: Omit<UpdateEnrollmentDto, 'stateChangeDate'> = rest;
+    const data: Omit<UpdateEnrollmentDto, 'stateChangeDate' | 'withdrawalReason' | 'transferSchool'> & {
+      isActive?: boolean;
+      withdrawalDate?: Date | null;
+      withdrawalReason?: string | null;
+      transferSchool?: string | null;
+    } = rest;
     const newState = data.enrollmentState;
+    const leaving = newState === 'WITHDRAWN' || newState === 'TRANSFERRED';
     // Solo al pasar de REGISTERED a retirado/trasladado (no al repetir el mismo estado)
-    const isStateChange =
-      (newState === 'WITHDRAWN' || newState === 'TRANSFERRED') && existingEnrollment?.enrollmentState !== newState;
+    const isStateChange = leaving && existingEnrollment?.enrollmentState !== newState;
     if (data.enrollmentState && existingEnrollment) {
-      const year = await prisma.academicYear.findUnique({ where: { id: existingEnrollment.academicYearId }, select: { isActive: true } });
-      (data as UpdateEnrollmentDto & { isActive?: boolean }).isActive = data.enrollmentState === 'REGISTERED' && !!year?.isActive;
+      const year = await prisma.academicYear.findUnique({
+        where: { id: existingEnrollment.academicYearId },
+        select: { isActive: true, startDate: true, endDate: true },
+      });
+      data.isActive = data.enrollmentState === 'REGISTERED' && !!year?.isActive;
+      if (leaving) {
+        // Último día que estudió: dentro del año lectivo y no en el futuro
+        const day = stateChangeDate ?? getSchoolNow().dateStr;
+        const today = getSchoolNow().dateStr;
+        if (day > today) throw new AppError('La fecha de retiro no puede ser posterior a hoy.', 400);
+        if (year && day < year.startDate.toISOString().slice(0, 10)) {
+          throw new AppError('La fecha de retiro es anterior al inicio del año lectivo.', 400);
+        }
+        if (year && day > year.endDate.toISOString().slice(0, 10)) {
+          throw new AppError('La fecha de retiro es posterior al fin del año lectivo.', 400);
+        }
+        data.withdrawalDate = new Date(`${day}T00:00:00.000Z`);
+        data.withdrawalReason = withdrawalReason?.trim() || null;
+        data.transferSchool = newState === 'TRANSFERRED' ? transferSchool?.trim() || null : null;
+      } else {
+        // Reincorporado: vuelve a contar en todos los periodos
+        data.withdrawalDate = null;
+        data.withdrawalReason = null;
+        data.transferSchool = null;
+      }
     }
     const isClassroomChange = Boolean(
       data.classroomId &&

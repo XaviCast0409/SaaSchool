@@ -73,7 +73,17 @@ export interface SetupStatus {
   coursesWithoutTeacher: number; teachers: number; teachersWithoutLoad: number;
 }
 
-export interface GradebookStudent { enrollmentId: string; state: 'REGISTERED' | 'TRANSFERRED' | 'WITHDRAWN'; fullName: string; studentCode: string | null; documentId: string }
+export interface GradebookStudent {
+  enrollmentId: string;
+  state: 'REGISTERED' | 'TRANSFERRED' | 'WITHDRAWN';
+  /** Recibe notas en este periodo: matriculado, o retirado/trasladado después de completarlo */
+  activeInPeriod: boolean;
+  /** Último día que estudió (si se retiró o trasladó) */
+  withdrawalDate: string | null;
+  fullName: string;
+  studentCode: string | null;
+  documentId: string;
+}
 export interface GradebookScore { enrollmentId: string; competenceId: string; criterionId: string; numericScore: number | null; literalScore: string | null; isExonerated: boolean }
 export interface GradebookResult { enrollmentId: string; competenceId: string; computedScore: number | null; suggestedLetter: ResultLetter | null; finalLetter: ResultLetter | null; isOverridden: boolean }
 export interface GradebookData {

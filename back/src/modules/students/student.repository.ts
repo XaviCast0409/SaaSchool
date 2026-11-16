@@ -80,6 +80,10 @@ export class StudentRepository {
             },
           }
         : {}),
+      // "Matriculados" del año vigente (sin año elegido): sin los retirados o trasladados de este año
+      ...(scope !== 'all' && !academicYearId && !hasClassroomFilter && teacherClassroomIds === undefined
+        ? { NOT: { enrollments: { some: { academicYear: { isActive: true }, enrollmentState: { not: 'REGISTERED' } } } } }
+        : {}),
       ...(search
         ? {
             OR: [
@@ -118,7 +122,8 @@ export class StudentRepository {
             },
           },
           enrollments: {
-            where: ofYear,
+            // También la matrícula retirada o trasladada del año, para mostrarla y poder reincorporar
+            where: academicYearId ? { academicYearId } : { academicYear: { isActive: true } },
             include: {
               academicYear: true,
               classroom: {

@@ -1,4 +1,5 @@
 import { prisma } from '../../config/prisma';
+import { attendsOn } from '../enrollments/withdrawal.rules';
 import { LEVEL_LABEL } from '../academic/cneb.catalog';
 import { AppError } from '../../core/errors/app-error';
 import { getSchoolNow, getSchoolTimeParts, parseSchoolDate } from '../../utils/timezone.util';
@@ -165,6 +166,26 @@ export class AttendanceService {
     }
   }
 
+  /**
+   * Un alumno retirado o trasladado solo puede tener asistencia hasta el último día que estudió.
+   * Así no se le marcan faltas (ni alertas) después de irse.
+   */
+  private async assertEnrolledOnDate(schoolId: string, enrollmentIds: string[], dateStr: string): Promise<void> {
+    if (enrollmentIds.length === 0) return;
+    const left = await prisma.enrollment.findMany({
+      where: { id: { in: enrollmentIds }, schoolId, enrollmentState: { not: 'REGISTERED' } },
+      select: { enrollmentState: true, withdrawalDate: true, student: { select: { firstNames: true, lastNamePaternal: true } } },
+    });
+    const blocked = left.filter((e) => !attendsOn(e, dateStr));
+    if (blocked.length > 0) {
+      const names = blocked.map((e) => `${e.student.firstNames} ${e.student.lastNamePaternal}`).join(', ');
+      throw new AppError(
+        `No se puede registrar asistencia del ${dateStr} para ${names}: ya estaba retirado(a) o trasladado(a) en esa fecha.`,
+        400,
+      );
+    }
+  }
+
   async getAttendanceByFilters(
     schoolId: string,
     filters: AttendanceFilterDto,
@@ -203,6 +224,7 @@ export class AttendanceService {
       createAttendanceDto.enrollmentId,
       userContext,
     );
+    await this.assertEnrolledOnDate(schoolId, [createAttendanceDto.enrollmentId], createAttendanceDto.date.slice(0, 10));
     return this.attendanceRepository.create(schoolId, createAttendanceDto);
   }
 
@@ -231,6 +253,7 @@ export class AttendanceService {
         );
       }
     }
+    await this.assertEnrolledOnDate(schoolId, bulkAttendanceDto.records.map((r) => r.enrollmentId), bulkAttendanceDto.date.slice(0, 10));
     return this.attendanceRepository.bulkCreate(schoolId, bulkAttendanceDto);
   }
 
@@ -279,6 +302,7 @@ export class AttendanceService {
       }
     }
 
+    await this.assertEnrolledOnDate(schoolId, enrollmentIds, dto.date.slice(0, 10));
     return this.attendanceRepository.saveClassroomAttendanceSheet(schoolId, dto);
   }
 
