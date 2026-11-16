@@ -37,6 +37,8 @@ declare global {
   namespace Express {
     interface Request {
       user?: AuthenticatedUser;
+      /** Datos del token de la petición (para cerrar sesión revocándolo). */
+      tokenInfo?: { jti?: string; exp?: number };
     }
   }
 }

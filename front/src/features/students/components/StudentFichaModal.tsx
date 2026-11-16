@@ -445,7 +445,7 @@ export const StudentFichaModal: React.FC<StudentFichaModalProps> = ({
       let photoUrl: string | null = null;
       if (pickupPhotoFile) {
         setIsUploadingPhoto(true);
-        const res = await uploadFile(pickupPhotoFile);
+        const res = await uploadFile({ file: pickupPhotoFile, purpose: 'STUDENT_DOCUMENT', studentId });
         photoUrl = res.url;
         setIsUploadingPhoto(false);
       }

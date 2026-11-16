@@ -8,7 +8,10 @@ import { authMiddleware, authorizeRoles } from '../../core/middlewares/auth.midd
 import { tenantMiddleware } from '../../core/middlewares/tenant.middleware';
 import { AppError } from '../../core/errors/app-error';
 import { assertFileSignature } from './file-signature.util';
-import { fileStorageService, type FilePurpose } from '../files/file-storage.service';
+import { fileStorageService } from '../files/file-storage.service';
+import { resolveUploadPurpose, STUDENT_PURPOSES } from '../files/file-access.rules';
+import { assertStudentAccess } from '../../core/security/student-access';
+import { prisma } from '../../config/prisma';
 import { cleanupOptimized, IMAGE_MAX_SIZE, isOptimizableImage, optimizeImage, type OptimizedImage } from '../files/image-optimizer';
 
 export const uploadRouter = Router();
@@ -75,21 +78,27 @@ uploadRouter.post(
       const uploadedById = user.studentId ?? user.userId;
       await fileStorageService.assertDailyQuota(user.schoolId, uploadedById, isFamily ? DAILY_QUOTA_FAMILY : DAILY_QUOTA_STAFF);
 
-      const requestedPurpose = (req.body as { purpose?: string }).purpose;
+      const body = req.body as { purpose?: string; studentId?: string; enrollmentId?: string };
+      const purpose = resolveUploadPurpose(user.role, body.purpose);
       // Vouchers de pago: solo imágenes o PDF
-      if (requestedPurpose === 'PAYMENT_VOUCHER' && !['.jpg', '.jpeg', '.png', '.webp', '.pdf'].includes(path.extname(file.originalname).toLowerCase())) {
+      if (purpose === 'PAYMENT_VOUCHER' && !['.jpg', '.jpeg', '.png', '.webp', '.pdf'].includes(path.extname(file.originalname).toLowerCase())) {
         throw new AppError('El voucher debe ser una foto o captura (JPG, PNG) o un PDF.', 400);
       }
-      const purpose: FilePurpose =
-        requestedPurpose === 'PAYMENT_VOUCHER'
-          ? 'PAYMENT_VOUCHER'
-          : isFamily
-            ? 'HOMEWORK_SUBMISSION'
-            : requestedPurpose === 'HOMEWORK_SUBMISSION'
-              ? 'HOMEWORK_SUBMISSION'
-              : requestedPurpose === 'SCHOOL_ASSET'
-                ? 'SCHOOL_ASSET'
-                : 'COURSE_MATERIAL';
+
+      // Archivos de un estudiante (certificados médicos, constancias, fotos de quien lo recoge):
+      // se ligan al estudiante y quien sube debe tener acceso a él.
+      let studentId: string | null = null;
+      if (STUDENT_PURPOSES.has(purpose)) {
+        const uuid = /^[0-9a-f-]{36}$/i;
+        if (body.studentId && uuid.test(body.studentId)) {
+          studentId = body.studentId;
+        } else if (body.enrollmentId && uuid.test(body.enrollmentId)) {
+          const enrollment = await prisma.enrollment.findFirst({ where: { id: body.enrollmentId, schoolId: user.schoolId }, select: { studentId: true } });
+          studentId = enrollment?.studentId ?? null;
+        }
+        if (!studentId) throw new AppError('Indica el estudiante al que pertenece el archivo.', 400);
+        await assertStudentAccess(user, studentId);
+      }
 
       // Imágenes: se redimensionan y se pasan a WebP (sin metadatos) para ocupar menos en R2
       if (isOptimizableImage(file.originalname)) {
@@ -101,6 +110,7 @@ uploadRouter.post(
         uploadedById,
         uploaderRole: user.role,
         purpose,
+        studentId,
         tempPath: optimized?.tempPath ?? file.path,
         originalName: optimized?.originalName ?? file.originalname,
         mimeType: optimized?.mimeType ?? file.mimetype,

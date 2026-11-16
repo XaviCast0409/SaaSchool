@@ -250,7 +250,7 @@ const DocumentModal: React.FC<{ doc: DocumentRequestRow | null; onClose: () => v
           <span className="text-xs font-medium uppercase text-muted-foreground">Documento digital (opcional)</span>
           <input ref={fileRef} type="file" accept="application/pdf,image/*" className="hidden" onChange={(e) => {
             const f = e.target.files?.[0];
-            if (f) upload.mutate(f, { onSuccess: (r) => setFileUrl(r.url), onError: (err) => toast.error(apiErrorMessage(err)) });
+            if (f) upload.mutate({ file: f, purpose: 'STUDENT_DOCUMENT', studentId: doc.studentId }, { onSuccess: (r) => setFileUrl(r.url), onError: (err) => toast.error(apiErrorMessage(err)) });
           }} />
           <div className="flex flex-wrap gap-2">
             <Button type="button" size="sm" variant="outline" className="gap-1" onClick={() => fileRef.current?.click()} disabled={upload.isPending}>

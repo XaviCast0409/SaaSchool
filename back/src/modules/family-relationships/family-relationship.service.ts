@@ -1,4 +1,5 @@
 import { AppError } from '../../core/errors/app-error';
+import { prisma } from '../../config/prisma';
 import type { FamilyRelationshipRepository } from './family-relationship.repository';
 import type {
   CreateFamilyRelationshipDto,
@@ -32,7 +33,21 @@ export class FamilyRelationshipService {
     return relationship;
   }
 
-  async create(createDto: CreateFamilyRelationshipDto) {
+  /**
+   * Vincula un apoderado con un estudiante. Ambos deben ser del colegio de quien hace la operación:
+   * un vínculo da acceso a notas, asistencia y datos del menor.
+   */
+  async create(schoolId: string, createDto: CreateFamilyRelationshipDto) {
+    const [student, parent, existing] = await Promise.all([
+      prisma.student.findFirst({ where: { id: createDto.studentId, schoolId }, select: { id: true } }),
+      prisma.user.findFirst({ where: { id: createDto.userId, schoolId }, select: { id: true, role: true, isActive: true } }),
+      prisma.familyRelationship.findFirst({ where: { studentId: createDto.studentId, userId: createDto.userId }, select: { id: true } }),
+    ]);
+    if (!student) throw new AppError('Estudiante no encontrado en este colegio.', 404);
+    if (!parent) throw new AppError('Apoderado no encontrado en este colegio.', 404);
+    if (parent.role !== 'PARENT') throw new AppError('Solo se puede vincular a una cuenta de apoderado.', 400);
+    if (!parent.isActive) throw new AppError('La cuenta de ese apoderado está desactivada.', 400);
+    if (existing) throw new AppError('Ese apoderado ya está vinculado a este estudiante.', 409);
     return this.familyRelationshipRepository.create(createDto);
   }
 

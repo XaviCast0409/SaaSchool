@@ -3,6 +3,7 @@ import { verifyToken } from '../../utils/jwt.util';
 import { AppError } from '../errors/app-error';
 import { assertPrincipalIsActive } from '../security/principal-status';
 import { touchLastSeen } from '../security/last-seen';
+import { isTokenRevoked } from '../security/token-revocation';
 import type { AuthenticatedUser } from '../interfaces/global.interfaces';
 
 /**
@@ -21,7 +22,10 @@ export const authMiddleware = async (request: Request, _response: Response, next
     throw new AppError('Token de acceso inválido', 401);
   }
 
-  const decoded = verifyToken(token) as AuthenticatedUser & { iat?: number };
+  const decoded = verifyToken(token) as AuthenticatedUser & { iat?: number; exp?: number; jti?: string };
+  if (isTokenRevoked(decoded.jti)) {
+    throw new AppError('Tu sesión fue cerrada. Inicia sesión nuevamente.', 401);
+  }
   await assertPrincipalIsActive(decoded);
 
   request.user = {
@@ -31,6 +35,7 @@ export const authMiddleware = async (request: Request, _response: Response, next
     role: decoded.role,
     email: decoded.email,
   };
+  request.tokenInfo = { jti: decoded.jti, exp: decoded.exp };
   touchLastSeen(request.user);
 
   next();

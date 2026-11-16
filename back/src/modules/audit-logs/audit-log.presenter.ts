@@ -19,6 +19,10 @@ export const CATEGORY_LABEL: Record<AuditCategory, string> = {
   CONVIVENCIA: 'Convivencia e incidencias',
 };
 
+const RELATIONSHIP_LABEL: Record<string, string> = {
+  MOTHER: 'Madre', FATHER: 'Padre', TUTOR_LEGAL: 'Tutor legal', GRANDPARENT: 'Abuelo(a)', UNCLE_AUNT: 'Tío(a)', OTHER: 'Otro',
+};
+
 /** Verbo en pasado (para la frase) + etiqueta corta + categoría. */
 export const ACTION_CATALOG: Record<string, { label: string; verb: string; category: AuditCategory }> = {
   // Notas
@@ -106,6 +110,9 @@ export const ACTION_CATALOG: Record<string, { label: string; verb: string; categ
   STATEMENT_VIEWED: { label: 'Estado de cuenta', verb: 'consultó un estado de cuenta', category: 'PAGOS' },
   USER_FINANCE_ROLE_CHANGED: { label: 'Rol en finanzas', verb: 'cambió el rol en caja y tesorería de un usuario', category: 'PAGOS' },
   // Usuarios
+  FAMILY_LINK_CREATED: { label: 'Vínculo apoderado–estudiante', verb: 'vinculó a un apoderado con un estudiante', category: 'MATRICULA' },
+  FAMILY_LINK_UPDATED: { label: 'Edición de vínculo familiar', verb: 'editó el vínculo de un apoderado con un estudiante', category: 'MATRICULA' },
+  FAMILY_LINK_DELETED: { label: 'Vínculo familiar eliminado', verb: 'quitó el vínculo de un apoderado con un estudiante', category: 'MATRICULA' },
   SUPPORT_READ: { label: 'Consulta de soporte KIPUX', verb: 'consultó datos del colegio (soporte KIPUX)', category: 'USUARIOS' },
   SUPPORT_WRITE: { label: 'Cambio de soporte KIPUX', verb: 'hizo un cambio en el colegio (soporte KIPUX)', category: 'USUARIOS' },
   USER_CREATED: { label: 'Nuevo usuario', verb: 'creó un usuario', category: 'USUARIOS' },
@@ -233,7 +240,14 @@ function collectIds(logs: AuditLog[]) {
     add(ids.students, a.studentId);
     add(ids.obligations, a.obligationId);
     for (const it of items) { add(ids.enrollments, it.enrollmentId); add(ids.competences, it.competenceId); add(ids.criteria, it.criterionId); }
-    for (const ch of changes) { add(ids.classrooms, ch.classroomId); add(ids.areas, ch.areaId); add(ids.users, ch.teacherId); }
+    for (const ch of changes) {
+      add(ids.classrooms, ch.classroomId); add(ids.areas, ch.areaId); add(ids.users, ch.teacherId);
+      add(ids.enrollments, ch.enrollmentId); add(ids.competences, ch.competenceId); add(ids.criteria, ch.criterionId);
+    }
+    const b = obj(l.before);
+    add(ids.students, b.studentId);
+    add(ids.users, a.userId);
+    add(ids.users, b.userId);
     if (Array.isArray(a.criteria)) for (const c of (a.criteria as unknown[]).map(obj)) add(ids.criteria, c.criterionId);
   }
   return ids;
@@ -273,6 +287,7 @@ export async function presentAuditLogs(schoolId: string, logs: AuditLog[]): Prom
   const userName = (id?: unknown) => { const u = users.find((x) => x.id === id); return u ? `${u.firstName} ${u.lastNamePaternal}` : undefined; };
   const courseName = (id?: unknown) => { const a = assignments.find((x) => x.id === id); return a ? `${a.area.name} · ${roomLabel(a.classroom)}` : undefined; };
   const enrollmentName = (id?: unknown) => { const e = enrollments.find((x) => x.id === id); return e ? studentName(e.student) : undefined; };
+  const studentNameById = (id?: unknown) => { const st = students.find((x) => x.id === id); return st ? studentName(st) : undefined; };
   const compName = (id?: unknown) => competences.find((x) => x.id === id)?.name;
   const critName = (id?: unknown) => { const c = criteria.find((x) => x.id === id); return c ? `${c.name} (${c.shortName})` : undefined; };
   const roomName = (id?: unknown) => { const c = classrooms.find((x) => x.id === id); return c ? roomLabel(c) : undefined; };
@@ -292,13 +307,26 @@ export async function presentAuditLogs(schoolId: string, logs: AuditLog[]): Prom
       case 'GRADES_SAVE_CORRECTION': {
         target = courseName(l.entityId) ?? '';
         push('Periodo', periodLabel(a.periodNumber));
-        push('Cantidad de notas', a.count);
-        const items = Array.isArray(a.items) ? (a.items as unknown[]).map(obj) : [];
-        items.slice(0, 15).forEach((it) => {
-          const value = it.numericScore ?? it.literalScore ?? 'borrada';
-          push(enrollmentName(it.enrollmentId) ?? 'Estudiante', `${compName(it.competenceId) ?? 'Competencia'} · ${critName(it.criterionId) ?? 'criterio'}: ${value}`);
-        });
-        if (items.length > 15) push('…', `y ${items.length - 15} notas más`);
+        push('Notas cambiadas', a.count);
+        const changes = Array.isArray(a.changes) ? (a.changes as unknown[]).map(obj) : [];
+        if (changes.length > 0) {
+          const show = (v: unknown) => (v === null || v === undefined ? '—' : String(v));
+          changes.slice(0, 25).forEach((c) => {
+            push(
+              `${enrollmentName(c.enrollmentId) ?? 'Estudiante'} · ${compName(c.competenceId) ?? 'Competencia'} · ${critName(c.criterionId) ?? 'criterio'}`,
+              `${show(c.before)} → ${c.after === null || c.after === undefined ? 'borrada' : String(c.after)}`,
+            );
+          });
+          if (changes.length > 25) push('…', `y ${changes.length - 25} notas más`);
+        } else {
+          // Registros anteriores a la bitácora detallada
+          const items = Array.isArray(a.items) ? (a.items as unknown[]).map(obj) : [];
+          items.slice(0, 15).forEach((it) => {
+            const value = it.numericScore ?? it.literalScore ?? 'borrada';
+            push(enrollmentName(it.enrollmentId) ?? 'Estudiante', `${compName(it.competenceId) ?? 'Competencia'} · ${critName(it.criterionId) ?? 'criterio'}: ${value}`);
+          });
+          if (items.length > 15) push('…', `y ${items.length - 15} notas más`);
+        }
         push('Motivo', a.reason);
         break;
       }
@@ -308,14 +336,20 @@ export async function presentAuditLogs(schoolId: string, logs: AuditLog[]): Prom
         push('Periodo', periodLabel(a.periodNumber));
         push('Estudiante', enrollmentName(a.enrollmentId));
         push('Competencia', compName(a.competenceId));
-        push('Nuevo calificativo', a.finalLetter ?? 'Se volvió al calificativo sugerido');
+        if (b.finalLetter !== undefined) push('Calificativo anterior', b.finalLetter ?? '—');
+        push('Nuevo calificativo', a.requested === null ? `${a.finalLetter ?? '—'} (se volvió al sugerido)` : a.finalLetter ?? 'Se volvió al calificativo sugerido');
         push('Motivo', a.reason);
         break;
       case 'GRADES_CONCLUSIONS':
       case 'GRADES_CONCLUSIONS_CORRECTION':
         target = courseName(l.entityId) ?? '';
         push('Periodo', periodLabel(a.periodNumber));
-        push('Cantidad', a.count);
+        push('Conclusiones cambiadas', a.count);
+        if (Array.isArray(a.changes)) {
+          (a.changes as unknown[]).map(obj).slice(0, 10).forEach((c) => {
+            push(`${enrollmentName(c.enrollmentId) ?? 'Estudiante'} · ${compName(c.competenceId) ?? 'Competencia'}`, `${c.before ?? '—'} → ${c.after ?? 'borrada'}`);
+          });
+        }
         push('Motivo', a.reason);
         break;
       case 'GRADES_SYNC_HOMEWORK_TO_MATRIX':
@@ -339,6 +373,17 @@ export async function presentAuditLogs(schoolId: string, logs: AuditLog[]): Prom
         push('A desde', a.A ?? obj(a.thresholds).A);
         push('B desde', a.B ?? obj(a.thresholds).B);
         break;
+      case 'FAMILY_LINK_CREATED':
+      case 'FAMILY_LINK_UPDATED':
+      case 'FAMILY_LINK_DELETED': {
+        const link = Object.keys(a).length ? a : b;
+        target = studentNameById(link.studentId) ?? '';
+        push('Apoderado', userName(link.userId));
+        push('Parentesco', RELATIONSHIP_LABEL[String(link.relationshipType)] ?? link.relationshipType);
+        if (link.isLegalGuardian !== undefined) push('Apoderado legal', link.isLegalGuardian ? 'Sí' : 'No');
+        if (link.isFinancialResponsible !== undefined) push('Responsable de pagos', link.isFinancialResponsible ? 'Sí' : 'No');
+        break;
+      }
       case 'SUPPORT_READ':
       case 'SUPPORT_WRITE':
         push('Operación', a.method);

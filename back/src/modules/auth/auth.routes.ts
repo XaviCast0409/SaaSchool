@@ -46,3 +46,10 @@ authRouter.post('/change-password', authMiddleware, authController.changePasswor
  */
 authRouter.post('/mfa/setup', authMiddleware, authorizeRoles('SUPER_ADMIN'), authController.startMfaSetup);
 authRouter.post('/mfa/confirm', authIpRateLimiter, authMiddleware, authorizeRoles('SUPER_ADMIN'), authController.confirmMfaSetup);
+
+/**
+ * @route   POST /api/auth/logout
+ * @desc    Cerrar sesión (revoca el token en el servidor)
+ * @access  Private
+ */
+authRouter.post('/logout', authMiddleware, authController.logout);

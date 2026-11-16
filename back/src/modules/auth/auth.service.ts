@@ -20,8 +20,22 @@ import type { LoginDto, ChangePasswordDto, ForgotPasswordDto, ResetPasswordDto }
 import type { User, Student } from '@prisma/client';
 import type { AuthenticatedUser } from '../../core/interfaces/global.interfaces';
 
-const MAX_FAILED_ATTEMPTS = 5;
+/**
+ * Bloqueo por cuenta: alto a propósito. El freno principal contra adivinar contraseñas es el límite por
+ * IP + usuario (loginRateLimiter, 10 cada 15 min). Un umbral bajo por cuenta permitía que cualquiera
+ * dejara al director sin acceso con 5 intentos.
+ */
+const MAX_FAILED_ATTEMPTS = 20;
 const LOCK_MINUTES = 15;
+
+/**
+ * Mismo mensaje y código para usuario inexistente, contraseña incorrecta, cuenta bloqueada o alumno sin
+ * contraseña: así nadie puede averiguar qué cuentas existen. Los estados de la cuenta (desactivada,
+ * colegio suspendido, retirado) solo se informan a quien ya demostró conocer la contraseña.
+ */
+export const INVALID_CREDENTIALS_MESSAGE =
+  'Usuario o contraseña incorrectos. Si fallaste varias veces, espera 15 minutos; si aún no tienes contraseña, solicítala en Secretaría.';
+const invalidCredentials = () => new AppError(INVALID_CREDENTIALS_MESSAGE, 401);
 // Hash ficticio para igualar el tiempo de respuesta cuando el usuario no existe (evita enumeración).
 const DUMMY_HASH = bcrypt.hashSync('saaschool-dummy-password', 12);
 
@@ -47,15 +61,7 @@ type LoginCandidate = { kind: 'USER'; user: User } | { kind: 'STUDENT'; student:
 
 const candidateSchoolId = (c: LoginCandidate): string => (c.kind === 'USER' ? c.user.schoolId : c.student.schoolId);
 
-const assertNotLocked = (lockedUntil: Date | null): void => {
-  if (lockedUntil && lockedUntil.getTime() > Date.now()) {
-    const minutes = Math.ceil((lockedUntil.getTime() - Date.now()) / 60_000);
-    throw new AppError(
-      `Cuenta bloqueada temporalmente por intentos fallidos. Intenta nuevamente en ${minutes} minuto(s).`,
-      423,
-    );
-  }
-};
+const isLocked = (lockedUntil: Date | null): boolean => Boolean(lockedUntil && lockedUntil.getTime() > Date.now());
 
 /** Escapa texto que se inserta en el HTML de un correo. */
 const escapeHtml = (value: string): string =>
@@ -93,7 +99,7 @@ export class AuthService {
 
     if (candidates.length === 0) {
       await comparePassword(loginDto.password, DUMMY_HASH);
-      throw new AppError('Credenciales inválidas', 401);
+      throw invalidCredentials();
     }
     if (candidates.length === 1) return this.loginCandidate(candidates[0], loginDto);
 
@@ -104,7 +110,7 @@ export class AuthService {
     for (const candidate of candidates) {
       const hash = candidate.kind === 'USER' ? candidate.user.passwordHash : candidate.student.passwordHash;
       const lockedUntil = candidate.kind === 'USER' ? candidate.user.lockedUntil : candidate.student.lockedUntil;
-      if (!hash || (lockedUntil && lockedUntil.getTime() > Date.now())) continue;
+      if (!hash || isLocked(lockedUntil)) continue;
       if (await comparePassword(loginDto.password, hash)) matching.push(candidate);
     }
 
@@ -116,7 +122,7 @@ export class AuthService {
             : this.authRepository.registerFailedStudentLogin(c.student.id, MAX_FAILED_ATTEMPTS, LOCK_MINUTES),
         ),
       );
-      throw new AppError('Credenciales inválidas', 401);
+      throw invalidCredentials();
     }
     if (matching.length === 1) return this.loginCandidate(matching[0], loginDto);
 
@@ -144,6 +150,17 @@ export class AuthService {
   }
 
   private async loginUser(user: User, password: string, otp?: string): Promise<AuthResponse> {
+    // Bloqueada: mismo mensaje que una contraseña incorrecta (y sin evaluarla, para que el bloqueo frene)
+    if (isLocked(user.lockedUntil)) {
+      await comparePassword(password, DUMMY_HASH);
+      throw invalidCredentials();
+    }
+    const isPasswordValid = await comparePassword(password, user.passwordHash);
+    if (!isPasswordValid) {
+      await this.authRepository.registerFailedUserLogin(user.id, MAX_FAILED_ATTEMPTS, LOCK_MINUTES);
+      throw invalidCredentials();
+    }
+    // A partir de aquí la persona conoce la contraseña: se le puede explicar por qué no entra
     if (!user.isActive) {
       throw new AppError('Tu cuenta está desactivada. Contacta al administrador.', 403);
     }
@@ -155,13 +172,6 @@ export class AuthService {
           403,
         );
       }
-    }
-    assertNotLocked(user.lockedUntil);
-
-    const isPasswordValid = await comparePassword(password, user.passwordHash);
-    if (!isPasswordValid) {
-      await this.authRepository.registerFailedUserLogin(user.id, MAX_FAILED_ATTEMPTS, LOCK_MINUTES);
-      throw new AppError('Credenciales inválidas', 401);
     }
     if (user.role === 'SUPER_ADMIN') {
       await this.assertSuperAdminMfa(user, otp);
@@ -250,26 +260,22 @@ export class AuthService {
   }
 
   private async loginStudent(student: Student, password: string): Promise<AuthResponse> {
+    // Sin contraseña o bloqueada: mismo mensaje que una contraseña incorrecta
+    if (!student.passwordHash || isLocked(student.lockedUntil)) {
+      await comparePassword(password, DUMMY_HASH);
+      throw invalidCredentials();
+    }
+    const isPasswordValid = await comparePassword(password, student.passwordHash);
+    if (!isPasswordValid) {
+      await this.authRepository.registerFailedStudentLogin(student.id, MAX_FAILED_ATTEMPTS, LOCK_MINUTES);
+      throw invalidCredentials();
+    }
     const school = await this.authRepository.findSchoolById(student.schoolId);
     if (school && !school.isActive) {
       throw new AppError(
         'El acceso de tu colegio está suspendido. Comunícate con la dirección o con soporte de KIPUX.',
         403,
       );
-    }
-
-    if (!student.passwordHash) {
-      throw new AppError(
-        'Tu cuenta de estudiante aún no tiene contraseña. Solicita tus credenciales de acceso en Secretaría.',
-        403,
-      );
-    }
-    assertNotLocked(student.lockedUntil);
-
-    const isPasswordValid = await comparePassword(password, student.passwordHash);
-    if (!isPasswordValid) {
-      await this.authRepository.registerFailedStudentLogin(student.id, MAX_FAILED_ATTEMPTS, LOCK_MINUTES);
-      throw new AppError('Credenciales inválidas', 401);
     }
     if (student.failedLoginAttempts > 0 || student.lockedUntil) {
       await this.authRepository.resetStudentLoginCounters(student.id);
@@ -372,6 +378,8 @@ export class AuthService {
       for (const user of users) {
         const rawToken = crypto.randomBytes(32).toString('hex');
         const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+        // Solo vale el último enlace pedido
+        await this.authRepository.invalidatePasswordResetTokens(user.id);
         await this.authRepository.createPasswordResetToken({
           userId: user.id,
           tokenHash,
@@ -393,8 +401,9 @@ export class AuthService {
         )
         .join('');
 
-      try {
-        await sendEmail({
+      // Se envía en segundo plano: esperar al SMTP hacía que la respuesta tardara más cuando el correo
+      // existe, y esa diferencia revelaba qué correos están registrados.
+      void sendEmail({
           to: users[0].email!,
           subject: 'Restablece tu contraseña - KIPUX',
           text: `Hola ${firstName},\n\nHemos recibido una solicitud para restablecer tu contraseña en KIPUX.\n${several ? 'Tienes una cuenta en cada uno de estos colegios; cada enlace cambia solo la contraseña de ese colegio:' : 'Haz clic en el siguiente enlace o cópialo en tu navegador para crear una nueva contraseña:'}\n\n${textLinks}\n\n${several ? 'Los enlaces expiran' : 'Este enlace expirará'} en 30 minutos y solo pueden usarse una vez.\nSi tú no solicitaste este cambio, puedes ignorar este mensaje de forma segura.\n\nAtentamente,\nEquipo KIPUX`,
@@ -406,10 +415,7 @@ export class AuthService {
             ${htmlLinks}
             <p style="color: #64748b; font-size: 13px; margin-top: 24px;">${several ? 'Los enlaces expiran' : 'Este enlace expirará'} en 30 minutos y solo pueden usarse una vez. Si no solicitaste este cambio, ignora este correo.</p>
           </div>`,
-        });
-      } catch (err) {
-        console.warn('[EMAIL ERROR] No se pudo enviar el correo de recuperación:', err);
-      }
+        }).catch((err) => console.warn('[EMAIL ERROR] No se pudo enviar el correo de recuperación:', err));
       // El enlace da acceso a la cuenta: nunca debe quedar en los logs de producción.
       if (env.NODE_ENV === 'development') {
         links.forEach((l) => console.log(`[RECUPERACIÓN DE CONTRASEÑA] ${l.schoolName}: ${l.link}`));
@@ -447,8 +453,11 @@ export class AuthService {
     }
 
     const passwordHash = await hashPassword(cleanPassword);
-    await this.authRepository.markPasswordResetTokenUsed(record.id);
+    // Consumo atómico: si dos peticiones usan el mismo enlace a la vez, solo una gana
+    const consumed = await this.authRepository.consumePasswordResetToken(record.id);
+    if (!consumed) throw new AppError('El enlace no es válido o ya venció. Solicita uno nuevo.', 400);
     await this.authRepository.updateUserPassword(user.id, passwordHash, false);
+    await this.authRepository.invalidatePasswordResetTokens(user.id);
 
     invalidatePrincipalCache('user', user.id);
 

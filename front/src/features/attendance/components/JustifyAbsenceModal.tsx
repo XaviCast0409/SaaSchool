@@ -131,7 +131,7 @@ export const JustifyAbsenceModal: React.FC<JustifyAbsenceModalProps> = ({
 
       if (selectedFile) {
         setIsUploading(true);
-        const uploadResult = await uploadMutation.mutateAsync(selectedFile);
+        const uploadResult = await uploadMutation.mutateAsync({ file: selectedFile, purpose: 'ATTENDANCE_JUSTIFICATION', enrollmentId });
         uploadedUrl = uploadResult.url;
         uploadedName = uploadResult.fileName;
         setIsUploading(false);

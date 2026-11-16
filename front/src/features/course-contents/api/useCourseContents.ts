@@ -41,12 +41,31 @@ export const useGetCourseContents = (courseAssignmentId?: string | null, bimeste
 };
 
 /**
+ * Para qué es el archivo: decide quién podrá abrirlo.
+ * - COURSE_MATERIAL / SCHOOL_ASSET: todo el colegio · STAFF_RESOURCE: solo el personal
+ * - ATTENDANCE_JUSTIFICATION / STUDENT_DOCUMENT: solo quien tiene acceso a ese estudiante (requiere studentId o enrollmentId)
+ */
+export type UploadPurpose = 'COURSE_MATERIAL' | 'SCHOOL_ASSET' | 'STAFF_RESOURCE' | 'ATTENDANCE_JUSTIFICATION' | 'STUDENT_DOCUMENT';
+
+export interface UploadInput {
+  file: File;
+  purpose?: UploadPurpose;
+  studentId?: string;
+  enrollmentId?: string;
+}
+
+/**
  * Subir archivo adjunto (PPT, Word, PDF, etc.)
  */
 export const useUploadMaterial = () => {
   return useMutation({
-    mutationFn: async (file: File): Promise<UploadFileResponse> => {
+    mutationFn: async (input: File | UploadInput): Promise<UploadFileResponse> => {
+      const { file, purpose, studentId, enrollmentId } = input instanceof File ? { file: input } as UploadInput : input;
       const formData = new FormData();
+      // Los campos van antes del archivo para que el servidor los tenga al procesarlo
+      if (purpose) formData.append('purpose', purpose);
+      if (studentId) formData.append('studentId', studentId);
+      if (enrollmentId) formData.append('enrollmentId', enrollmentId);
       formData.append('file', await compressImageForUpload(file));
 
       const res = await api.post<{ status: string; data: UploadFileResponse }>(

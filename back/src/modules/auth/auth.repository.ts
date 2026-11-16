@@ -81,6 +81,20 @@ export class AuthRepository {
     });
   }
 
+  /** Marca el token como usado solo si sigue vigente; devuelve false si otra petición ya lo usó. */
+  async consumePasswordResetToken(id: string): Promise<boolean> {
+    const result = await prisma.passwordResetToken.updateMany({
+      where: { id, usedAt: null, expiresAt: { gt: new Date() } },
+      data: { usedAt: new Date() },
+    });
+    return result.count === 1;
+  }
+
+  /** Anula los enlaces de recuperación pendientes del usuario (al pedir uno nuevo o al cambiar la clave). */
+  async invalidatePasswordResetTokens(userId: string): Promise<void> {
+    await prisma.passwordResetToken.updateMany({ where: { userId, usedAt: null }, data: { usedAt: new Date() } });
+  }
+
   async markPasswordResetTokenUsed(id: string): Promise<void> {
     await prisma.passwordResetToken.update({
       where: { id },

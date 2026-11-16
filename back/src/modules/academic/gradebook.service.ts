@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
 import { CONCLUSION_MAX_LENGTH, CONCLUSION_MIN_LENGTH, isResultLetter, sanitizeConclusion, type ResultLetter } from './grade-engine';
@@ -17,6 +18,32 @@ export interface ScoreItem {
 }
 
 type LoadedAssignment = Awaited<ReturnType<typeof loadAssignmentForUser>>;
+
+/** Una nota que realmente cambió: valor anterior → valor nuevo (null = no había / se borró). */
+export interface ScoreChange {
+  enrollmentId: string;
+  competenceId: string;
+  criterionId: string;
+  before: number | string | null;
+  after: number | string | null;
+}
+
+export interface ConclusionChange {
+  enrollmentId: string;
+  competenceId: string;
+  before: string | null;
+  after: string | null;
+}
+
+/**
+ * Arma la fila de bitácora a partir del resumen del cambio. Se escribe en la MISMA transacción que las
+ * notas: no puede quedar una nota cambiada sin su registro (ni un registro de algo que no se guardó).
+ */
+export type AuditBuilder<T> = (summary: T) => Prisma.AuditLogUncheckedCreateInput | null;
+
+const scoreValue = (numericScore: number | null, literalScore: string | null): number | string | null =>
+  numericScore ?? literalScore ?? null;
+const clip = (text: string | null, max = 300): string | null => (text && text.length > max ? `${text.slice(0, max)}…` : text);
 
 export class GradebookService {
   private readonly periods = new PeriodService();
@@ -131,10 +158,17 @@ export class GradebookService {
     };
   }
 
-  async saveScores(schoolId: string, user: AcademicUser, assignmentId: string, periodNumber: number, items: ScoreItem[]) {
+  async saveScores(
+    schoolId: string,
+    user: AcademicUser,
+    assignmentId: string,
+    periodNumber: number,
+    items: ScoreItem[],
+    audit?: AuditBuilder<{ correction: boolean; changes: ScoreChange[] }>,
+  ) {
     const a = await loadAssignmentForUser(schoolId, user, assignmentId, { write: true });
     const { correction } = await this.assertEditable(user, a, periodNumber);
-    if (items.length === 0) return { saved: 0, results: [], correction };
+    if (items.length === 0) return { saved: 0, results: [], correction, changes: [] as ScoreChange[] };
     const compIds = new Set(a.area.competences.map((c) => c.id));
     const critIds = new Set((await this.getCourseCriteria(schoolId, a)).map((c) => c.id));
     const enrollmentIds = await this.activeEnrollmentIds(schoolId, a, periodNumber);
@@ -144,8 +178,28 @@ export class GradebookService {
       if (!enrollmentIds.has(it.enrollmentId)) throw new AppError('Hay notas para estudiantes que no están matriculados en esta aula o que se retiraron antes de terminar este periodo.', 400);
       if (it.numericScore !== null && (it.numericScore < 0 || it.numericScore > 20)) throw new AppError('Las notas numéricas van de 0 a 20.', 400);
     }
-    await prisma.$transaction(
-      items.map((it) => {
+    // Valores anteriores, para que la bitácora diga "de B a C" y no solo "registró notas"
+    const previous = await prisma.detailedGrade.findMany({
+      where: {
+        courseAssignmentId: a.id,
+        periodNumber,
+        enrollmentId: { in: [...new Set(items.map((i) => i.enrollmentId))] },
+        competenceId: { in: [...new Set(items.map((i) => i.competenceId))] },
+        criterionId: { in: [...new Set(items.map((i) => i.criterionId))] },
+      },
+      select: { enrollmentId: true, competenceId: true, criterionId: true, numericScore: true, literalScore: true },
+    });
+    const prevByKey = new Map(previous.map((g) => [`${g.enrollmentId}|${g.competenceId}|${g.criterionId}`, scoreValue(g.numericScore, g.literalScore)]));
+    const changes: ScoreChange[] = [];
+    for (const it of items) {
+      const before = prevByKey.get(`${it.enrollmentId}|${it.competenceId}|${it.criterionId}`) ?? null;
+      const after = it.literalScore === 'EXO' ? 'EXO' : scoreValue(it.numericScore, it.literalScore);
+      if (before !== after) changes.push({ enrollmentId: it.enrollmentId, competenceId: it.competenceId, criterionId: it.criterionId, before, after });
+    }
+    const auditData = changes.length > 0 ? audit?.({ correction, changes }) : null;
+
+    await prisma.$transaction([
+      ...items.map((it) => {
         const key = { enrollmentId: it.enrollmentId, courseAssignmentId: a.id, competenceId: it.competenceId, criterionId: it.criterionId, periodNumber };
         if (it.numericScore === null && it.literalScore === null) return prisma.detailedGrade.deleteMany({ where: key });
         const isExo = it.literalScore === 'EXO';
@@ -156,10 +210,11 @@ export class GradebookService {
           create: { schoolId, ...key, ...data },
         });
       }),
-    );
+      ...(auditData ? [prisma.auditLog.create({ data: auditData })] : []),
+    ]);
     const pairs = [...new Map(items.map((i) => [`${i.enrollmentId}|${i.competenceId}`, { enrollmentId: i.enrollmentId, competenceId: i.competenceId }])).values()];
     const results = await this.results.recompute(schoolId, a.id, periodNumber, pairs);
-    return { saved: items.length, results, correction };
+    return { saved: items.length, results, correction, changes };
   }
 
   async setFinalLetter(
@@ -171,8 +226,16 @@ export class GradebookService {
   ) {
     const a = await loadAssignmentForUser(schoolId, user, assignmentId, { write: true });
     const { correction } = await this.assertEditable(user, a, periodNumber);
+    const before = await prisma.competencePeriodResult.findUnique({
+      where: {
+        enrollmentId_courseAssignmentId_competenceId_periodNumber: {
+          enrollmentId: input.enrollmentId, courseAssignmentId: a.id, competenceId: input.competenceId, periodNumber,
+        },
+      },
+      select: { finalLetter: true },
+    });
     const result = await this.applyFinalLetter(schoolId, user, a, periodNumber, input);
-    return { result, correction };
+    return { result, correction, before: before?.finalLetter ?? null, after: result?.finalLetter ?? null };
   }
 
   private async applyFinalLetter(
@@ -212,6 +275,7 @@ export class GradebookService {
     assignmentId: string,
     periodNumber: number,
     items: Array<{ enrollmentId: string; competenceId: string; conclusion: string }>,
+    audit?: AuditBuilder<{ correction: boolean; changes: ConclusionChange[] }>,
   ) {
     const a = await loadAssignmentForUser(schoolId, user, assignmentId, { write: true });
     const { correction } = await this.assertEditable(user, a, periodNumber);
@@ -225,8 +289,28 @@ export class GradebookService {
         throw new AppError(`La conclusión debe tener al menos ${CONCLUSION_MIN_LENGTH} caracteres (el SIAGIE rechaza textos más cortos).`, 400);
       }
     }
-    await prisma.$transaction(
-      items.map((it) => {
+    const previous = items.length
+      ? await prisma.competenceConclusion.findMany({
+          where: {
+            courseAssignmentId: a.id,
+            periodNumber,
+            enrollmentId: { in: [...new Set(items.map((i) => i.enrollmentId))] },
+            competenceId: { in: [...new Set(items.map((i) => i.competenceId))] },
+          },
+          select: { enrollmentId: true, competenceId: true, conclusion: true },
+        })
+      : [];
+    const prevByKey = new Map(previous.map((c) => [`${c.enrollmentId}|${c.competenceId}`, c.conclusion]));
+    const changes: ConclusionChange[] = [];
+    for (const it of items) {
+      const before = prevByKey.get(`${it.enrollmentId}|${it.competenceId}`) ?? null;
+      const after = sanitizeConclusion(it.conclusion) || null;
+      if (before !== after) changes.push({ enrollmentId: it.enrollmentId, competenceId: it.competenceId, before: clip(before), after: clip(after) });
+    }
+    const auditData = changes.length > 0 ? audit?.({ correction, changes }) : null;
+
+    await prisma.$transaction([
+      ...items.map((it) => {
         const key = { enrollmentId: it.enrollmentId, courseAssignmentId: a.id, competenceId: it.competenceId, periodNumber };
         const text = sanitizeConclusion(it.conclusion);
         if (!text) return prisma.competenceConclusion.deleteMany({ where: key });
@@ -236,8 +320,9 @@ export class GradebookService {
           create: { schoolId, ...key, conclusion: text },
         });
       }),
-    );
-    return { saved: items.length, correction };
+      ...(auditData ? [prisma.auditLog.create({ data: auditData })] : []),
+    ]);
+    return { saved: items.length, correction, changes };
   }
 
   async setCourseCriteria(schoolId: string, user: AcademicUser, assignmentId: string, criteria: Array<{ criterionId: string; weight?: number | null }>) {

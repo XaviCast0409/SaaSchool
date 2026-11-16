@@ -11,6 +11,7 @@ import { AttendanceRepository } from './modules/attendance/attendance.repository
 import { initAttendanceAutoCloseCron } from './modules/attendance/attendance.cron';
 import { initAutomationScheduler } from './modules/automations/automation.scheduler';
 import { resumeEmailQueue } from './modules/automations/email-queue';
+import { loadRevokedTokens } from './core/security/token-revocation';
 
 const startServer = async (): Promise<void> => {
   try {
@@ -28,6 +29,8 @@ const startServer = async (): Promise<void> => {
 
     // Retomar los correos que quedaron pendientes antes del último reinicio o despliegue
     void resumeEmailQueue();
+    // Sesiones cerradas que aún no vencen: deben seguir rechazándose tras un reinicio
+    await loadRevokedTokens();
 
     const server = app.listen(env.PORT, '0.0.0.0', () => {
       console.log(`🚀 KIPUX API corriendo en puerto ${env.PORT}`);

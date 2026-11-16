@@ -31,6 +31,8 @@ describe('AuthService - Password Reset (P1)', () => {
       createPasswordResetToken: vi.fn(),
       findPasswordResetToken: vi.fn(),
       markPasswordResetTokenUsed: vi.fn(),
+      consumePasswordResetToken: vi.fn().mockResolvedValue(true),
+      invalidatePasswordResetTokens: vi.fn(),
       updateUserPassword: vi.fn(),
     };
     authService = new AuthService(authRepository as AuthRepository);
@@ -100,7 +102,8 @@ describe('AuthService - Password Reset (P1)', () => {
       });
 
       expect(res.message).toBe('Tu contraseña ha sido actualizada exitosamente. Ya puedes iniciar sesión.');
-      expect(authRepository.markPasswordResetTokenUsed).toHaveBeenCalledWith('token-rec-1');
+      expect(authRepository.consumePasswordResetToken).toHaveBeenCalledWith('token-rec-1');
+      expect(authRepository.invalidatePasswordResetTokens).toHaveBeenCalledWith('user-1');
       expect(authRepository.updateUserPassword).toHaveBeenCalledWith('user-1', expect.any(String), false);
     });
 
@@ -174,5 +177,24 @@ describe('AuthService - Password Reset (P1)', () => {
       ).resolves.toBeDefined();
     });
   });
-});
 
+  it('dos peticiones simultáneas con el mismo enlace: la segunda falla (consumo atómico)', async () => {
+    const rawToken = 'race-token';
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    (authRepository.findPasswordResetToken as any).mockResolvedValue({
+      id: 'token-race', userId: 'user-1', tokenHash, expiresAt: new Date(Date.now() + 600_000), usedAt: null,
+      user: { id: 'user-1', schoolId: 's1', role: 'TEACHER', email: 'd@c.pe', documentId: '1', isActive: true },
+    });
+    (authRepository.consumePasswordResetToken as any).mockResolvedValueOnce(false);
+    await expect(authService.resetPassword({ token: rawToken, newPassword: 'NuevaClave123' })).rejects.toMatchObject({ statusCode: 400 });
+    expect(authRepository.updateUserPassword).not.toHaveBeenCalled();
+  });
+
+  it('pedir un enlace nuevo anula los anteriores', async () => {
+    (authRepository.findActiveUsersByEmail as any).mockResolvedValue([
+      { id: 'user-1', email: 'docente@colegio.edu.pe', firstName: 'Juan', isActive: true, role: 'TEACHER', school: { name: 'Colegio A' } },
+    ]);
+    await authService.forgotPassword({ email: 'docente@colegio.edu.pe' });
+    expect(authRepository.invalidatePasswordResetTokens).toHaveBeenCalledWith('user-1');
+  });
+});

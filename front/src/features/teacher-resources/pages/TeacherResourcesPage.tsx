@@ -121,7 +121,7 @@ const ShareModal: React.FC<{ open: boolean; onClose: () => void; areas: string[]
         <div className="col-span-2 grid gap-2 sm:grid-cols-2">
           <input ref={fileRef} type="file" className="hidden" onChange={(e) => {
             const f = e.target.files?.[0];
-            if (f) upload.mutate(f, { onSuccess: (r) => setFile({ url: r.url, name: r.fileName }), onError: (err) => toast.error(apiErrorMessage(err)) });
+            if (f) upload.mutate({ file: f, purpose: 'STAFF_RESOURCE' }, { onSuccess: (r) => setFile({ url: r.url, name: r.fileName }), onError: (err) => toast.error(apiErrorMessage(err)) });
           }} />
           <Button type="button" variant="outline" className="h-auto justify-start gap-2 py-2.5" onClick={() => fileRef.current?.click()} disabled={upload.isPending}>
             {upload.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" aria-hidden />}
