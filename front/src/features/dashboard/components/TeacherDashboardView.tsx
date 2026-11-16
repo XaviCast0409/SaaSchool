@@ -92,7 +92,7 @@ export const TeacherDashboardView: React.FC = () => {
       title: 'Mis Cursos & Aula Virtual',
       desc: 'Sube diapositivas PPT, guías Word y tareas en la nube',
       icon: BookOpen,
-      path: '/teacher-assignments',
+      path: '/my-courses',
       color: 'bg-primary/10 text-primary border-primary/20',
       actionLabel: 'Abrir Cursos',
     },
@@ -100,7 +100,7 @@ export const TeacherDashboardView: React.FC = () => {
       title: 'Registro de Calificaciones',
       desc: 'Ingreso de notas CNEB (AD, A, B, C) y conclusiones descriptivas',
       icon: BookOpenCheck,
-      path: '/grades',
+      path: '/my-courses',
       color: 'bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20',
       actionLabel: 'Ingresar Notas',
     },
@@ -108,9 +108,10 @@ export const TeacherDashboardView: React.FC = () => {
       title: 'Control de Asistencia',
       desc: isTutor
         ? `Toma de asistencia para tu aula tutoriada (${tutorClassroom.grade}° "${tutorClassroom.section}")`
-        : 'Pase de lista diario, tardanzas y justificaciones escolares',
+        : 'Pase de lista en tus cursos (la asistencia diaria la lleva el tutor)',
       icon: CalendarCheck,
-      path: '/attendance',
+      // Sin tutoría el docente no consulta la asistencia diaria: pasa lista por curso
+      path: isTutor ? '/attendance' : '/course-attendance',
       color: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20',
       actionLabel: 'Tomar Asistencia',
     },
@@ -153,7 +154,7 @@ export const TeacherDashboardView: React.FC = () => {
 
         <div className="flex items-center gap-2 shrink-0">
           <Button
-            onClick={() => navigate('/teacher-assignments')}
+            onClick={() => navigate('/my-courses')}
             size="sm"
             className="gap-2 text-xs font-bold rounded-xl h-10 px-4 shadow-sm"
           >
@@ -276,7 +277,7 @@ export const TeacherDashboardView: React.FC = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate('/teacher-assignments')}
+            onClick={() => navigate('/my-courses')}
             className="text-xs font-bold text-primary hover:bg-primary/10 h-7 self-start sm:self-auto"
           >
             <span>Ver todos los cursos ({totalCourses})</span>
@@ -365,7 +366,7 @@ export const TeacherDashboardView: React.FC = () => {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => navigate('/teacher-assignments')}
+                      onClick={() => navigate('/my-courses')}
                       className="text-xs font-bold h-8 rounded-xl border-primary/30 text-primary hover:bg-primary/10"
                     >
                       Aula Virtual
@@ -373,7 +374,7 @@ export const TeacherDashboardView: React.FC = () => {
                     <Button
                       size="sm"
                       onClick={() =>
-                        navigate(`/grades?courseAssignmentId=${course.id}&classroomId=${course.classroomId}`)
+                        navigate(`/gradebook/${course.id}`)
                       }
                       className="text-xs font-bold h-8 rounded-xl shadow-sm bg-primary hover:bg-primary/90 text-primary-foreground"
                     >
@@ -387,7 +388,7 @@ export const TeacherDashboardView: React.FC = () => {
             {/* Tarjeta indicadora cuando hay más cursos y estamos en vista general */}
             {!selectedDashboardClassroom && totalCourses > 3 && (
               <Card
-                onClick={() => navigate('/teacher-assignments')}
+                onClick={() => navigate('/my-courses')}
                 className="bg-card/50 border-dashed border-border hover:border-primary/50 transition-all p-5 flex flex-col items-center justify-center text-center cursor-pointer group"
               >
                 <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">

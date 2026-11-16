@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useCreateIncident } from '../api/useIncidents';
 import { useStudents } from '@/features/students/api/useStudents';
+import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import type { IncidentType } from '../types';
 
 const incidentSchema = z.object({
@@ -60,8 +61,9 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
   defaultStudentId,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebouncedValue(searchTerm.trim(), 300);
   const { data: studentsData, isLoading: loadingStudents } = useStudents(
-    { page: 1, limit: 50, search: searchTerm || undefined },
+    { page: 1, limit: 50, search: debouncedSearch || undefined },
     isOpen,
   );
 

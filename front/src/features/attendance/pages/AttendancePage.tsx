@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   CalendarCheck,
   Calendar as CalendarIcon,
@@ -42,6 +43,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { AttendanceStatus, AttendanceRecord } from '../types';
+import { useDebouncedValue } from '@/lib/useDebouncedValue';
 
 import { ParentAttendanceView } from '@/features/parent/components/ParentAttendanceView';
 
@@ -85,14 +87,19 @@ const StaffAttendancePage: React.FC = () => {
 
   const isTeacher = user?.role === 'TEACHER';
   const canConfigureSchedule = user?.role === 'SUPER_ADMIN' || user?.role === 'SCHOOL_ADMIN' || user?.role === 'ADMINISTRATIVE';
+  // El reporte mensual y el acta (/attendance/summary y /export) son solo para Dirección y Secretaría
+  const canSeeMonthlyReport = !isTeacher;
+  const debouncedSearch = useDebouncedValue(searchTerm.trim(), 300);
 
   // Queries
-  const { data: classrooms = [] } = useClassrooms();
+  const { data: classrooms = [], isSuccess: classroomsLoaded } = useClassrooms();
   const tutoredClassrooms = isTeacher
     ? classrooms.filter((c) => c.tutorTeacherId === user?.id || c.tutorTeacher?.id === user?.id)
     : [];
   const isTutor = tutoredClassrooms.length > 0;
   const canWriteAttendance = !isTeacher || (isTutor && tutoredClassrooms.some((c) => c.id === selectedClassroomId));
+  // El docente sin tutoría no consulta la asistencia diaria: pasa lista en sus cursos («Por curso»)
+  const isNonTutorTeacher = isTeacher && classroomsLoaded && !isTutor;
 
   // Auto-seleccionar aula del tutor
   React.useEffect(() => {
@@ -105,14 +112,21 @@ const StaffAttendancePage: React.FC = () => {
     isLoading,
     isError,
     refetch,
-  } = useAttendance({
-    date: selectedDate,
-    classroomId: selectedClassroomId || undefined,
-    status: statusFilter,
-    search: searchTerm || undefined,
-    page: currentPage,
-    limit: pageSize,
-  });
+  } = useAttendance(
+    {
+      date: selectedDate,
+      classroomId: selectedClassroomId || undefined,
+      status: statusFilter,
+      search: debouncedSearch || undefined,
+      page: currentPage,
+      limit: pageSize,
+    },
+    // La lista solo se ve en Control Diario cuando no está abierta la hoja de pase de lista.
+    // Al docente tutor se le autoselecciona su aula: se espera a tenerla para no pedir la lista de más.
+    activeTab === 'DAILY' &&
+      !(selectedClassroomId && dailyViewMode === 'SHEET') &&
+      !(isTeacher && (!classroomsLoaded || !isTutor || !selectedClassroomId)),
+  );
 
   const attendanceList = paginatedResult?.data ?? [];
   const meta = paginatedResult?.meta;
@@ -172,6 +186,8 @@ const StaffAttendancePage: React.FC = () => {
 
         <div className="flex items-center gap-2 flex-wrap self-start md:self-auto">
           {/* Lector QR / Kiosco en Puerta */}
+          {!isNonTutorTeacher && (
+          <>
           <Button
             onClick={() => setIsQrScannerOpen(true)}
             className="gap-2 shadow-sm bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl h-10 px-4"
@@ -189,6 +205,8 @@ const StaffAttendancePage: React.FC = () => {
             <LogOut className="w-4 h-4 text-primary" />
             <span>Registrar salida</span>
           </Button>
+          </>
+          )}
 
           {/* Configuración de Horarios & Auto-Cierre */}
           {canConfigureSchedule && (
@@ -216,6 +234,8 @@ const StaffAttendancePage: React.FC = () => {
           )}
 
           {/* Tomar Asistencia Masiva Button */}
+          {!isNonTutorTeacher && (
+
           <Button
             variant="outline"
             onClick={() => setIsBulkModalOpen(true)}
@@ -225,6 +245,7 @@ const StaffAttendancePage: React.FC = () => {
             <UserCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             <span>Tomar Asistencia del Aula</span>
           </Button>
+          )}
         </div>
       </div>
 
@@ -255,12 +276,15 @@ const StaffAttendancePage: React.FC = () => {
               Perfil Docente — Sin Aula de Tutoría Asignada
             </p>
             <p className="text-muted-foreground text-xs mt-0.5">
-              En este colegio, el control y toma de asistencia general está asignado a los <strong>Docentes Tutores</strong> de cada sección y a la <strong>Administración</strong>.
+              La asistencia diaria la gestionan los <strong>docentes tutores</strong> y la <strong>Administración</strong>. Tú pasas lista en tus cursos desde la pestaña{' '}
+              <Link to="/course-attendance" className="font-semibold text-primary underline-offset-2 hover:underline">Por curso</Link>.
             </p>
           </div>
         </div>
       )}
 
+      {!isNonTutorTeacher && (
+      <>
       {/* Navigation Tabs */}
       <div className="flex items-center gap-1 border-b border-border overflow-x-auto">
         <button
@@ -285,16 +309,18 @@ const StaffAttendancePage: React.FC = () => {
           <span>Asistencia por Días</span>
         </button>
 
-        <button
-          onClick={() => setActiveTab('MONTHLY')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap -mb-px ${activeTab === 'MONTHLY'
-            ? 'border-primary text-primary font-bold'
-            : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-        >
-          <BarChart3 className="w-4 h-4 text-sky-600" />
-          <span>Reporte & KPIs</span>
-        </button>
+        {canSeeMonthlyReport && (
+          <button
+            onClick={() => setActiveTab('MONTHLY')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap -mb-px ${activeTab === 'MONTHLY'
+              ? 'border-primary text-primary font-bold'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+              }`}
+          >
+            <BarChart3 className="w-4 h-4 text-sky-600" />
+            <span>Reporte & KPIs</span>
+          </button>
+        )}
       </div>
 
       {/* Tab 1: Control Diario */}
@@ -326,11 +352,11 @@ const StaffAttendancePage: React.FC = () => {
                   className="w-full border-none bg-transparent text-xs font-semibold focus:outline-none text-foreground cursor-pointer"
                   disabled={isTeacher && tutoredClassrooms.length === 1}
                 >
-                  <option value="">— Todas las Aulas / Secciones —</option>
-                  {(isTeacher && isTutor ? tutoredClassrooms : classrooms).map((c) => (
+                  {!isTeacher && <option value="">— Todas las Aulas / Secciones —</option>}
+                  {(isTeacher ? tutoredClassrooms : classrooms).map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.grade}° "{c.section}" — {c.educationLevel === 'PRIMARY' ? 'Primaria' : c.educationLevel === 'SECONDARY' ? 'Secundaria' : 'Inicial'}
-                      {c.tutorTeacherId === user?.id ? ' • Su Aula Tutoriada' : isTeacher && !isTutor ? ' (Consulta)' : ''}
+                      {c.tutorTeacherId === user?.id ? ' • Su Aula Tutoriada' : ''}
                     </option>
                   ))}
                 </select>
@@ -778,11 +804,14 @@ const StaffAttendancePage: React.FC = () => {
       )}
 
       {/* Tab 3: Reporte & KPIs */}
-      {activeTab === 'MONTHLY' && (
+      {activeTab === 'MONTHLY' && canSeeMonthlyReport && (
         <AttendanceMonthlyReport
           initialMonth={selectedMonth}
           initialClassroomId={selectedClassroomId}
         />
+      )}
+
+      </>
       )}
 
       {/* Modal de Toma Masiva de Asistencia por Aula */}

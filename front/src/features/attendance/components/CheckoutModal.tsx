@@ -17,6 +17,7 @@ import { CameraQrScanner } from './CameraQrScanner';
 import { useCheckoutPreview, useCheckout } from '../api/useCheckout';
 import { useResolvedFileUrl } from '@/features/course-contents/api/useResolvedFileUrl';
 import { formatPeruTime } from '@/lib/dateUtils';
+import { relationshipLabel } from '@/features/users/family-relationships/relationshipLabels';
 
 interface CheckoutModalProps {
   open: boolean;
@@ -285,7 +286,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
                                   {g.fullName}
                                 </span>
                                 <Badge className="text-xs bg-secondary text-secondary-foreground">
-                                  Apoderado ({g.relationshipType})
+                                  {relationshipLabel(g.relationshipType)}
                                 </Badge>
                               </div>
                               <span className="text-xs text-muted-foreground block">

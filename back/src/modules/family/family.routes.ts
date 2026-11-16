@@ -273,6 +273,7 @@ familyRouter.get('/gate/today', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'A
     select: {
       id: true,
       checkOutTime: true,
+      pickupPersonId: true,
       pickedUpByName: true,
       pickedUpByDocument: true,
       earlyLeaveReason: true,
@@ -284,21 +285,28 @@ familyRouter.get('/gate/today', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'A
       },
     },
   });
-  const present = await prisma.attendance.count({
-    where: { schoolId: req.user!.schoolId, date: today, status: { in: ['PRESENT', 'LATE_JUSTIFIED', 'LATE_UNJUSTIFIED'] } },
-  });
+  // Conteos reales: la lista se corta en 300 filas, los totales no
+  const [present, checkedOut] = await Promise.all([
+    prisma.attendance.count({
+      where: { schoolId: req.user!.schoolId, date: today, status: { in: ['PRESENT', 'LATE_JUSTIFIED', 'LATE_UNJUSTIFIED'] } },
+    }),
+    prisma.attendance.count({
+      where: { schoolId: req.user!.schoolId, date: today, checkOutTime: { not: null } },
+    }),
+  ]);
   res.status(200).json({
     status: 'success',
     data: {
       present,
-      checkedOut: rows.length,
+      checkedOut,
       rows: rows.map((r) => ({
         id: r.id,
         checkOutTime: r.checkOutTime,
         student: `${r.enrollment.student.firstNames} ${r.enrollment.student.lastNamePaternal} ${r.enrollment.student.lastNameMaternal ?? ''}`.trim(),
         classroom: classroomLabel(r.enrollment.classroom),
-        pickedUpByName: r.pickedUpByName,
-        pickedUpByDocument: r.pickedUpByDocument,
+        // Salida por su cuenta (SELF): no hay persona que recoja; el backend guarda el nombre del propio alumno
+        pickedUpByName: r.pickupPersonId ? r.pickedUpByName : null,
+        pickedUpByDocument: r.pickupPersonId ? r.pickedUpByDocument : null,
         earlyLeaveReason: r.earlyLeaveReason,
       })),
     },

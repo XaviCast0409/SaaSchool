@@ -100,7 +100,13 @@ export const SchedulePage: React.FC = () => {
     <div className="max-w-6xl">
       <PageHeader
         title="Horario de clases"
-        description={isManager ? 'Arma el horario de cada aula. El sistema avisa si un docente queda en dos aulas a la misma hora.' : 'Tus clases de la semana.'}
+        description={
+          isManager
+            ? 'Arma el horario de cada aula. El sistema avisa si un docente queda en dos aulas a la misma hora.'
+            : role === 'TEACHER'
+              ? 'Tus clases de la semana y el horario de cada aula.'
+              : 'Consulta el horario de clases de cada aula.'
+        }
       />
       {role === 'TEACHER' && (
         <div className="mb-4 inline-flex rounded-lg border border-border p-0.5 text-xs">

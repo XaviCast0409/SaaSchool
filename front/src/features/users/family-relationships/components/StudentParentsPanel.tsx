@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { DirectoryUser } from '@/features/users/types';
+import { RELATIONSHIP_LABELS } from '../relationshipLabels';
 
 interface StudentParentsPanelProps {
   studentId: string;
@@ -14,13 +15,6 @@ interface StudentParentsPanelProps {
   availableParents: DirectoryUser[];
 }
 
-const RELATIONSHIP_LABELS: Record<string, string> = {
-  MOTHER: 'Madre',
-  FATHER: 'Padre',
-  GRANDPARENT: 'Abuelo/a',
-  UNCLE_AUNT: 'Tío/a',
-  OTHER: 'Apoderado',
-};
 
 export const StudentParentsPanel: React.FC<StudentParentsPanelProps> = ({
   studentId,

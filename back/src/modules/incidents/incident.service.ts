@@ -46,6 +46,14 @@ export class IncidentService {
       throw new AppError('Se requiere el ID de matrícula del estudiante.', 400);
     }
 
+    // La matrícula enviada por el cliente debe pertenecer a este colegio
+    if (dto.enrollmentId) {
+      const owned = await prisma.enrollment.count({ where: { id: enrollmentId, schoolId } });
+      if (!owned) {
+        throw new AppError('No se encontró la matrícula del estudiante.', 404);
+      }
+    }
+
     const incident = await this.incidentRepository.create(schoolId, authorId, enrollmentId, dto);
 
     // Obtener los datos del estudiante y familiares para notificaciones
@@ -149,6 +157,12 @@ export class IncidentService {
       });
     }
 
+    if (userContext.role === 'TEACHER') {
+      return this.incidentRepository.findAll(schoolId, filters, {
+        teacherUserId: userContext.userId,
+      });
+    }
+
     return this.incidentRepository.findAll(schoolId, filters);
   }
 
@@ -170,6 +184,12 @@ export class IncidentService {
       );
       if (!isParent) {
         throw new AppError('No tienes permisos para ver esta incidencia.', 403);
+      }
+    } else if (userContext.role === 'TEACHER' && incData.isViolenceCase) {
+      const isAuthor = incData.authorId === userContext.userId;
+      const isTutor = incData.enrollment?.classroom?.tutorTeacherId === userContext.userId;
+      if (!isAuthor && !isTutor) {
+        throw new AppError('Los casos de violencia solo los ve la Dirección, quien los registró y el tutor del aula.', 403);
       }
     }
 

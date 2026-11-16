@@ -88,7 +88,8 @@ export const AttendanceMatrixGrid: React.FC<AttendanceMatrixGridProps> = ({
     ? classrooms.filter((c) => c.tutorTeacherId === user?.id || c.tutorTeacher?.id === user?.id)
     : [];
   const isTutor = tutoredClassrooms.length > 0;
-  const availableClassrooms = isTeacher && isTutor ? tutoredClassrooms : classrooms;
+  // El docente solo consulta su aula de tutoría
+  const availableClassrooms = isTeacher ? tutoredClassrooms : classrooms;
 
   // Auto-seleccionar aula tutoriada para docentes
   React.useEffect(() => {
@@ -166,11 +167,11 @@ export const AttendanceMatrixGrid: React.FC<AttendanceMatrixGridProps> = ({
               className="bg-transparent border-none focus:outline-none text-foreground font-semibold cursor-pointer"
               disabled={isTeacher && availableClassrooms.length === 1}
             >
-              <option value="">— Todas las Secciones —</option>
+              {!isTeacher && <option value="">— Todas las Secciones —</option>}
               {availableClassrooms.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.grade}° {c.section} ({formatEducationLevel(c.educationLevel)})
-                  {c.tutorTeacherId === user?.id ? ' • Su Aula Tutoriada' : isTeacher && !isTutor ? ' (Consulta)' : ''}
+                  {c.tutorTeacherId === user?.id ? ' • Su Aula Tutoriada' : ''}
                 </option>
               ))}
             </select>

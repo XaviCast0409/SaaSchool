@@ -560,7 +560,7 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
                   {student.checkOutTime && (
                     <div className="text-[11px] text-muted-foreground bg-muted/40 rounded px-2 py-1">
                       Salida: <span className="font-semibold text-foreground">{formatPeruTime(student.checkOutTime)}</span>
-                      {student.pickedUpByName && <span> (Retirado por: {student.pickedUpByName})</span>}
+                      <span> ({student.pickedUpByName ? `Retirado por: ${student.pickedUpByName}` : 'Salió por su cuenta'})</span>
                     </div>
                   )}
 
@@ -715,14 +715,12 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
                             <span className="font-semibold text-foreground text-xs block">
                               {formatPeruTime(student.checkOutTime)}
                             </span>
-                            {student.pickedUpByName && (
-                              <span
-                                className="text-[10px] text-muted-foreground block truncate max-w-[120px] mx-auto"
-                                title={student.pickedUpByName}
-                              >
-                                {student.pickedUpByName}
-                              </span>
-                            )}
+                            <span
+                              className="text-[10px] text-muted-foreground block truncate max-w-[120px] mx-auto"
+                              title={student.pickedUpByName ?? 'Salió por su cuenta'}
+                            >
+                              {student.pickedUpByName ?? 'Por su cuenta'}
+                            </span>
                           </div>
                         ) : (
                           <span className="text-muted-foreground/40 font-mono text-xs">—</span>

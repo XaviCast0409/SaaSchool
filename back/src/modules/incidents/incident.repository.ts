@@ -20,6 +20,7 @@ const INCIDENT_INCLUDE = {
           grade: true,
           section: true,
           educationLevel: true,
+          tutorTeacherId: true,
         },
       },
       academicYear: {
@@ -84,7 +85,7 @@ export class IncidentRepository {
   async findAll(
     schoolId: string,
     filters: IncidentFilterDto,
-    options?: { parentUserId?: string; studentId?: string },
+    options?: { parentUserId?: string; studentId?: string; teacherUserId?: string },
   ): Promise<{ data: StudentIncident[]; meta: { total: number; page: number; limit: number; totalPages: number } }> {
     const page = filters.page || 1;
     const limit = filters.limit || 20;
@@ -107,8 +108,22 @@ export class IncidentRepository {
       enrollmentWhere.studentId = options.studentId;
     }
 
+    // Los casos de violencia solo los ve el docente que los registró o el tutor del aula
+    const teacherScope: Prisma.StudentIncidentWhereInput[] = options?.teacherUserId
+      ? [
+          {
+            OR: [
+              { isViolenceCase: false },
+              { authorId: options.teacherUserId },
+              { enrollment: { classroom: { tutorTeacherId: options.teacherUserId } } },
+            ],
+          },
+        ]
+      : [];
+
     const where: Prisma.StudentIncidentWhereInput = {
       schoolId,
+      ...(teacherScope.length > 0 ? { AND: teacherScope } : {}),
       ...(filters.type ? { type: filters.type } : {}),
       ...(filters.severity ? { severity: filters.severity } : {}),
       ...(filters.enrollmentId ? { enrollmentId: filters.enrollmentId } : {}),

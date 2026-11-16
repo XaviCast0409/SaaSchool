@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { CornerDownLeft, GraduationCap, Loader2, Lock, Search } from 'lucide-react';
 import { useStudents } from '@/features/students/api/useStudents';
 import type { ResolvedNavSection } from '@/layouts/navigation';
+import { useDebouncedValue } from '@/lib/useDebouncedValue';
 
 interface CommandPaletteProps {
   open: boolean;
@@ -28,15 +29,6 @@ const normalize = (text: string) =>
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '');
 
-const useDebounced = (value: string, delayMs: number) => {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const timer = window.setTimeout(() => setDebounced(value), delayMs);
-    return () => window.clearTimeout(timer);
-  }, [value, delayMs]);
-  return debounced;
-};
-
 /** Buscador global (Ctrl+K): salta a cualquier pantalla del menú o a un alumno. */
 export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onClose, sections, canSearchStudents }) => {
   const navigate = useNavigate();
@@ -46,7 +38,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onClose, s
   const [activeIndex, setActiveIndex] = useState(0);
 
   const term = query.trim();
-  const debouncedTerm = useDebounced(term, 250);
+  const debouncedTerm = useDebouncedValue(term, 250);
   const studentSearchOn = open && canSearchStudents && debouncedTerm.length >= 2;
   const { data: studentsResponse, isFetching: studentsLoading } = useStudents(
     { search: debouncedTerm, scope: 'all', page: 1, limit: 6 },

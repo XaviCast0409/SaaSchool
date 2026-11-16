@@ -2,6 +2,7 @@ import type { AttendanceStatus } from '@prisma/client';
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
 import { parseSchoolDate } from '../../utils/timezone.util';
+import { assertSchoolDay } from '../attendance/school-day';
 import type {
   SessionQueryDto,
   SaveSessionDto,
@@ -46,6 +47,8 @@ export class CourseAttendanceService {
 
   async getSession(schoolId: string, dto: SessionQueryDto, user: RequestUser) {
     const assignment = await this.assertAssignmentAccess(schoolId, dto.courseAssignmentId, user);
+    // No se pasa lista de curso en fin de semana, feriado ni fuera del año escolar
+    await assertSchoolDay(schoolId, dto.date);
     const dateObj = parseSchoolDate(dto.date);
 
     // 1. Obtener alumnos con matrícula activa en el aula y año activo
@@ -157,6 +160,8 @@ export class CourseAttendanceService {
 
   async saveSession(schoolId: string, userId: string, dto: SaveSessionDto, user: RequestUser) {
     const assignment = await this.assertAssignmentAccess(schoolId, dto.courseAssignmentId, user);
+    // No se pasa lista de curso en fin de semana, feriado ni fuera del año escolar
+    await assertSchoolDay(schoolId, dto.date);
     const dateObj = parseSchoolDate(dto.date);
 
     // Validar que cada enrollmentId pertenezca al aula del curso
@@ -195,24 +200,23 @@ export class CourseAttendanceService {
         },
       });
 
-      for (const rec of dto.records) {
-        await tx.courseAttendanceRecord.upsert({
+      // Reemplazo en lote (2 consultas) en vez de un upsert por alumno: mismo resultado,
+      // sin decenas de viajes a la base dentro de la transacción
+      if (dto.records.length > 0) {
+        await tx.courseAttendanceRecord.deleteMany({
           where: {
-            sessionId_enrollmentId: {
-              sessionId: sessionRecord.id,
-              enrollmentId: rec.enrollmentId,
-            },
+            sessionId: sessionRecord.id,
+            enrollmentId: { in: dto.records.map((r) => r.enrollmentId) },
           },
-          create: {
+        });
+        await tx.courseAttendanceRecord.createMany({
+          data: dto.records.map((rec) => ({
             sessionId: sessionRecord.id,
             enrollmentId: rec.enrollmentId,
             status: rec.status,
             note: rec.note || null,
-          },
-          update: {
-            status: rec.status,
-            note: rec.note || null,
-          },
+          })),
+          skipDuplicates: true,
         });
       }
 
