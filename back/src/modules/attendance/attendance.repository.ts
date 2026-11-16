@@ -658,12 +658,13 @@ export class AttendanceRepository {
       ...(query.classroomId ? { enrollment: { classroomId: query.classroomId } } : {}),
     };
 
-    const records = await prisma.attendance.findMany({
+    // La base cuenta por estado: no se cargan los registros del mes en memoria
+    const groups = await prisma.attendance.groupBy({
+      by: ['status'],
       where,
-      select: { status: true },
+      _count: { status: true },
     });
 
-    const totalRecords = records.length;
     const counts = {
       PRESENT: 0,
       ABSENT_JUSTIFIED: 0,
@@ -672,9 +673,11 @@ export class AttendanceRepository {
       LATE_UNJUSTIFIED: 0,
     };
 
-    for (const record of records) {
-      if (counts[record.status] !== undefined) {
-        counts[record.status]++;
+    let totalRecords = 0;
+    for (const group of groups) {
+      totalRecords += group._count.status;
+      if (counts[group.status] !== undefined) {
+        counts[group.status] += group._count.status;
       }
     }
 

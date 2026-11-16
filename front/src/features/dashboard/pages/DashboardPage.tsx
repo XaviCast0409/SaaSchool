@@ -14,7 +14,6 @@ import {
   DollarSign,
   CheckCircle2,
   Clock,
-  BookOpen,
   Sparkles,
   QrCode,
   School,
@@ -22,15 +21,16 @@ import {
 import { useAuthStore } from '@/store/useAuthStore';
 import { useStudents } from '@/features/students/api/useStudents';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
-import { useParentPayments, useFinancialSummary } from '@/features/payments/api/usePayments';
+import { useFinancialSummary } from '@/features/payments/api/usePayments';
 import { useGetAnnouncements } from '@/features/announcements/api/useAnnouncements';
+import { useAttendance } from '@/features/attendance/api/useAttendance';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ActionsPanel } from '@/features/insights/components/ActionsPanel';
 import { Button } from '@/components/ui/button';
 
 import { ParentPortalPage } from '@/features/parent/pages/ParentPortalPage';
 import { TeacherDashboardView } from '../components/TeacherDashboardView';
-import { formatPeruShortDate } from '@/lib/dateUtils';
+import { formatPeruShortDate, getPeruToday } from '@/lib/dateUtils';
 import { useDashboardOnboarding } from '../api/useDashboardOnboarding';
 import { DirectorOnboardingCard } from '../components/DirectorOnboardingCard';
 import { SchoolSettingsModal } from '@/features/schools/components/SchoolSettingsModal';
@@ -66,12 +66,90 @@ export const DashboardPage: React.FC = () => {
   return <StaffDashboard />;
 };
 
+const quickActionClass =
+  'flex items-center gap-3 p-4 rounded-xl border border-border bg-card text-foreground transition-all shadow-sm group';
+
+interface QuickActionProps {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  subtitle: string;
+  onClick: () => void;
+  /** Clases de color del botón y de su ícono */
+  hover: string;
+  iconTone: string;
+}
+
+const QuickAction: React.FC<QuickActionProps> = ({ icon: Icon, title, subtitle, onClick, hover, iconTone }) => (
+  <button onClick={onClick} className={`${quickActionClass} ${hover}`}>
+    <div className={`p-2.5 rounded-lg transition-colors ${iconTone}`}>
+      <Icon className="w-5 h-5" />
+    </div>
+    <div className="text-left">
+      <span className="block font-bold text-sm leading-tight">{title}</span>
+      <span className="text-xs text-muted-foreground">{subtitle}</span>
+    </div>
+  </button>
+);
+
+const TONES = {
+  primary: {
+    hover: 'hover:bg-primary/10 hover:border-primary/40',
+    iconTone: 'bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground',
+  },
+  emerald: {
+    hover: 'hover:bg-emerald-500/10 hover:border-emerald-500/40',
+    iconTone: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white',
+  },
+  amber: {
+    hover: 'hover:bg-amber-500/10 hover:border-amber-500/40',
+    iconTone: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 group-hover:bg-amber-500 group-hover:text-white',
+  },
+  sky: {
+    hover: 'hover:bg-sky-500/10 hover:border-sky-500/40',
+    iconTone: 'bg-sky-500/10 text-sky-600 dark:text-sky-400 group-hover:bg-sky-500 group-hover:text-white',
+  },
+} as const;
+
+interface ModuleCardProps {
+  icon: React.ComponentType<{ className?: string }>;
+  iconClass: string;
+  title: string;
+  description: string;
+  actionLabel: string;
+  onClick: () => void;
+  badge?: React.ReactNode;
+}
+
+const ModuleCard: React.FC<ModuleCardProps> = ({ icon: Icon, iconClass, title, description, actionLabel, onClick, badge }) => (
+  <Card className="flex flex-col justify-between hover:border-primary/50 transition-colors">
+    <CardHeader>
+      <div className="flex items-center justify-between">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Icon className={`w-5 h-5 ${iconClass}`} />
+          {title}
+        </CardTitle>
+        {badge}
+      </div>
+      <CardDescription className="text-xs">{description}</CardDescription>
+    </CardHeader>
+    <CardContent className="pt-0">
+      <Button
+        variant="ghost"
+        size="sm"
+        className="w-full justify-between text-xs font-semibold text-primary"
+        onClick={onClick}
+      >
+        <span>{actionLabel}</span>
+        <ArrowRight className="w-4 h-4" />
+      </Button>
+    </CardContent>
+  </Card>
+);
+
 const StaffDashboard: React.FC = () => {
   const { user, impersonatedSchool } = useAuthStore();
   const navigate = useNavigate();
 
-  const isTeacher = false;
-  const isParent = false;
   const isAdministrative = user?.role === 'ADMINISTRATIVE';
   const isAdmin = user?.role === 'SCHOOL_ADMIN' || (user?.role === 'SUPER_ADMIN' && !!impersonatedSchool);
   const canManageStudents = isAdmin || isAdministrative;
@@ -83,38 +161,27 @@ const StaffDashboard: React.FC = () => {
   const currentPlan: SubscriptionPlan = (activeSchool?.plan as SubscriptionPlan) || 'BASIC';
   const isProPlan = (PLAN_HIERARCHY[currentPlan] || 1) >= (PLAN_HIERARCHY.PRO || 2);
 
-  // Queries segregadas por rol para prevenir 403 y llamadas innecesarias
-  const { data: studentsResponse } = useStudents({ page: 1, limit: 100 }, canManageStudents);
+  // Queries segregadas por rol para prevenir 403 y llamadas innecesarias.
+  // Del listado de alumnos solo interesa el total: basta con pedir una fila.
+  const { data: studentsResponse } = useStudents({ page: 1, limit: 1 }, canManageStudents);
   const totalStudentsCount = studentsResponse?.meta?.total || 0;
 
-  const { data: classrooms = [] } = useClassrooms();
+  const { data: classrooms = [] } = useClassrooms(isAdministrative);
   const classroomsCount = classrooms.length;
+
+  // Asistencia de hoy (solo Dirección): las estadísticas vienen agregadas del backend
+  const { data: todayAttendance } = useAttendance({ date: getPeruToday(), page: 1, limit: 1 }, isAdmin);
+  const todayStats = todayAttendance?.stats;
+  const todayAttended = (todayStats?.present ?? 0) + (todayStats?.late ?? 0);
 
   // Solo el director consulta el resumen macro financiero con montos en soles
   const { data: financialSummary } = useFinancialSummary(canSeeMacroFinances);
-  const { data: parentObligations = [] } = useParentPayments(isParent);
   const { data: announcementsData } = useGetAnnouncements({ page: 1, limit: 3 });
   const announcementsCount = announcementsData?.meta?.total ?? announcementsData?.data?.length ?? 0;
 
-  // Cálculos financieros en montos (Exclusivo Director o Padres para sus propias pensiones)
-  const totalAmountDue = canSeeMacroFinances
-    ? financialSummary?.totalExpected ?? 0
-    : isParent
-    ? parentObligations.reduce((acc, curr) => acc + curr.amountDue, 0)
-    : 0;
-
-  const paidTotal = canSeeMacroFinances
-    ? financialSummary?.totalCollected ?? 0
-    : isParent
-    ? parentObligations.filter((o) => o.status === 'PAID').reduce((acc, curr) => acc + curr.amountDue, 0)
-    : 0;
-
-  const pendingTotal = canSeeMacroFinances
-    ? financialSummary?.totalPending ?? 0
-    : isParent
-    ? Math.max(0, totalAmountDue - paidTotal)
-    : 0;
-
+  const totalAmountDue = canSeeMacroFinances ? financialSummary?.totalExpected ?? 0 : 0;
+  const paidTotal = canSeeMacroFinances ? financialSummary?.totalCollected ?? 0 : 0;
+  const pendingTotal = canSeeMacroFinances ? financialSummary?.totalPending ?? 0 : 0;
   const collectionPercentage = totalAmountDue > 0 ? Math.round((paidTotal / totalAmountDue) * 100) : 0;
 
   return (
@@ -132,11 +199,7 @@ const StaffDashboard: React.FC = () => {
           <p className="text-sm text-muted-foreground max-w-2xl">
             {isAdmin
               ? 'Panel de control ejecutivo. Supervisa matriculados, estado de cobranzas y emite avisos oficiales.'
-              : isAdministrative
-              ? 'Panel de secretaría y caja. Gestiona matrículas, cobro de pensiones en ventanilla, carnets QR y circulares.'
-              : isTeacher
-              ? 'Panel docente para control de asistencia diario, tus cursos a cargo e ingreso de notas SIAGIE.'
-              : 'Bienvenido al portal familiar. Consulta el estado de tus pensiones, libreta de notas y avisos oficiales.'}
+              : 'Panel de secretaría y caja. Gestiona matrículas, cobro de pensiones en ventanilla, carnets QR y circulares.'}
           </p>
         </div>
       </div>
@@ -150,244 +213,44 @@ const StaffDashboard: React.FC = () => {
       )}
 
       {/* Pendientes concretos para la Dirección y Secretaría */}
-      {(isAdmin || isAdministrative) && (
-        <ActionsPanel
-          isBoardingComplete={onboarding ? onboarding.percent === 100 : true}
-        />
-      )}
+      <ActionsPanel isBoardingComplete={onboarding ? onboarding.percent === 100 : true} />
 
       {/* Botonera de Acciones Rápidas Según el Rol */}
       <div className="space-y-3">
         <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
           Acciones Rápidas
         </h2>
-        {isAdmin && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <button
-              onClick={() => navigate('/students')}
-              className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-primary/10 hover:border-primary/40 text-foreground transition-all shadow-sm group"
-            >
-              <div className="p-2.5 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                <UserPlus className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <span className="block font-bold text-sm leading-tight">Nuevo Alumno</span>
-                <span className="text-xs text-muted-foreground">Registrar matrícula</span>
-              </div>
-            </button>
-
-            <button
-              onClick={() => navigate('/payments')}
-              className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-emerald-500/10 hover:border-emerald-500/40 text-foreground transition-all shadow-sm group"
-            >
-              <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
-                <DollarSign className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <span className="block font-bold text-sm leading-tight">Registrar Pago</span>
-                <span className="text-xs text-muted-foreground">Ingreso manual</span>
-              </div>
-            </button>
-
-            <button
-              onClick={() => navigate('/payments')}
-              className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-amber-500/10 hover:border-amber-500/40 text-foreground transition-all shadow-sm group"
-            >
-              <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 group-hover:bg-amber-500 group-hover:text-white transition-colors">
-                <PlusCircle className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <span className="block font-bold text-sm leading-tight">Cobros Masivos</span>
-                <span className="text-xs text-muted-foreground">Generar por aula</span>
-              </div>
-            </button>
-
-            <button
-              onClick={() => navigate('/announcements')}
-              className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-primary/10 hover:border-primary/40 text-foreground transition-all shadow-sm group"
-            >
-              <div className="p-2.5 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                <Megaphone className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <span className="block font-bold text-sm leading-tight">Publicar Aviso</span>
-                <span className="text-xs text-muted-foreground">Comunicados</span>
-              </div>
-            </button>
-          </div>
-        )}
-
-        {isAdministrative && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <button
-              onClick={() => navigate('/students')}
-              className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-primary/10 hover:border-primary/40 text-foreground transition-all shadow-sm group"
-            >
-              <div className="p-2.5 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                <UserPlus className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <span className="block font-bold text-sm leading-tight">Matricular Alumno</span>
-                <span className="text-xs text-muted-foreground">Nueva matrícula</span>
-              </div>
-            </button>
-
-            <button
-              onClick={() => navigate('/payments')}
-              className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-emerald-500/10 hover:border-emerald-500/40 text-foreground transition-all shadow-sm group"
-            >
-              <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
-                <DollarSign className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <span className="block font-bold text-sm leading-tight">Caja Ventanilla</span>
-                <span className="text-xs text-muted-foreground">Cobro de pensión</span>
-              </div>
-            </button>
-
-            <button
-              onClick={() => navigate('/students')}
-              className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-sky-500/10 hover:border-sky-500/40 text-foreground transition-all shadow-sm group"
-            >
-              <div className="p-2.5 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 group-hover:bg-sky-500 group-hover:text-white transition-colors">
-                <QrCode className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <span className="block font-bold text-sm leading-tight">Carnets QR</span>
-                <span className="text-xs text-muted-foreground">Impresión por sección</span>
-              </div>
-            </button>
-
-            <button
-              onClick={() => navigate('/announcements')}
-              className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-amber-500/10 hover:border-amber-500/40 text-foreground transition-all shadow-sm group"
-            >
-              <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 group-hover:bg-amber-500 group-hover:text-white transition-colors">
-                <Megaphone className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <span className="block font-bold text-sm leading-tight">Publicar Aviso</span>
-                <span className="text-xs text-muted-foreground">Circular a familias</span>
-              </div>
-            </button>
-          </div>
-        )}
-
-        {isTeacher && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <button
-              onClick={() => navigate('/teacher-assignments')}
-              className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-primary/10 hover:border-primary/40 text-foreground transition-all shadow-sm group"
-            >
-              <div className="p-2.5 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                <BookOpen className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <span className="block font-bold text-sm leading-tight">Mis Cursos</span>
-                <span className="text-xs text-muted-foreground">Carga asignada</span>
-              </div>
-            </button>
-
-            <button
-              onClick={() => navigate('/attendance')}
-              className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-emerald-500/10 hover:border-emerald-500/40 text-foreground transition-all shadow-sm group"
-            >
-              <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
-                <CalendarCheck className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <span className="block font-bold text-sm leading-tight">Tomar Asistencia</span>
-                <span className="text-xs text-muted-foreground">Control de aula</span>
-              </div>
-            </button>
-
-            <button
-              onClick={() => navigate('/grades')}
-              className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-sky-500/10 hover:border-sky-500/40 text-foreground transition-all shadow-sm group"
-            >
-              <div className="p-2.5 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 group-hover:bg-sky-500 group-hover:text-white transition-colors">
-                <Sparkles className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <span className="block font-bold text-sm leading-tight">Registro Notas</span>
-                <span className="text-xs text-muted-foreground">Calificaciones</span>
-              </div>
-            </button>
-
-            <button
-              onClick={() => navigate('/announcements')}
-              className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-primary/10 hover:border-primary/40 text-foreground transition-all shadow-sm group"
-            >
-              <div className="p-2.5 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                <Megaphone className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <span className="block font-bold text-sm leading-tight">Comunicados</span>
-                <span className="text-xs text-muted-foreground">Avisos del colegio</span>
-              </div>
-            </button>
-          </div>
-        )}
-
-        {isParent && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <button
-              onClick={() => navigate('/payments')}
-              className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-emerald-500/10 hover:border-emerald-500/40 text-foreground transition-all shadow-sm group"
-            >
-              <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
-                <CreditCard className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <span className="block font-bold text-sm leading-tight">Mis Pensiones y Pagos</span>
-                <span className="text-xs text-muted-foreground">Historial y deudas pendientes</span>
-              </div>
-            </button>
-
-            <button
-              onClick={() => navigate('/grades')}
-              className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-primary/10 hover:border-primary/40 text-foreground transition-all shadow-sm group"
-            >
-              <div className="p-2.5 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                <BookOpenCheck className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <span className="block font-bold text-sm leading-tight">Libreta de Calificaciones</span>
-                <span className="text-xs text-muted-foreground">Notas y escala CNEB</span>
-              </div>
-            </button>
-
-            <button
-              onClick={() => navigate('/announcements')}
-              className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-sky-500/10 hover:border-sky-500/40 text-foreground transition-all shadow-sm group"
-            >
-              <div className="p-2.5 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 group-hover:bg-sky-500 group-hover:text-white transition-colors">
-                <Megaphone className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <span className="block font-bold text-sm leading-tight">Avisos y Circulares</span>
-                <span className="text-xs text-muted-foreground">Comunicados institucionales</span>
-              </div>
-            </button>
-          </div>
-        )}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {isAdmin ? (
+            <>
+              <QuickAction icon={UserPlus} title="Nuevo Alumno" subtitle="Registrar matrícula" onClick={() => navigate('/students')} {...TONES.primary} />
+              <QuickAction icon={DollarSign} title="Registrar Pago" subtitle="Ingreso manual" onClick={() => navigate('/payments')} {...TONES.emerald} />
+              <QuickAction icon={PlusCircle} title="Cobros Masivos" subtitle="Generar por aula" onClick={() => navigate('/payments')} {...TONES.amber} />
+              <QuickAction icon={Megaphone} title="Publicar Aviso" subtitle="Comunicados" onClick={() => navigate('/announcements')} {...TONES.primary} />
+            </>
+          ) : (
+            <>
+              <QuickAction icon={UserPlus} title="Matricular Alumno" subtitle="Nueva matrícula" onClick={() => navigate('/students')} {...TONES.primary} />
+              <QuickAction icon={DollarSign} title="Caja Ventanilla" subtitle="Cobro de pensión" onClick={() => navigate('/payments')} {...TONES.emerald} />
+              <QuickAction icon={QrCode} title="Carnets QR" subtitle="Impresión por sección" onClick={() => navigate('/students')} {...TONES.sky} />
+              <QuickAction icon={Megaphone} title="Publicar Aviso" subtitle="Circular a familias" onClick={() => navigate('/announcements')} {...TONES.amber} />
+            </>
+          )}
+        </div>
       </div>
 
       {/* Indicadores Principales / KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Estudiantes (Para Dirección y Personal Administrativo) */}
-        {canManageStudents && (
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Estudiantes</CardTitle>
-              <Users className="w-4 h-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-extrabold text-foreground">{totalStudentsCount}</div>
-              <p className="text-xs text-muted-foreground mt-1">Alumnos matriculados activos</p>
-            </CardContent>
-          </Card>
-        )}
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Estudiantes</CardTitle>
+            <Users className="w-4 h-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-extrabold text-foreground">{totalStudentsCount}</div>
+            <p className="text-xs text-muted-foreground mt-1">Alumnos matriculados activos</p>
+          </CardContent>
+        </Card>
 
         {/* Indicadores Operativos Exclusivos de Secretaría y Caja (Sin montos monetarios) */}
         {isAdministrative && (
@@ -427,85 +290,25 @@ const StaffDashboard: React.FC = () => {
           </>
         )}
 
-        {/* Recaudación Total (Exclusivo Dirección del Colegio) */}
+        {/* Recaudación y pendiente (Exclusivo Dirección del Colegio) */}
         {canSeeMacroFinances && (
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Recaudación Total</CardTitle>
-              <CreditCard className="w-4 h-4 text-emerald-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
-                S/ {paidTotal.toFixed(2)}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">{collectionPercentage}% cobrado de obligaciones</p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Pendiente de Cobro (Exclusivo Dirección del Colegio) */}
-        {canSeeMacroFinances && (
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Pendiente de Cobro</CardTitle>
-              <Clock className="w-4 h-4 text-amber-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-extrabold text-amber-600 dark:text-amber-400">
-                S/ {pendingTotal.toFixed(2)}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Pensiones por regularizar</p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Asistencia (Solo Dirección y Profesores — NUNCA Administrativo ni Padres) */}
-        {(isAdmin || isTeacher) && (
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Asistencia Hoy</CardTitle>
-              <CalendarCheck className="w-4 h-4 text-amber-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-extrabold text-foreground">Diario</div>
-              <p className="text-xs text-muted-foreground mt-1">Panel de control por aula</p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Notas SIAGIE (Solo Docentes y Padres — NUNCA Administrativo) */}
-        {(isTeacher || isParent) && (
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Evaluación CNEB</CardTitle>
-              <BookOpenCheck className="w-4 h-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-extrabold text-foreground">Escala AD / A / B / C</div>
-              <p className="text-xs text-muted-foreground mt-1">Matriz cualitativa MINEDU</p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Portal de Padres: Pensiones */}
-        {isParent && (
           <>
             <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Tus Pensiones Pagadas</CardTitle>
+                <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Recaudación Total</CardTitle>
                 <CreditCard className="w-4 h-4 text-emerald-500" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
                   S/ {paidTotal.toFixed(2)}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Total abonado este año escolar</p>
+                <p className="text-xs text-muted-foreground mt-1">{collectionPercentage}% cobrado de obligaciones</p>
               </CardContent>
             </Card>
 
             <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Pendiente de Pago</CardTitle>
+                <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Pendiente de Cobro</CardTitle>
                 <Clock className="w-4 h-4 text-amber-500" />
               </CardHeader>
               <CardContent>
@@ -516,6 +319,30 @@ const StaffDashboard: React.FC = () => {
               </CardContent>
             </Card>
           </>
+        )}
+
+        {/* Asistencia de hoy con datos reales (Solo Dirección) */}
+        {isAdmin && (
+          <Card
+            className="hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => navigate('/attendance')}
+          >
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Asistencia Hoy</CardTitle>
+              <CalendarCheck className="w-4 h-4 text-amber-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-extrabold text-foreground">
+                {todayAttended}
+                <span className="text-sm font-semibold text-muted-foreground"> / {todayStats?.total ?? 0}</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {todayStats?.total
+                  ? `${todayStats.late} tardanza(s) · ${todayStats.absent} falta(s)`
+                  : 'Aún no hay marcaciones hoy'}
+              </p>
+            </CardContent>
+          </Card>
         )}
       </div>
 
@@ -597,176 +424,67 @@ const StaffDashboard: React.FC = () => {
       <div className="space-y-3">
         <h2 className="text-base font-bold tracking-tight text-foreground">Módulos del Sistema</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {canManageStudents && (
-            <Card className="flex flex-col justify-between hover:border-primary/50 transition-colors">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Users className="w-5 h-5 text-primary" />
-                  Estudiantes
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Directorio matriculado y datos demográficos SIAGIE.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-between text-xs font-semibold text-primary"
-                  onClick={() => navigate('/students')}
-                >
-                  <span>Ver lista de alumnos</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+          <ModuleCard
+            icon={Users}
+            iconClass="text-primary"
+            title="Estudiantes"
+            description="Directorio matriculado y datos demográficos SIAGIE."
+            actionLabel="Ver lista de alumnos"
+            onClick={() => navigate('/students')}
+          />
 
-          {isTeacher && (
-            <Card className="flex flex-col justify-between hover:border-primary/50 transition-colors">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <BookOpen className="w-5 h-5 text-primary" />
-                  Mis Cursos Asignados
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Aulas, áreas y carga horaria oficial asignada.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-between text-xs font-semibold text-primary"
-                  onClick={() => navigate('/teacher-assignments')}
-                >
-                  <span>Ver mis materias</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+          <ModuleCard
+            icon={CreditCard}
+            iconClass="text-emerald-500"
+            title={isAdministrative ? 'Caja y Cobranzas' : 'Cobranzas y Pagos'}
+            description={
+              isAdministrative
+                ? 'Cobro en ventanilla, consulta de deudores y emisión de boletas.'
+                : 'Control de pensiones, boletas, morosidad y transacciones.'
+            }
+            actionLabel="Ver módulo pagos"
+            onClick={() => navigate('/payments')}
+          />
 
-          {(canSeeMacroFinances || isAdministrative || isParent) && (
-            <Card className="flex flex-col justify-between hover:border-primary/50 transition-colors">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <CreditCard className="w-5 h-5 text-emerald-500" />
-                  {isParent ? 'Mis Pagos y Pensiones' : isAdministrative ? 'Caja y Cobranzas' : 'Cobranzas y Pagos'}
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  {isParent
-                    ? 'Consulta tus recibos, cronograma y estados de pago.'
-                    : isAdministrative
-                    ? 'Cobro en ventanilla, consulta de deudores y emisión de boletas.'
-                    : 'Control de pensiones, boletas, morosidad y transacciones.'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-between text-xs font-semibold text-primary"
-                  onClick={() => navigate('/payments')}
-                >
-                  <span>{isParent ? 'Ver mis recibos' : 'Ver módulo pagos'}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
-          {!isAdministrative && (isAdmin || isTeacher || isParent) && (
-            <Card className="flex flex-col justify-between hover:border-primary/50 transition-colors">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <BookOpenCheck className="w-5 h-5 text-primary" />
-                    {isParent ? 'Libreta de Calificaciones' : 'Registro de Notas'}
-                  </CardTitle>
-                  {!isProPlan && (
-                    <span className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                      <Sparkles className="w-3 h-3" />
-                      PRO
-                    </span>
-                  )}
-                </div>
-                <CardDescription className="text-xs">
-                  {isParent
-                    ? 'Consulta el avance académico y notas de tus hijos.'
-                    : 'Matriz evaluativa interactiva con conversión a escala CNEB.'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-between text-xs font-semibold text-primary"
-                  onClick={() => navigate('/grades')}
-                >
-                  <span>
-                    {!isProPlan
-                      ? 'Mejorar a Plan PRO'
-                      : isParent
-                      ? 'Ver libreta escolar'
-                      : 'Abrir registro notas'}
+          {isAdmin && (
+            <ModuleCard
+              icon={BookOpenCheck}
+              iconClass="text-primary"
+              title="Registro de Notas"
+              description="Matriz evaluativa interactiva con conversión a escala CNEB."
+              actionLabel={isProPlan ? 'Abrir registro notas' : 'Mejorar a Plan PRO'}
+              onClick={() => navigate('/grades')}
+              badge={
+                !isProPlan && (
+                  <span className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                    <Sparkles className="w-3 h-3" />
+                    PRO
                   </span>
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              </CardContent>
-            </Card>
+                )
+              }
+            />
           )}
 
-          {(isAdmin || isTeacher) && (
-            <Card className="flex flex-col justify-between hover:border-primary/50 transition-colors">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <CalendarCheck className="w-5 h-5 text-amber-500" />
-                  Asistencia
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Control diario por fecha y reportes de asistencia escolar.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-between text-xs font-semibold text-primary"
-                  onClick={() => navigate('/attendance')}
-                >
-                  <span>Ver asistencia</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              </CardContent>
-            </Card>
+          {isAdmin && (
+            <ModuleCard
+              icon={CalendarCheck}
+              iconClass="text-amber-500"
+              title="Asistencia"
+              description="Control diario por fecha y reportes de asistencia escolar."
+              actionLabel="Ver asistencia"
+              onClick={() => navigate('/attendance')}
+            />
           )}
 
-          {(isAdministrative || isParent) && (
-            <Card className="flex flex-col justify-between hover:border-primary/50 transition-colors">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Megaphone className="w-5 h-5 text-sky-500" />
-                  {isParent ? 'Avisos y Circulares' : 'Comunicados Oficiales'}
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  {isParent
-                    ? 'Comunicados oficiales emitidos por el colegio.'
-                    : 'Emisión y difusión de circulares y citaciones a las familias.'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-between text-xs font-semibold text-primary"
-                  onClick={() => navigate('/announcements')}
-                >
-                  <span>{isParent ? 'Leer circulares' : 'Gestionar avisos'}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              </CardContent>
-            </Card>
+          {isAdministrative && (
+            <ModuleCard
+              icon={Megaphone}
+              iconClass="text-sky-500"
+              title="Comunicados Oficiales"
+              description="Emisión y difusión de circulares y citaciones a las familias."
+              actionLabel="Gestionar avisos"
+              onClick={() => navigate('/announcements')}
+            />
           )}
         </div>
       </div>

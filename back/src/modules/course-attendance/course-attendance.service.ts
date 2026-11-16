@@ -195,24 +195,23 @@ export class CourseAttendanceService {
         },
       });
 
-      for (const rec of dto.records) {
-        await tx.courseAttendanceRecord.upsert({
+      // Reemplazo en lote (2 consultas) en vez de un upsert por alumno: mismo resultado,
+      // sin decenas de viajes a la base dentro de la transacción
+      if (dto.records.length > 0) {
+        await tx.courseAttendanceRecord.deleteMany({
           where: {
-            sessionId_enrollmentId: {
-              sessionId: sessionRecord.id,
-              enrollmentId: rec.enrollmentId,
-            },
+            sessionId: sessionRecord.id,
+            enrollmentId: { in: dto.records.map((r) => r.enrollmentId) },
           },
-          create: {
+        });
+        await tx.courseAttendanceRecord.createMany({
+          data: dto.records.map((rec) => ({
             sessionId: sessionRecord.id,
             enrollmentId: rec.enrollmentId,
             status: rec.status,
             note: rec.note || null,
-          },
-          update: {
-            status: rec.status,
-            note: rec.note || null,
-          },
+          })),
+          skipDuplicates: true,
         });
       }
 

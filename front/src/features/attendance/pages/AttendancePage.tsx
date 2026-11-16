@@ -42,6 +42,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { AttendanceStatus, AttendanceRecord } from '../types';
+import { useDebouncedValue } from '@/lib/useDebouncedValue';
 
 import { ParentAttendanceView } from '@/features/parent/components/ParentAttendanceView';
 
@@ -85,6 +86,9 @@ const StaffAttendancePage: React.FC = () => {
 
   const isTeacher = user?.role === 'TEACHER';
   const canConfigureSchedule = user?.role === 'SUPER_ADMIN' || user?.role === 'SCHOOL_ADMIN' || user?.role === 'ADMINISTRATIVE';
+  // El reporte mensual y el acta (/attendance/summary y /export) son solo para Dirección y Secretaría
+  const canSeeMonthlyReport = !isTeacher;
+  const debouncedSearch = useDebouncedValue(searchTerm.trim(), 300);
 
   // Queries
   const { data: classrooms = [] } = useClassrooms();
@@ -105,14 +109,18 @@ const StaffAttendancePage: React.FC = () => {
     isLoading,
     isError,
     refetch,
-  } = useAttendance({
-    date: selectedDate,
-    classroomId: selectedClassroomId || undefined,
-    status: statusFilter,
-    search: searchTerm || undefined,
-    page: currentPage,
-    limit: pageSize,
-  });
+  } = useAttendance(
+    {
+      date: selectedDate,
+      classroomId: selectedClassroomId || undefined,
+      status: statusFilter,
+      search: debouncedSearch || undefined,
+      page: currentPage,
+      limit: pageSize,
+    },
+    // La lista solo se ve en Control Diario cuando no está abierta la hoja de pase de lista
+    activeTab === 'DAILY' && !(selectedClassroomId && dailyViewMode === 'SHEET'),
+  );
 
   const attendanceList = paginatedResult?.data ?? [];
   const meta = paginatedResult?.meta;
@@ -285,16 +293,18 @@ const StaffAttendancePage: React.FC = () => {
           <span>Asistencia por Días</span>
         </button>
 
-        <button
-          onClick={() => setActiveTab('MONTHLY')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap -mb-px ${activeTab === 'MONTHLY'
-            ? 'border-primary text-primary font-bold'
-            : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-        >
-          <BarChart3 className="w-4 h-4 text-sky-600" />
-          <span>Reporte & KPIs</span>
-        </button>
+        {canSeeMonthlyReport && (
+          <button
+            onClick={() => setActiveTab('MONTHLY')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap -mb-px ${activeTab === 'MONTHLY'
+              ? 'border-primary text-primary font-bold'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+              }`}
+          >
+            <BarChart3 className="w-4 h-4 text-sky-600" />
+            <span>Reporte & KPIs</span>
+          </button>
+        )}
       </div>
 
       {/* Tab 1: Control Diario */}
@@ -778,7 +788,7 @@ const StaffAttendancePage: React.FC = () => {
       )}
 
       {/* Tab 3: Reporte & KPIs */}
-      {activeTab === 'MONTHLY' && (
+      {activeTab === 'MONTHLY' && canSeeMonthlyReport && (
         <AttendanceMonthlyReport
           initialMonth={selectedMonth}
           initialClassroomId={selectedClassroomId}

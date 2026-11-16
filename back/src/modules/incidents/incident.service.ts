@@ -46,6 +46,14 @@ export class IncidentService {
       throw new AppError('Se requiere el ID de matrícula del estudiante.', 400);
     }
 
+    // La matrícula enviada por el cliente debe pertenecer a este colegio
+    if (dto.enrollmentId) {
+      const owned = await prisma.enrollment.count({ where: { id: enrollmentId, schoolId } });
+      if (!owned) {
+        throw new AppError('No se encontró la matrícula del estudiante.', 404);
+      }
+    }
+
     const incident = await this.incidentRepository.create(schoolId, authorId, enrollmentId, dto);
 
     // Obtener los datos del estudiante y familiares para notificaciones

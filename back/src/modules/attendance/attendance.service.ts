@@ -240,8 +240,9 @@ export class AttendanceService {
         where: {
           id: { in: enrollmentIds },
           schoolId,
+          // `not` en SQL excluye los NULL: las aulas sin tutor también cuentan como ajenas
           classroom: {
-            tutorTeacherId: { not: userContext.userId },
+            OR: [{ tutorTeacherId: null }, { tutorTeacherId: { not: userContext.userId } }],
           },
         },
       });
