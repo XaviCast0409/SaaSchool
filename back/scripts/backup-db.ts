@@ -205,6 +205,13 @@ async function main() {
       console.log(`   ✔ R2: ${key}\n`);
     } catch (cloudError: any) {
       console.warn(`⚠️  No se pudo subir a la nube: ${cloudError.message}`);
+      if (/handshake failure|EPROTO/i.test(String(cloudError.message))) {
+        // R2 corta el TLS cuando el subdominio <account-id>.r2.cloudflarestorage.com no es de ninguna cuenta
+        console.warn(
+          '💡 Ese error significa que el ID de cuenta no existe. Revisa BACKUP_R2_ACCOUNT_ID: debe ser el "Account ID" de la\n' +
+            '   portada de R2 (el que aparece en la URL https://<account-id>.r2.cloudflarestorage.com), NO el Access Key ID.',
+        );
+      }
       console.log(`💡 La copia local sigue en: ${uploadPath}`);
       if (strict) process.exit(1);
     }
