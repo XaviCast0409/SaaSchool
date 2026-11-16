@@ -39,6 +39,25 @@ export const globalErrorHandler = (
     return;
   }
 
+  // Errores del lector de cuerpos de Express (body-parser): son errores del cliente, no del servidor
+  const httpError = error as Error & { type?: string; status?: number; statusCode?: number; expose?: boolean };
+  if (httpError.type === 'entity.parse.failed') {
+    response.status(400).json({ status: 'fail', message: 'El cuerpo de la petición no es un JSON válido.' } satisfies ErrorResponse);
+    return;
+  }
+  if (httpError.type === 'entity.too.large') {
+    response.status(413).json({ status: 'fail', message: 'La petición es demasiado grande.' } satisfies ErrorResponse);
+    return;
+  }
+  const clientStatus = httpError.status ?? httpError.statusCode;
+  if (!(error instanceof AppError) && typeof clientStatus === 'number' && clientStatus >= 400 && clientStatus < 500) {
+    response.status(clientStatus).json({
+      status: 'fail',
+      message: httpError.expose && error.message ? error.message : 'Petición inválida.',
+    } satisfies ErrorResponse);
+    return;
+  }
+
   // Errores operacionales de la aplicación (AppError)
   if (error instanceof AppError && error.isOperational) {
     response.status(error.statusCode).json({
@@ -55,7 +74,7 @@ export const globalErrorHandler = (
     if (error.code === 'LIMIT_FILE_SIZE') {
       response.status(413).json({
         status: 'fail',
-        message: 'El archivo supera el tamaño máximo permitido (8 MB). Elige un archivo más liviano o comprímelo.',
+        message: 'El archivo supera el tamaño máximo permitido. Elige un archivo más liviano o comprímelo.',
       } satisfies ErrorResponse);
       return;
     }
@@ -116,10 +135,15 @@ export const globalErrorHandler = (
         customMessage = 'Ese docente ya es tutor(a) de otra aula. Cada docente solo puede ser tutor de una aula.';
       } else if (targetFields.some((f) => f.includes('section'))) {
         customMessage = 'Ya existe un aula con ese nivel, grado, sección y turno.';
+      } else if (targetFields.some((f) => f.includes('operation'))) {
+        customMessage = 'Ese número de operación ya está registrado en otro cobro activo con el mismo medio de pago.';
       } else if (targetFields.some((f) => f.includes('cellphone') || f.includes('phone'))) {
         customMessage = 'El número de celular ingresado ya está asociado a otro usuario.';
-      } else if (targetFields.length > 0) {
-        customMessage = `El campo de valor único '${targetFields.join(', ')}' ya se encuentra registrado en el sistema.`;
+      }
+      // Sin coincidencia conocida: mensaje genérico (no se exponen nombres de tablas ni columnas)
+      if (customMessage === 'Ya existe un registro en la plataforma con ese valor único.' && targetFields.length > 0) {
+        console.warn('[P2002] Restricción única sin mensaje propio:', targetFields.join(', '));
+        customMessage = 'Ya existe un registro con esos datos.';
       }
 
       response.status(409).json({

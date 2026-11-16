@@ -758,6 +758,9 @@ model PaymentTransaction {
   paymentReport PaymentReport?
 
   @@unique([schoolId, receiptNumber])
+  // Índice único PARCIAL "PaymentTransaction_active_operation_key" (schoolId, paymentMethod, operationNumber)
+  // para cobros activos no en efectivo: vive en la migración 20261223000000_operacion_unica (Prisma no
+  // soporta índices parciales). Si `prisma migrate dev` propone borrarlo, NO aceptes ese cambio.
   @@index([schoolId, paymentDate])
   @@index([schoolId, status, paymentDate])
   @@index([cashSessionId])
