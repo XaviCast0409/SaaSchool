@@ -40,6 +40,8 @@ export const useClassroomSchedule = (classroomId: string | null) =>
     queryKey: [...KEY, 'classroom', classroomId],
     enabled: Boolean(classroomId),
     queryFn: async () => (await api.get<{ data: ClassroomSchedule }>(`/schedule/classroom/${classroomId}`)).data.data,
+    // Alimenta un formulario editable: no se recarga sola para no pisar lo que se está escribiendo
+    refetchOnWindowFocus: false,
   });
 
 export const useSaveClassroomSchedule = (classroomId: string | null) => {

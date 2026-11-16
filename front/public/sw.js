@@ -95,9 +95,25 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title, options)
+    Promise.all([
+      self.registration.showNotification(data.title, options),
+      notifyOpenTabs(data),
+    ])
   );
 });
+
+// Avisa a las pestañas abiertas de la app para que actualicen la campana y lo que se ve en pantalla
+// sin tener que refrescar (lo recibe front/src/lib/pushUpdates.ts).
+function notifyOpenTabs(data) {
+  return self.clients
+    .matchAll({ type: 'window', includeUncontrolled: true })
+    .then((clientList) => {
+      for (const client of clientList) {
+        client.postMessage({ type: 'PUSH_RECEIVED', notificationType: data.type || 'GENERAL' });
+      }
+    })
+    .catch(() => undefined);
+}
 
 // Evento NOTIFICATIONCLICK: Al tocar la notificación en el celular abre la app
 self.addEventListener('notificationclick', (event) => {

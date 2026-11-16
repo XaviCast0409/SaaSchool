@@ -297,6 +297,8 @@ export const useTutorReport = (classroomId: string | null, periodNumber: number 
     queryKey: ['academic', 'tutor-report', classroomId, periodNumber],
     queryFn: () => get<TutorReport>('/academic/tutor-report', { classroomId, periodNumber }),
     enabled: !!classroomId && !!periodNumber,
+    // Alimenta un formulario editable: no se recarga sola para no pisar lo que se está escribiendo
+    refetchOnWindowFocus: false,
   });
 
 export const useSaveTutorReport = () => {

@@ -53,6 +53,8 @@ export const usePaymentInstructions = () =>
   useQuery({
     queryKey: [...KEY, 'instructions'],
     queryFn: async () => (await api.get<{ data: PaymentInstructions }>('/payment-reports/instructions')).data.data,
+    // Alimenta un formulario editable: no se recarga sola para no pisar lo que se está escribiendo
+    refetchOnWindowFocus: false,
   });
 
 export const useSavePaymentInstructions = () => {
