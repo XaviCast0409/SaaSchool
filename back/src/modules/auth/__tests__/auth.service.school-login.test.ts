@@ -8,7 +8,7 @@ vi.mock('../../../utils/hash.util', () => ({
 }));
 vi.mock('../../../utils/jwt.util', () => ({ signToken: vi.fn(() => 'token') }));
 
-import { AuthService } from '../auth.service';
+import { AuthService, INVALID_CREDENTIALS_MESSAGE } from '../auth.service';
 import type { AuthRepository } from '../auth.repository';
 
 const user = (schoolId: string) => ({
@@ -127,7 +127,7 @@ describe('login desde la página del colegio', () => {
 
     it('con contraseña incorrecta no revela en qué colegios existe la cuenta', async () => {
       repo.findUsersByIdentifier.mockResolvedValue([user('s1'), user('s2')]);
-      await expect(service.login({ email: 'padre@x.pe', password: 'mala' })).rejects.toMatchObject({ statusCode: 401, message: 'Credenciales inválidas' });
+      await expect(service.login({ email: 'padre@x.pe', password: 'mala' })).rejects.toMatchObject({ statusCode: 401, message: INVALID_CREDENTIALS_MESSAGE });
       expect(repo.findSchoolsSummary).not.toHaveBeenCalled();
       expect(repo.registerFailedUserLogin).toHaveBeenCalledTimes(2);
     });
@@ -145,6 +145,34 @@ describe('login desde la página del colegio', () => {
       repo.findUsersByIdentifier.mockResolvedValue([user('s1')]);
       await service.login({ email: '12345678', password: 'Clave123', accountType: 'USER' }).catch(() => undefined);
       expect(repo.findStudentsByIdentifier).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('sin enumeración de cuentas', () => {
+    it('cuenta desactivada con contraseña incorrecta: mismo 401 que una cuenta inexistente', async () => {
+      repo.findUsersByIdentifier.mockResolvedValue([{ ...user('s1'), isActive: false }]);
+      await expect(service.login({ email: 'padre@x.pe', password: 'mala' })).rejects.toMatchObject({ statusCode: 401, message: INVALID_CREDENTIALS_MESSAGE });
+    });
+
+    it('cuenta desactivada con contraseña correcta: recién ahí se explica (403)', async () => {
+      repo.findUsersByIdentifier.mockResolvedValue([{ ...user('s1'), isActive: false }]);
+      await expect(service.login({ email: 'padre@x.pe', password: 'Clave123' })).rejects.toMatchObject({ statusCode: 403 });
+    });
+
+    it('cuenta bloqueada: 401 con el mensaje genérico (no 423) y sin evaluar la contraseña real', async () => {
+      repo.findUsersByIdentifier.mockResolvedValue([{ ...user('s1'), lockedUntil: new Date(Date.now() + 600_000) }]);
+      await expect(service.login({ email: 'padre@x.pe', password: 'Clave123' })).rejects.toMatchObject({ statusCode: 401, message: INVALID_CREDENTIALS_MESSAGE });
+      expect(repo.resetUserLoginCounters).not.toHaveBeenCalled();
+    });
+
+    it('colegio suspendido con contraseña incorrecta: no revela la suspensión', async () => {
+      repo.findUsersByIdentifier.mockResolvedValue([user('s-suspended')]);
+      repo.findSchoolById.mockResolvedValue({ id: 's-suspended', isActive: false });
+      await expect(service.login({ email: 'padre@x.pe', password: 'mala' })).rejects.toMatchObject({ statusCode: 401 });
+    });
+
+    it('usuario inexistente: mismo 401 y mensaje', async () => {
+      await expect(service.login({ email: 'nadie@x.pe', password: 'x' })).rejects.toMatchObject({ statusCode: 401, message: INVALID_CREDENTIALS_MESSAGE });
     });
   });
 });
