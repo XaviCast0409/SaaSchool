@@ -144,8 +144,9 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
         onError: async (err: any) => {
           const isNetworkError = !err.response || !navigator.onLine;
 
-          if (isNetworkError && schoolId) {
+          if (isNetworkError && schoolId && user?.id) {
             await enqueueScan({
+              ownerId: user.id,
               schoolId,
               code: trimmed,
               scannedAt,

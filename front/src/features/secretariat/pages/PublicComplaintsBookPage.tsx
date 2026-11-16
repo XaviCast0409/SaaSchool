@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { TurnstileWidget, TURNSTILE_SITE_KEY } from '@/components/security/TurnstileWidget';
 import { useParams } from 'react-router-dom';
 import { BookOpenText, CheckCircle2, Loader2, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -33,6 +34,8 @@ export const PublicComplaintsBookPage: React.FC = () => {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ code: string; dueDate: string } | null>(null);
+  const [captcha, setCaptcha] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
   const set = (k: keyof typeof empty) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const submit = async (e: React.FormEvent) => {
@@ -41,10 +44,11 @@ export const PublicComplaintsBookPage: React.FC = () => {
     setError(null);
     setSending(true);
     try {
-      setResult(await submitComplaint(schoolId, form));
+      setResult(await submitComplaint(schoolId, { ...form, turnstileToken: captcha }));
       window.scrollTo({ top: 0 });
     } catch (err) {
       setError((err as Error).message);
+      setCaptchaReset((n) => n + 1);
     } finally {
       setSending(false);
     }
@@ -170,7 +174,8 @@ export const PublicComplaintsBookPage: React.FC = () => {
             <p>* La formulación del reclamo no impide acudir a otras vías de solución de controversias ni es requisito previo para interponer una denuncia ante el Indecopi.</p>
             <p>* El proveedor deberá dar respuesta al reclamo en un plazo no mayor a quince (15) días hábiles.</p>
             {error && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">{error}</p>}
-            <Button type="submit" disabled={sending} className="w-full sm:w-auto">
+            <TurnstileWidget onToken={setCaptcha} resetKey={captchaReset} />
+            <Button type="submit" disabled={sending || (Boolean(TURNSTILE_SITE_KEY) && !captcha)} className="w-full sm:w-auto">
               {sending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Registrar hoja de reclamación
             </Button>

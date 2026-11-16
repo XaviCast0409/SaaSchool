@@ -67,6 +67,16 @@ services:
         sync: false
       - key: SENTRY_DSN
         sync: false
+      # Verificación en dos pasos del SUPER_ADMIN: pásalo a "true" después de enrolar las cuentas
+      - key: SUPERADMIN_REQUIRE_MFA
+        value: "false"
+      - key: MFA_ENCRYPTION_KEY
+        generateValue: true
+      - key: TURNSTILE_SECRET_KEY
+        sync: false
+      # Tope de correos de formularios públicos por colegio: sin definir mientras haya un solo colegio
+      - key: PUBLIC_FORM_DAILY_LIMIT_PER_SCHOOL
+        sync: false
 
 databases:
   - name: saaschool-db
@@ -74,4 +84,4 @@ databases:
     region: oregon
     databaseName: saaschool
     user: saaschool
-    postgresMajorVersion: "16"
+    postgresMajorVersion: "18" # versión real del servidor en Render (18.6)

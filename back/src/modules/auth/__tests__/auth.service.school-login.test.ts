@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../../../config/prisma', () => ({ prisma: {} }));
-vi.mock('../../../core/security/principal-status', () => ({ invalidatePrincipalCache: vi.fn() }));
+vi.mock('../../../core/security/principal-status', () => ({ invalidatePrincipalCache: vi.fn(), isStudentWithdrawn: vi.fn(async () => false) }));
 vi.mock('../../../utils/hash.util', () => ({
   hashPassword: vi.fn(async (p: string) => `hash:${p}`),
   comparePassword: vi.fn(async (p: string, h: string) => h === `hash:${p}`),

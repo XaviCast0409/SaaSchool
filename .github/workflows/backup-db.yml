@@ -1,22 +1,66 @@
-name: Respaldo semanal de base de datos
+name: Respaldo diario de base de datos
+
+# Respaldo diario, probado (se restaura en una base vacía antes de subirlo), cifrado con clave pública
+# y guardado en un bucket de R2 exclusivo para respaldos.
+#
+# Secretos del repositorio:
+#   DATABASE_URL_EXTERNAL         URL externa de la base de producción (Render)
+#   BACKUP_PUBLIC_KEY             Clave pública PEM (ver back/scripts/backup-crypto.ts). La privada NUNCA va a GitHub.
+#   BACKUP_R2_ACCOUNT_ID, BACKUP_R2_ACCESS_KEY_ID, BACKUP_R2_SECRET_ACCESS_KEY, BACKUP_R2_BUCKET
+#                                 Bucket exclusivo con un token de solo escritura (Object Write).
+#                                 Mientras no existan se usan los R2_* de la app (con advertencia).
+#
+# Ya NO se publica el respaldo como artefacto de GitHub: cualquiera con acceso de lectura al
+# repositorio podía descargarlo.
 
 on:
   schedule:
-    - cron: '0 8 * * 0' # Domingos 03:00 hora de Lima (UTC-5)
+    - cron: '0 8 * * *' # Todos los días a las 03:00 hora de Lima (UTC-5)
   workflow_dispatch:
+
+concurrency:
+  group: respaldo-db
+  cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
   backup:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: back
+    services:
+      # Base vacía y desechable para probar que el respaldo se puede restaurar
+      restore-test:
+        image: postgres:18
+        env:
+          POSTGRES_USER: restore
+          POSTGRES_PASSWORD: restore
+          POSTGRES_DB: restore
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U restore"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
-      - name: Instalar cliente PostgreSQL 16
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client-16
+      # Debe ser igual o mayor que la versión del servidor en Render (18.x); pg_dump se niega a respaldar versiones nuevas.
+      # Ubuntu no trae la 18: se agrega el repositorio oficial de PostgreSQL (PGDG) con su script.
+      - name: Instalar cliente PostgreSQL 18
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-18
+          # Usar los binarios de la 18 aunque el runner traiga otra versión preinstalada
+          echo "/usr/lib/postgresql/18/bin" >> "$GITHUB_PATH"
+          /usr/lib/postgresql/18/bin/pg_dump --version
 
       - uses: pnpm/action-setup@v4
         with:
@@ -31,10 +75,17 @@ jobs:
       - name: Instalar dependencias
         run: pnpm install --prod=false
 
-      - name: Ejecutar respaldo
+      - name: Respaldar, probar restauración, cifrar y subir
         run: pnpm run db:backup
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_EXTERNAL }}
+          RESTORE_TEST_URL: postgresql://restore:restore@localhost:5432/restore
+          BACKUP_PUBLIC_KEY: ${{ secrets.BACKUP_PUBLIC_KEY }}
+          BACKUP_R2_ACCOUNT_ID: ${{ secrets.BACKUP_R2_ACCOUNT_ID }}
+          BACKUP_R2_ACCESS_KEY_ID: ${{ secrets.BACKUP_R2_ACCESS_KEY_ID }}
+          BACKUP_R2_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_R2_SECRET_ACCESS_KEY }}
+          BACKUP_R2_BUCKET: ${{ secrets.BACKUP_R2_BUCKET }}
+          # Respaldo provisional mientras no exista el bucket exclusivo
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
@@ -42,9 +93,6 @@ jobs:
           BACKUP_STRICT: '1'
           BACKUP_RETENTION_DAYS: '90'
 
-      - name: Copia secundaria como artefacto (30 días)
-        uses: actions/upload-artifact@v4
-        with:
-          name: backup-${{ github.run_id }}
-          path: back/backups/*.dump
-          retention-days: 30
+      - name: Borrar copias locales del runner
+        if: always()
+        run: rm -rf backups

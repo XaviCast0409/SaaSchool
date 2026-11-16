@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { useAuthStore } from '@/store/useAuthStore';
 import {
   listQueuedScans,
   removeQueuedScan,
@@ -23,23 +24,24 @@ export function useOfflineScanQueue(schoolId: string | undefined) {
   const [items, setItems] = useState<QueuedScan[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const isSyncingRef = useRef(false);
+  const ownerId = useAuthStore((s) => s.user?.id);
 
   const refresh = useCallback(async () => {
-    if (!schoolId) {
+    if (!schoolId || !ownerId) {
       setItems([]);
       return;
     }
-    const all = await listQueuedScans(schoolId);
+    const all = await listQueuedScans(ownerId, schoolId);
     setItems(all);
-  }, [schoolId]);
+  }, [ownerId, schoolId]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
   const syncNow = useCallback(async () => {
-    if (!schoolId || isSyncingRef.current || !navigator.onLine) return;
-    const all = await listQueuedScans(schoolId);
+    if (!schoolId || !ownerId || isSyncingRef.current || !navigator.onLine) return;
+    const all = await listQueuedScans(ownerId, schoolId);
     const toProcess = all.filter((s) => !s.rejected).slice(0, 200);
     if (toProcess.length === 0) return;
 
@@ -97,7 +99,7 @@ export function useOfflineScanQueue(schoolId: string | undefined) {
       setIsSyncing(false);
       await refresh();
     }
-  }, [schoolId, refresh, queryClient]);
+  }, [schoolId, ownerId, refresh, queryClient]);
 
   const discardRejected = useCallback(
     async (id: string) => {

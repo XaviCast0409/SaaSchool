@@ -106,6 +106,8 @@ export const ACTION_CATALOG: Record<string, { label: string; verb: string; categ
   STATEMENT_VIEWED: { label: 'Estado de cuenta', verb: 'consultó un estado de cuenta', category: 'PAGOS' },
   USER_FINANCE_ROLE_CHANGED: { label: 'Rol en finanzas', verb: 'cambió el rol en caja y tesorería de un usuario', category: 'PAGOS' },
   // Usuarios
+  SUPPORT_READ: { label: 'Consulta de soporte KIPUX', verb: 'consultó datos del colegio (soporte KIPUX)', category: 'USUARIOS' },
+  SUPPORT_WRITE: { label: 'Cambio de soporte KIPUX', verb: 'hizo un cambio en el colegio (soporte KIPUX)', category: 'USUARIOS' },
   USER_CREATED: { label: 'Nuevo usuario', verb: 'creó un usuario', category: 'USUARIOS' },
   USER_UPDATED: { label: 'Edición de usuario', verb: 'editó un usuario', category: 'USUARIOS' },
   USER_DEACTIVATED: { label: 'Usuario desactivado', verb: 'desactivó un usuario', category: 'USUARIOS' },
@@ -336,6 +338,11 @@ export async function presentAuditLogs(schoolId: string, logs: AuditLog[]): Prom
         push('AD desde', a.AD ?? obj(a.thresholds).AD);
         push('A desde', a.A ?? obj(a.thresholds).A);
         push('B desde', a.B ?? obj(a.thresholds).B);
+        break;
+      case 'SUPPORT_READ':
+      case 'SUPPORT_WRITE':
+        push('Operación', a.method);
+        push('Ruta', a.path);
         break;
       case 'PERIOD_STATUS':
         target = `${periodLabel(a.periodNumber)}${a.classroomId ? ` de ${roomName(a.classroomId)}` : ' (todo el colegio)'}`;

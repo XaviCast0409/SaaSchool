@@ -8,8 +8,39 @@ import {
   PLAN_BLOCKED_MESSAGE,
   PLAN_READ_ONLY_MESSAGE,
 } from '../../modules/schools/plan.rules';
+import { recordAudit } from '../../utils/audit.util';
 
 const READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+/** Evita llenar la bitácora con la misma lectura repetida (p. ej. una pantalla que refresca). */
+const SUPPORT_READ_DEDUPE_MS = 10 * 60_000;
+const recentSupportReads = new Map<string, number>();
+
+/**
+ * Deja constancia en la bitácora del colegio de cada vez que soporte (SUPER_ADMIN) entra a sus datos:
+ * toda escritura y cada lectura distinta (deduplicada por ruta durante 10 min).
+ * Así el colegio puede ver qué consultó KIPUX y cuándo.
+ */
+const recordSupportAccess = (request: Request): void => {
+  const method = request.method?.toUpperCase() ?? 'GET';
+  const path = (request.originalUrl ?? request.url ?? '').split('?')[0].slice(0, 300);
+  const isRead = READ_METHODS.has(method);
+  if (isRead) {
+    const key = `${request.user!.userId}|${request.user!.schoolId}|${path}`;
+    const now = Date.now();
+    const last = recentSupportReads.get(key);
+    if (last && now - last < SUPPORT_READ_DEDUPE_MS) return;
+    recentSupportReads.set(key, now);
+    if (recentSupportReads.size > 5_000) {
+      for (const [k, t] of recentSupportReads) if (now - t >= SUPPORT_READ_DEDUPE_MS) recentSupportReads.delete(k);
+    }
+  }
+  recordAudit(request, {
+    action: isRead ? 'SUPPORT_READ' : 'SUPPORT_WRITE',
+    entity: 'SupportAccess',
+    after: { method, path },
+  });
+};
 
 /**
  * Middleware de Tenant.
@@ -56,6 +87,14 @@ export const tenantMiddleware = async (
       'El acceso de tu colegio está suspendido. Comunícate con la dirección o con soporte de KIPUX.',
       403,
     );
+  }
+
+  if (request.user.role === 'SUPER_ADMIN' && impersonatedSchoolId) {
+    try {
+      recordSupportAccess(request);
+    } catch (error) {
+      console.error('[Audit] No se pudo registrar el acceso de soporte', error);
+    }
   }
 
   if (request.user.role !== 'SUPER_ADMIN') {

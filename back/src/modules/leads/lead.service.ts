@@ -96,7 +96,7 @@ export class LeadService {
     const bodyHtml = lines.map((line) => `<p>${escapeHtml(line)}</p>`).join('');
     for (const admin of admins) {
       if (!admin.email) continue;
-      enqueueEmail({
+      await enqueueEmail({
         to: admin.email,
         subject,
         text: lines.join('\n\n'),

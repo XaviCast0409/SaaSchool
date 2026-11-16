@@ -158,14 +158,14 @@ secretariatRouter.patch('/admissions/:id', staffOnly, async (req: Request, res: 
     const name = await schoolName(req.user!.schoolId);
     const student = `${app.studentFirstNames} ${app.studentLastNamePaternal}`;
     if (dto.status === 'ADMITTED') {
-      emailExternal(app.guardianEmail, name, 'Resultado de admisión', '¡Felicitaciones!', [
+      emailExternal(req.user!.schoolId, app.guardianEmail, name, 'Resultado de admisión', '¡Felicitaciones!', [
         `Hola, ${app.guardianFirstName}. ${student} fue admitido(a) para ${gradeLabel(app.educationLevel, app.grade)} ${app.targetYear}.`,
         'La Secretaría se comunicará con usted para completar la matrícula.',
-      ]);
+      ], 'GENERAL');
     } else if (dto.status === 'INTERVIEW' && updated.interviewAt) {
-      emailExternal(app.guardianEmail, name, 'Entrevista de admisión', 'Entrevista programada', [
+      emailExternal(req.user!.schoolId, app.guardianEmail, name, 'Entrevista de admisión', 'Entrevista programada', [
         `Hola, ${app.guardianFirstName}. Le esperamos para la entrevista de admisión de ${student} el ${updated.interviewAt.toLocaleString('es-PE', { timeZone: 'America/Lima', dateStyle: 'full', timeStyle: 'short' })}.`,
-      ]);
+      ], 'GENERAL');
     }
   }
   res.status(200).json({ status: 'success', data: updated });
@@ -417,11 +417,11 @@ secretariatRouter.post('/complaints/:id/respond', authorizeRoles('SUPER_ADMIN', 
   });
   recordAudit(req, { action: 'COMPLAINT_ANSWERED', entity: 'Complaint', entityId: id, after: { codigo: c.code } });
   const name = await schoolName(req.user!.schoolId);
-  emailExternal(c.consumerEmail, name, `Respuesta a su ${c.kind === 'RECLAMO' ? 'reclamo' : 'queja'} ${c.code}`, `Respuesta a ${c.code}`, [
+  emailExternal(req.user!.schoolId, c.consumerEmail, name, `Respuesta a su ${c.kind === 'RECLAMO' ? 'reclamo' : 'queja'} ${c.code}`, `Respuesta a ${c.code}`, [
     `Estimado(a) ${c.consumerName}:`,
     response,
     `Atentamente, ${name}.`,
-  ]);
+  ], 'GENERAL');
   res.status(200).json({ status: 'success', data: updated });
 });
 

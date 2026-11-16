@@ -123,7 +123,32 @@ const isSchoolDay = (d: Date) => {
 // ============================================================================
 // MAIN
 // ============================================================================
+/**
+ * El seed BORRA TODA la base (TRUNCATE de todas las tablas) y deja contraseñas conocidas.
+ * Solo corre contra una base local; para otra cualquiera exige ALLOW_DESTRUCTIVE_SEED=1,
+ * y en producción no corre nunca.
+ */
+function assertSafeToSeed(): void {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Seed bloqueado: NODE_ENV=production. Este script borra toda la base de datos.');
+  }
+  let host = '';
+  try {
+    host = new URL(process.env.DATABASE_URL ?? '').hostname;
+  } catch {
+    throw new Error('Seed bloqueado: DATABASE_URL no es una URL válida.');
+  }
+  const isLocal = ['localhost', '127.0.0.1', '[::1]', 'db', 'postgres'].includes(host);
+  if (!isLocal && process.env.ALLOW_DESTRUCTIVE_SEED !== '1') {
+    throw new Error(
+      `Seed bloqueado: la base "${host}" no es local. Si de verdad quieres BORRARLA y llenarla con datos de prueba, ` +
+        'vuelve a ejecutar con ALLOW_DESTRUCTIVE_SEED=1.',
+    );
+  }
+}
+
 async function main(): Promise<void> {
+  assertSafeToSeed();
   console.log('\n🌱 SEED DE PRUEBA KIPUX — Colegio PRO + Super Admin\n');
 
   // --------------------------------------------------------------------------

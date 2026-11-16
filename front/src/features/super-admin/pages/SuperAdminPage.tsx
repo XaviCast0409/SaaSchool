@@ -36,6 +36,7 @@ import { EditSchoolPlanModal } from '../components/EditSchoolPlanModal';
 import { EditSchoolInfoModal } from '../components/EditSchoolInfoModal';
 import { ResetAdminPasswordModal } from '../components/ResetAdminPasswordModal';
 import { SubscriptionPaymentsModal } from '../components/SubscriptionPaymentsModal';
+import { MfaSetupCard } from '../components/MfaSetupCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -204,6 +205,7 @@ export const SuperAdminPage: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-8">
+      <MfaSetupCard />
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
         <div>

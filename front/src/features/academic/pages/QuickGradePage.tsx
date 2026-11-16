@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/axios';
 import { useGradebook } from '../api';
+import { useAuthStore } from '@/store/useAuthStore';
 import { cacheGradebook, cachedGradebook, cellKey, clearSent, pendingFor, queueGrade, type PendingGrade } from '../offline/gradeQueue';
 import { classroomLabel, type GradebookData, type ResultLetter } from '../types';
 
@@ -31,6 +32,8 @@ export const QuickGradePage: React.FC = () => {
   const [params] = useSearchParams();
   const period = Number(params.get('period') ?? 1) || 1;
   const qc = useQueryClient();
+  // Dueño de las notas guardadas sin señal: otro usuario del mismo equipo no las ve ni las sincroniza
+  const ownerId = useAuthStore((s) => s.user?.id ?? '');
   const { data: live, isLoading, error } = useGradebook(assignmentId, period);
   const [offlineData, setOfflineData] = useState<{ savedAt: string; data: GradebookData } | null>(null);
   const data = live ?? offlineData?.data ?? null;
@@ -46,11 +49,11 @@ export const QuickGradePage: React.FC = () => {
 
   // Guardar la libreta en el teléfono para abrirla sin señal
   useEffect(() => {
-    if (live) void cacheGradebook(live);
-  }, [live]);
+    if (live && ownerId) void cacheGradebook(ownerId, live);
+  }, [live, ownerId]);
   useEffect(() => {
-    if (!live && assignmentId && (error || !navigator.onLine)) void cachedGradebook(assignmentId, period).then((c) => c && setOfflineData(c));
-  }, [live, error, assignmentId, period]);
+    if (!live && ownerId && assignmentId && (error || !navigator.onLine)) void cachedGradebook(ownerId, assignmentId, period).then((c) => c && setOfflineData(c));
+  }, [live, error, ownerId, assignmentId, period]);
 
   useEffect(() => {
     if (data && (!competenceId || !data.competences.some((c) => c.id === competenceId))) setCompetenceId(data.competences[0]?.id ?? null);
@@ -60,12 +63,12 @@ export const QuickGradePage: React.FC = () => {
   }, [data?.assignment.id, data?.periodNumber]);
 
   const refreshPending = useCallback(async () => {
-    if (assignmentId) setPending(await pendingFor(assignmentId, period));
-  }, [assignmentId, period]);
+    if (assignmentId && ownerId) setPending(await pendingFor(ownerId, assignmentId, period));
+  }, [ownerId, assignmentId, period]);
 
   const sync = useCallback(async () => {
-    if (!assignmentId || !navigator.onLine) return;
-    const items = await pendingFor(assignmentId, period);
+    if (!assignmentId || !ownerId || !navigator.onLine) return;
+    const items = await pendingFor(ownerId, assignmentId, period);
     if (!items.length) return;
     setSyncing(true);
     try {
@@ -125,7 +128,8 @@ export const QuickGradePage: React.FC = () => {
     if (!data || !competenceId || !criterionId) return;
     const base = { assignmentId: data.assignment.id, periodNumber: period, enrollmentId, competenceId, criterionId };
     setLocal((prev) => ({ ...prev, [cellKey(base)]: { numericScore, literalScore } }));
-    await queueGrade({ ...base, numericScore, literalScore });
+    if (!ownerId) return;
+    await queueGrade({ ...base, ownerId, numericScore, literalScore });
     void refreshPending();
   };
 
