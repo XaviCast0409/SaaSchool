@@ -311,6 +311,11 @@ model User {
   passwordChangedAt   DateTime?
   failedLoginAttempts Int          @default(0)
   lockedUntil         DateTime?
+  /// Verificación en dos pasos (TOTP). Secreto cifrado con AES-256-GCM; solo se exige si mfaEnabledAt tiene valor.
+  mfaSecret           String?
+  mfaEnabledAt        DateTime?
+  /// Último paso TOTP aceptado: impide reutilizar el mismo código.
+  mfaLastStep         Int?
   avatarUrl           String? // Foto de perfil pública (/api/public/media/avatars/<usuario>/<archivo>)
   lastSeenAt          DateTime? // Última actividad en la plataforma (se actualiza como máximo cada 15 min)
   createdAt           DateTime     @default(now())
@@ -2284,4 +2289,28 @@ model SalesLead {
   updatedAt    DateTime        @updatedAt
 
   @@index([status, createdAt])
+}
+
+/// Cola persistente de correos: sobrevive a reinicios y despliegues, y sirve de base para el tope diario.
+model EmailOutbox {
+  id        String    @id @default(uuid())
+  /// Colegio que origina el correo (null: correos de la plataforma, p. ej. leads comerciales)
+  schoolId  String?
+  /// GENERAL | PUBLIC_FORM (correos a terceros desde formularios públicos, con tope propio por colegio)
+  category  String    @default("GENERAL")
+  to        String
+  subject   String
+  text      String
+  html      String?
+  /// PENDING | SENDING | SENT | FAILED
+  status    String    @default("PENDING")
+  attempts  Int       @default(0)
+  lastError String?
+  createdAt DateTime  @default(now())
+  sentAt    DateTime?
+
+  @@index([status, createdAt])
+  @@index([createdAt])
+  @@index([schoolId, category, createdAt])
+  @@index([to, createdAt])
 }

@@ -7,7 +7,14 @@ import { hashPassword, comparePassword } from '../../utils/hash.util';
 import { signToken } from '../../utils/jwt.util';
 import { sendEmail } from '../../utils/notification.util';
 import { PASSWORD_POLICY_REGEX, PASSWORD_POLICY_MESSAGE } from '../../utils/password.util';
-import { invalidatePrincipalCache } from '../../core/security/principal-status';
+import { invalidatePrincipalCache, isStudentWithdrawn } from '../../core/security/principal-status';
+import {
+  buildOtpAuthUri,
+  decryptTotpSecret,
+  encryptTotpSecret,
+  generateTotpSecret,
+  verifyTotp,
+} from '../../utils/totp.util';
 import type { AuthRepository } from './auth.repository';
 import type { LoginDto, ChangePasswordDto, ForgotPasswordDto, ResetPasswordDto } from './auth.schema';
 import type { User, Student } from '@prisma/client';
@@ -31,6 +38,8 @@ interface AuthResponse {
     mustChangePassword?: boolean;
     studentId?: string;
     avatarUrl?: string | null;
+    /** Solo SUPER_ADMIN: si ya tiene la verificación en dos pasos activa. */
+    mfaEnabled?: boolean;
   };
 }
 
@@ -74,7 +83,7 @@ export class AuthService {
       throw new AppError('Este documento está asociado a más de una cuenta. Ingresa con tu correo electrónico.', 409);
     }
     if (users[0]) {
-      return this.loginUser(users[0], loginDto.password);
+      return this.loginUser(users[0], loginDto.password, loginDto.otp);
     }
 
     const students = await this.authRepository.findStudentsByIdentifier(identifier, schoolId);
@@ -91,7 +100,7 @@ export class AuthService {
     return this.loginStudent(students[0], loginDto.password);
   }
 
-  private async loginUser(user: User, password: string): Promise<AuthResponse> {
+  private async loginUser(user: User, password: string, otp?: string): Promise<AuthResponse> {
     if (!user.isActive) {
       throw new AppError('Tu cuenta está desactivada. Contacta al administrador.', 403);
     }
@@ -111,6 +120,9 @@ export class AuthService {
       await this.authRepository.registerFailedUserLogin(user.id, MAX_FAILED_ATTEMPTS, LOCK_MINUTES);
       throw new AppError('Credenciales inválidas', 401);
     }
+    if (user.role === 'SUPER_ADMIN') {
+      await this.assertSuperAdminMfa(user, otp);
+    }
     if (user.failedLoginAttempts > 0 || user.lockedUntil) {
       await this.authRepository.resetUserLoginCounters(user.id);
     }
@@ -129,8 +141,69 @@ export class AuthService {
         documentId: user.documentId,
         mustChangePassword: user.mustChangePassword,
         avatarUrl: user.avatarUrl,
+        ...(user.role === 'SUPER_ADMIN' && { mfaEnabled: Boolean(user.mfaEnabledAt) }),
       },
     };
+  }
+
+  /**
+   * Segundo factor del SUPER_ADMIN (tiene acceso a todos los colegios).
+   * Se pide después de validar la contraseña, para no revelar a terceros que la cuenta usa MFA.
+   */
+  private async assertSuperAdminMfa(user: User, otp?: string): Promise<void> {
+    if (!user.mfaEnabledAt || !user.mfaSecret) {
+      if (env.SUPERADMIN_REQUIRE_MFA === 'true') {
+        throw new AppError(
+          'Esta cuenta de soporte no tiene la verificación en dos pasos configurada. Restablécela con el script superadmin:create --reset-mfa.',
+          403,
+        );
+      }
+      return;
+    }
+    if (!otp) {
+      throw new AppError('Ingresa el código de 6 dígitos de tu app de autenticación.', 401, true, 'MFA_REQUIRED');
+    }
+    const step = verifyTotp(decryptTotpSecret(user.mfaSecret), otp, user.mfaLastStep);
+    if (step === null) {
+      await this.authRepository.registerFailedUserLogin(user.id, MAX_FAILED_ATTEMPTS, LOCK_MINUTES);
+      throw new AppError('El código de verificación no es válido o ya fue usado.', 401, true, 'MFA_INVALID');
+    }
+    // Compare-and-set: dos peticiones simultáneas con el mismo código no pueden pasar las dos
+    const consumed = await prisma.user.updateMany({
+      where: { id: user.id, OR: [{ mfaLastStep: null }, { mfaLastStep: { lt: step } }] },
+      data: { mfaLastStep: step },
+    });
+    if (consumed.count === 0) {
+      throw new AppError('El código de verificación no es válido o ya fue usado.', 401, true, 'MFA_INVALID');
+    }
+  }
+
+  /** Genera un secreto TOTP nuevo (pendiente de confirmar) para el SUPER_ADMIN autenticado. */
+  async startMfaSetup(principal: AuthenticatedUser): Promise<{ secret: string; otpauthUri: string }> {
+    if (principal.role !== 'SUPER_ADMIN') throw new AppError('Solo disponible para cuentas de soporte.', 403);
+    const user = await this.authRepository.findUserById(principal.userId);
+    if (!user) throw new AppError('Usuario no encontrado', 404);
+    if (user.mfaEnabledAt) {
+      throw new AppError('La verificación en dos pasos ya está activa. Para cambiar de dispositivo, restablécela con el script.', 409);
+    }
+    const secret = generateTotpSecret();
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { mfaSecret: encryptTotpSecret(secret), mfaEnabledAt: null, mfaLastStep: null },
+    });
+    return { secret, otpauthUri: buildOtpAuthUri(secret, user.email ?? 'soporte') };
+  }
+
+  /** Confirma el secreto pendiente con un código válido y activa el MFA. */
+  async confirmMfaSetup(principal: AuthenticatedUser, code: string): Promise<{ message: string }> {
+    if (principal.role !== 'SUPER_ADMIN') throw new AppError('Solo disponible para cuentas de soporte.', 403);
+    const user = await this.authRepository.findUserById(principal.userId);
+    if (!user?.mfaSecret) throw new AppError('Primero genera el código QR.', 400);
+    if (user.mfaEnabledAt) throw new AppError('La verificación en dos pasos ya está activa.', 409);
+    const step = verifyTotp(decryptTotpSecret(user.mfaSecret), code);
+    if (step === null) throw new AppError('El código no coincide. Revisa la hora de tu teléfono e inténtalo otra vez.', 400);
+    await prisma.user.update({ where: { id: user.id }, data: { mfaEnabledAt: new Date(), mfaLastStep: step } });
+    return { message: 'Verificación en dos pasos activada. Desde ahora se pedirá el código al ingresar.' };
   }
 
   private async loginStudent(student: Student, password: string): Promise<AuthResponse> {
@@ -157,6 +230,10 @@ export class AuthService {
     }
     if (student.failedLoginAttempts > 0 || student.lockedUntil) {
       await this.authRepository.resetStudentLoginCounters(student.id);
+    }
+    // Retirado o trasladado: se valida después de la contraseña para no revelar el estado a terceros
+    if (await isStudentWithdrawn(student.id)) {
+      throw new AppError('Tu matrícula figura como retirada o trasladada, por eso tu acceso fue cerrado. Comunícate con Secretaría.', 403);
     }
 
     const login = student.studentCode || student.documentId;

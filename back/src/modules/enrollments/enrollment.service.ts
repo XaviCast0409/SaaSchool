@@ -1,5 +1,6 @@
 import { AppError } from '../../core/errors/app-error';
 import { prisma } from '../../config/prisma';
+import { invalidatePrincipalCache } from '../../core/security/principal-status';
 import { feeScheduleService, type ScheduleResult } from '../payments/fee-schedule.service';
 import type { EnrollmentRepository } from './enrollment.repository';
 import type { CreateEnrollmentDto, UpdateEnrollmentDto } from './enrollment.schema';
@@ -48,13 +49,16 @@ export class EnrollmentService {
     actorUserId: string | null = null,
   ): Promise<Enrollment> {
     const existingEnrollment = await this.getEnrollmentById(enrollmentId, schoolId);
-    return this.enrollmentRepository.update(
+    const updated = await this.enrollmentRepository.update(
       enrollmentId,
       schoolId,
       updateEnrollmentDto,
       existingEnrollment,
       actorUserId,
     );
+    // Retiro, traslado o reincorporación: el acceso del alumno se recalcula de inmediato
+    if (updateEnrollmentDto.enrollmentState) invalidatePrincipalCache('student', existingEnrollment.studentId);
+    return updated;
   }
 
   /** Vista previa del cronograma para el formulario de matrícula. */

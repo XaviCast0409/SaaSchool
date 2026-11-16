@@ -8,7 +8,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { KipuxLogo } from '@/components/brand/KipuxLogo';
 
 export const ConsentGate: React.FC = () => {
-  const { user, logout } = useAuthStore();
+  const { user, signOut } = useAuthStore();
   const { data: pending = [], isLoading } = useLegalStatus({
     enabled: Boolean(user && !user.mustChangePassword),
   });
@@ -125,7 +125,7 @@ export const ConsentGate: React.FC = () => {
 
             <button
               type="button"
-              onClick={logout}
+              onClick={() => void signOut()}
               className="w-full flex items-center justify-center gap-1.5 py-2 text-xs text-muted-foreground hover:text-destructive transition-colors font-medium"
             >
               <LogOut className="w-3.5 h-3.5" />

@@ -51,6 +51,9 @@ export const LoginPage: React.FC = () => {
   const { mutate: login, isPending, error } = useLogin();
   const [activeCategory, setActiveCategory] = useState<keyof typeof DEMO_CATEGORIES>('PRO');
   const [suspensionNotice, setSuspensionNotice] = useState<string | null>(() => sessionStorage.getItem('suspension_message'));
+  // Verificación en dos pasos (cuentas de soporte): el servidor la pide tras validar la contraseña
+  const [otpStep, setOtpStep] = useState(false);
+  const [otp, setOtp] = useState('');
 
   const {
     register,
@@ -68,7 +71,18 @@ export const LoginPage: React.FC = () => {
   const onSubmit = (data: LoginFormData) => {
     sessionStorage.removeItem('suspension_message');
     setSuspensionNotice(null);
-    login(data);
+    login(
+      { ...data, ...(otpStep && otp ? { otp } : {}) },
+      {
+        onError: (e) => {
+          const code = (e as { response?: { data?: { code?: string } } }).response?.data?.code;
+          if (code === 'MFA_REQUIRED' || code === 'MFA_INVALID') {
+            setOtpStep(true);
+            setOtp('');
+          }
+        },
+      },
+    );
   };
 
   const handleSelectPreset = (email: string, pass: string) => {
@@ -141,10 +155,31 @@ export const LoginPage: React.FC = () => {
               )}
             </div>
 
+            {otpStep && (
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-foreground tracking-wide uppercase">
+                  Código de verificación
+                </label>
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  autoFocus
+                  maxLength={6}
+                  placeholder="000000"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className="h-9.5 text-sm tracking-[0.4em] text-center font-mono"
+                />
+                <p className="text-xs text-muted-foreground">Ábrelo en tu app de autenticación (Google o Microsoft Authenticator).</p>
+              </div>
+            )}
+
             <Button
               type="submit"
               className="w-full h-10 font-bold text-sm shadow-sm"
               isLoading={isPending}
+              disabled={otpStep && otp.length !== 6}
             >
               Iniciar Sesión
             </Button>

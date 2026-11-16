@@ -2,15 +2,21 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Request, Response } from 'express';
 
 const findUnique = vi.fn();
-vi.mock('../../../config/prisma', () => ({ prisma: { school: { findUnique: (...a: unknown[]) => findUnique(...a) } } }));
+const auditCreate = vi.fn(async () => ({}));
+vi.mock('../../../config/prisma', () => ({
+  prisma: {
+    school: { findUnique: (...a: unknown[]) => findUnique(...a) },
+    auditLog: { create: (...a: unknown[]) => auditCreate(...(a as [])) },
+  },
+}));
 
 import { tenantMiddleware } from '../tenant.middleware';
 
 const SCHOOL_A = '11111111-1111-1111-1111-111111111111';
 const SCHOOL_B = '22222222-2222-2222-2222-222222222222';
 
-function makeReq(user: Record<string, unknown> | undefined, headers: Record<string, string> = {}, method = 'GET') {
-  return { user, headers, method } as unknown as Request;
+function makeReq(user: Record<string, unknown> | undefined, headers: Record<string, string> = {}, method = 'GET', originalUrl = '/api/students') {
+  return { user, headers, method, originalUrl, ip: '1.2.3.4', get: () => undefined } as unknown as Request;
 }
 
 const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000);
@@ -18,6 +24,7 @@ const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000);
 describe('tenantMiddleware (aislamiento entre colegios)', () => {
   beforeEach(() => {
     findUnique.mockReset();
+    auditCreate.mockClear();
     findUnique.mockResolvedValue({ id: SCHOOL_A, isActive: true });
   });
 
@@ -47,6 +54,19 @@ describe('tenantMiddleware (aislamiento entre colegios)', () => {
     const req = makeReq({ id: 'sa', role: 'SUPER_ADMIN', schoolId: null }, { 'x-school-id': SCHOOL_B });
     await tenantMiddleware(req, {} as Response, vi.fn());
     expect((req as unknown as { user: { schoolId: string } }).user.schoolId).toBe(SCHOOL_B);
+  });
+
+  it('deja constancia en la bitácora del colegio cuando soporte entra (lecturas deduplicadas)', async () => {
+    findUnique.mockResolvedValue({ id: SCHOOL_B, isActive: true });
+    const sa = { userId: 'sa-audit', role: 'SUPER_ADMIN', schoolId: null };
+    await tenantMiddleware(makeReq({ ...sa }, { 'x-school-id': SCHOOL_B }, 'GET', '/api/grades?x=1'), {} as Response, vi.fn());
+    await tenantMiddleware(makeReq({ ...sa }, { 'x-school-id': SCHOOL_B }, 'GET', '/api/grades?x=2'), {} as Response, vi.fn());
+    await tenantMiddleware(makeReq({ ...sa }, { 'x-school-id': SCHOOL_B }, 'PATCH', '/api/grades/1'), {} as Response, vi.fn());
+    expect(auditCreate).toHaveBeenCalledTimes(2);
+    expect(auditCreate).toHaveBeenNthCalledWith(1, {
+      data: expect.objectContaining({ schoolId: SCHOOL_B, action: 'SUPPORT_READ', after: { method: 'GET', path: '/api/grades' } }),
+    });
+    expect(auditCreate).toHaveBeenNthCalledWith(2, { data: expect.objectContaining({ action: 'SUPPORT_WRITE' }) });
   });
 
   it('rechaza si el usuario no tiene colegio', async () => {

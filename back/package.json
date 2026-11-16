@@ -18,9 +18,11 @@
     "prisma:seed": "ts-node --transpile-only prisma/seed.ts",
     "seed": "ts-node --transpile-only prisma/seed.ts",
     "db:backup": "ts-node --transpile-only scripts/backup-db.ts",
+    "db:decrypt": "ts-node --transpile-only scripts/decrypt-backup.ts",
     "r2:check": "ts-node --transpile-only scripts/check-r2.ts",
     "academic:normalize": "ts-node --transpile-only scripts/academic-normalize.ts",
-    "academic:recompute": "ts-node --transpile-only scripts/academic-recompute.ts"
+    "academic:recompute": "ts-node --transpile-only scripts/academic-recompute.ts",
+    "superadmin:create": "ts-node --transpile-only scripts/create-superadmin.ts"
   },
   "engines": {
     "node": "22.x"

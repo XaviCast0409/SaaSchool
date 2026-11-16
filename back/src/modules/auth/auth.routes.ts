@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { AuthRepository } from './auth.repository';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
-import { authMiddleware } from '../../core/middlewares/auth.middleware';
+import { authMiddleware, authorizeRoles } from '../../core/middlewares/auth.middleware';
 import { authIpRateLimiter, forgotPasswordRateLimiter, loginRateLimiter } from '../../core/middlewares/rate-limiter.middleware';
 
 const authRepository = new AuthRepository();
@@ -38,3 +38,11 @@ authRouter.post('/reset-password', authIpRateLimiter, authController.resetPasswo
  * @access  Private (requiere token JWT)
  */
 authRouter.post('/change-password', authMiddleware, authController.changePassword);
+
+/**
+ * @route   POST /api/auth/mfa/setup  y  POST /api/auth/mfa/confirm
+ * @desc    Enrolar la verificación en dos pasos (TOTP) de la cuenta de soporte
+ * @access  Private (SUPER_ADMIN)
+ */
+authRouter.post('/mfa/setup', authMiddleware, authorizeRoles('SUPER_ADMIN'), authController.startMfaSetup);
+authRouter.post('/mfa/confirm', authIpRateLimiter, authMiddleware, authorizeRoles('SUPER_ADMIN'), authController.confirmMfaSetup);

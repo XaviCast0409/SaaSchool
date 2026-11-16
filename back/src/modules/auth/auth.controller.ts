@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { loginSchema, changePasswordSchema, forgotPasswordSchema, resetPasswordSchema } from './auth.schema';
+import { loginSchema, changePasswordSchema, forgotPasswordSchema, resetPasswordSchema, mfaConfirmSchema } from './auth.schema';
 import type { AuthService } from './auth.service';
 
 /**
@@ -23,6 +23,17 @@ export class AuthController {
   changePassword = async (request: Request, response: Response): Promise<void> => {
     const dto = changePasswordSchema.parse(request.body);
     const result = await this.authService.changePassword(request.user!, dto);
+    response.status(200).json({ status: 'success', data: result });
+  };
+
+  startMfaSetup = async (request: Request, response: Response): Promise<void> => {
+    const result = await this.authService.startMfaSetup(request.user!);
+    response.status(200).json({ status: 'success', data: result });
+  };
+
+  confirmMfaSetup = async (request: Request, response: Response): Promise<void> => {
+    const { code } = mfaConfirmSchema.parse(request.body);
+    const result = await this.authService.confirmMfaSetup(request.user!, code);
     response.status(200).json({ status: 'success', data: result });
   };
 

@@ -1,10 +1,12 @@
-import { createStore, get, set, del, values } from 'idb-keyval';
+import { clear, createStore, get, set, del, values } from 'idb-keyval';
 
 const queueStore = createStore('saaschool-offline', 'attendance-scans');
 const rosterStore = createStore('saaschool-offline-roster', 'attendance-roster');
 
 export interface QueuedScan {
   id: string;
+  /** Usuario que escaneó (solo él puede sincronizarlo). */
+  ownerId: string;
   schoolId: string;
   code: string;
   scannedAt: string;
@@ -27,9 +29,20 @@ export async function enqueueScan(input: Omit<QueuedScan, 'id' | 'attempts'>): P
   return item;
 }
 
-export async function listQueuedScans(schoolId: string): Promise<QueuedScan[]> {
+export async function listQueuedScans(ownerId: string, schoolId: string): Promise<QueuedScan[]> {
   const all = await values<QueuedScan>(queueStore);
-  return all.filter((s) => s.schoolId === schoolId).sort((a, b) => a.scannedAt.localeCompare(b.scannedAt));
+  return all
+    .filter((s) => s.ownerId === ownerId && s.schoolId === schoolId)
+    .sort((a, b) => a.scannedAt.localeCompare(b.scannedAt));
+}
+
+export async function countQueuedScans(ownerId: string): Promise<number> {
+  const all = await values<QueuedScan>(queueStore);
+  return all.filter((s) => s.ownerId === ownerId && !s.rejected).length;
+}
+
+export async function clearScanQueue(): Promise<void> {
+  await clear(queueStore);
 }
 
 export async function updateQueuedScan(item: QueuedScan): Promise<void> {
@@ -51,6 +64,5 @@ export async function findInRoster(schoolId: string, code: string): Promise<Rost
 }
 
 export async function clearRoster(): Promise<void> {
-  const { clear } = await import('idb-keyval');
   await clear(rosterStore);
 }

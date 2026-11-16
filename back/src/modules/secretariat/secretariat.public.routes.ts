@@ -5,13 +5,15 @@ import { AppError } from '../../core/errors/app-error';
 import { publicFormRateLimiter } from '../../core/middlewares/rate-limiter.middleware';
 import { formatDateOnly, getSchoolNow, parseSchoolDate } from '../../utils/timezone.util';
 import { addBusinessDays, complaintCode, gradeLabel, isLikelyBot, isValidGrade } from './secretariat.rules';
-import { emailExternal, notifySecretariat } from './secretariat.notify';
+import { emailExternal, neutralizeLinks, notifySecretariat } from './secretariat.notify';
+import { requireTurnstile } from '../../core/middlewares/turnstile.middleware';
 
 /**
  * RUTAS PÚBLICAS INTENCIONALES (sin sesión):
  *  - Formulario de admisión: las familias que aún no son parte del colegio postulan desde la web.
  *  - Libro de Reclamaciones virtual: obligatorio por Indecopi y debe estar al alcance de cualquier persona.
- * Protección: límite de envíos por IP, campo trampa contra bots y solo exponen datos públicos del colegio.
+ * Protección: límite de envíos por IP, campo trampa contra bots, Cloudflare Turnstile (si está configurado),
+ * topes de correo por colegio y por destinatario, y solo exponen datos públicos del colegio.
  */
 export const secretariatPublicRouter = Router();
 
@@ -75,7 +77,7 @@ const admissionSchema = z.object({
   website: z.string().optional(), // campo trampa
 });
 
-secretariatPublicRouter.post('/:schoolId/admissions', publicFormRateLimiter, async (req: Request, res: Response) => {
+secretariatPublicRouter.post('/:schoolId/admissions', publicFormRateLimiter, requireTurnstile, async (req: Request, res: Response) => {
   const { schoolId } = schoolParam.parse(req.params);
   const school = await loadSchool(schoolId);
   const dto = admissionSchema.parse(req.body);
@@ -128,8 +130,8 @@ secretariatPublicRouter.post('/:schoolId/admissions', publicFormRateLimiter, asy
     message: `${dto.studentFirstNames} ${dto.studentLastNamePaternal} postula a ${label} ${school.admissionsYear}.`,
     link: '/secretariat?tab=admission',
   });
-  emailExternal(dto.guardianEmail, school.name, 'Recibimos su postulación', 'Postulación recibida', [
-    `Hola, ${dto.guardianFirstName}. Recibimos la postulación de ${dto.studentFirstNames} ${dto.studentLastNamePaternal} a ${label} para el año ${school.admissionsYear}.`,
+  emailExternal(schoolId, dto.guardianEmail, school.name, 'Recibimos su postulación', 'Postulación recibida', [
+    neutralizeLinks(`Hola, ${dto.guardianFirstName}. Recibimos la postulación de ${dto.studentFirstNames} ${dto.studentLastNamePaternal} a ${label} para el año ${school.admissionsYear}.`),
     'La Secretaría revisará la información y se comunicará con usted por teléfono o correo para los siguientes pasos.',
   ]);
 
@@ -158,7 +160,7 @@ const complaintSchema = z
   })
   .refine((v) => !v.isMinor || v.guardianName, { message: 'Si es menor de edad, indique el nombre del padre, madre o apoderado.', path: ['guardianName'] });
 
-secretariatPublicRouter.post('/:schoolId/complaints', publicFormRateLimiter, async (req: Request, res: Response) => {
+secretariatPublicRouter.post('/:schoolId/complaints', publicFormRateLimiter, requireTurnstile, async (req: Request, res: Response) => {
   const { schoolId } = schoolParam.parse(req.params);
   const school = await loadSchool(schoolId);
   const dto = complaintSchema.parse(req.body);
@@ -203,13 +205,15 @@ secretariatPublicRouter.post('/:schoolId/complaints', publicFormRateLimiter, asy
     link: '/secretariat?tab=complaints',
   });
   // Indecopi exige entregar copia de la hoja de reclamación al consumidor
-  emailExternal(dto.consumerEmail, school.name, `Hoja de reclamación ${complaint.code}`, `Su ${kindLabel} fue registrado`, [
+  emailExternal(schoolId, dto.consumerEmail, school.name, `Hoja de reclamación ${complaint.code}`, `Su ${kindLabel} fue registrado`, [
     `Código: ${complaint.code}`,
     `Fecha: ${formatDateOnly(parseSchoolDate(now.dateStr))}`,
     `Proveedor: ${school.name} (RUC ${school.documentId})`,
-    `Bien contratado (${dto.itemType.toLowerCase()}): ${dto.itemDescription}`,
-    `Detalle: ${dto.detail}`,
-    `Pedido: ${dto.request}`,
+    // Copia exigida por Indecopi; los enlaces del texto libre se omiten (el registro completo queda en la plataforma)
+    `Consumidor: ${neutralizeLinks(dto.consumerName)}`,
+    `Bien contratado (${dto.itemType.toLowerCase()}): ${neutralizeLinks(dto.itemDescription)}`,
+    `Detalle: ${neutralizeLinks(dto.detail)}`,
+    `Pedido: ${neutralizeLinks(dto.request)}`,
     `El colegio le responderá a este correo a más tardar el ${formatDateOnly(complaint.dueDate)} (15 días hábiles).`,
     'La formulación del reclamo no impide acudir a otras vías de solución de controversias ni es requisito previo para interponer una denuncia ante el Indecopi.',
   ]);

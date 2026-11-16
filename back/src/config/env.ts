@@ -51,6 +51,18 @@ const envSchema = z.object({
   // Imágenes que se optimizan a la vez (sharp). Sin valor: según los núcleos, máximo 2.
   IMAGE_CONCURRENCY: z.preprocess((v) => (v === '' ? undefined : v), z.coerce.number().int().min(1).max(32).optional()),
 
+  // Verificación en dos pasos del SUPER_ADMIN. Clave para cifrar los secretos TOTP en la BD
+  // (sin valor se deriva de JWT_SECRET; si rotas JWT_SECRET sin definir esta, hay que volver a enrolar el MFA).
+  MFA_ENCRYPTION_KEY: z.string().min(32).optional(),
+  // 'true': el SUPER_ADMIN no puede ingresar sin MFA configurado. Actívalo después de enrolar las cuentas.
+  SUPERADMIN_REQUIRE_MFA: z.enum(['true', 'false']).default('false'),
+
+  // Cloudflare Turnstile (CAPTCHA) para los formularios públicos. Sin valor, no se exige.
+  TURNSTILE_SECRET_KEY: z.string().optional(),
+  // Correos que puede generar un colegio al día desde sus formularios públicos (admisión, reclamos).
+  // Sin valor: sin topes propios para formularios públicos (solo rige MAIL_DAILY_LIMIT).
+  PUBLIC_FORM_DAILY_LIMIT_PER_SCHOOL: z.preprocess((v) => (v === '' ? undefined : v), z.coerce.number().int().positive().optional()),
+
   // Monitoreo (opcional)
   SENTRY_DSN: z.string().optional(),
 });

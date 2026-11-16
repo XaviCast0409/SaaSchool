@@ -49,7 +49,7 @@ automationRouter.get('/', async (req: Request, res: Response) => {
         enabled: enabledOf.get(job.name) ?? job.defaultEnabled,
         lastRun: lastOf.get(job.name) ?? null,
       })),
-      email: emailQueueStats(),
+      email: await emailQueueStats(),
     },
   });
 });

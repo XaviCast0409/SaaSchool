@@ -22,7 +22,7 @@ const USER_PUBLIC_SELECT = {
   updatedAt: true,
 } satisfies Prisma.UserSelect;
 
-export type PublicUser = Omit<User, 'passwordHash' | 'lastSeenAt' | 'mustChangePassword' | 'passwordChangedAt' | 'failedLoginAttempts' | 'lockedUntil'>;
+export type PublicUser = Omit<User, 'passwordHash' | 'lastSeenAt' | 'mustChangePassword' | 'passwordChangedAt' | 'failedLoginAttempts' | 'lockedUntil' | 'mfaSecret' | 'mfaEnabledAt' | 'mfaLastStep'>;
 
 export class UserRepository {
   async findAllBySchool(

@@ -10,6 +10,7 @@ import { AttendanceService } from './modules/attendance/attendance.service';
 import { AttendanceRepository } from './modules/attendance/attendance.repository';
 import { initAttendanceAutoCloseCron } from './modules/attendance/attendance.cron';
 import { initAutomationScheduler } from './modules/automations/automation.scheduler';
+import { resumeEmailQueue } from './modules/automations/email-queue';
 
 const startServer = async (): Promise<void> => {
   try {
@@ -24,6 +25,9 @@ const startServer = async (): Promise<void> => {
     // Automatizaciones (recordatorios, resúmenes y alertas): activas por defecto solo en producción
     const stopAutomations = env.automationsEnabled ? initAutomationScheduler() : () => undefined;
     console.log(`🤖 Automatizaciones: ${env.automationsEnabled ? 'activas' : 'desactivadas (AUTOMATIONS_ENABLED)'}`);
+
+    // Retomar los correos que quedaron pendientes antes del último reinicio o despliegue
+    void resumeEmailQueue();
 
     const server = app.listen(env.PORT, '0.0.0.0', () => {
       console.log(`🚀 KIPUX API corriendo en puerto ${env.PORT}`);

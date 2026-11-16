@@ -67,7 +67,7 @@ const readOpenSections = (): Record<string, boolean> => {
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 
 export const DashboardLayout: React.FC = () => {
-  const { user, logout, impersonatedSchool, setImpersonatedSchool } = useAuthStore();
+  const { user, logout, signOut, impersonatedSchool, setImpersonatedSchool } = useAuthStore();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -473,7 +473,7 @@ export const DashboardLayout: React.FC = () => {
             variant="ghost"
             size="sm"
             className="w-full justify-start gap-2 text-sm text-destructive hover:bg-destructive/10 hover:text-destructive rounded-xl"
-            onClick={logout}
+            onClick={() => void signOut()}
           >
             <LogOut className="w-4 h-4" />
             <span>Cerrar Sesión</span>

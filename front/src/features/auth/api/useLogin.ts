@@ -17,7 +17,7 @@ export const useLogin = () => {
 
   return useMutation({
     /** `schoolSlug`: ingreso desde la página del colegio (busca la cuenta solo en ese colegio). */
-    mutationFn: async (data: LoginFormData & { schoolSlug?: string }) => {
+    mutationFn: async (data: LoginFormData & { schoolSlug?: string; otp?: string }) => {
       const response = await api.post<LoginResponse>('/auth/login', data);
       return response.data.data;
     },

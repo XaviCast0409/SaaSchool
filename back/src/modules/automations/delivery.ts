@@ -158,7 +158,7 @@ export async function deliver(
       if (!r.email || !r.email.includes('@')) continue;
       const p = prefOf.get(keyOf(r));
       if (p?.mutedEmail.includes(msg.type)) continue;
-      if (enqueueEmail({ to: r.email, subject: msg.email.subject, text: msg.email.text, html })) emailCount++;
+      if (await enqueueEmail({ to: r.email, subject: msg.email.subject, text: msg.email.text, html }, { schoolId })) emailCount++;
     }
   }
 

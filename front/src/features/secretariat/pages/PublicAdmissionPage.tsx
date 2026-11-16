@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { TurnstileWidget, TURNSTILE_SITE_KEY } from '@/components/security/TurnstileWidget';
 import { Link, useParams } from 'react-router-dom';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -36,6 +37,8 @@ export const PublicAdmissionPage: React.FC = () => {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [captcha, setCaptcha] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
   const set = (k: keyof typeof empty) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const grades = useMemo(() => (form.educationLevel ? gradeOptions(form.educationLevel) : []), [form.educationLevel]);
 
@@ -45,11 +48,12 @@ export const PublicAdmissionPage: React.FC = () => {
     setError(null);
     setSending(true);
     try {
-      await submitAdmission(schoolId, { ...form, grade: Number(form.grade), consent });
+      await submitAdmission(schoolId, { ...form, grade: Number(form.grade), consent, turnstileToken: captcha });
       setDone(true);
       window.scrollTo({ top: 0 });
     } catch (err) {
       setError((err as Error).message);
+      setCaptchaReset((n) => n + 1);
     } finally {
       setSending(false);
     }
@@ -165,7 +169,8 @@ export const PublicAdmissionPage: React.FC = () => {
               </span>
             </label>
             {error && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">{error}</p>}
-            <Button type="submit" className="w-full sm:w-auto" disabled={sending || !consent}>
+            <TurnstileWidget onToken={setCaptcha} resetKey={captchaReset} />
+            <Button type="submit" className="w-full sm:w-auto" disabled={sending || !consent || (Boolean(TURNSTILE_SITE_KEY) && !captcha)}>
               {sending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Enviar postulación
             </Button>

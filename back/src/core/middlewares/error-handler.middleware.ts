@@ -10,6 +10,7 @@ interface ErrorResponse {
   status: 'error' | 'fail';
   message: string;
   errors?: unknown;
+  code?: string;
   stack?: string;
 }
 
@@ -42,6 +43,7 @@ export const globalErrorHandler = (
     response.status(error.statusCode).json({
       status: error.statusCode >= 500 ? 'error' : 'fail',
       message: error.message,
+      ...(error.code && { code: error.code }),
     } satisfies ErrorResponse);
     return;
   }
