@@ -19,7 +19,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: backup-db
+  group: respaldo-db
   cancel-in-progress: false
 
 permissions:
