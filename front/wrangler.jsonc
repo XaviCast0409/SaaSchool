@@ -1,0 +1,30 @@
+// Frontend de KIPUX en Cloudflare Workers (Static Assets).
+// Sirve el build de Vite (dist/) en kipuxedu.com, www.kipuxedu.com y en el subdominio de cada
+// colegio (innova-academy.kipuxedu.com), sin dar de alta cada colegio en Cloudflare.
+// Pasos de migración desde Pages: DEPLOY.md, paso 13.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "kipux-front",
+  "compatibility_date": "2025-10-01",
+
+  // Solo archivos estáticos, sin código propio: estas peticiones no cuentan para el límite del plan gratuito.
+  "assets": {
+    "directory": "./dist",
+    // Las rutas de React Router (/login, /c/<código>, ...) devuelven index.html.
+    "not_found_handling": "single-page-application"
+  },
+
+  // Las rutas solo se activan en nombres con registro DNS con proxy (nube naranja):
+  // "@" (raíz), "www" y "*" (comodín).
+  // Cualquier subdominio que NO sea del frontend (por ejemplo api.kipuxedu.com hacia Render) debe ir
+  // en nube gris, o tener en el panel una ruta "api.kipuxedu.com/*" sin Worker; si no, este Worker la captura.
+  "routes": [
+    { "pattern": "kipuxedu.com/*", "zone_name": "kipuxedu.com" },
+    { "pattern": "*.kipuxedu.com/*", "zone_name": "kipuxedu.com" }
+  ],
+
+  // kipux-front.<cuenta>.workers.dev sirve para probar antes de cambiar el DNS.
+  // Cuando los dominios funcionen, ponlo en false para que el sitio solo responda en kipuxedu.com.
+  "workers_dev": true,
+  "preview_urls": false
+}
