@@ -99,6 +99,12 @@ export const useConversation = (id: string | null) =>
     refetchOnWindowFocus: true,
   });
 
+/** Página anterior de mensajes (de 50 en 50), para «Ver mensajes anteriores». */
+export const fetchOlderMessages = async (conversationId: string, before: string) =>
+  (
+    await api.get<{ data: ConversationDetail }>(`/messages/conversations/${conversationId}/messages`, { params: { before } })
+  ).data.data;
+
 export const useMessageContacts = (search: string, enabled: boolean) =>
   useQuery({
     queryKey: [...KEY, 'contacts', search],

@@ -639,7 +639,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/meetings"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT']} disallowStudents>
+                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'PARENT']} disallowStudents>
                   <MeetingsPage />
                 </RoleGuard>
               }

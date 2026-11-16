@@ -4,10 +4,25 @@ import type { CreateAnnouncementDto, UpdateAnnouncementDto, AnnouncementFilterDt
 import type { PaginatedResult } from '../../core/interfaces/global.interfaces';
 import { statusWhere } from './announcement-status.rules';
 
+/**
+ * A quién va dirigido: Dirección ve todo; el resto, lo dirigido a su rol (los alumnos, lo de sus familias)
+ * y siempre lo que publicó uno mismo, aunque no se haya incluido entre los destinatarios.
+ */
+export function audienceWhere(viewer: { role: string; userId: string }): Prisma.AnnouncementWhereInput {
+  if (viewer.role === 'SUPER_ADMIN' || viewer.role === 'SCHOOL_ADMIN') return {};
+  const targetRole = (viewer.role === 'STUDENT' ? 'PARENT' : viewer.role) as Role;
+  return { OR: [{ targetRoles: { has: targetRole } }, { authorId: viewer.userId }] };
+}
+
+const ANNOUNCEMENT_INCLUDE = {
+  author: { select: { id: true, firstName: true, lastNamePaternal: true, role: true } },
+  classroom: { select: { id: true, grade: true, section: true, educationLevel: true } },
+} as const;
+
 export class AnnouncementRepository {
   async findAllBySchool(
     schoolId: string,
-    userRole: Role,
+    viewer: { role: string; userId: string },
     filters: AnnouncementFilterDto,
     visibility: Prisma.AnnouncementWhereInput = {},
   ): Promise<PaginatedResult<Announcement>> {
@@ -17,12 +32,8 @@ export class AnnouncementRepository {
     const where: Prisma.AnnouncementWhereInput = {
       schoolId,
       isActive: true,
-      ...(userRole !== 'SUPER_ADMIN' && userRole !== 'SCHOOL_ADMIN'
-        ? (userRole as string) === 'STUDENT'
-          ? { targetRoles: { has: 'PARENT' as Role } }
-          : { targetRoles: { has: userRole } }
-        : {}),
-      AND: [visibility, statusWhere(status)], // en AND para no chocar con el OR de la búsqueda
+      // En AND para no chocar con el OR de la búsqueda
+      AND: [audienceWhere(viewer), visibility, statusWhere(status)],
       ...(priority ? { priority } : {}),
       ...(classroomId ? { classroomId } : {}),
       ...(search
@@ -41,24 +52,7 @@ export class AnnouncementRepository {
         skip,
         take: limit,
         orderBy: { publishedAt: 'desc' },
-        include: {
-          author: {
-            select: {
-              id: true,
-              firstName: true,
-              lastNamePaternal: true,
-              role: true,
-            },
-          },
-          classroom: {
-            select: {
-              id: true,
-              grade: true,
-              section: true,
-              educationLevel: true,
-            },
-          },
-        },
+        include: ANNOUNCEMENT_INCLUDE,
       }),
       prisma.announcement.count({ where }),
     ]);
@@ -77,24 +71,20 @@ export class AnnouncementRepository {
   async findById(announcementId: string, schoolId: string): Promise<Announcement | null> {
     return prisma.announcement.findFirst({
       where: { id: announcementId, schoolId, isActive: true },
-      include: {
-        author: {
-          select: {
-            id: true,
-            firstName: true,
-            lastNamePaternal: true,
-            role: true,
-          },
-        },
-        classroom: {
-          select: {
-            id: true,
-            grade: true,
-            section: true,
-            educationLevel: true,
-          },
-        },
-      },
+      include: ANNOUNCEMENT_INCLUDE,
+    });
+  }
+
+  /** Un comunicado solo si quien lo pide está entre sus destinatarios (mismas reglas que el listado). */
+  async findVisibleById(
+    announcementId: string,
+    schoolId: string,
+    viewer: { role: string; userId: string },
+    visibility: Prisma.AnnouncementWhereInput,
+  ): Promise<Announcement | null> {
+    return prisma.announcement.findFirst({
+      where: { id: announcementId, schoolId, isActive: true, AND: [audienceWhere(viewer), visibility] },
+      include: ANNOUNCEMENT_INCLUDE,
     });
   }
 

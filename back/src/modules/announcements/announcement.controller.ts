@@ -20,10 +20,11 @@ export class AnnouncementController {
   };
 
   getById = async (req: Request, res: Response): Promise<void> => {
-    const schoolId = req.user!.schoolId;
     const id = req.params.id as string;
-
-    const announcement = await this.announcementService.getAnnouncementById(id, schoolId);
+    const announcement = await this.announcementService.getAnnouncementForViewer(
+      { userId: req.user!.userId, role: req.user!.role, schoolId: req.user!.schoolId, studentId: req.user!.studentId },
+      id,
+    );
 
     res.status(200).json({
       status: 'success',
@@ -71,7 +72,7 @@ export class AnnouncementController {
     const schoolId = req.user!.schoolId;
     const id = req.params.id as string;
 
-    await this.announcementService.deleteAnnouncement(id, schoolId);
+    await this.announcementService.deleteAnnouncement(id, schoolId, { userId: req.user!.userId, role: req.user!.role });
 
     res.status(200).json({
       status: 'success',

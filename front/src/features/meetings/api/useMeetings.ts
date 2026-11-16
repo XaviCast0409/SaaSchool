@@ -67,7 +67,7 @@ export const useMyBookings = (enabled: boolean) =>
 export const useCreateSlots = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { date: string; from: string; to: string; durationMinutes: number; mode: MeetingMode; location?: string }) =>
+    mutationFn: async (input: { date: string; from: string; to: string; durationMinutes: number; mode: MeetingMode; location?: string; repeatWeeks?: number }) =>
       (await api.post<{ data: { created: number; skipped: number } }>('/meetings/slots/bulk', input)).data.data,
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
@@ -76,7 +76,9 @@ export const useCreateSlots = () => {
 export const useCancelSlot = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => (await api.delete(`/meetings/slots/${id}`)).data,
+    // El motivo (opcional) se incluye en el aviso a la familia
+    mutationFn: async ({ id, reason }: { id: string; reason?: string }) =>
+      (await api.delete(`/meetings/slots/${id}`, { data: reason ? { reason } : {} })).data,
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 };

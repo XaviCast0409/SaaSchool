@@ -37,3 +37,12 @@ export function withoutOverlaps<T extends { startsAt: Date; endsAt: Date }>(
 export function hasMinimumNotice(startsAt: Date, hours: number, now: Date = new Date()): boolean {
   return startsAt.getTime() - now.getTime() >= hours * 3_600_000;
 }
+
+/** Fechas (YYYY-MM-DD) de la misma semana repetida `weeks` veces: 2026-11-17 ×3 → 17, 24 de nov y 1 de dic. */
+export function weeklyDates(date: string, weeks: number): string[] {
+  const base = new Date(`${date}T12:00:00.000Z`);
+  return Array.from({ length: Math.max(1, weeks) }, (_, k) => {
+    const d = new Date(base.getTime() + k * 7 * 86_400_000);
+    return d.toISOString().slice(0, 10);
+  });
+}

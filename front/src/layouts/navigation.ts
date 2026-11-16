@@ -119,7 +119,8 @@ const schoolNavSections: NavSection[] = [
     items: [
       { label: 'Muro de comunicados', path: '/announcements', icon: Megaphone, roles: STAFF, minPlan: 'BASIC', keywords: 'avisos circulares' },
       { label: 'Mensajes', path: '/messages', icon: MessagesSquare, roles: STAFF, minPlan: 'BASIC', keywords: 'chat' },
-      { label: 'Entrevistas', path: '/meetings', icon: CalendarClock, roles: ['SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'], minPlan: 'BASIC', keywords: 'citas reuniones padres' },
+      // Secretaría no: las familias solo reservan con el tutor, los docentes del aula o Dirección
+      { label: 'Entrevistas', path: '/meetings', icon: CalendarClock, roles: ['SCHOOL_ADMIN', 'TEACHER'], minPlan: 'BASIC', keywords: 'citas reuniones padres' },
     ],
   },
   {

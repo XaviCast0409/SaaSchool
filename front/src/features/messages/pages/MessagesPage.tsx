@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -38,6 +38,8 @@ import {
   type ConversationKind,
   type ConversationSummary,
   type StaffGroup,
+  fetchOlderMessages,
+  type ChatMessage,
 } from '../api/useMessages';
 
 const MAX_LENGTH = 2000;
@@ -389,18 +391,93 @@ const ChatPanel: React.FC<{ conversationId: string; onBack: () => void }> = ({ c
   const archive = useArchiveConversation();
   const [text, setText] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
-  const lastCount = useRef(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const lastSeenId = useRef<string | null>(null);
+  // Todo lo recibido en esta conversación. La consulta con sondeo trae solo los últimos 50: cuando llega
+  // uno nuevo, el más antiguo de esa ventana sale de ella, pero aquí se conserva (antes desaparecía).
+  const [received, setReceived] = useState<ChatMessage[]>([]);
+  // Mensajes antiguos cargados a pedido con «Ver mensajes anteriores»
+  const [older, setOlder] = useState<ChatMessage[]>([]);
+  const [hasMoreOlder, setHasMoreOlder] = useState<boolean | null>(null);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const keepScrollFrom = useRef<number | null>(null);
+  // Si la persona está leyendo más arriba, un mensaje nuevo no la hace saltar al final
+  const nearBottom = useRef(true);
+  const [newBelow, setNewBelow] = useState(false);
+  // Bajar al final recién cuando los mensajes ya están pintados (llegan en un render posterior)
+  const pendingScroll = useRef(false);
 
-  // Marcar como leído al abrir y cada vez que llegan mensajes nuevos
   useEffect(() => {
-    if (!data) return;
-    if (data.messages.length !== lastCount.current) {
-      lastCount.current = data.messages.length;
-      bottomRef.current?.scrollIntoView({ block: 'end' });
-      markRead.mutate(conversationId);
-    }
+    if (!data?.messages.length) return;
+    setReceived((prev) => {
+      const known = new Set(prev.map((m) => m.id));
+      const fresh = data.messages.filter((m) => !known.has(m.id));
+      return fresh.length ? [...prev, ...fresh] : prev;
+    });
+  }, [data?.messages]);
+
+  const allMessages = useMemo(() => {
+    const byId = new Map<string, ChatMessage>();
+    for (const m of [...older, ...received]) byId.set(m.id, m);
+    return [...byId.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }, [older, received]);
+
+  const scrollToBottom = () => {
+    bottomRef.current?.scrollIntoView({ block: 'end' });
+    setNewBelow(false);
+  };
+
+  // Marcar como leído al abrir y cada vez que llega un mensaje nuevo. Se detecta por el último mensaje,
+  // no por la cantidad: con 50 o más, la ventana siempre trae 50 y la cantidad no cambia.
+  const lastMessage = data?.messages[data.messages.length - 1];
+  useEffect(() => {
+    if (!data || lastMessage?.id === lastSeenId.current) return;
+    const isFirstLoad = lastSeenId.current === null;
+    lastSeenId.current = lastMessage?.id ?? '';
+    if (isFirstLoad || nearBottom.current || lastMessage?.mine) pendingScroll.current = true;
+    else setNewBelow(true);
+    markRead.mutate(conversationId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data?.messages.length, conversationId]);
+  }, [lastMessage?.id, conversationId]);
+
+  useLayoutEffect(() => {
+    if (pendingScroll.current && allMessages.length > 0) {
+      pendingScroll.current = false;
+      scrollToBottom();
+    }
+  }, [allMessages]);
+
+  // Tras cargar mensajes anteriores, mantener a la vista lo que se estaba leyendo
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (el && keepScrollFrom.current !== null) {
+      el.scrollTop += el.scrollHeight - keepScrollFrom.current;
+      keepScrollFrom.current = null;
+    }
+  }, [older]);
+
+  const loadOlder = async () => {
+    const first = allMessages[0];
+    if (!first || loadingOlder) return;
+    setLoadingOlder(true);
+    try {
+      const page = await fetchOlderMessages(conversationId, first.createdAt);
+      keepScrollFrom.current = scrollRef.current?.scrollHeight ?? null;
+      setOlder((prev) => [...page.messages, ...prev]);
+      setHasMoreOlder(page.hasMore);
+    } catch (e) {
+      toast.error(apiErrorMessage(e));
+    } finally {
+      setLoadingOlder(false);
+    }
+  };
+
+  const onScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    nearBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    if (nearBottom.current) setNewBelow(false);
+  };
 
   const handleSend = () => {
     const body = text.trim();
@@ -416,14 +493,14 @@ const ChatPanel: React.FC<{ conversationId: string; onBack: () => void }> = ({ c
 
   const grouped = useMemo(() => {
     const groups: Array<{ day: string; items: NonNullable<typeof data>['messages'] }> = [];
-    for (const m of data?.messages ?? []) {
+    for (const m of allMessages) {
       const raw = formatPeruDate(m.createdAt, { weekday: 'long', day: 'numeric', month: 'long' });
       const day = raw.charAt(0).toUpperCase() + raw.slice(1);
       if (!groups.length || groups[groups.length - 1].day !== day) groups.push({ day, items: [] });
       groups[groups.length - 1].items.push(m);
     }
     return groups;
-  }, [data?.messages]);
+  }, [allMessages]);
 
   if (isLoading || !data) {
     return (
@@ -476,7 +553,14 @@ const ChatPanel: React.FC<{ conversationId: string; onBack: () => void }> = ({ c
         </Button>
       </div>
 
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-muted/20 px-3 py-4">
+      <div ref={scrollRef} onScroll={onScroll} className="relative min-h-0 flex-1 space-y-4 overflow-y-auto bg-muted/20 px-3 py-4">
+        {(hasMoreOlder ?? data.hasMore) && (
+          <div className="flex justify-center">
+            <Button variant="outline" size="sm" className="h-7 gap-1.5 rounded-full text-xs" onClick={loadOlder} disabled={loadingOlder}>
+              {loadingOlder && <Loader2 className="h-3 w-3 animate-spin" aria-hidden />} Ver mensajes anteriores
+            </Button>
+          </div>
+        )}
         {grouped.length === 0 && (
           <p className="py-10 text-center text-sm text-muted-foreground">Escribe el primer mensaje de esta conversación.</p>
         )}
@@ -508,6 +592,17 @@ const ChatPanel: React.FC<{ conversationId: string; onBack: () => void }> = ({ c
         ))}
         <div ref={bottomRef} />
       </div>
+      {newBelow && (
+        <div className="relative">
+          <Button
+            size="sm"
+            onClick={scrollToBottom}
+            className="absolute -top-12 left-1/2 h-8 -translate-x-1/2 gap-1.5 rounded-full text-xs shadow-md"
+          >
+            <ChevronDown className="h-3.5 w-3.5" aria-hidden /> Nuevos mensajes
+          </Button>
+        </div>
+      )}
 
       {conversation.officeHours && (
         <p className="flex items-center gap-1.5 border-t border-border px-3 pt-2 text-xs text-muted-foreground">
@@ -536,6 +631,11 @@ const ChatPanel: React.FC<{ conversationId: string; onBack: () => void }> = ({ c
           aria-label="Mensaje"
           className="max-h-32 min-h-[40px] flex-1 resize-none rounded-xl border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         />
+        {text.length > MAX_LENGTH * 0.8 && (
+          <span className={cn('self-center text-xs tabular-nums', text.length >= MAX_LENGTH ? 'text-destructive' : 'text-muted-foreground')} aria-live="polite">
+            {text.length}/{MAX_LENGTH}
+          </span>
+        )}
         <Button type="submit" size="icon" className="h-10 w-10 shrink-0 rounded-xl" disabled={!text.trim() || send.isPending} aria-label="Enviar">
           {send.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </Button>

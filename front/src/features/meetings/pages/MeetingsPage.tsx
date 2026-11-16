@@ -157,13 +157,16 @@ const selectControl =
 
 const PublishSlotsCard: React.FC = () => {
   const create = useCreateSlots();
-  const [form, setForm] = useState({ date: getPeruToday(), from: '14:00', to: '16:00', durationMinutes: 20, mode: 'IN_PERSON' as MeetingMode, location: '' });
+  const [form, setForm] = useState({ date: getPeruToday(), from: '14:00', to: '16:00', durationMinutes: 20, mode: 'IN_PERSON' as MeetingMode, location: '', repeatWeeks: 1 });
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     create.mutate(
       { ...form, location: form.location || undefined },
       {
-        onSuccess: (r) => toast.success(r.skipped ? `${r.created} horario(s) publicados; ${r.skipped} se omitieron por cruce.` : `${r.created} horario(s) publicados.`),
+        onSuccess: (r) => {
+          const weeks = form.repeatWeeks > 1 ? ` en ${form.repeatWeeks} semanas` : '';
+          toast.success(r.skipped ? `${r.created} horario(s) publicados${weeks}; ${r.skipped} se omitieron por cruce.` : `${r.created} horario(s) publicados${weeks}.`);
+        },
         onError: (err) => toast.error(apiErrorMessage(err)),
       },
     );
@@ -175,7 +178,7 @@ const PublishSlotsCard: React.FC = () => {
         title="Publicar horarios de atención"
         description="Se crean bloques del tamaño elegido entre las horas indicadas."
       />
-      <form onSubmit={submit} className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 sm:p-5 lg:grid-cols-6">
+      <form onSubmit={submit} className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 sm:p-5 xl:grid-cols-6">
         <label className={cn(fieldLabel, 'col-span-2 sm:col-span-1')}>
           <span>Día</span>
           <Input type="date" className={fieldControl} min={getPeruToday()} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required />
@@ -204,7 +207,16 @@ const PublishSlotsCard: React.FC = () => {
             ))}
           </select>
         </label>
-        <label className={cn(fieldLabel, 'col-span-2 sm:col-span-3 lg:col-span-1')}>
+        <label className={fieldLabel}>
+          <span>Repetir</span>
+          <select className={selectControl} value={form.repeatWeeks} onChange={(e) => setForm({ ...form, repeatWeeks: Number(e.target.value) })}>
+            <option value={1}>Solo ese día</option>
+            {[2, 4, 6, 8].map((w) => (
+              <option key={w} value={w}>{w} semanas</option>
+            ))}
+          </select>
+        </label>
+        <label className={cn(fieldLabel, 'col-span-2 sm:col-span-3 xl:col-span-6')}>
           <span>Lugar o enlace</span>
           <Input className={fieldControl} placeholder="Aula 3B / enlace Meet" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} maxLength={200} />
         </label>
@@ -218,22 +230,53 @@ const PublishSlotsCard: React.FC = () => {
   );
 };
 
-type SlotFilter = 'ALL' | 'BOOKED' | 'AVAILABLE';
+/** Anticipación mínima para que la familia cancele (igual que para reservar) */
+const CANCEL_NOTICE_MS = 2 * 3_600_000;
+
+type SlotFilter = 'ALL' | 'BOOKED' | 'AVAILABLE' | 'PAST';
 
 const StaffView: React.FC = () => {
   const { data, isLoading } = useMySlots(true);
   const cancel = useCancelSlot();
   const [filter, setFilter] = useState<SlotFilter>('ALL');
+  // Entrevista reservada que se va a cancelar: se pide un motivo para la familia
+  const [cancelling, setCancelling] = useState<MeetingSlot | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
   const now = Date.now();
   const upcoming = (data ?? []).filter((s) => new Date(s.endsAt).getTime() >= now);
+  // Historial: entrevistas reservadas de los últimos 7 días, la más reciente primero
+  const past = (data ?? []).filter((s) => new Date(s.endsAt).getTime() < now && s.status === 'BOOKED').reverse();
   const booked = upcoming.filter((s) => s.status === 'BOOKED').length;
   const free = upcoming.length - booked;
-  const visible = filter === 'ALL' ? upcoming : upcoming.filter((s) => (filter === 'BOOKED' ? s.status === 'BOOKED' : s.status !== 'BOOKED'));
+  const visible =
+    filter === 'PAST'
+      ? past
+      : filter === 'ALL'
+        ? upcoming
+        : upcoming.filter((s) => (filter === 'BOOKED' ? s.status === 'BOOKED' : s.status !== 'BOOKED'));
 
   const onCancel = async (s: MeetingSlot) => {
-    const msg = s.status === 'BOOKED' ? '¿Cancelar esta entrevista? Se avisará a la familia.' : '¿Quitar este horario?';
-    if (!(await confirmDialog({ title: msg, confirmText: s.status === 'BOOKED' ? 'Cancelar entrevista' : 'Quitar horario', cancelText: 'Volver', variant: 'danger' }))) return;
-    cancel.mutate(s.id, { onSuccess: () => toast.success('Listo'), onError: (e) => toast.error(apiErrorMessage(e)) });
+    if (s.status === 'BOOKED') {
+      setCancelReason('');
+      setCancelling(s);
+      return;
+    }
+    if (!(await confirmDialog({ title: '¿Quitar este horario libre?', confirmText: 'Quitar horario', cancelText: 'Volver', variant: 'danger' }))) return;
+    cancel.mutate({ id: s.id }, { onSuccess: () => toast.success('Horario quitado.'), onError: (e) => toast.error(apiErrorMessage(e)) });
+  };
+
+  const confirmCancelBooked = () => {
+    if (!cancelling) return;
+    cancel.mutate(
+      { id: cancelling.id, reason: cancelReason.trim() || undefined },
+      {
+        onSuccess: () => {
+          toast.success('Entrevista cancelada. Avisamos a la familia.');
+          setCancelling(null);
+        },
+        onError: (e) => toast.error(apiErrorMessage(e)),
+      },
+    );
   };
 
   return (
@@ -254,6 +297,7 @@ const StaffView: React.FC = () => {
             { key: 'ALL', label: 'Todos', count: upcoming.length },
             { key: 'BOOKED', label: 'Reservados', count: booked },
             { key: 'AVAILABLE', label: 'Libres', count: free },
+            { key: 'PAST', label: 'Pasadas', count: past.length },
           ]}
         />
 
@@ -264,8 +308,15 @@ const StaffView: React.FC = () => {
               <Skeleton className="h-14 w-full rounded-xl" />
             </div>
           ) : visible.length === 0 ? (
-            <EmptyBlock icon={<CalendarClock />} title={upcoming.length === 0 ? 'Aún no publicas horarios' : 'No hay horarios en esta sección'}>
-              {upcoming.length === 0 ? 'Las familias de tus alumnos podrán reservarlos desde su app.' : 'Prueba con otra pestaña.'}
+            <EmptyBlock
+              icon={<CalendarClock />}
+              title={filter === 'PAST' ? 'Sin entrevistas en los últimos 7 días' : upcoming.length === 0 ? 'Aún no publicas horarios' : 'No hay horarios en esta sección'}
+            >
+              {filter === 'PAST'
+                ? 'Aquí verás las entrevistas que ya ocurrieron.'
+                : upcoming.length === 0
+                  ? 'Las familias de tus alumnos podrán reservarlos desde su app.'
+                  : 'Prueba con otra pestaña.'}
             </EmptyBlock>
           ) : (
             <div className="divide-y divide-border/60">
@@ -324,6 +375,7 @@ const StaffView: React.FC = () => {
                               </p>
                             )}
                           </div>
+                          {filter !== 'PAST' && (
                           <Button
                             size="sm"
                             variant="outline"
@@ -335,6 +387,7 @@ const StaffView: React.FC = () => {
                             {isBooked ? <XCircle className="h-3.5 w-3.5" /> : <Trash2 className="h-3.5 w-3.5" />}
                             <span className="hidden sm:inline">{isBooked ? 'Cancelar' : 'Quitar'}</span>
                           </Button>
+                          )}
                         </li>
                       );
                     })}
@@ -345,6 +398,36 @@ const StaffView: React.FC = () => {
           )}
         </section>
       </div>
+
+      <Modal
+        open={Boolean(cancelling)}
+        onClose={() => setCancelling(null)}
+        title="¿Cancelar esta entrevista?"
+        description={
+          cancelling
+            ? `${cancelling.parent ? `${cancelling.parent.firstName} ${cancelling.parent.lastNamePaternal}` : 'La familia'} recibirá un aviso y podrá reservar otro horario.`
+            : undefined
+        }
+        size="sm"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setCancelling(null)}>Volver</Button>
+            <Button variant="destructive" onClick={confirmCancelBooked} disabled={cancel.isPending}>
+              {cancel.isPending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />} Cancelar entrevista
+            </Button>
+          </>
+        }
+      >
+        <label className="block space-y-1.5 text-xs font-semibold text-muted-foreground">
+          <span>Motivo para la familia (opcional)</span>
+          <Textarea
+            value={cancelReason}
+            onChange={(e) => setCancelReason(e.target.value.slice(0, 300))}
+            placeholder="Ej. Tengo una reunión de coordinación a esa hora."
+            rows={3}
+          />
+        </label>
+      </Modal>
     </div>
   );
 };
@@ -435,16 +518,35 @@ const ParentView: React.FC = () => {
                         </p>
                       )}
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      aria-label="Cancelar entrevista"
-                      className="h-8 shrink-0 gap-1 rounded-lg border-destructive/30 px-2.5 text-xs font-bold text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      onClick={async () => (await confirmDialog({ title: '¿Cancelar esta entrevista?', confirmText: 'Cancelar entrevista', cancelText: 'Volver', variant: 'danger' })) && cancel.mutate(b.id, { onSuccess: () => toast.success('Entrevista cancelada'), onError: (e) => toast.error(apiErrorMessage(e)) })}
-                    >
-                      <XCircle className="h-3.5 w-3.5" aria-hidden />
-                      <span className="hidden sm:inline">Cancelar</span>
-                    </Button>
+                    {/* Misma anticipación que para reservar (2 h); después, se coordina por Mensajes */}
+                    {new Date(b.startsAt).getTime() - Date.now() >= CANCEL_NOTICE_MS ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        aria-label="Cancelar entrevista"
+                        className="h-8 shrink-0 gap-1 rounded-lg border-destructive/30 px-2.5 text-xs font-bold text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        onClick={async () =>
+                          (await confirmDialog({
+                            title: '¿Cancelar esta entrevista?',
+                            description: `${b.staffName} recibirá un aviso y el horario quedará libre para otra familia.`,
+                            confirmText: 'Cancelar entrevista',
+                            cancelText: 'Volver',
+                            variant: 'danger',
+                          })) &&
+                          cancel.mutate(b.id, {
+                            onSuccess: () => toast.success('Entrevista cancelada. Avisamos al docente.'),
+                            onError: (e) => toast.error(apiErrorMessage(e)),
+                          })
+                        }
+                      >
+                        <XCircle className="h-3.5 w-3.5" aria-hidden />
+                        <span className="hidden sm:inline">Cancelar</span>
+                      </Button>
+                    ) : (
+                      <p className="max-w-[9rem] shrink-0 text-right text-xs text-muted-foreground">
+                        ¿Un imprevisto? Escríbele por Mensajes.
+                      </p>
+                    )}
                   </li>
                 ))}
               </ul>

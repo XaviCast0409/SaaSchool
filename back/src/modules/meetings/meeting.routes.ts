@@ -8,7 +8,7 @@ import { formatLimaDateTime } from '../../utils/timezone.util';
 import { deliver } from '../automations/delivery';
 import { studentShortName } from '../automations/recipients';
 import { staffContactsForStudent } from '../messaging/messaging.service';
-import { generateSlots, hasMinimumNotice, limaDateTime, withoutOverlaps } from './meeting.rules';
+import { generateSlots, hasMinimumNotice, limaDateTime, weeklyDates, withoutOverlaps } from './meeting.rules';
 
 /**
  * Agenda de entrevistas: el docente/tutor publica horarios libres y el apoderado reserva uno.
@@ -17,8 +17,11 @@ import { generateSlots, hasMinimumNotice, limaDateTime, withoutOverlaps } from '
 export const meetingRouter = Router();
 meetingRouter.use(authMiddleware, tenantMiddleware);
 
-const STAFF = ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'] as const;
+// Solo quien las familias pueden reservar: tutor, docentes del aula y Dirección (ver staffContactsForStudent).
+// Secretaría no figura entre esos contactos, así que sus horarios nunca se podrían reservar.
+const STAFF = ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'] as const;
 const MIN_NOTICE_HOURS = 2;
+const MAX_SLOTS_PER_PUBLISH = 120;
 const uuid = z.string().uuid();
 const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 
@@ -39,6 +42,12 @@ const SLOT_SELECT = {
   student: { select: { id: true, firstNames: true, lastNamePaternal: true } },
 } as const;
 
+/** Fecha y hora terminadas en punto, sin duplicarlo («… 3:00 p. m.» ya trae el suyo). */
+const whenSentence = (d: Date) => {
+  const when = formatLimaDateTime(d);
+  return when.endsWith('.') ? when : `${when}.`;
+};
+
 async function schoolName(schoolId: string) {
   return (await prisma.school.findUnique({ where: { id: schoolId }, select: { name: true } }))?.name ?? '';
 }
@@ -53,19 +62,25 @@ const bulkSchema = z
     durationMinutes: z.number().int().min(10).max(90),
     mode: z.enum(['IN_PERSON', 'VIRTUAL', 'PHONE']).default('IN_PERSON'),
     location: z.string().trim().max(200).optional(),
+    /** Repetir el mismo horario las semanas siguientes (1 = solo ese día) */
+    repeatWeeks: z.number().int().min(1).max(8).default(1),
   })
   .refine((v) => v.from < v.to, { message: 'La hora de fin debe ser mayor a la de inicio.', path: ['to'] });
 
-/** Publica varios horarios de una vez (p. ej. martes de 2:00 a 4:00 p. m., cada 20 minutos). */
+/** Publica varios horarios de una vez (p. ej. martes de 2:00 a 4:00 p. m., cada 20 minutos, durante 4 semanas). */
 meetingRouter.post('/slots/bulk', authorizeRoles(...STAFF), async (req: Request, res: Response) => {
   const dto = bulkSchema.parse(req.body);
   const schoolId = req.user!.schoolId;
   const staffId = req.user!.userId;
   if (!hasMinimumNotice(limaDateTime(dto.date, dto.from), 0)) throw new AppError('No puedes publicar horarios en el pasado.', 400);
 
-  const candidates = generateSlots(dto.date, dto.from, dto.to, dto.durationMinutes);
-  if (candidates.length === 0) throw new AppError('El rango es más corto que la duración de una cita.', 400);
-  if (candidates.length > 40) throw new AppError('Demasiados horarios en un solo día (máximo 40).', 400);
+  const perDay = generateSlots(dto.date, dto.from, dto.to, dto.durationMinutes);
+  if (perDay.length === 0) throw new AppError('El rango es más corto que la duración de una cita.', 400);
+  if (perDay.length > 40) throw new AppError('Demasiados horarios en un solo día (máximo 40).', 400);
+  const candidates = weeklyDates(dto.date, dto.repeatWeeks).flatMap((day) => generateSlots(day, dto.from, dto.to, dto.durationMinutes));
+  if (candidates.length > MAX_SLOTS_PER_PUBLISH) {
+    throw new AppError(`Demasiados horarios de una vez (máximo ${MAX_SLOTS_PER_PUBLISH}). Reduce las semanas o alarga la duración.`, 400);
+  }
 
   const existing = await prisma.meetingSlot.findMany({
     where: { schoolId, staffId, status: { not: 'CANCELLED' }, startsAt: { lt: candidates[candidates.length - 1].endsAt }, endsAt: { gt: candidates[0].startsAt } },
@@ -95,9 +110,10 @@ meetingRouter.get('/mine', authorizeRoles(...STAFF), async (req: Request, res: R
   });
 });
 
-/** El personal anula un horario. Si estaba reservado, avisa a la familia. */
+/** El personal anula un horario. Si estaba reservado, avisa a la familia (con el motivo, si lo da). */
 meetingRouter.delete('/slots/:id', authorizeRoles(...STAFF), async (req: Request, res: Response) => {
   const { id } = z.object({ id: uuid }).parse(req.params);
+  const { reason } = z.object({ reason: z.string().trim().max(300).optional() }).parse(req.body ?? {});
   const slot = await prisma.meetingSlot.findFirst({ where: { id, schoolId: req.user!.schoolId, staffId: req.user!.userId }, select: SLOT_SELECT });
   if (!slot) throw new AppError('Horario no encontrado.', 404);
   await prisma.meetingSlot.update({ where: { id }, data: { status: 'CANCELLED' } });
@@ -107,7 +123,7 @@ meetingRouter.delete('/slots/:id', authorizeRoles(...STAFF), async (req: Request
       [{ userId: slot.parent.id }],
       {
         title: 'Entrevista cancelada',
-        message: `${fullName(slot.staff)} canceló la entrevista del ${formatLimaDateTime(slot.startsAt)}. Puede reservar otro horario.`,
+        message: `${fullName(slot.staff)} canceló la entrevista del ${whenSentence(slot.startsAt)}${reason ? ` Motivo: ${reason}.` : ''} Puede reservar otro horario.`,
         type: 'GENERAL',
         link: '/meetings',
       },
@@ -211,6 +227,13 @@ meetingRouter.post('/slots/:id/cancel-booking', authorizeRoles('PARENT'), async 
   const schoolId = req.user!.schoolId;
   const slot = await prisma.meetingSlot.findFirst({ where: { id, schoolId, bookedByParentId: req.user!.userId, status: 'BOOKED' }, select: SLOT_SELECT });
   if (!slot) throw new AppError('Reserva no encontrada.', 404);
+  // Misma anticipación que para reservar: el docente ya organizó su tiempo para esa cita
+  if (!hasMinimumNotice(slot.startsAt, MIN_NOTICE_HOURS)) {
+    throw new AppError(
+      `Solo puedes cancelar con al menos ${MIN_NOTICE_HOURS} horas de anticipación. Si surgió un imprevisto, escríbele al docente por Mensajes.`,
+      400,
+    );
+  }
   await prisma.meetingSlot.update({
     where: { id },
     data: { status: 'AVAILABLE', bookedByParentId: null, studentId: null, reason: null, bookedAt: null },
@@ -220,7 +243,7 @@ meetingRouter.post('/slots/:id/cancel-booking', authorizeRoles('PARENT'), async 
     [{ userId: slot.staff.id }],
     {
       title: 'Entrevista cancelada por la familia',
-      message: `${slot.parent ? fullName(slot.parent) : 'La familia'} canceló la entrevista del ${formatLimaDateTime(slot.startsAt)}. El horario volvió a quedar libre.`,
+      message: `${slot.parent ? fullName(slot.parent) : 'La familia'} canceló la entrevista del ${whenSentence(slot.startsAt)} El horario volvió a quedar libre.`,
       type: 'GENERAL',
       link: '/meetings',
     },

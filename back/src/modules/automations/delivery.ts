@@ -140,13 +140,20 @@ export async function deliver(
         ],
       },
     });
-    for (const sub of subs) {
-      const res = await sendWebPushNotification(
-        { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
-        { title: msg.title, message: msg.message, type: msg.type, link: msg.link },
+    // En lotes paralelos: uno por uno, cientos de suscripciones tardaban decenas de segundos
+    const PUSH_BATCH = 20;
+    for (let i = 0; i < subs.length; i += PUSH_BATCH) {
+      const results = await Promise.all(
+        subs.slice(i, i + PUSH_BATCH).map(async (sub) => {
+          const res = await sendWebPushNotification(
+            { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
+            { title: msg.title, message: msg.message, type: msg.type, link: msg.link },
+          );
+          if (res.shouldRemove) await prisma.pushSubscription.delete({ where: { endpoint: sub.endpoint } }).catch(() => undefined);
+          return res.success;
+        }),
       );
-      if (res.success) pushCount++;
-      if (res.shouldRemove) await prisma.pushSubscription.delete({ where: { endpoint: sub.endpoint } }).catch(() => undefined);
+      pushCount += results.filter(Boolean).length;
     }
   }
 

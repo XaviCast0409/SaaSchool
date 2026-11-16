@@ -71,8 +71,9 @@ announcementRouter.put(
   announcementController.update,
 );
 
+// El docente solo puede eliminar los suyos (lo valida el servicio)
 announcementRouter.delete(
   '/:id',
-  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ADMINISTRATIVE'),
+  authorizeRoles('SCHOOL_ADMIN', 'SUPER_ADMIN', 'ADMINISTRATIVE', 'TEACHER'),
   announcementController.delete,
 );

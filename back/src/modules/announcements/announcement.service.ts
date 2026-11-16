@@ -39,10 +39,25 @@ export class AnnouncementService {
 
   async getAnnouncements(viewer: Viewer, filters: AnnouncementFilterDto) {
     const visibility = await visibilityWhere(viewer);
-    const result = await this.announcementRepository.findAllBySchool(viewer.schoolId, viewer.role as Role, filters, visibility);
+    const result = await this.announcementRepository.findAllBySchool(viewer.schoolId, viewer, filters, visibility);
     const data = await enrichForViewer(viewer, result.data);
     // endsAt: cuándo deja (o dejó) de estar vigente, para mostrar "Vence el…" / "Venció el…"
     return { ...result, data: data.map((a) => ({ ...a, endsAt: announcementEndsAt(a) })) };
+  }
+
+  /** Lectura por ID para cualquier rol: solo si está entre los destinatarios (o es el autor). */
+  async getAnnouncementForViewer(viewer: Viewer, announcementId: string): Promise<Announcement> {
+    const visibility = await visibilityWhere(viewer);
+    const announcement = await this.announcementRepository.findVisibleById(announcementId, viewer.schoolId, viewer, visibility);
+    if (!announcement) throw new AppError('Comunicado no encontrado.', 404);
+    return announcement;
+  }
+
+  /** El aula de un comunicado tiene que ser del mismo colegio. */
+  private async assertClassroomInSchool(schoolId: string, classroomId?: string | null): Promise<void> {
+    if (!classroomId) return;
+    const found = await prisma.classroom.count({ where: { id: classroomId, schoolId } });
+    if (!found) throw new AppError('Aula no encontrada.', 404);
   }
 
   async getAnnouncementById(announcementId: string, schoolId: string): Promise<Announcement> {
@@ -61,12 +76,19 @@ export class AnnouncementService {
     createDto: CreateAnnouncementDto,
     authorRole?: string,
   ): Promise<Announcement> {
+    await this.assertClassroomInSchool(schoolId, createDto.classroomId);
     if (authorRole === 'TEACHER') {
       await this.validateTeacherAnnouncement(schoolId, authorId, createDto.classroomId, createDto.targetRoles);
     }
     const created = await this.announcementRepository.create(schoolId, authorId, createDto);
 
-    // Avisar (app + push) solo a quienes corresponde: roles destino y, si es de un aula, solo sus familias
+    // Avisar (app + push) solo a quienes corresponde: roles destino y, si es de un aula, solo sus familias.
+    // En segundo plano: con cientos de familias los push tardan y el autor no tiene por qué esperar.
+    void this.notifyNewAnnouncement(schoolId, created, createDto);
+    return created;
+  }
+
+  private async notifyNewAnnouncement(schoolId: string, created: Announcement, createDto: CreateAnnouncementDto): Promise<void> {
     try {
       const recipients = await announcementRecipients(created);
       if (recipients.length > 0) {
@@ -87,8 +109,6 @@ export class AnnouncementService {
     } catch (notifErr) {
       console.error('Error generating announcement notifications:', notifErr);
     }
-
-    return created;
   }
 
   async updateAnnouncement(
@@ -98,6 +118,7 @@ export class AnnouncementService {
     editor?: { userId: string; role: string },
   ): Promise<Announcement> {
     const current = await this.getAnnouncementById(announcementId, schoolId);
+    if (updateDto.classroomId !== undefined) await this.assertClassroomInSchool(schoolId, updateDto.classroomId);
     // Un docente solo puede modificar sus propios comunicados
     if (editor?.role === 'TEACHER') {
       if (current.authorId !== editor.userId) {
@@ -110,8 +131,16 @@ export class AnnouncementService {
     return this.announcementRepository.update(announcementId, schoolId, updateDto);
   }
 
-  async deleteAnnouncement(announcementId: string, schoolId: string): Promise<Announcement> {
-    await this.getAnnouncementById(announcementId, schoolId);
+  async deleteAnnouncement(
+    announcementId: string,
+    schoolId: string,
+    editor?: { userId: string; role: string },
+  ): Promise<Announcement> {
+    const current = await this.getAnnouncementById(announcementId, schoolId);
+    // Un docente solo puede eliminar sus propios comunicados
+    if (editor?.role === 'TEACHER' && current.authorId !== editor.userId) {
+      throw new AppError('Solo puedes eliminar tus propios comunicados.', 403);
+    }
     return this.announcementRepository.softDelete(announcementId, schoolId);
   }
 }

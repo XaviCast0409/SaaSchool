@@ -110,13 +110,27 @@ export async function enrichForViewer<T extends Announcement>(viewer: Viewer, li
 
   const canSeeStats = (a: T) => viewer.role === 'SCHOOL_ADMIN' || viewer.role === 'SUPER_ADMIN' || viewer.role === 'ADMINISTRATIVE' || a.authorId === viewer.userId;
   const stats = new Map<string, { expected: number; responded: number; tally: Record<string, number> }>();
-  for (const a of withResponse.filter(canSeeStats)) {
-    const [expected, responses] = await Promise.all([
-      expectedRespondents(a),
-      prisma.announcementResponse.findMany({ where: { announcementId: a.id }, select: { userId: true, studentId: true, response: true, respondedAt: true } }),
+  const visibleStats = withResponse.filter(canSeeStats);
+  if (visibleStats.length > 0) {
+    // Una consulta por alcance (todo el colegio o un aula) y una sola para todas las respuestas,
+    // en vez de recargar matrículas y familias por cada comunicado de la página
+    const scopes = [...new Set(visibleStats.map((a) => a.classroomId ?? ''))];
+    const [expectedByScope, responses] = await Promise.all([
+      Promise.all(scopes.map((c) => expectedRespondents({ schoolId: viewer.schoolId, classroomId: c || null }))).then(
+        (lists) => new Map(scopes.map((c, i) => [c, lists[i]])),
+      ),
+      prisma.announcementResponse.findMany({
+        where: { announcementId: { in: visibleStats.map((a) => a.id) } },
+        select: { announcementId: true, userId: true, studentId: true, response: true, respondedAt: true },
+      }),
     ]);
-    const s = summarizeByStudent(expected, responses);
-    stats.set(a.id, { expected: s.expectedStudents, responded: s.respondedStudents, tally: s.tally });
+    for (const a of visibleStats) {
+      const s = summarizeByStudent(
+        expectedByScope.get(a.classroomId ?? '') ?? [],
+        responses.filter((r) => r.announcementId === a.id),
+      );
+      stats.set(a.id, { expected: s.expectedStudents, responded: s.respondedStudents, tally: s.tally });
+    }
   }
   return list.map((a) => ({ ...a, myTargets: [], responseStats: stats.get(a.id) ?? null }));
 }

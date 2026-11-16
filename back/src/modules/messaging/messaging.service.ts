@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
 import { getSchoolNow } from '../../utils/timezone.util';
@@ -211,6 +212,8 @@ const STUDENT_WITH_CLASSROOM = {
     lastNamePaternal: true,
     enrollments: {
       where: { isActive: true },
+      // La matrícula más reciente: el aula de este año, no la de uno anterior
+      orderBy: { academicYear: { year: 'desc' as const } },
       take: 1,
       select: { classroom: { select: { grade: true, section: true, educationLevel: true } } },
     },
@@ -229,17 +232,46 @@ function counterpartOf(conv: { parentId: string; parent: Person; staff: Person }
   };
 }
 
+/** Conversaciones de la bandeja: apoderados, solo con el colegio; personal, con familias y con el equipo. */
+function inboxWhere(user: MessagingUser): Prisma.ConversationWhereInput {
+  return user.role === 'PARENT'
+    ? { schoolId: user.schoolId, parentId: user.userId, kind: 'FAMILY' }
+    : { schoolId: user.schoolId, OR: [{ staffId: user.userId }, { parentId: user.userId, kind: 'STAFF' }] };
+}
+
+/** ¿Hay mensajes posteriores a mi última lectura? Solo esas conversaciones necesitan conteo. */
+function mayHaveUnread(c: ConvParticipants & { lastMessageAt: Date }, userId: string): boolean {
+  const lastRead = myLastRead(c, userId);
+  return !lastRead || lastRead < c.lastMessageAt;
+}
+
+/**
+ * Mensajes sin leer por conversación en UNA consulta: los del otro participante posteriores
+ * a mi última lectura (antes era un conteo por cada conversación de la bandeja).
+ */
+async function unreadCountsFor(userId: string, conversationIds: string[]): Promise<Map<string, number>> {
+  if (conversationIds.length === 0) return new Map();
+  const rows = await prisma.$queryRaw<Array<{ id: string; n: number }>>`
+    SELECT m."conversationId" AS id, COUNT(*)::int AS n
+    FROM "Message" m
+    JOIN "Conversation" c ON c."id" = m."conversationId"
+    WHERE m."conversationId" IN (${Prisma.join(conversationIds)})
+      AND m."senderId" <> ${userId}
+      AND m."createdAt" > COALESCE(
+        CASE WHEN c."parentId" = ${userId} THEN c."parentLastReadAt" ELSE c."staffLastReadAt" END,
+        '-infinity'::timestamp
+      )
+    GROUP BY m."conversationId"`;
+  return new Map(rows.map((r) => [r.id, Number(r.n)]));
+}
+
 /**
  * Bandeja de conversaciones con su conteo de no leídos.
  * Apoderados: solo conversaciones con el colegio. Personal: con familias y con el equipo.
  */
 export async function listConversations(user: MessagingUser) {
-  const where =
-    user.role === 'PARENT'
-      ? { schoolId: user.schoolId, parentId: user.userId, kind: 'FAMILY' as const }
-      : { schoolId: user.schoolId, OR: [{ staffId: user.userId }, { parentId: user.userId, kind: 'STAFF' as const }] };
   const convs = await prisma.conversation.findMany({
-    where,
+    where: inboxWhere(user),
     orderBy: { lastMessageAt: 'desc' },
     take: 300,
     select: {
@@ -259,16 +291,11 @@ export async function listConversations(user: MessagingUser) {
     },
   });
   // Solo se cuentan mensajes en conversaciones con actividad posterior a mi última lectura
-  const unreadCounts = await Promise.all(
-    convs.map((c) => {
-      const lastRead = myLastRead(c, user.userId);
-      if (lastRead && lastRead >= c.lastMessageAt) return Promise.resolve(0);
-      return prisma.message.count({
-        where: { conversationId: c.id, senderId: { not: user.userId }, ...(lastRead ? { createdAt: { gt: lastRead } } : {}) },
-      });
-    }),
+  const unread = await unreadCountsFor(
+    user.userId,
+    convs.filter((c) => mayHaveUnread(c, user.userId)).map((c) => c.id),
   );
-  return convs.map((c, i) => {
+  return convs.map((c) => {
     const classroom = c.student?.enrollments[0]?.classroom;
     return {
       id: c.id,
@@ -279,15 +306,30 @@ export async function listConversations(user: MessagingUser) {
       counterpart: counterpartOf(c, user.userId),
       lastMessageAt: c.lastMessageAt,
       lastMessageText: c.lastMessageText,
-      unread: unreadCounts[i],
+      unread: unread.get(c.id) ?? 0,
       archived: isArchived(myArchivedAt(c, user.userId), c.lastMessageAt),
     };
   });
 }
 
+/**
+ * Total de no leídos para el globo del menú (se consulta cada 30 s desde todas las pantallas):
+ * sin cargar personas ni alumnos, solo las conversaciones con actividad nueva y un conteo agregado.
+ */
 export async function unreadTotal(user: MessagingUser): Promise<number> {
-  const list = await listConversations(user);
-  return list.reduce((s, c) => s + c.unread, 0);
+  const convs = await prisma.conversation.findMany({
+    where: inboxWhere(user),
+    orderBy: { lastMessageAt: 'desc' },
+    take: 300,
+    select: { id: true, parentId: true, parentLastReadAt: true, staffLastReadAt: true, parentArchivedAt: true, staffArchivedAt: true, lastMessageAt: true },
+  });
+  const counts = await unreadCountsFor(
+    user.userId,
+    convs.filter((c) => mayHaveUnread(c, user.userId)).map((c) => c.id),
+  );
+  let total = 0;
+  for (const n of counts.values()) total += n;
+  return total;
 }
 
 /** Personal del colegio con quien se puede abrir un chat interno. */

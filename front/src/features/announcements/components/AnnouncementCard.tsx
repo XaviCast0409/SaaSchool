@@ -21,6 +21,14 @@ import { getPeruToday } from '@/lib/dateUtils';
 import { toast } from 'sonner';
 import { formatEducationLevel } from '@/lib/utils';
 
+/** Firma del comunicado según quién lo publicó (antes Secretaría salía como «Dirección Escolar») */
+const AUTHOR_ROLE_LABEL: Record<string, string> = {
+  TEACHER: 'Docente',
+  ADMINISTRATIVE: 'Secretaría',
+  SCHOOL_ADMIN: 'Dirección',
+  SUPER_ADMIN: 'Soporte KIPUX',
+};
+
 interface AnnouncementCardProps {
   announcement: Announcement;
   onDelete?: (id: string) => void;
@@ -223,7 +231,7 @@ export const AnnouncementCard: React.FC<AnnouncementCardProps> = ({
               {announcement.author.firstName} {announcement.author.lastNamePaternal}
             </span>
             <span className="text-xs text-muted-foreground">
-              • {announcement.author.role === 'TEACHER' ? 'Docente de Aula' : 'Dirección Escolar'}
+              • {AUTHOR_ROLE_LABEL[announcement.author.role] ?? 'Colegio'}
             </span>
           </div>
         )}
