@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { prisma } from '../../config/prisma';
-import { recordAudit } from '../../utils/audit.util';
+import { buildAuditData, recordAudit } from '../../utils/audit.util';
 import { AppError } from '../../core/errors/app-error';
 import * as S from './academic.schema';
 import type { AcademicUser } from './academic.context';
@@ -181,22 +181,45 @@ export const academicController = {
   saveScores: async (req: Request, res: Response) => {
     const b = S.scoresBody.parse(req.body);
     const { schoolId, user } = ctx(req);
-    const data = await gradebook.saveScores(schoolId, user, String(req.params.assignmentId), b.periodNumber, b.items);
-    recordAudit(req, { action: data.correction ? 'GRADES_SAVE_CORRECTION' : 'GRADES_SAVE', entity: 'CourseAssignment', entityId: String(req.params.assignmentId), after: { periodNumber: b.periodNumber, count: b.items.length, items: data.correction ? b.items : undefined, reason: b.reason ?? null } });
+    const assignmentId = String(req.params.assignmentId);
+    // La bitácora (con valor anterior → nuevo de cada nota) se guarda en la misma transacción que las notas
+    const data = await gradebook.saveScores(schoolId, user, assignmentId, b.periodNumber, b.items, ({ correction, changes }) =>
+      buildAuditData(req, {
+        action: correction ? 'GRADES_SAVE_CORRECTION' : 'GRADES_SAVE',
+        entity: 'CourseAssignment',
+        entityId: assignmentId,
+        after: { periodNumber: b.periodNumber, count: changes.length, changes, reason: b.reason ?? null },
+      }),
+    );
     ok(res, data);
   },
   setFinalLetter: async (req: Request, res: Response) => {
     const b = S.finalLetterBody.parse(req.body);
     const { schoolId, user } = ctx(req);
     const data = await gradebook.setFinalLetter(schoolId, user, String(req.params.assignmentId), b.periodNumber, b);
-    recordAudit(req, { action: data.correction ? 'GRADES_FINAL_LETTER_CORRECTION' : 'GRADES_FINAL_LETTER', entity: 'CourseAssignment', entityId: String(req.params.assignmentId), after: b });
+    if (data.before !== data.after) {
+      recordAudit(req, {
+        action: data.correction ? 'GRADES_FINAL_LETTER_CORRECTION' : 'GRADES_FINAL_LETTER',
+        entity: 'CourseAssignment',
+        entityId: String(req.params.assignmentId),
+        before: { finalLetter: data.before },
+        after: { ...b, finalLetter: data.after, requested: b.finalLetter },
+      });
+    }
     ok(res, data);
   },
   saveConclusions: async (req: Request, res: Response) => {
     const b = S.conclusionsBody.parse(req.body);
     const { schoolId, user } = ctx(req);
-    const data = await gradebook.saveConclusions(schoolId, user, String(req.params.assignmentId), b.periodNumber, b.items);
-    recordAudit(req, { action: data.correction ? 'GRADES_CONCLUSIONS_CORRECTION' : 'GRADES_CONCLUSIONS', entity: 'CourseAssignment', entityId: String(req.params.assignmentId), after: { periodNumber: b.periodNumber, count: b.items.length, reason: b.reason ?? null } });
+    const assignmentId = String(req.params.assignmentId);
+    const data = await gradebook.saveConclusions(schoolId, user, assignmentId, b.periodNumber, b.items, ({ correction, changes }) =>
+      buildAuditData(req, {
+        action: correction ? 'GRADES_CONCLUSIONS_CORRECTION' : 'GRADES_CONCLUSIONS',
+        entity: 'CourseAssignment',
+        entityId: assignmentId,
+        after: { periodNumber: b.periodNumber, count: changes.length, changes, reason: b.reason ?? null },
+      }),
+    );
     ok(res, data);
   },
   setCourseCriteria: async (req: Request, res: Response) => {

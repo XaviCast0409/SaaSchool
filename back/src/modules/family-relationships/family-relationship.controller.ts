@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { assertStudentAccess } from '../../core/security/student-access';
+import { recordAudit } from '../../utils/audit.util';
 import {
   createFamilyRelationshipSchema,
   updateFamilyRelationshipSchema,
@@ -63,7 +64,8 @@ export class FamilyRelationshipController {
   /** POST /api/family-relationships */
   create = async (request: Request, response: Response): Promise<void> => {
     const createDto = createFamilyRelationshipSchema.parse(request.body);
-    const relationship = await this.familyRelationshipService.create(createDto);
+    const relationship = await this.familyRelationshipService.create(request.user!.schoolId, createDto);
+    recordAudit(request, { action: 'FAMILY_LINK_CREATED', entity: 'FamilyRelationship', entityId: relationship.id, after: createDto });
     response.status(201).json({ status: 'success', data: relationship });
   };
 
@@ -72,7 +74,15 @@ export class FamilyRelationshipController {
     const schoolId = request.user!.schoolId;
     const id = String(request.params.id);
     const updateDto = updateFamilyRelationshipSchema.parse(request.body);
+    const before = await this.familyRelationshipService.getById(id, schoolId);
     const relationship = await this.familyRelationshipService.update(id, schoolId, updateDto);
+    recordAudit(request, {
+      action: 'FAMILY_LINK_UPDATED',
+      entity: 'FamilyRelationship',
+      entityId: id,
+      before: { studentId: before.studentId, userId: before.userId, relationshipType: before.relationshipType, isLegalGuardian: before.isLegalGuardian, isFinancialResponsible: before.isFinancialResponsible },
+      after: { studentId: before.studentId, userId: before.userId, ...updateDto },
+    });
     response.status(200).json({ status: 'success', data: relationship });
   };
 
@@ -80,7 +90,14 @@ export class FamilyRelationshipController {
   delete = async (request: Request, response: Response): Promise<void> => {
     const schoolId = request.user!.schoolId;
     const id = String(request.params.id);
+    const before = await this.familyRelationshipService.getById(id, schoolId);
     await this.familyRelationshipService.delete(id, schoolId);
+    recordAudit(request, {
+      action: 'FAMILY_LINK_DELETED',
+      entity: 'FamilyRelationship',
+      entityId: id,
+      before: { studentId: before.studentId, userId: before.userId, relationshipType: before.relationshipType },
+    });
     response.status(204).send();
   };
 }
