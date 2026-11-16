@@ -5,6 +5,7 @@ import { AppError } from '../../core/errors/app-error';
 import { hashPassword } from '../../utils/hash.util';
 import { generateTemporaryPassword, PASSWORD_POLICY_REGEX } from '../../utils/password.util';
 import { invalidatePrincipalCache } from '../../core/security/principal-status';
+import { invalidateSchoolStatus } from '../../core/security/school-status';
 import { slugify, slugCandidates } from './school-slug.rules';
 
 /**
@@ -165,6 +166,7 @@ export class SchoolRepository {
 
   async update(schoolId: string, data: UpdateSchoolDto): Promise<School> {
     const { planExpiresAt, ...schoolData } = data;
+    invalidateSchoolStatus(schoolId);
 
     return prisma.school.update({
       where: { id: schoolId },
@@ -178,6 +180,7 @@ export class SchoolRepository {
   }
 
   async deactivate(schoolId: string): Promise<School> {
+    invalidateSchoolStatus(schoolId);
     return prisma.school.update({
       where: { id: schoolId },
       data: { isActive: false },
@@ -185,6 +188,7 @@ export class SchoolRepository {
   }
 
   async reactivate(schoolId: string): Promise<School> {
+    invalidateSchoolStatus(schoolId);
     return prisma.school.update({
       where: { id: schoolId },
       data: { isActive: true },

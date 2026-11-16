@@ -14,7 +14,7 @@ import type {
   RegisterFichaMatriculaDto,
   BulkCredentialsDto,
 } from './student.schema';
-import type { Student } from '@prisma/client';
+import type { SafeStudent as Student } from '../../config/prisma';
 import type { PaginatedResult } from '../../core/interfaces/global.interfaces';
 import { SIAGIE_CATALOGS } from './student.catalogs';
 import { feeScheduleService } from '../payments/fee-schedule.service';
@@ -468,13 +468,22 @@ export class StudentService {
         },
       },
     });
+    // Quién ya tiene contraseña (el hash no sale en las consultas normales: se pide solo aquí, sin traerlo)
+    const studentIds = enrollments.map((e) => e.student.id);
+    const userIds = enrollments.flatMap((e) => e.student.familyRelations.map((r) => r.userId));
+    const [studentsWithPassword, usersWithPassword] = await Promise.all([
+      prisma.student.findMany({ where: { id: { in: studentIds }, passwordHash: { not: null } }, select: { id: true } }),
+      prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true } }),
+    ]);
+    const hasStudentPassword = new Set(studentsWithPassword.map((s) => s.id));
+    const hasUserPassword = new Set(usersWithPassword.map((u) => u.id));
 
     const results: Array<{ id: string; fullName: string; login: string; temporaryPassword: string }> = [];
 
     if (dto.target === 'STUDENTS') {
       for (const enr of enrollments) {
         const student = enr.student;
-        if (dto.onlyPending && student.passwordHash && student.mustChangePassword === false) {
+        if (dto.onlyPending && hasStudentPassword.has(student.id) && student.mustChangePassword === false) {
           continue;
         }
         const temporaryPassword = generateTemporaryPassword();
@@ -501,7 +510,7 @@ export class StudentService {
           if (rel.isLegalGuardian && !processedUsers.has(rel.userId)) {
             processedUsers.add(rel.userId);
             const user = rel.user;
-            if (dto.onlyPending && user.passwordHash && user.mustChangePassword === false) {
+            if (dto.onlyPending && hasUserPassword.has(user.id) && user.mustChangePassword === false) {
               continue;
             }
             const temporaryPassword = generateTemporaryPassword();

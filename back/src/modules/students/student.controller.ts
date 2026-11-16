@@ -212,7 +212,7 @@ export class StudentController {
       },
     });
     if (!student) throw new AppError('Estudiante no encontrado', 404);
-    const { passwordHash: _omit, ...safeStudent } = student;
+    const safeStudent = student; // el hash de contraseña nunca sale de la BD (omisión global en config/prisma)
     recordAudit(request, { action: 'STUDENT_DATA_EXPORTED', entity: 'Student', entityId: id });
     response.setHeader('Content-Disposition', `attachment; filename="datos-alumno-${id}.json"`);
     response.status(200).json({ exportedAt: new Date().toISOString(), student: safeStudent });

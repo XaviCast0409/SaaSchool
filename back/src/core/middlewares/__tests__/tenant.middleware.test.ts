@@ -11,6 +11,7 @@ vi.mock('../../../config/prisma', () => ({
 }));
 
 import { tenantMiddleware } from '../tenant.middleware';
+import { __resetSchoolStatusCache } from '../../security/school-status';
 
 const SCHOOL_A = '11111111-1111-1111-1111-111111111111';
 const SCHOOL_B = '22222222-2222-2222-2222-222222222222';
@@ -25,6 +26,7 @@ describe('tenantMiddleware (aislamiento entre colegios)', () => {
   beforeEach(() => {
     findUnique.mockReset();
     auditCreate.mockClear();
+    __resetSchoolStatusCache();
     findUnique.mockResolvedValue({ id: SCHOOL_A, isActive: true });
   });
 
@@ -77,6 +79,7 @@ describe('tenantMiddleware (aislamiento entre colegios)', () => {
     findUnique.mockResolvedValue(null);
     await expect(tenantMiddleware(makeReq({ id: 'u', role: 'TEACHER', schoolId: SCHOOL_A }), {} as Response, vi.fn())).rejects.toMatchObject({ statusCode: 401 });
 
+    __resetSchoolStatusCache(); // el colegio cambia de estado (en la app lo hace invalidateSchoolStatus)
     findUnique.mockResolvedValue({ id: SCHOOL_A, isActive: false });
     await expect(tenantMiddleware(makeReq({ id: 'u', role: 'TEACHER', schoolId: SCHOOL_A }), {} as Response, vi.fn())).rejects.toMatchObject({
       statusCode: 403,
@@ -115,5 +118,12 @@ describe('tenantMiddleware (aislamiento entre colegios)', () => {
       await tenantMiddleware(makeReq({ id: 'sa', role: 'SUPER_ADMIN', schoolId: null }, { 'x-school-id': SCHOOL_B }, 'POST'), {} as Response, next);
       expect(next).toHaveBeenCalled();
     });
+  });
+
+  it('usa caché: dos peticiones seguidas del mismo colegio consultan la BD una sola vez', async () => {
+    const req = () => makeReq({ id: 'u', role: 'TEACHER', schoolId: SCHOOL_A });
+    await tenantMiddleware(req(), {} as Response, vi.fn());
+    await tenantMiddleware(req(), {} as Response, vi.fn());
+    expect(findUnique).toHaveBeenCalledTimes(1);
   });
 });

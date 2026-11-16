@@ -1,8 +1,8 @@
 import { classroomYearService } from '../classrooms/classroom-year.service';
 import { LEVEL_LABEL } from '../academic/cneb.catalog';
 import { dateOnlyKey, getSchoolNow } from '../../utils/timezone.util';
-import { prisma } from '../../config/prisma';
-import type { Prisma, Student } from '@prisma/client';
+import { prisma, type SafeStudent } from '../../config/prisma';
+import type { Prisma } from '@prisma/client';
 import type { CreateStudentDto, UpdateStudentDto, StudentFilterDto, RegisterFichaMatriculaDto } from './student.schema';
 import type { PaginatedResult } from '../../core/interfaces/global.interfaces';
 import { AppError } from '../../core/errors/app-error';
@@ -13,7 +13,7 @@ export class StudentRepository {
   async findAllBySchool(
     schoolId: string,
     filters: StudentFilterDto = { page: 1, limit: 10 },
-  ): Promise<PaginatedResult<Student>> {
+  ): Promise<PaginatedResult<SafeStudent>> {
     const { page, limit, search, classroomId, educationLevel, grade, section, academicYearId, scope, actorRole, actorUserId } = filters;
     const skip = (page - 1) * limit;
 
@@ -171,7 +171,7 @@ export class StudentRepository {
     };
   }
 
-  async findById(studentId: string, schoolId: string): Promise<Student | null> {
+  async findById(studentId: string, schoolId: string): Promise<SafeStudent | null> {
     return prisma.student.findFirst({
       where: { id: studentId, schoolId },
       include: {
@@ -203,13 +203,13 @@ export class StudentRepository {
     });
   }
 
-  async findByDocumentId(schoolId: string, documentId: string): Promise<Student | null> {
+  async findByDocumentId(schoolId: string, documentId: string): Promise<SafeStudent | null> {
     return prisma.student.findFirst({
       where: { schoolId, documentId },
     });
   }
 
-  async findByStudentCode(schoolId: string, studentCode: string): Promise<Student | null> {
+  async findByStudentCode(schoolId: string, studentCode: string): Promise<SafeStudent | null> {
     return prisma.student.findFirst({
       where: { schoolId, studentCode },
     });
@@ -265,7 +265,7 @@ export class StudentRepository {
     return school?.plan || 'BASIC';
   }
 
-  async create(schoolId: string, data: CreateStudentDto): Promise<Student> {
+  async create(schoolId: string, data: CreateStudentDto): Promise<SafeStudent> {
     return prisma.student.create({
       data: {
         ...data,
@@ -279,7 +279,7 @@ export class StudentRepository {
     studentId: string,
     schoolId: string,
     data: UpdateStudentDto,
-  ): Promise<Student> {
+  ): Promise<SafeStudent> {
     return prisma.student.update({
       where: { id: studentId, schoolId },
       data: {
@@ -289,7 +289,7 @@ export class StudentRepository {
     });
   }
 
-  async delete(studentId: string, schoolId: string): Promise<Student> {
+  async delete(studentId: string, schoolId: string): Promise<SafeStudent> {
     return prisma.student.delete({
       where: { id: studentId, schoolId },
     });
@@ -317,7 +317,7 @@ export class StudentRepository {
     data: RegisterFichaMatriculaDto,
     guardianPasswordHash: string,
     studentPasswordHash: string,
-  ): Promise<{ student: Student; enrollmentId: string; schedule: ScheduleResult; guardianCreated: boolean }> {
+  ): Promise<{ student: SafeStudent; enrollmentId: string; schedule: ScheduleResult; guardianCreated: boolean }> {
     return prisma.$transaction(async (tx) => {
       let guardianCreated = false;
       // 1. Verificar si ya existe estudiante con ese documento en el colegio
