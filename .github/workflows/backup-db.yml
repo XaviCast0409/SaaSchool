@@ -50,9 +50,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Debe ser igual o mayor que la versión del servidor en Render (18.x); pg_dump se niega a respaldar versiones nuevas
+      # Debe ser igual o mayor que la versión del servidor en Render (18.x); pg_dump se niega a respaldar versiones nuevas.
+      # Ubuntu no trae la 18: se agrega el repositorio oficial de PostgreSQL (PGDG) con su script.
       - name: Instalar cliente PostgreSQL 18
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client-18
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-18
+          # Usar los binarios de la 18 aunque el runner traiga otra versión preinstalada
+          echo "/usr/lib/postgresql/18/bin" >> "$GITHUB_PATH"
+          /usr/lib/postgresql/18/bin/pg_dump --version
 
       - uses: pnpm/action-setup@v4
         with:
