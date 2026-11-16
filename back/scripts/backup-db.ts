@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { promisify } from 'util';
 import { DeleteObjectsCommand, ListObjectsV2Command, PutObjectCommand } from '@aws-sdk/client-s3';
-import { createR2Client, readR2Config } from '../src/modules/files/r2-client';
+import { createR2Client, isValidR2AccountId, readR2Config } from '../src/modules/files/r2-client';
 import { BACKUP_PREFIX } from '../src/modules/files/storage-provider.rules';
 import { encryptFile } from './backup-crypto';
 
@@ -49,7 +49,16 @@ function getR2() {
     R2_BUCKET: env.BACKUP_R2_BUCKET,
     R2_ENDPOINT: env.BACKUP_R2_ENDPOINT,
   });
-  if (dedicated) return { client: createR2Client(dedicated), bucket: dedicated.bucket, dedicated: true };
+  if (dedicated) {
+    // Diagnóstico sin exponer valores (los logs de un repo público los ve cualquiera)
+    if (!isValidR2AccountId(dedicated.accountId)) {
+      throw new Error(
+        `BACKUP_R2_ACCOUNT_ID no tiene el formato de un ID de cuenta (32 caracteres hexadecimales; llegaron ${dedicated.accountId.length}). ` +
+          'Cópialo de la portada de R2 en Cloudflare ("Account ID").',
+      );
+    }
+    return { client: createR2Client(dedicated), bucket: dedicated.bucket, dedicated: true };
+  }
 
   const shared = readR2Config(env);
   if (!shared) {
