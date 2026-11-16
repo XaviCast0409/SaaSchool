@@ -84,4 +84,4 @@ databases:
     region: oregon
     databaseName: saaschool
     user: saaschool
-    postgresMajorVersion: "16"
+    postgresMajorVersion: "18" # versión real del servidor en Render (18.6)

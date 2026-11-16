@@ -35,7 +35,7 @@ jobs:
     services:
       # Base vacía y desechable para probar que el respaldo se puede restaurar
       restore-test:
-        image: postgres:16
+        image: postgres:18
         env:
           POSTGRES_USER: restore
           POSTGRES_PASSWORD: restore
@@ -50,8 +50,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Instalar cliente PostgreSQL 16
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client-16
+      # Debe ser igual o mayor que la versión del servidor en Render (18.x); pg_dump se niega a respaldar versiones nuevas
+      - name: Instalar cliente PostgreSQL 18
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client-18
 
       - uses: pnpm/action-setup@v4
         with:
