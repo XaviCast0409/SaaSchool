@@ -114,7 +114,7 @@ export const IncidentsPage: React.FC = () => {
               <ShieldAlert className="w-5 h-5" />
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
-              Agenda de Incidencias y Tópico
+              Agenda e incidencias
             </h1>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground">

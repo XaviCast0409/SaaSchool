@@ -16,6 +16,7 @@ import { useSelectedAcademicYear } from '@/components/AcademicYearSwitcher';
 import { RolloverModal } from '../components/RolloverModal';
 import { QuickEnrollModal, type QuickEnrollStudent } from '../components/QuickEnrollModal';
 import { useAcademicYears, pickEnrollmentTargetYear } from '@/features/academic-years/api/useAcademicYears';
+import { useQueryAction } from '@/lib/useQueryAction';
 
 export const StudentsPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -24,9 +25,10 @@ export const StudentsPage: React.FC = () => {
     user?.role === 'SUPER_ADMIN' ||
     user?.role === 'ADMINISTRATIVE';
 
-  // Estados de modales
-  const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
-  const [isSectionQrModalOpen, setIsSectionQrModalOpen] = useState(false);
+  // Estados de modales (un acceso rápido del Inicio puede abrir uno con ?abrir=)
+  const openAction = useQueryAction();
+  const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(() => canManageStudents && openAction === 'matricula');
+  const [isSectionQrModalOpen, setIsSectionQrModalOpen] = useState(() => canManageStudents && openAction === 'carnets');
   const [isNominaModalOpen, setIsNominaModalOpen] = useState(false);
   const [isBulkCredentialsModalOpen, setIsBulkCredentialsModalOpen] = useState(false);
   const [isNominaImportOpen, setIsNominaImportOpen] = useState(false);

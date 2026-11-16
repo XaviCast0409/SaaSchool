@@ -108,7 +108,7 @@ const schoolNavSections: NavSection[] = [
     items: [
       { label: 'Inicio', path: '/dashboard', icon: LayoutDashboard, roles: STAFF, minPlan: 'BASIC', keywords: 'dashboard panel resumen' },
       { label: 'Asistencia', path: '/attendance', icon: CalendarCheck, roles: STAFF, minPlan: 'BASIC', tabs: ATTENDANCE_TABS, keywords: 'kiosco qr tardanzas faltas' },
-      { label: 'Portería (salidas)', path: '/gate', icon: DoorOpen, roles: OFFICE, minPlan: 'BASIC', keywords: 'recojo salida' },
+      { label: 'Portería', path: '/gate', icon: DoorOpen, roles: OFFICE, minPlan: 'BASIC', keywords: 'recojo salidas aún en el colegio' },
       { label: 'Agenda e incidencias', path: '/incidents', icon: ShieldAlert, roles: STAFF, minPlan: 'BASIC', keywords: 'conducta siseve' },
       { label: 'Horario de clases', path: '/schedule', icon: Clock3, roles: STAFF, minPlan: 'BASIC' },
       { label: 'Calendario escolar', path: '/calendar', icon: CalendarDays, roles: STAFF, minPlan: 'BASIC', keywords: 'feriados eventos' },

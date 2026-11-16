@@ -19,7 +19,6 @@ import {
   Search,
   X,
   Sliders,
-  CalendarOff,
   LogOut,
 } from 'lucide-react';
 import { useAttendance, useUpdateAttendance } from '../api/useAttendance';
@@ -32,14 +31,12 @@ import { QrScannerModal } from '../components/QrScannerModal';
 import { CheckoutModal } from '../components/CheckoutModal';
 import { AttendanceSheetView } from '../components/AttendanceSheetView';
 import { AttendanceScheduleModal } from '../components/AttendanceScheduleModal';
-import { HolidaysModal } from '../components/HolidaysModal';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
 import { useAuthStore } from '@/store/useAuthStore';
 import { getPeruToday, getPeruCurrentMonth, formatPeruTime, formatPeruDate } from '@/lib/dateUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { AttendanceStatus, AttendanceRecord } from '../types';
@@ -78,7 +75,6 @@ const StaffAttendancePage: React.FC = () => {
   const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
-  const [isHolidaysModalOpen, setIsHolidaysModalOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ABSENT' | 'LATE' | 'PRESENT'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [notesModalRecord, setNotesModalRecord] = useState<AttendanceRecord | null>(null);
@@ -167,84 +163,62 @@ const StaffAttendancePage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">      {/* Header */}
-      <div className="p-5 sm:p-7 rounded-2xl bg-card border border-border shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <Badge className="bg-primary/10 text-primary border-primary/20 gap-1 text-xs font-bold">
-              <CalendarCheck className="w-3.5 h-3.5" />
-              <span>Control de Asistencia Escolar</span>
-            </Badge>
-          </div>
-          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
-            Asistencia y Puntualidad
-          </h1>
+    <div className="space-y-6">
+      {/* Cabecera: solo las acciones del día. Los feriados viven en Calendario escolar y las salidas, en Portería */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="space-y-1">
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">Asistencia</h1>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            Pase de lista diario, consulta mensual y exportación oficial para Actas SIAGIE.
+            Pase de lista diario, consulta mensual y exportación para las actas SIAGIE.
           </p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap self-start md:self-auto">
-          {/* Lector QR / Kiosco en Puerta */}
           {!isNonTutorTeacher && (
-          <>
-          <Button
-            onClick={() => setIsQrScannerOpen(true)}
-            className="gap-2 shadow-sm bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl h-10 px-4"
-          >
-            <QrCode className="w-4 h-4" />
-            <span>Lector QR</span>
-          </Button>
-
-          {/* Registrar salida */}
-          <Button
-            variant="outline"
-            onClick={() => setIsCheckoutOpen(true)}
-            className="gap-2 shadow-sm rounded-xl h-10 px-4 font-bold border-border hover:bg-accent"
-          >
-            <LogOut className="w-4 h-4 text-primary" />
-            <span>Registrar salida</span>
-          </Button>
-          </>
-          )}
-
-          {/* Configuración de Horarios & Auto-Cierre */}
-          {canConfigureSchedule && (
             <>
               <Button
-                variant="outline"
-                onClick={() => setIsScheduleModalOpen(true)}
-                className="gap-2 shadow-sm rounded-xl h-10 px-4 font-bold border-border hover:bg-accent"
-                title="Configurar horarios de entrada, tardanza y auto-cierre"
+                onClick={() => setIsQrScannerOpen(true)}
+                className="gap-2 shadow-sm font-bold rounded-xl h-10 px-4"
               >
-                <Sliders className="w-4 h-4 text-primary" />
-                <span>Horarios y Cierre</span>
+                <QrCode className="w-4 h-4" />
+                <span>Lector QR</span>
               </Button>
 
               <Button
                 variant="outline"
-                onClick={() => setIsHolidaysModalOpen(true)}
-                className="gap-2 shadow-sm rounded-xl h-10 px-4 font-bold border-border hover:bg-accent"
-                title="Gestionar feriados y días no laborables"
+                onClick={() => setIsBulkModalOpen(true)}
+                className="gap-2 shadow-sm rounded-xl h-10 px-4 font-bold"
               >
-                <CalendarOff className="w-4 h-4 text-primary" />
-                <span>Feriados</span>
+                <UserCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span>Tomar asistencia del aula</span>
               </Button>
             </>
           )}
 
-          {/* Tomar Asistencia Masiva Button */}
-          {!isNonTutorTeacher && (
+          {/* El tutor registra la salida desde aquí; Dirección y Secretaría lo hacen en Portería */}
+          {isTeacher && isTutor && (
+            <Button
+              variant="outline"
+              onClick={() => setIsCheckoutOpen(true)}
+              className="gap-2 shadow-sm rounded-xl h-10 px-4 font-bold"
+            >
+              <LogOut className="w-4 h-4 text-primary" />
+              <span>Registrar salida</span>
+            </Button>
+          )}
 
-          <Button
-            variant="outline"
-            onClick={() => setIsBulkModalOpen(true)}
-            disabled={isTeacher && !isTutor}
-            className="gap-2 shadow-sm rounded-xl h-10 px-4 font-bold"
-          >
-            <UserCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            <span>Tomar Asistencia del Aula</span>
-          </Button>
+          {/* Configuración de horarios de entrada, tolerancia y cierre automático */}
+          {canConfigureSchedule && (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setIsScheduleModalOpen(true)}
+              className="h-10 w-10 rounded-xl shadow-sm"
+              title="Horarios de entrada, tolerancia y cierre automático"
+              aria-label="Configurar horarios y cierre de asistencia"
+            >
+              <Sliders className="w-4 h-4" />
+            </Button>
           )}
         </div>
       </div>
@@ -847,12 +821,7 @@ const StaffAttendancePage: React.FC = () => {
       )}
 
       {/* Modal de Feriados y Días No Laborables */}
-      {isHolidaysModalOpen && (
-        <HolidaysModal
-          isOpen={isHolidaysModalOpen}
-          onClose={() => setIsHolidaysModalOpen(false)}
-        />
-      )}
+
     </div>
   );
 };

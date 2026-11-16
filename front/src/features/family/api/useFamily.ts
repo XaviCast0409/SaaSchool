@@ -41,7 +41,12 @@ export const useFamilyTimeline = (studentId: string | null, days = 14) =>
 export interface GateToday {
   present: number;
   checkedOut: number;
+  /** Ingresaron y aún no registran salida */
+  stillInSchool: number;
+  isSchoolDay: boolean;
+  nonSchoolDayReason: string | null;
   rows: Array<{ id: string; checkOutTime: string; student: string; classroom: string; pickedUpByName: string | null; pickedUpByDocument: string | null; earlyLeaveReason: string | null }>;
+  inSchool: Array<{ id: string; checkInTime: string | null; student: string; classroom: string }>;
 }
 
 export const useGateToday = () =>

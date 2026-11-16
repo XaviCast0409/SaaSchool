@@ -3,10 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   Users,
   CreditCard,
-  BookOpenCheck,
-  CalendarCheck,
-  Building2,
-  ArrowRight,
   UserPlus,
   PlusCircle,
   Megaphone,
@@ -14,7 +10,6 @@ import {
   DollarSign,
   CheckCircle2,
   Clock,
-  Sparkles,
   QrCode,
   School,
 } from 'lucide-react';
@@ -23,20 +18,17 @@ import { useStudents } from '@/features/students/api/useStudents';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
 import { useFinancialSummary } from '@/features/payments/api/usePayments';
 import { useGetAnnouncements } from '@/features/announcements/api/useAnnouncements';
-import { useAttendance } from '@/features/attendance/api/useAttendance';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ActionsPanel } from '@/features/insights/components/ActionsPanel';
 import { Button } from '@/components/ui/button';
 
 import { ParentPortalPage } from '@/features/parent/pages/ParentPortalPage';
 import { TeacherDashboardView } from '../components/TeacherDashboardView';
-import { formatPeruShortDate, getPeruToday } from '@/lib/dateUtils';
+import { formatPeruDate, formatPeruShortDate, getPeruToday } from '@/lib/dateUtils';
+import { TodayPanel } from '../components/TodayPanel';
 import { useDashboardOnboarding } from '../api/useDashboardOnboarding';
 import { DirectorOnboardingCard } from '../components/DirectorOnboardingCard';
 import { SchoolSettingsModal } from '@/features/schools/components/SchoolSettingsModal';
-import { useGetActiveSchool } from '@/features/schools/api/useSchool';
-import { SubscriptionPlan } from '@/features/schools/types';
-import { PLAN_HIERARCHY } from '@/layouts/navigation';
 
 export const DashboardPage: React.FC = () => {
   const { user, impersonatedSchool } = useAuthStore();
@@ -110,42 +102,6 @@ const TONES = {
   },
 } as const;
 
-interface ModuleCardProps {
-  icon: React.ComponentType<{ className?: string }>;
-  iconClass: string;
-  title: string;
-  description: string;
-  actionLabel: string;
-  onClick: () => void;
-  badge?: React.ReactNode;
-}
-
-const ModuleCard: React.FC<ModuleCardProps> = ({ icon: Icon, iconClass, title, description, actionLabel, onClick, badge }) => (
-  <Card className="flex flex-col justify-between hover:border-primary/50 transition-colors">
-    <CardHeader>
-      <div className="flex items-center justify-between">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Icon className={`w-5 h-5 ${iconClass}`} />
-          {title}
-        </CardTitle>
-        {badge}
-      </div>
-      <CardDescription className="text-xs">{description}</CardDescription>
-    </CardHeader>
-    <CardContent className="pt-0">
-      <Button
-        variant="ghost"
-        size="sm"
-        className="w-full justify-between text-xs font-semibold text-primary"
-        onClick={onClick}
-      >
-        <span>{actionLabel}</span>
-        <ArrowRight className="w-4 h-4" />
-      </Button>
-    </CardContent>
-  </Card>
-);
-
 const StaffDashboard: React.FC = () => {
   const { user, impersonatedSchool } = useAuthStore();
   const navigate = useNavigate();
@@ -157,9 +113,6 @@ const StaffDashboard: React.FC = () => {
 
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
   const { data: onboarding } = useDashboardOnboarding(isAdmin);
-  const { data: activeSchool } = useGetActiveSchool();
-  const currentPlan: SubscriptionPlan = (activeSchool?.plan as SubscriptionPlan) || 'BASIC';
-  const isProPlan = (PLAN_HIERARCHY[currentPlan] || 1) >= (PLAN_HIERARCHY.PRO || 2);
 
   // Queries segregadas por rol para prevenir 403 y llamadas innecesarias.
   // Del listado de alumnos solo interesa el total: basta con pedir una fila.
@@ -169,10 +122,6 @@ const StaffDashboard: React.FC = () => {
   const { data: classrooms = [] } = useClassrooms(isAdministrative);
   const classroomsCount = classrooms.length;
 
-  // Asistencia de hoy (solo Dirección): las estadísticas vienen agregadas del backend
-  const { data: todayAttendance } = useAttendance({ date: getPeruToday(), page: 1, limit: 1 }, isAdmin);
-  const todayStats = todayAttendance?.stats;
-  const todayAttended = (todayStats?.present ?? 0) + (todayStats?.late ?? 0);
 
   // Solo el director consulta el resumen macro financiero con montos en soles
   const { data: financialSummary } = useFinancialSummary(canSeeMacroFinances);
@@ -186,23 +135,17 @@ const StaffDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-8">
-      {/* Welcome Banner */}
-      <div className="relative overflow-hidden p-6 sm:p-8 rounded-2xl bg-gradient-to-r from-primary/15 via-primary/5 to-card border border-primary/20 shadow-sm">
-        <div className="relative z-10 space-y-2">
-          <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
-            <Building2 className="w-4 h-4" />
-            <span>KIPUX • Entorno Seguro</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-            ¡Hola, {user?.firstName} {user?.lastNamePaternal}!
-          </h1>
-          <p className="text-sm text-muted-foreground max-w-2xl">
-            {isAdmin
-              ? 'Panel de control ejecutivo. Supervisa matriculados, estado de cobranzas y emite avisos oficiales.'
-              : 'Panel de secretaría y caja. Gestiona matrículas, cobro de pensiones en ventanilla, carnets QR y circulares.'}
-          </p>
-        </div>
+      {/* Saludo breve: lo importante es el bloque «Hoy» */}
+      <div className="space-y-1">
+        <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
+          Hola, {user?.firstName}
+        </h1>
+        <p className="text-sm text-muted-foreground first-letter:uppercase">
+          {formatPeruDate(getPeruToday(), { weekday: 'long', day: 'numeric', month: 'long' })}
+        </p>
       </div>
+
+      <TodayPanel />
 
       {/* Guía de puesta en marcha para el director */}
       {isAdmin && onboarding && onboarding.percent < 100 && (
@@ -223,17 +166,17 @@ const StaffDashboard: React.FC = () => {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {isAdmin ? (
             <>
-              <QuickAction icon={UserPlus} title="Nuevo Alumno" subtitle="Registrar matrícula" onClick={() => navigate('/students')} {...TONES.primary} />
-              <QuickAction icon={DollarSign} title="Registrar Pago" subtitle="Ingreso manual" onClick={() => navigate('/payments')} {...TONES.emerald} />
-              <QuickAction icon={PlusCircle} title="Cobros Masivos" subtitle="Generar por aula" onClick={() => navigate('/payments')} {...TONES.amber} />
-              <QuickAction icon={Megaphone} title="Publicar Aviso" subtitle="Comunicados" onClick={() => navigate('/announcements')} {...TONES.primary} />
+              <QuickAction icon={UserPlus} title="Nuevo alumno" subtitle="Registrar matrícula" onClick={() => navigate('/students?abrir=matricula')} {...TONES.primary} />
+              <QuickAction icon={DollarSign} title="Nuevo cobro" subtitle="Cobro individual" onClick={() => navigate('/payments?abrir=cobro')} {...TONES.emerald} />
+              <QuickAction icon={PlusCircle} title="Generar pensiones" subtitle="Por aula" onClick={() => navigate('/payments?abrir=pensiones')} {...TONES.amber} />
+              <QuickAction icon={Megaphone} title="Publicar aviso" subtitle="Comunicados" onClick={() => navigate('/announcements?abrir=nuevo')} {...TONES.primary} />
             </>
           ) : (
             <>
-              <QuickAction icon={UserPlus} title="Matricular Alumno" subtitle="Nueva matrícula" onClick={() => navigate('/students')} {...TONES.primary} />
-              <QuickAction icon={DollarSign} title="Caja Ventanilla" subtitle="Cobro de pensión" onClick={() => navigate('/payments')} {...TONES.emerald} />
-              <QuickAction icon={QrCode} title="Carnets QR" subtitle="Impresión por sección" onClick={() => navigate('/students')} {...TONES.sky} />
-              <QuickAction icon={Megaphone} title="Publicar Aviso" subtitle="Circular a familias" onClick={() => navigate('/announcements')} {...TONES.amber} />
+              <QuickAction icon={UserPlus} title="Matricular alumno" subtitle="Nueva matrícula" onClick={() => navigate('/students?abrir=matricula')} {...TONES.primary} />
+              <QuickAction icon={DollarSign} title="Caja diaria" subtitle="Cobro en ventanilla" onClick={() => navigate('/payments/cash')} {...TONES.emerald} />
+              <QuickAction icon={QrCode} title="Carnets QR" subtitle="Impresión por sección" onClick={() => navigate('/students?abrir=carnets')} {...TONES.sky} />
+              <QuickAction icon={Megaphone} title="Publicar aviso" subtitle="Circular a familias" onClick={() => navigate('/announcements?abrir=nuevo')} {...TONES.amber} />
             </>
           )}
         </div>
@@ -277,16 +220,6 @@ const StaffDashboard: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-md transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Ventanilla de Caja</CardTitle>
-                <CreditCard className="w-4 h-4 text-emerald-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">Atención Activa</div>
-                <p className="text-xs text-muted-foreground mt-1">Cobro de pensiones y boletas</p>
-              </CardContent>
-            </Card>
           </>
         )}
 
@@ -321,33 +254,6 @@ const StaffDashboard: React.FC = () => {
           </>
         )}
 
-        {/* Asistencia de hoy con datos reales (Solo Dirección) */}
-        {isAdmin && (
-          <button
-            type="button"
-            onClick={() => navigate('/attendance')}
-            aria-label="Ver la asistencia de hoy"
-            className="text-left rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          >
-            <Card className="h-full hover:shadow-md transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Asistencia Hoy</CardTitle>
-                <CalendarCheck className="w-4 h-4 text-amber-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-extrabold text-foreground">
-                  {todayAttended}
-                  <span className="text-sm font-semibold text-muted-foreground"> / {todayStats?.total ?? 0}</span>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {todayStats?.total
-                    ? `${todayStats.late} tardanza(s) · ${todayStats.absent} falta(s)`
-                    : 'Aún no hay marcaciones hoy'}
-                </p>
-              </CardContent>
-            </Card>
-          </button>
-        )}
       </div>
 
       {/* Salud Financiera del Colegio (EXCLUSIVO Dirección del Colegio — NUNCA Personal Administrativo) */}
@@ -423,75 +329,6 @@ const StaffDashboard: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* Módulos de Acceso Rápido Segregados por Rol */}
-      <div className="space-y-3">
-        <h2 className="text-base font-bold tracking-tight text-foreground">Módulos del Sistema</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <ModuleCard
-            icon={Users}
-            iconClass="text-primary"
-            title="Estudiantes"
-            description="Directorio matriculado y datos demográficos SIAGIE."
-            actionLabel="Ver lista de alumnos"
-            onClick={() => navigate('/students')}
-          />
-
-          <ModuleCard
-            icon={CreditCard}
-            iconClass="text-emerald-500"
-            title={isAdministrative ? 'Caja y Cobranzas' : 'Cobranzas y Pagos'}
-            description={
-              isAdministrative
-                ? 'Cobro en ventanilla, consulta de deudores y emisión de boletas.'
-                : 'Control de pensiones, boletas, morosidad y transacciones.'
-            }
-            actionLabel="Ver módulo pagos"
-            onClick={() => navigate('/payments')}
-          />
-
-          {isAdmin && (
-            <ModuleCard
-              icon={BookOpenCheck}
-              iconClass="text-primary"
-              title="Registro de Notas"
-              description="Matriz evaluativa interactiva con conversión a escala CNEB."
-              actionLabel={isProPlan ? 'Abrir registro notas' : 'Mejorar a Plan PRO'}
-              onClick={() => navigate('/grades')}
-              badge={
-                !isProPlan && (
-                  <span className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                    <Sparkles className="w-3 h-3" />
-                    PRO
-                  </span>
-                )
-              }
-            />
-          )}
-
-          {isAdmin && (
-            <ModuleCard
-              icon={CalendarCheck}
-              iconClass="text-amber-500"
-              title="Asistencia"
-              description="Control diario por fecha y reportes de asistencia escolar."
-              actionLabel="Ver asistencia"
-              onClick={() => navigate('/attendance')}
-            />
-          )}
-
-          {isAdministrative && (
-            <ModuleCard
-              icon={Megaphone}
-              iconClass="text-sky-500"
-              title="Comunicados Oficiales"
-              description="Emisión y difusión de circulares y citaciones a las familias."
-              actionLabel="Gestionar avisos"
-              onClick={() => navigate('/announcements')}
-            />
-          )}
-        </div>
-      </div>
 
       <SchoolSettingsModal
         isOpen={isSettingsOpen}

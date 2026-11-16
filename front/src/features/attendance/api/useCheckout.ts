@@ -34,6 +34,8 @@ export const useCheckout = () => {
       queryClient.invalidateQueries({ queryKey: ['attendance'] });
       queryClient.invalidateQueries({ queryKey: ['attendance-sheet'] });
       queryClient.invalidateQueries({ queryKey: ['attendance-summary'] });
+      // Portería: contadores y listas del día
+      queryClient.invalidateQueries({ queryKey: ['family', 'gate'] });
       toast.success(data.message || 'Salida registrada con éxito.');
     },
     onError: (err: any) => {

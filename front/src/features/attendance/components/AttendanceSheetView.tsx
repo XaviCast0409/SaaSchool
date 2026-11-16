@@ -574,7 +574,11 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
                           type="button"
                           disabled={!canWrite || isNonSchoolDay}
                           onClick={() => handleStatusChange(student.enrollmentId, opt.value)}
-                          className={`py-2 px-1 rounded-lg text-xs font-bold border text-center transition-all ${
+                          // Al menos 44 px de alto: se toca con el dedo sin errar de estado
+                          aria-label={opt.fullLabel}
+                          aria-pressed={isSelected}
+                          title={opt.fullLabel}
+                          className={`min-h-11 py-2.5 px-1 rounded-lg text-sm font-bold border text-center transition-all ${
                             isSelected
                               ? opt.activeClass
                               : 'border-border bg-background text-muted-foreground hover:bg-muted'

@@ -10,6 +10,7 @@ import { classroomLabel, studentShortName } from '../automations/recipients';
 import { addDays, limaDayRange } from '../automations/automation.rules';
 import { remainingBalance } from '../payments/payment.rules';
 import { assertStudentAccess, currentEnrollment, viewerStudentIds, type Viewer } from '../schedule/schedule.access';
+import { getSchoolDayStatus } from '../attendance/school-day';
 import { attendanceLight, computeBadges, gradesLight, homeworkLight, paymentsLight } from './family.rules';
 
 /** Portal de la familia: semáforo e insignias por hijo, línea de tiempo y registro de portería. */
@@ -264,50 +265,78 @@ familyRouter.get('/timeline', authorizeRoles('PARENT', 'STUDENT'), async (req: R
 });
 
 /** Portería: salidas registradas hoy (quién recogió a quién y a qué hora). */
+const ATTENDED = ['PRESENT', 'LATE_JUSTIFIED', 'LATE_UNJUSTIFIED'] as const;
+const fullStudentName = (s: { firstNames: string; lastNamePaternal: string; lastNameMaternal: string | null }) =>
+  `${s.firstNames} ${s.lastNamePaternal} ${s.lastNameMaternal ?? ''}`.trim();
+
+/**
+ * Portería del día: quién salió (y con quién), quién sigue en el colegio y si hoy hay clases.
+ * Las listas se cortan en 300 filas; los totales son conteos reales.
+ */
 familyRouter.get('/gate/today', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'), async (req: Request, res: Response) => {
-  const today = getSchoolNow().dateObj;
-  const rows = await prisma.attendance.findMany({
-    where: { schoolId: req.user!.schoolId, date: today, checkOutTime: { not: null } },
-    orderBy: { checkOutTime: 'desc' },
-    take: 300,
-    select: {
-      id: true,
-      checkOutTime: true,
-      pickupPersonId: true,
-      pickedUpByName: true,
-      pickedUpByDocument: true,
-      earlyLeaveReason: true,
-      enrollment: {
-        select: {
-          student: { select: { firstNames: true, lastNamePaternal: true, lastNameMaternal: true } },
-          classroom: { select: { grade: true, section: true, educationLevel: true } },
-        },
+  const schoolId = req.user!.schoolId;
+  const now = getSchoolNow();
+  const today = now.dateObj;
+  const studentSelect = {
+    student: { select: { firstNames: true, lastNamePaternal: true, lastNameMaternal: true } },
+    classroom: { select: { grade: true, section: true, educationLevel: true } },
+  } as const;
+
+  const [rows, inSchoolRows, present, checkedOut, schoolDay] = await Promise.all([
+    prisma.attendance.findMany({
+      where: { schoolId, date: today, checkOutTime: { not: null } },
+      orderBy: { checkOutTime: 'desc' },
+      take: 300,
+      select: {
+        id: true,
+        checkOutTime: true,
+        pickupPersonId: true,
+        pickedUpByName: true,
+        pickedUpByDocument: true,
+        earlyLeaveReason: true,
+        enrollment: { select: studentSelect },
       },
-    },
-  });
-  // Conteos reales: la lista se corta en 300 filas, los totales no
-  const [present, checkedOut] = await Promise.all([
-    prisma.attendance.count({
-      where: { schoolId: req.user!.schoolId, date: today, status: { in: ['PRESENT', 'LATE_JUSTIFIED', 'LATE_UNJUSTIFIED'] } },
     }),
-    prisma.attendance.count({
-      where: { schoolId: req.user!.schoolId, date: today, checkOutTime: { not: null } },
+    prisma.attendance.findMany({
+      where: { schoolId, date: today, checkOutTime: null, status: { in: [...ATTENDED] } },
+      // Por aula (nivel, grado, sección) y apellido: así se ubica rápido a quien falta recoger
+      orderBy: [
+        { enrollment: { classroom: { educationLevel: 'asc' } } },
+        { enrollment: { classroom: { grade: 'asc' } } },
+        { enrollment: { classroom: { section: 'asc' } } },
+        { enrollment: { student: { lastNamePaternal: 'asc' } } },
+      ],
+      take: 300,
+      select: { id: true, checkInTime: true, enrollment: { select: studentSelect } },
     }),
+    prisma.attendance.count({ where: { schoolId, date: today, status: { in: [...ATTENDED] } } }),
+    prisma.attendance.count({ where: { schoolId, date: today, checkOutTime: { not: null } } }),
+    getSchoolDayStatus(schoolId, now.dateStr),
   ]);
+
   res.status(200).json({
     status: 'success',
     data: {
       present,
       checkedOut,
+      stillInSchool: Math.max(0, present - checkedOut),
+      isSchoolDay: schoolDay.isSchoolDay,
+      nonSchoolDayReason: schoolDay.message,
       rows: rows.map((r) => ({
         id: r.id,
         checkOutTime: r.checkOutTime,
-        student: `${r.enrollment.student.firstNames} ${r.enrollment.student.lastNamePaternal} ${r.enrollment.student.lastNameMaternal ?? ''}`.trim(),
+        student: fullStudentName(r.enrollment.student),
         classroom: classroomLabel(r.enrollment.classroom),
-        // Salida por su cuenta (SELF): no hay persona que recoja; el backend guarda el nombre del propio alumno
+        // Salida por su cuenta (SELF): no hay persona que recoja
         pickedUpByName: r.pickupPersonId ? r.pickedUpByName : null,
         pickedUpByDocument: r.pickupPersonId ? r.pickedUpByDocument : null,
         earlyLeaveReason: r.earlyLeaveReason,
+      })),
+      inSchool: inSchoolRows.map((r) => ({
+        id: r.id,
+        checkInTime: r.checkInTime,
+        student: fullStudentName(r.enrollment.student),
+        classroom: classroomLabel(r.enrollment.classroom),
       })),
     },
   });
