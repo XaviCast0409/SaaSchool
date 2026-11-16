@@ -1,4 +1,5 @@
 import type { SubscriptionPayment } from '@prisma/client';
+import { invalidateSchoolStatus } from '../../core/security/school-status';
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
 import { dateOnlyKey, getSchoolNow, monthRangeUTC, parseSchoolDate } from '../../utils/timezone.util';
@@ -78,6 +79,7 @@ export class SubscriptionPaymentService {
       });
 
       await tx.school.update({ where: { id: schoolId }, data: { planExpiresAt: newExpiresAt } });
+      invalidateSchoolStatus(schoolId);
       return created;
     });
 
@@ -109,6 +111,7 @@ export class SubscriptionPaymentService {
       const expiryReverted = school.planExpiresAt?.getTime() === payment.newExpiresAt.getTime();
       if (expiryReverted) {
         await tx.school.update({ where: { id: schoolId }, data: { planExpiresAt: payment.previousExpiresAt } });
+        invalidateSchoolStatus(schoolId);
       }
 
       const voided = await tx.subscriptionPayment.update({

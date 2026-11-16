@@ -60,5 +60,13 @@ jobs:
           cache: pnpm
           cache-dependency-path: front/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      # Errores de ESLint (p. ej. hooks de React llamados de forma condicional) detienen el CI;
+      # los avisos (tipos `any`, dependencias de efectos) se muestran pero no bloquean.
+      - name: Lint
+        run: pnpm lint
+      - name: Verificar tipos
+        run: pnpm typecheck
+      - name: Tests
+        run: pnpm test
       - name: Compilar (tsc + vite build)
         run: pnpm run build

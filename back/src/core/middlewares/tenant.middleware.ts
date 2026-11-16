@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../errors/app-error';
 
-import { prisma } from '../../config/prisma';
+import { getSchoolStatus } from '../security/school-status';
 import {
   getPlanStatus,
   planAllowsWrites,
@@ -72,11 +72,8 @@ export const tenantMiddleware = async (
     throw new AppError('Contexto de colegio no encontrado. Acceso denegado.', 403);
   }
 
-  // Verificar que el colegio existe en la BD (previene FK violations y sesiones obsoletas)
-  const school = await prisma.school.findUnique({
-    where: { id: request.user.schoolId },
-    select: { id: true, isActive: true, planExpiresAt: true },
-  });
+  // Verificar que el colegio existe (previene FK violations y sesiones obsoletas). Con caché de 30 s.
+  const school = await getSchoolStatus(request.user.schoolId);
 
   if (!school) {
     throw new AppError('El colegio o la sesión ya no existe en la base de datos. Por favor inicia sesión nuevamente.', 401);

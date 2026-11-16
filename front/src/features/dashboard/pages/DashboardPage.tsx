@@ -62,6 +62,14 @@ export const DashboardPage: React.FC = () => {
     return <TeacherDashboardView />;
   }
 
+  // Dirección / Secretaría: componente propio para que sus hooks no dependan del rol
+  return <StaffDashboard />;
+};
+
+const StaffDashboard: React.FC = () => {
+  const { user, impersonatedSchool } = useAuthStore();
+  const navigate = useNavigate();
+
   const isTeacher = false;
   const isParent = false;
   const isAdministrative = user?.role === 'ADMINISTRATIVE';

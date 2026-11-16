@@ -33,10 +33,14 @@ export const StudentCoursesPage: React.FC = () => {
     user?.role === 'SUPER_ADMIN' ||
     user?.role === 'ADMINISTRATIVE';
 
+  // Dirección y Secretaría supervisan; familias y alumnos ven sus cursos (componentes separados: hooks sin condiciones)
   if (isAdminOrStaff) {
     return <VirtualClassroomSupervisionView />;
   }
+  return <FamilyCoursesView />;
+};
 
+const FamilyCoursesView: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { selectedChildId, setSelectedChildId } = useParentStore();
   const { data: children = [], isLoading: loadingChildren } = useGetMyChildren();

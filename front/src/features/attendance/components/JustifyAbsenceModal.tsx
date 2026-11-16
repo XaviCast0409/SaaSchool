@@ -148,7 +148,7 @@ export const JustifyAbsenceModal: React.FC<JustifyAbsenceModalProps> = ({
       });
 
       onClose();
-    } catch (err: any) {
+    } catch {
       setIsUploading(false);
       // error handled by mutation onError
     }

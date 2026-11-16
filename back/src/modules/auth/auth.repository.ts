@@ -1,4 +1,4 @@
-import { prisma } from '../../config/prisma';
+import { prisma, WITH_STUDENT_SECRETS, WITH_USER_SECRETS, type SafeUser } from '../../config/prisma';
 import type { User, Student } from '@prisma/client';
 
 /** Máximo de cuentas que se evalúan para un mismo usuario/documento (una por colegio). */
@@ -26,6 +26,7 @@ export class AuthRepository {
   async findUsersByIdentifier(identifier: string, schoolId?: string): Promise<User[]> {
     const clean = identifier.trim();
     return prisma.user.findMany({
+      omit: WITH_USER_SECRETS,
       where: {
         ...(schoolId ? { schoolId } : {}),
         OR: [{ email: { equals: clean, mode: 'insensitive' } }, { documentId: clean }],
@@ -39,6 +40,7 @@ export class AuthRepository {
   async findStudentsByIdentifier(identifier: string, schoolId?: string): Promise<Student[]> {
     const clean = identifier.trim();
     return prisma.student.findMany({
+      omit: WITH_STUDENT_SECRETS,
       where: { ...(schoolId ? { schoolId } : {}), OR: [{ documentId: clean }, { studentCode: clean }] },
       orderBy: { createdAt: 'asc' },
       take: MAX_LOGIN_CANDIDATES,
@@ -54,11 +56,11 @@ export class AuthRepository {
   }
 
   async findUserById(id: string): Promise<User | null> {
-    return prisma.user.findUnique({ where: { id } });
+    return prisma.user.findUnique({ where: { id }, omit: WITH_USER_SECRETS });
   }
 
   /** Cuentas activas con ese correo: una por cada colegio en que esté registrado. */
-  async findActiveUsersByEmail(email: string): Promise<Array<User & { school: { name: string } }>> {
+  async findActiveUsersByEmail(email: string): Promise<Array<SafeUser & { school: { name: string } }>> {
     const clean = email.trim().toLowerCase();
     return prisma.user.findMany({
       where: { email: { equals: clean, mode: 'insensitive' }, isActive: true },
@@ -103,11 +105,11 @@ export class AuthRepository {
   }
 
   async findStudentById(studentId: string): Promise<Student | null> {
-    return prisma.student.findUnique({ where: { id: studentId } });
+    return prisma.student.findUnique({ where: { id: studentId }, omit: WITH_STUDENT_SECRETS });
   }
 
-  async updateUserPassword(userId: string, passwordHash: string, mustChangePassword: boolean): Promise<User> {
-    return prisma.user.update({
+  async updateUserPassword(userId: string, passwordHash: string, mustChangePassword: boolean): Promise<void> {
+    await prisma.user.update({
       where: { id: userId },
       data: {
         passwordHash,
@@ -119,8 +121,8 @@ export class AuthRepository {
     });
   }
 
-  async updateStudentPassword(studentId: string, passwordHash: string, mustChangePassword: boolean): Promise<Student> {
-    return prisma.student.update({
+  async updateStudentPassword(studentId: string, passwordHash: string, mustChangePassword: boolean): Promise<void> {
+    await prisma.student.update({
       where: { id: studentId },
       data: {
         passwordHash,

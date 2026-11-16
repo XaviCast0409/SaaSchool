@@ -18,14 +18,36 @@ const buildDatabaseUrl = (): string => {
   return url.toString();
 };
 
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
+/**
+ * Secretos que NUNCA salen de la BD salvo que la consulta los pida con `omit: { campo: false }`
+ * (solo el login y el cambio de contraseña). Así un `include: { student: true }` olvidado en una
+ * respuesta no puede filtrar hashes de contraseña ni secretos MFA al navegador.
+ */
+const SECRET_FIELDS = {
+  user: { passwordHash: true, mfaSecret: true },
+  student: { passwordHash: true },
+} as const;
 
-export const prisma: PrismaClient =
-  globalForPrisma.prisma ??
+const createClient = () =>
   new PrismaClient({
     datasources: { db: { url: buildDatabaseUrl() } },
     log: env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
+    omit: SECRET_FIELDS,
   });
+
+export type AppPrismaClient = ReturnType<typeof createClient>;
+
+/** Filas tal como salen por defecto (sin los secretos omitidos). */
+export type SafeUser = Omit<import('@prisma/client').User, keyof typeof SECRET_FIELDS.user>;
+export type SafeStudent = Omit<import('@prisma/client').Student, keyof typeof SECRET_FIELDS.student>;
+
+/** Para las pocas consultas que SÍ necesitan los secretos (login, cambio de contraseña, MFA). */
+export const WITH_USER_SECRETS = { passwordHash: false, mfaSecret: false } as const;
+export const WITH_STUDENT_SECRETS = { passwordHash: false } as const;
+
+const globalForPrisma = globalThis as unknown as { prisma: AppPrismaClient };
+
+export const prisma: AppPrismaClient = globalForPrisma.prisma ?? createClient();
 
 if (env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;

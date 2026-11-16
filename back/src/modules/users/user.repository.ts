@@ -1,4 +1,4 @@
-import { prisma } from '../../config/prisma';
+import { prisma, type SafeUser } from '../../config/prisma';
 import type { User, Prisma, Role } from '@prisma/client';
 import type { CreateUserDto, UpdateUserDto, UserFilterDto } from './user.schema';
 import type { PaginatedResult } from '../../core/interfaces/global.interfaces';
@@ -162,11 +162,11 @@ export class UserRepository {
   }
 
   /** El correo es único dentro del colegio (un apoderado puede tener cuentas en varios colegios). */
-  async findByEmail(schoolId: string, email: string): Promise<User | null> {
+  async findByEmail(schoolId: string, email: string): Promise<SafeUser | null> {
     return prisma.user.findFirst({ where: { schoolId, email: { equals: email.trim(), mode: 'insensitive' } } });
   }
 
-  async findByDocumentId(schoolId: string, documentId: string): Promise<User | null> {
+  async findByDocumentId(schoolId: string, documentId: string): Promise<SafeUser | null> {
     return prisma.user.findFirst({
       where: { schoolId, documentId },
     });
@@ -224,7 +224,7 @@ export class UserRepository {
     });
   }
 
-  async findByIdRaw(userId: string, schoolId: string, actorRole?: Role): Promise<User | null> {
+  async findByIdRaw(userId: string, schoolId: string, actorRole?: Role): Promise<SafeUser | null> {
     return prisma.user.findFirst({
       where: {
         id: userId,

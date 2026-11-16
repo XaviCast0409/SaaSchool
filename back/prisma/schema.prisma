@@ -2,7 +2,9 @@
 // 1. CONFIGURACIÓN DEL CLIENTE Y BD
 // ============================================================================
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  // omitApi: los secretos (hash de contraseña, secreto MFA) nunca salen en las consultas salvo que se pidan
+  previewFeatures = ["omitApi"]
 }
 
 datasource db {

@@ -32,9 +32,9 @@ export const useStudyPlan = (level: Level, grade: number | null) =>
   });
 
 const planMutation = <V,>(fn: (v: V) => Promise<unknown>, success: string) => () => {
-  // eslint-disable-next-line react-hooks/rules-of-hooks
+   
   const invalidate = useInvalidate();
-  // eslint-disable-next-line react-hooks/rules-of-hooks
+   
   return useMutation({
     mutationFn: fn,
     onSuccess: () => { invalidate('plan', 'setup', 'load'); toast.success(success); },

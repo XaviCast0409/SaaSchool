@@ -55,11 +55,16 @@ const STATUS_OPTIONS: Array<{ value: AttendanceStatus; label: string; color: str
 
 export const AttendancePage: React.FC = () => {
   const user = useAuthStore((state) => state.user);
-
-  // Si el usuario es PADRE / APODERADO o ESTUDIANTE, mostrar la vista especializada de su hijo
+  // Si el usuario es PADRE / APODERADO o ESTUDIANTE, mostrar la vista especializada de su hijo.
+  // La vista del personal es otro componente: así los hooks nunca se llaman de forma condicional.
   if (user?.role === 'PARENT' || user?.role === 'STUDENT') {
     return <ParentAttendanceView />;
   }
+  return <StaffAttendancePage />;
+};
+
+const StaffAttendancePage: React.FC = () => {
+  const user = useAuthStore((state) => state.user);
 
   const [activeTab, setActiveTab] = useState<'DAILY' | 'MATRIX' | 'MONTHLY'>('DAILY');
   const [dailyViewMode, setDailyViewMode] = useState<'SHEET' | 'LOG'>('SHEET');
