@@ -13,6 +13,7 @@ import { tenantMiddleware } from '../../core/middlewares/tenant.middleware';
 import { recordAudit } from '../../utils/audit.util';
 import { assertFileSignature } from '../uploads/file-signature.util';
 import { fileStorageService, type FilePurpose } from './file-storage.service';
+import { cleanupOptimized, IMAGE_MAX_SIZE, optimizeImage, type OptimizedImage } from './image-optimizer';
 import {
   buildPublicMediaUrl,
   parsePublicMediaUrl,
@@ -58,25 +59,29 @@ const singleImage = (req: Request, res: Response, next: NextFunction): void => {
 };
 
 /** Valida y guarda la imagen subida en R2 (o disco local en desarrollo). */
-async function storeImage(req: Request, purpose: FilePurpose) {
+async function storeImage(req: Request, purpose: FilePurpose, maxSize: number) {
   const file = req.file;
   if (!file) throw new AppError('Selecciona una imagen.', 400);
   const user = req.user!;
+  let optimized: OptimizedImage | null = null;
   try {
     await assertFileSignature(file.path, path.extname(file.originalname).toLowerCase());
     await fileStorageService.assertDailyQuota(user.schoolId, user.userId, DAILY_QUOTA);
+    // Se reduce a WebP (sin metadatos) aunque el navegador ya la haya achicado
+    optimized = await optimizeImage({ tempPath: file.path, originalName: file.originalname, maxSize });
     return await fileStorageService.store({
       schoolId: user.schoolId,
       uploadedById: user.userId,
       uploaderRole: user.role,
       purpose,
-      tempPath: file.path,
-      originalName: file.originalname,
-      mimeType: file.mimetype,
-      size: file.size,
+      tempPath: optimized.tempPath,
+      originalName: optimized.originalName,
+      mimeType: optimized.mimeType,
+      size: optimized.size,
     });
   } finally {
     await fs.promises.unlink(file.path).catch(() => undefined);
+    await cleanupOptimized(optimized);
   }
 }
 
@@ -92,7 +97,7 @@ profileMediaRouter.use(authMiddleware, tenantMiddleware);
 
 profileMediaRouter.post('/school-logo', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'), singleImage, async (req: Request, res: Response) => {
   const schoolId = req.user!.schoolId;
-  const stored = await storeImage(req, 'SCHOOL_ASSET');
+  const stored = await storeImage(req, 'SCHOOL_ASSET', IMAGE_MAX_SIZE.logo);
   const before = await prisma.school.findUniqueOrThrow({ where: { id: schoolId }, select: { logoUrl: true } });
   const logoUrl = buildPublicMediaUrl(env.PUBLIC_API_URL, 'logos', schoolId, stored.id);
   await prisma.school.update({ where: { id: schoolId }, data: { logoUrl } });
@@ -123,7 +128,7 @@ async function findStaff(schoolId: string, userId: string) {
 async function setAvatar(req: Request, res: Response, userId: string): Promise<void> {
   const schoolId = req.user!.schoolId;
   const person = await findStaff(schoolId, userId);
-  const stored = await storeImage(req, 'PROFILE_PHOTO');
+  const stored = await storeImage(req, 'PROFILE_PHOTO', IMAGE_MAX_SIZE.avatar);
   const avatarUrl = buildPublicMediaUrl(env.PUBLIC_API_URL, 'avatars', person.id, stored.id);
   await prisma.user.update({ where: { id: person.id }, data: { avatarUrl } });
   await discardPrevious(person.avatarUrl, 'avatars');

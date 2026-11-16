@@ -91,8 +91,8 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      if (file.size > 30 * 1024 * 1024) {
-        toast.error('El archivo supera el límite de 30 MB');
+      if (file.size > 25 * 1024 * 1024) {
+        toast.error('El archivo supera el límite de 25 MB');
         return;
       }
       setSelectedFile(file);
@@ -349,7 +349,7 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
                       <Upload className="w-6 h-6 text-muted-foreground mb-1" />
                       <span className="font-semibold text-foreground text-xs">Haz clic para subir un archivo</span>
                       <span className="text-xs text-muted-foreground text-center">
-                        PowerPoint (.pptx), Word (.docx), PDF, Excel o Imágenes (máx. 30MB)
+                        PowerPoint (.pptx), Word (.docx), PDF, Excel o Imágenes (máx. 25 MB)
                       </span>
                       <input
                         type="file"

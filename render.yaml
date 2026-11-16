@@ -44,6 +44,9 @@ services:
         sync: false
       - key: R2_BUCKET
         sync: false
+      # Imágenes optimizadas a la vez. 2 para Starter (512 MB); súbelo al cambiar de plan.
+      - key: IMAGE_CONCURRENCY
+        value: "2"
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT

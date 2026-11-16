@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { compressImageForUpload } from '@/lib/imageResize';
 import type {
   CourseContent,
   CreateCourseContentPayload,
@@ -46,7 +47,7 @@ export const useUploadMaterial = () => {
   return useMutation({
     mutationFn: async (file: File): Promise<UploadFileResponse> => {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', await compressImageForUpload(file));
 
       const res = await api.post<{ status: string; data: UploadFileResponse }>(
         '/uploads/materials',

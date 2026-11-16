@@ -48,6 +48,8 @@ const envSchema = z.object({
   R2_BUCKET: z.string().optional(),
   // Solo si el bucket usa jurisdicción (p. ej. https://<cuenta>.eu.r2.cloudflarestorage.com)
   R2_ENDPOINT: z.string().url().optional(),
+  // Imágenes que se optimizan a la vez (sharp). Sin valor: según los núcleos, máximo 2.
+  IMAGE_CONCURRENCY: z.preprocess((v) => (v === '' ? undefined : v), z.coerce.number().int().min(1).max(32).optional()),
 
   // Monitoreo (opcional)
   SENTRY_DSN: z.string().optional(),

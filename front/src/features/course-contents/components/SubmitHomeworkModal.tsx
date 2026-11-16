@@ -295,7 +295,7 @@ export const SubmitHomeworkModal: React.FC<SubmitHomeworkModalProps> = ({
                         <span className="font-semibold text-xs text-foreground">
                           Haz clic para elegir un archivo
                         </span>
-                        <span className="text-xs">Límite máximo: 30 MB</span>
+                        <span className="text-xs">Límite máximo: 15 MB</span>
                       </>
                     )}
                   </div>

@@ -28,6 +28,7 @@ Hazlos en este orden. Los marcados con 🔴 van **antes** de conectar el primer 
       - `CORS_ORIGINS=https://app.tudominio.pe`
       - `PUBLIC_API_URL=https://api.tudominio.pe`
       - las de R2 (paso 3), SMTP y VAPID (claves **nuevas**: `npx web-push generate-vapid-keys`).
+      - `IMAGE_CONCURRENCY` ya viene en `2` (imágenes que el servidor optimiza a la vez, seguro para Starter con 512 MB). **Al subir de plan, súbelo**: ~4 en Standard (2 GB), ~8 en Pro (4 GB).
    3. **Si ya tenías una base de datos en Render creada con `db push`** (con datos), antes del primer deploy ejecuta desde tu PC, con la *External Database URL*:
       ```bash
       cd back

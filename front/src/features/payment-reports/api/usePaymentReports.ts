@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { compressImageForUpload } from '@/lib/imageResize';
 
 export type ReportMethod = 'YAPE' | 'PLIN' | 'BANK_TRANSFER' | 'DEPOSIT';
 export const METHOD_LABEL: Record<ReportMethod, string> = { YAPE: 'Yape', PLIN: 'Plin', BANK_TRANSFER: 'Transferencia', DEPOSIT: 'Depósito' };
@@ -91,7 +92,7 @@ export const useUploadVoucher = () =>
     mutationFn: async ({ file, purpose }: { file: File; purpose: 'PAYMENT_VOUCHER' | 'SCHOOL_ASSET' }) => {
       const form = new FormData();
       form.append('purpose', purpose);
-      form.append('file', file);
+      form.append('file', await compressImageForUpload(file));
       return (await api.post<{ data: { url: string; fileName: string } }>('/uploads/materials', form, { headers: { 'Content-Type': 'multipart/form-data' } })).data.data;
     },
   });
