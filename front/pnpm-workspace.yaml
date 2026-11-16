@@ -1,2 +1,7 @@
+# "packages" es obligatorio para pnpm 9 (el que usa Cloudflare al construir); sin él falla con
+# "packages field missing or empty".
+packages:
+  - '.'
+
 allowBuilds:
   esbuild: false
