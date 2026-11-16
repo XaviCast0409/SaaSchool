@@ -31,7 +31,14 @@ auditLogRouter.get('/categories', (_req: Request, res: Response) => {
 /** Personas que aparecen en la bitácora (para el filtro "Usuario"). */
 auditLogRouter.get('/actors', async (req: Request, res: Response) => {
   const schoolId = req.user!.schoolId;
-  const actorIds = await prisma.auditLog.findMany({ where: { schoolId }, distinct: ['actorId'], select: { actorId: true } });
+  // Solo quienes actuaron el último año: recorrer toda la bitácora (crece con cada nota guardada) era cada vez más lento
+  const since = new Date(Date.now() - 365 * 86_400_000);
+  const actorIds = await prisma.auditLog.findMany({
+    where: { schoolId, createdAt: { gte: since } },
+    distinct: ['actorId'],
+    select: { actorId: true },
+    take: 500,
+  });
   const users = await prisma.user.findMany({
     where: {
       id: { in: actorIds.map((a) => a.actorId) },

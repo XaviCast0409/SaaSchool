@@ -25,7 +25,8 @@ automationRouter.get('/', async (req: Request, res: Response) => {
     prisma.school.findUnique({ where: { id: schoolId }, select: { plan: true } }),
     prisma.schoolAutomationSetting.findMany({ where: { schoolId } }),
     prisma.jobRun.findMany({
-      where: { schoolId },
+      // Última ejecución de cada automatización, mirando solo los últimos 6 meses (la tabla crece a diario)
+      where: { schoolId, startedAt: { gte: new Date(Date.now() - 180 * 86_400_000) } },
       orderBy: { startedAt: 'desc' },
       distinct: ['jobName'],
       select: { jobName: true, status: true, startedAt: true, finishedAt: true, summary: true, itemsProcessed: true, triggeredById: true },

@@ -167,6 +167,10 @@ export class PaymentRepository {
     userId: string,
     schoolId: string,
   ): Promise<PaymentObligation[]> {
+    // Acotado: toda la deuda pendiente (de cualquier año) + el historial de los últimos 2 años.
+    // Antes traía todas las cuotas de todos los años de todos los hijos, con sus pagos.
+    const historySince = new Date();
+    historySince.setFullYear(historySince.getFullYear() - 2);
     return prisma.paymentObligation.findMany({
       where: {
         schoolId,
@@ -177,9 +181,11 @@ export class PaymentRepository {
             },
           },
         },
+        OR: [{ status: { in: ['PENDING', 'PARTIAL'] } }, { dueDate: { gte: historySince } }],
       },
       include: OBLIGATION_INCLUDE,
       orderBy: { dueDate: 'asc' },
+      take: 1000,
     });
   }
 
