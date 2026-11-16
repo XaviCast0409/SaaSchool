@@ -1423,7 +1423,11 @@ model StoredFile {
   schoolId     String
   uploadedById String // userId o studentId
   uploaderRole String
-  purpose      String // COURSE_MATERIAL | HOMEWORK_SUBMISSION | OTHER
+  /// COURSE_MATERIAL | SCHOOL_ASSET | PROFILE_PHOTO (todo el colegio) · STAFF_RESOURCE (solo personal) ·
+  /// PAYMENT_VOUCHER | HOMEWORK_SUBMISSION | ATTENDANCE_JUSTIFICATION | STUDENT_DOCUMENT (restringidos) · otro: negado
+  purpose      String
+  /// Estudiante al que pertenece el archivo (justificaciones, documentos): solo lo ve quien tiene acceso a él
+  studentId    String?
   storage      FileStorage
   objectKey    String?     @unique // Clave del objeto en R2: <colegio>/<año>/<propósito>/<uuid>.<ext>
   localPath    String?
@@ -1436,6 +1440,7 @@ model StoredFile {
   school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@index([schoolId, uploadedById, createdAt])
+  @@index([studentId])
 }
 
 // ============================================================================

@@ -10,7 +10,16 @@ import { buildObjectKey, resolveStorageProvider } from './storage-provider.rules
 
 const LOCAL_DIR = path.join(process.cwd(), 'storage-local');
 
-export type FilePurpose = 'COURSE_MATERIAL' | 'HOMEWORK_SUBMISSION' | 'PAYMENT_VOUCHER' | 'SCHOOL_ASSET' | 'PROFILE_PHOTO' | 'OTHER';
+export type FilePurpose =
+  | 'COURSE_MATERIAL'
+  | 'SCHOOL_ASSET'
+  | 'STAFF_RESOURCE'
+  | 'HOMEWORK_SUBMISSION'
+  | 'PAYMENT_VOUCHER'
+  | 'ATTENDANCE_JUSTIFICATION'
+  | 'STUDENT_DOCUMENT'
+  | 'PROFILE_PHOTO'
+  | 'OTHER';
 
 const sanitizeFileName = (name: string): string =>
   path.basename(name).replace(/[\u0000-\u001f<>:"/\\|?*]+/g, '_').slice(0, 150) || 'archivo';
@@ -34,6 +43,8 @@ export class FileStorageService {
     uploadedById: string;
     uploaderRole: string;
     purpose: FilePurpose;
+    /** Estudiante dueño del archivo (justificaciones, documentos). */
+    studentId?: string | null;
     tempPath: string;
     originalName: string;
     mimeType: string;
@@ -45,6 +56,7 @@ export class FileStorageService {
       uploadedById: input.uploadedById,
       uploaderRole: input.uploaderRole,
       purpose: input.purpose,
+      studentId: input.studentId ?? null,
       fileName,
       mimeType: input.mimeType || 'application/octet-stream',
       size: input.size,
