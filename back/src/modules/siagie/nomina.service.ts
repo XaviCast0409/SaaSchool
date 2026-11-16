@@ -89,7 +89,7 @@ export class NominaService {
     const codes = allRows.map((r) => r.studentCode).filter((c): c is string => !!c);
     const docs = allRows.map((r) => r.documentId).filter(Boolean);
 
-    const [students, foreignCodes, classrooms] = await Promise.all([
+    const [students, classrooms] = await Promise.all([
       prisma.student.findMany({
         where: { schoolId, OR: [{ studentCode: { in: codes } }, { documentId: { in: docs } }] },
         select: {
@@ -97,13 +97,11 @@ export class NominaService {
           lastNamePaternal: true, lastNameMaternal: true, gender: true, birthDate: true,
         },
       }),
-      prisma.student.findMany({ where: { schoolId: { not: schoolId }, studentCode: { in: codes } }, select: { studentCode: true } }),
       prisma.classroom.findMany({ where: { schoolId }, select: { id: true, educationLevel: true, grade: true, section: true, shift: true } }),
     ]);
     const byCode = new Map(students.filter((s) => s.studentCode).map((s) => [s.studentCode!, s as ExistingStudent]));
     const byDoc = new Map<string, ExistingStudent>();
     students.forEach((s) => { byDoc.set(`${s.documentType}|${s.documentId}`, s as ExistingStudent); if (!byDoc.has(`*|${s.documentId}`)) byDoc.set(`*|${s.documentId}`, s as ExistingStudent); });
-    const foreign = new Set(foreignCodes.map((s) => s.studentCode));
     const classroomIds = new Map(classrooms.map((c) => [classroomKey(c.educationLevel, c.grade, c.section.toUpperCase(), c.shift), c.id]));
 
     const enrollments = await prisma.enrollment.findMany({
@@ -132,7 +130,6 @@ export class NominaService {
         const issues = [...r.issues, ...fileIssues];
         const warnings = [...r.warnings];
         if (file.level && r.grade !== null && !isValidGrade(file.level, r.grade)) issues.push(`Grado ${r.grade} no válido para ${file.levelText ?? 'el nivel'}.`);
-        if (r.studentCode && foreign.has(r.studentCode)) issues.push('Este código de estudiante ya está registrado en otro colegio de la plataforma.');
 
         const identity = r.studentCode ?? `${r.documentType}|${r.documentId}`;
         const base: NominaPlanRow = {

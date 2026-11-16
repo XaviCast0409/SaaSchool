@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { GraduationCap, Loader2, ArrowLeftRight, SearchX, ShieldAlert } from 'lucide-react';
 import { loginSchema, LoginFormData } from '../schemas/login.schema';
 import { useLogin } from '../api/useLogin';
+import { SchoolChooser, schoolOptionsFromError, type SchoolOption } from '../components/SchoolChooser';
 import { loginBackgroundSrc, useSchoolLoginPage } from '../api/useSchoolLoginPage';
 import { clearLastSchoolCode, normalizeSchoolCode } from '../lib/lastSchool';
 import { mainSiteUrl, onSchoolDomain, schoolLoginUrl, shouldUseSchoolSubdomain } from '@/lib/schoolDomain';
@@ -29,6 +30,8 @@ export const SchoolLoginPage: React.FC<{ codeOverride?: string }> = ({ codeOverr
     if (redirectToSubdomain) window.location.replace(schoolLoginUrl(code));
   }, [redirectToSubdomain, code]);
   const { mutate: login, isPending, error } = useLogin();
+  const [schoolOptions, setSchoolOptions] = useState<SchoolOption[] | null>(null);
+  const [pendingPick, setPendingPick] = useState<string | null>(null);
   const [backgroundFailed, setBackgroundFailed] = useState(false);
 
   const notFound = (pageError as { response?: { status?: number } } | null)?.response?.status === 404;
@@ -52,11 +55,35 @@ export const SchoolLoginPage: React.FC<{ codeOverride?: string }> = ({ codeOverr
   const {
     register,
     handleSubmit,
+    getValues,
+    setValue,
     formState: { errors },
   } = useForm<LoginFormData>({ resolver: zodResolver(loginSchema), defaultValues: { email: '', password: '' } });
 
-  const onSubmit = (data: LoginFormData) => {
-    login({ ...data, schoolSlug: code });
+  const submitLogin = (data: LoginFormData, pick?: SchoolOption) => {
+    login(
+      { ...data, schoolSlug: code, ...(pick ? { schoolId: pick.schoolId, accountType: pick.accountType } : {}) },
+      {
+        onError: (e) => {
+          setPendingPick(null);
+          const options = schoolOptionsFromError(e);
+          if (options) setSchoolOptions(options);
+        },
+      },
+    );
+  };
+
+  const onSubmit = (data: LoginFormData) => submitLogin(data);
+
+  const pickSchool = (option: SchoolOption) => {
+    setPendingPick(`${option.schoolId}|${option.accountType}`);
+    submitLogin(getValues(), option);
+  };
+
+  const cancelPick = () => {
+    setSchoolOptions(null);
+    setPendingPick(null);
+    setValue('password', '');
   };
 
   const changeSchool = () => {
@@ -115,9 +142,10 @@ export const SchoolLoginPage: React.FC<{ codeOverride?: string }> = ({ codeOverr
   const brand = page.brandColor || DEFAULT_BRAND;
   const background = backgroundFailed ? null : loginBackgroundSrc(page.backgroundPath);
   const title = page.loginTitle || `Bienvenidos a ${page.name}`;
-  const errorMessage =
-    (error as { response?: { data?: { message?: string } } } | null)?.response?.data?.message ||
-    (error ? 'Credenciales incorrectas o servidor no disponible.' : null);
+  const errorMessage = schoolOptionsFromError(error)
+    ? null
+    : (error as { response?: { data?: { message?: string } } } | null)?.response?.data?.message ||
+      (error ? 'Credenciales incorrectas o servidor no disponible.' : null);
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-slate-900">
@@ -162,7 +190,10 @@ export const SchoolLoginPage: React.FC<{ codeOverride?: string }> = ({ codeOverr
             <p className="text-xs text-muted-foreground">Ingresa con tu cuenta del colegio</p>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5" noValidate>
+          {schoolOptions && (
+            <SchoolChooser options={schoolOptions} onPick={pickSchool} onCancel={cancelPick} pendingSchoolId={pendingPick} />
+          )}
+          <form onSubmit={handleSubmit(onSubmit)} className={schoolOptions ? 'hidden' : 'space-y-3.5'} noValidate>
             {errorMessage && (
               <div role="alert" className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs font-semibold">
                 {errorMessage}

@@ -43,6 +43,10 @@ interface AuthResponse {
   };
 }
 
+type LoginCandidate = { kind: 'USER'; user: User } | { kind: 'STUDENT'; student: Student };
+
+const candidateSchoolId = (c: LoginCandidate): string => (c.kind === 'USER' ? c.user.schoolId : c.student.schoolId);
+
 const assertNotLocked = (lockedUntil: Date | null): void => {
   if (lockedUntil && lockedUntil.getTime() > Date.now()) {
     const minutes = Math.ceil((lockedUntil.getTime() - Date.now()) / 60_000);
@@ -65,8 +69,8 @@ export class AuthService {
 
     // Ingreso desde la página del colegio: la cuenta se busca solo dentro de ese colegio.
     // Sin código, el comportamiento es el de siempre (búsqueda en toda la plataforma).
-    let schoolId: string | undefined;
-    if (loginDto.schoolSlug) {
+    let schoolId: string | undefined = loginDto.schoolId;
+    if (!schoolId && loginDto.schoolSlug) {
       const school = await this.authRepository.findSchoolBySlug(loginDto.schoolSlug);
       if (!school) throw new AppError('El código del colegio no es válido. Verifícalo con tu colegio.', 404);
       if (!school.isActive) {
@@ -78,26 +82,65 @@ export class AuthService {
       schoolId = school.id;
     }
 
-    const users = await this.authRepository.findUsersByIdentifier(identifier, schoolId);
-    if (users.length > 1) {
-      throw new AppError('Este documento está asociado a más de una cuenta. Ingresa con tu correo electrónico.', 409);
-    }
-    if (users[0]) {
-      return this.loginUser(users[0], loginDto.password, loginDto.otp);
-    }
+    const [users, students] = await Promise.all([
+      loginDto.accountType === 'STUDENT' ? Promise.resolve([]) : this.authRepository.findUsersByIdentifier(identifier, schoolId),
+      loginDto.accountType === 'USER' ? Promise.resolve([]) : this.authRepository.findStudentsByIdentifier(identifier, schoolId),
+    ]);
+    const candidates: LoginCandidate[] = [
+      ...users.map((user) => ({ kind: 'USER' as const, user })),
+      ...students.map((student) => ({ kind: 'STUDENT' as const, student })),
+    ];
 
-    const students = await this.authRepository.findStudentsByIdentifier(identifier, schoolId);
-    if (students.length > 1) {
-      throw new AppError(
-        'Este documento está registrado en más de un colegio. Ingresa con tu código de estudiante SIAGIE (14 dígitos).',
-        409,
-      );
-    }
-    if (!students[0]) {
+    if (candidates.length === 0) {
       await comparePassword(loginDto.password, DUMMY_HASH);
       throw new AppError('Credenciales inválidas', 401);
     }
-    return this.loginStudent(students[0], loginDto.password);
+    if (candidates.length === 1) return this.loginCandidate(candidates[0], loginDto);
+
+    // La misma persona tiene cuenta en varios colegios (p. ej. un apoderado con hijos en dos colegios).
+    // Solo cuentan las cuentas cuya contraseña coincide: así nadie descubre en qué colegios está registrada
+    // una persona sin conocer su contraseña.
+    const matching: LoginCandidate[] = [];
+    for (const candidate of candidates) {
+      const hash = candidate.kind === 'USER' ? candidate.user.passwordHash : candidate.student.passwordHash;
+      const lockedUntil = candidate.kind === 'USER' ? candidate.user.lockedUntil : candidate.student.lockedUntil;
+      if (!hash || (lockedUntil && lockedUntil.getTime() > Date.now())) continue;
+      if (await comparePassword(loginDto.password, hash)) matching.push(candidate);
+    }
+
+    if (matching.length === 0) {
+      await Promise.all(
+        candidates.map((c) =>
+          c.kind === 'USER'
+            ? this.authRepository.registerFailedUserLogin(c.user.id, MAX_FAILED_ATTEMPTS, LOCK_MINUTES)
+            : this.authRepository.registerFailedStudentLogin(c.student.id, MAX_FAILED_ATTEMPTS, LOCK_MINUTES),
+        ),
+      );
+      throw new AppError('Credenciales inválidas', 401);
+    }
+    if (matching.length === 1) return this.loginCandidate(matching[0], loginDto);
+
+    const schoolIds = [...new Set(matching.map(candidateSchoolId))];
+    const schools = new Map((await this.authRepository.findSchoolsSummary(schoolIds)).map((s) => [s.id, s]));
+    const options = matching.map((c) => {
+      const school = schools.get(candidateSchoolId(c));
+      return {
+        schoolId: candidateSchoolId(c),
+        schoolName: school?.name ?? 'Colegio',
+        schoolSlug: school?.slug ?? null,
+        logoUrl: school?.logoUrl ?? null,
+        accountType: c.kind,
+        role: c.kind === 'USER' ? c.user.role : 'STUDENT',
+        name: c.kind === 'USER' ? c.user.firstName : c.student.firstNames,
+      };
+    });
+    throw new AppError('Tienes cuenta en más de un colegio. Elige a cuál quieres entrar.', 409, true, 'SELECT_SCHOOL', { options });
+  }
+
+  private loginCandidate(candidate: LoginCandidate, loginDto: LoginDto): Promise<AuthResponse> {
+    return candidate.kind === 'USER'
+      ? this.loginUser(candidate.user, loginDto.password, loginDto.otp)
+      : this.loginStudent(candidate.student, loginDto.password);
   }
 
   private async loginUser(user: User, password: string, otp?: string): Promise<AuthResponse> {
@@ -320,36 +363,48 @@ export class AuthService {
    */
   async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string }> {
     const cleanEmail = dto.email.trim().toLowerCase();
-    const user = await this.authRepository.findUserByEmail(cleanEmail);
+    // Un mismo correo puede tener una cuenta por colegio: se envía un enlace para cada una
+    const users = (await this.authRepository.findActiveUsersByEmail(cleanEmail)).filter((u) => u.email);
 
-    if (user && user.isActive && user.email) {
-      const rawToken = crypto.randomBytes(32).toString('hex');
-      const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-      const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutos
-
-      await this.authRepository.createPasswordResetToken({
-        userId: user.id,
-        tokenHash,
-        expiresAt,
-      });
-
+    if (users.length > 0) {
       const frontendUrl = env.FRONTEND_URL || 'http://localhost:5173';
-      const resetLink = `${frontendUrl}/restablecer?token=${rawToken}`;
+      const links: Array<{ schoolName: string; link: string }> = [];
+      for (const user of users) {
+        const rawToken = crypto.randomBytes(32).toString('hex');
+        const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+        await this.authRepository.createPasswordResetToken({
+          userId: user.id,
+          tokenHash,
+          expiresAt: new Date(Date.now() + 30 * 60 * 1000), // 30 minutos
+        });
+        links.push({ schoolName: user.role === 'SUPER_ADMIN' ? 'KIPUX (soporte)' : user.school.name, link: `${frontendUrl}/restablecer?token=${rawToken}` });
+      }
+
+      const firstName = users[0].firstName;
+      const several = links.length > 1;
+      const textLinks = links.map((l) => (several ? `${l.schoolName}:\n${l.link}` : l.link)).join('\n\n');
+      const htmlLinks = links
+        .map(
+          (l) => `
+            <p style="margin: 20px 0 6px;">${several ? `<strong>${escapeHtml(l.schoolName)}</strong><br>` : ''}
+              <a href="${l.link}" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block; margin-top: 8px;">Crear nueva contraseña</a>
+            </p>
+            <p style="color: #64748b; font-size: 12px; word-break: break-all;"><a href="${l.link}">${l.link}</a></p>`,
+        )
+        .join('');
 
       try {
         await sendEmail({
-          to: user.email,
+          to: users[0].email!,
           subject: 'Restablece tu contraseña - KIPUX',
-          text: `Hola ${user.firstName},\n\nHemos recibido una solicitud para restablecer tu contraseña en KIPUX.\nHaz clic en el siguiente enlace o cópialo en tu navegador para crear una nueva contraseña:\n\n${resetLink}\n\nEste enlace expirará en 30 minutos y solo puede usarse una vez.\nSi tú no solicitaste este cambio, puedes ignorar este mensaje de forma segura.\n\nAtentamente,\nEquipo KIPUX`,
+          text: `Hola ${firstName},\n\nHemos recibido una solicitud para restablecer tu contraseña en KIPUX.\n${several ? 'Tienes una cuenta en cada uno de estos colegios; cada enlace cambia solo la contraseña de ese colegio:' : 'Haz clic en el siguiente enlace o cópialo en tu navegador para crear una nueva contraseña:'}\n\n${textLinks}\n\n${several ? 'Los enlaces expiran' : 'Este enlace expirará'} en 30 minutos y solo pueden usarse una vez.\nSi tú no solicitaste este cambio, puedes ignorar este mensaje de forma segura.\n\nAtentamente,\nEquipo KIPUX`,
           html: `<div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
             <h2 style="color: #1e3a8a;">Restablece tu contraseña</h2>
-            <p>Hola <strong>${escapeHtml(user.firstName)}</strong>,</p>
+            <p>Hola <strong>${escapeHtml(firstName)}</strong>,</p>
             <p>Hemos recibido una solicitud para restablecer tu contraseña en KIPUX.</p>
-            <p style="margin: 24px 0;">
-              <a href="${resetLink}" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">Crear nueva contraseña</a>
-            </p>
-            <p style="color: #64748b; font-size: 13px;">O copia y pega este enlace en tu navegador:<br><a href="${resetLink}">${resetLink}</a></p>
-            <p style="color: #64748b; font-size: 13px;">Este enlace expirará en 30 minutos y solo puede ser usado una sola vez. Si no solicitaste este cambio, ignora este correo.</p>
+            ${several ? '<p>Tienes una cuenta en cada uno de estos colegios. Cada enlace cambia solo la contraseña de ese colegio:</p>' : ''}
+            ${htmlLinks}
+            <p style="color: #64748b; font-size: 13px; margin-top: 24px;">${several ? 'Los enlaces expiran' : 'Este enlace expirará'} en 30 minutos y solo pueden usarse una vez. Si no solicitaste este cambio, ignora este correo.</p>
           </div>`,
         });
       } catch (err) {
@@ -357,7 +412,7 @@ export class AuthService {
       }
       // El enlace da acceso a la cuenta: nunca debe quedar en los logs de producción.
       if (env.NODE_ENV === 'development') {
-        console.log(`[RECUPERACIÓN DE CONTRASEÑA] Enlace para ${user.email}: ${resetLink}`);
+        links.forEach((l) => console.log(`[RECUPERACIÓN DE CONTRASEÑA] ${l.schoolName}: ${l.link}`));
       }
     }
 

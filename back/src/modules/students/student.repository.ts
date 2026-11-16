@@ -395,13 +395,11 @@ export class StudentRepository {
         const guardianEmail = data.guardian.newGuardian.email?.toLowerCase().trim() || null;
         const guardianDocumentId = data.guardian.newGuardian.documentId?.trim() || null;
 
-        // Mismo apoderado ya registrado: por correo (único en la plataforma) o por documento en este colegio
+        // Mismo apoderado ya registrado en ESTE colegio, por correo o por documento.
+        // Si el correo existe en otro colegio no importa: el apoderado tiene una cuenta por colegio.
         const existingByEmail = guardianEmail
-          ? await tx.user.findUnique({ where: { email: guardianEmail } })
+          ? await tx.user.findFirst({ where: { schoolId, email: { equals: guardianEmail, mode: 'insensitive' } } })
           : null;
-        if (existingByEmail && existingByEmail.schoolId !== schoolId) {
-          throw new AppError('Ese correo ya está registrado en otra institución. Usa otro correo o déjalo vacío.', 409);
-        }
         const existingUser =
           existingByEmail ??
           (guardianDocumentId

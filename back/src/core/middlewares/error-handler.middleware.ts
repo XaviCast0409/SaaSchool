@@ -11,6 +11,7 @@ interface ErrorResponse {
   message: string;
   errors?: unknown;
   code?: string;
+  details?: unknown;
   stack?: string;
 }
 
@@ -44,6 +45,7 @@ export const globalErrorHandler = (
       status: error.statusCode >= 500 ? 'error' : 'fail',
       message: error.message,
       ...(error.code && { code: error.code }),
+      ...(error.details !== undefined && { details: error.details }),
     } satisfies ErrorResponse);
     return;
   }
@@ -107,9 +109,9 @@ export const globalErrorHandler = (
       } else if (targetFields.some((f) => f.includes('documentId') || f.includes('documentNumber'))) {
         customMessage = 'El DNI / Número de Documento ingresado ya pertenece a otro estudiante o apoderado registrado.';
       } else if (targetFields.some((f) => f.includes('studentCode') || f.includes('siagieCode'))) {
-        customMessage = 'El Código SIAGIE ingresado ya pertenece a otro estudiante registrado.';
+        customMessage = 'El Código SIAGIE ingresado ya pertenece a otro estudiante de este colegio.';
       } else if (targetFields.some((f) => f.includes('email'))) {
-        customMessage = 'El correo electrónico ingresado ya se encuentra registrado para otro usuario.';
+        customMessage = 'El correo electrónico ingresado ya está registrado para otro usuario de este colegio.';
       } else if (targetFields.some((f) => f.includes('tutorTeacherId'))) {
         customMessage = 'Ese docente ya es tutor(a) de otra aula. Cada docente solo puede ser tutor de una aula.';
       } else if (targetFields.some((f) => f.includes('section'))) {

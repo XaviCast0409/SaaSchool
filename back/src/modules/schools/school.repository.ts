@@ -91,13 +91,6 @@ export class SchoolRepository {
     });
   }
 
-  async findUserByEmail(email: string): Promise<{ id: string } | null> {
-    return prisma.user.findFirst({
-      where: { email: email.toLowerCase().trim() },
-      select: { id: true },
-    });
-  }
-
   /** Primer código libre entre base, base-2, base-3... */
   async findAvailableSlug(base: string): Promise<string> {
     const candidates = slugCandidates(base);

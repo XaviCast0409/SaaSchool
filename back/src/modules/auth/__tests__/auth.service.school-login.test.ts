@@ -38,7 +38,9 @@ describe('login desde la página del colegio', () => {
       findUsersByIdentifier: vi.fn(async () => []),
       findStudentsByIdentifier: vi.fn(async () => []),
       registerFailedUserLogin: vi.fn(),
+      registerFailedStudentLogin: vi.fn(),
       resetUserLoginCounters: vi.fn(),
+      findSchoolsSummary: vi.fn(async (ids: string[]) => ids.map((id) => ({ id, name: `Colegio ${id}`, slug: id, logoUrl: null }))),
     };
     service = new AuthService(repo as unknown as AuthRepository);
   });
@@ -99,5 +101,50 @@ describe('login desde la página del colegio', () => {
     repo.findSchoolById.mockResolvedValue({ id: 's-suspended', isActive: false });
     const res = await service.login({ email: 'padre@x.pe', password: 'Clave123' });
     expect(res.user.role).toBe('SUPER_ADMIN');
+  });
+
+  describe('apoderado con cuentas en varios colegios', () => {
+    it('si la contraseña coincide en dos colegios, pide elegir (SELECT_SCHOOL) con la lista', async () => {
+      repo.findUsersByIdentifier.mockResolvedValue([user('s1'), user('s2')]);
+      await expect(service.login({ email: 'padre@x.pe', password: 'Clave123' })).rejects.toMatchObject({
+        statusCode: 409,
+        code: 'SELECT_SCHOOL',
+        details: {
+          options: [
+            expect.objectContaining({ schoolId: 's1', schoolName: 'Colegio s1', accountType: 'USER', role: 'PARENT' }),
+            expect.objectContaining({ schoolId: 's2', schoolName: 'Colegio s2', accountType: 'USER' }),
+          ],
+        },
+      });
+    });
+
+    it('si la contraseña solo coincide en un colegio, entra directo a ese', async () => {
+      repo.findUsersByIdentifier.mockResolvedValue([user('s1'), { ...user('s2'), passwordHash: 'hash:OtraClave9' }]);
+      repo.findSchoolById.mockResolvedValue({ id: 's2', isActive: true });
+      const res = await service.login({ email: 'padre@x.pe', password: 'OtraClave9' });
+      expect(res.user.schoolId).toBe('s2');
+    });
+
+    it('con contraseña incorrecta no revela en qué colegios existe la cuenta', async () => {
+      repo.findUsersByIdentifier.mockResolvedValue([user('s1'), user('s2')]);
+      await expect(service.login({ email: 'padre@x.pe', password: 'mala' })).rejects.toMatchObject({ statusCode: 401, message: 'Credenciales inválidas' });
+      expect(repo.findSchoolsSummary).not.toHaveBeenCalled();
+      expect(repo.registerFailedUserLogin).toHaveBeenCalledTimes(2);
+    });
+
+    it('al elegir el colegio (schoolId) la búsqueda se limita a ese y entra', async () => {
+      repo.findUsersByIdentifier.mockResolvedValue([user('s2')]);
+      repo.findSchoolById.mockResolvedValue({ id: 's2', isActive: true });
+      const res = await service.login({ email: 'padre@x.pe', password: 'Clave123', schoolId: '22222222-2222-2222-2222-222222222222' });
+      expect(res.user.schoolId).toBe('s2');
+      expect(repo.findUsersByIdentifier).toHaveBeenCalledWith('padre@x.pe', '22222222-2222-2222-2222-222222222222');
+      expect(repo.findSchoolBySlug).not.toHaveBeenCalled();
+    });
+
+    it('accountType filtra entre la cuenta de usuario y la de estudiante', async () => {
+      repo.findUsersByIdentifier.mockResolvedValue([user('s1')]);
+      await service.login({ email: '12345678', password: 'Clave123', accountType: 'USER' }).catch(() => undefined);
+      expect(repo.findStudentsByIdentifier).not.toHaveBeenCalled();
+    });
   });
 });

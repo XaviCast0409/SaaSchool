@@ -6,6 +6,9 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Contraseña requerida').max(200),
   // Código del colegio (página /c/<código>): limita la búsqueda de la cuenta a ese colegio
   schoolSlug: z.string().trim().toLowerCase().max(40).optional(),
+  // Colegio elegido cuando la misma persona tiene cuenta en varios (respuesta SELECT_SCHOOL)
+  schoolId: z.string().uuid().optional(),
+  accountType: z.enum(['USER', 'STUDENT']).optional(),
   // Código TOTP de 6 dígitos (solo cuentas con verificación en dos pasos)
   otp: z.string().trim().regex(/^\d{6}$/, 'El código debe tener 6 dígitos').optional(),
 });

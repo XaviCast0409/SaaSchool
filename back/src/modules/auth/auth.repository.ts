@@ -1,6 +1,9 @@
 import { prisma } from '../../config/prisma';
 import type { User, Student } from '@prisma/client';
 
+/** Máximo de cuentas que se evalúan para un mismo usuario/documento (una por colegio). */
+export const MAX_LOGIN_CANDIDATES = 8;
+
 export class AuthRepository {
   /** Colegio activo por su código (página de ingreso /c/<código>). */
   async findActiveSchoolIdBySlug(slug: string): Promise<string | null> {
@@ -17,8 +20,8 @@ export class AuthRepository {
   }
 
   /**
-   * Devuelve hasta 2 usuarios que coincidan (para detectar ambigüedad entre colegios).
-   * Con `schoolId` la búsqueda se limita a ese colegio.
+   * Usuarios que coinciden por correo o documento. Puede haber uno por colegio (un apoderado con hijos
+   * en varios colegios). Con `schoolId` la búsqueda se limita a ese colegio.
    */
   async findUsersByIdentifier(identifier: string, schoolId?: string): Promise<User[]> {
     const clean = identifier.trim();
@@ -27,16 +30,26 @@ export class AuthRepository {
         ...(schoolId ? { schoolId } : {}),
         OR: [{ email: { equals: clean, mode: 'insensitive' } }, { documentId: clean }],
       },
-      take: 2,
+      orderBy: { createdAt: 'asc' },
+      take: MAX_LOGIN_CANDIDATES,
     });
   }
 
-  /** Devuelve hasta 2 estudiantes que coincidan por DNI o código SIAGIE (opcionalmente en un colegio). */
+  /** Estudiantes que coinciden por DNI o código SIAGIE (opcionalmente en un colegio). */
   async findStudentsByIdentifier(identifier: string, schoolId?: string): Promise<Student[]> {
     const clean = identifier.trim();
     return prisma.student.findMany({
       where: { ...(schoolId ? { schoolId } : {}), OR: [{ documentId: clean }, { studentCode: clean }] },
-      take: 2,
+      orderBy: { createdAt: 'asc' },
+      take: MAX_LOGIN_CANDIDATES,
+    });
+  }
+
+  /** Nombre y código de los colegios (para que el usuario elija a cuál entrar). */
+  async findSchoolsSummary(ids: string[]): Promise<Array<{ id: string; name: string; slug: string | null; logoUrl: string | null }>> {
+    return prisma.school.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, name: true, slug: true, logoUrl: true },
     });
   }
 
@@ -44,10 +57,14 @@ export class AuthRepository {
     return prisma.user.findUnique({ where: { id } });
   }
 
-  async findUserByEmail(email: string): Promise<User | null> {
+  /** Cuentas activas con ese correo: una por cada colegio en que esté registrado. */
+  async findActiveUsersByEmail(email: string): Promise<Array<User & { school: { name: string } }>> {
     const clean = email.trim().toLowerCase();
-    return prisma.user.findFirst({
-      where: { email: { equals: clean, mode: 'insensitive' } },
+    return prisma.user.findMany({
+      where: { email: { equals: clean, mode: 'insensitive' }, isActive: true },
+      include: { school: { select: { name: true } } },
+      orderBy: { createdAt: 'asc' },
+      take: MAX_LOGIN_CANDIDATES,
     });
   }
 

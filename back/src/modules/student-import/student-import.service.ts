@@ -189,12 +189,11 @@ export class StudentImportService {
     const incomingGuardians = valid.flatMap((row) => [row.guardian, row.secondGuardian]).filter((guardian): guardian is ImportGuardian => !!guardian);
     const guardianEmails = [...new Set(incomingGuardians.map((guardian) => guardian.email).filter((email): email is string => !!email))];
 
-    const [classrooms, existingStudents, foreignCodes, users, takenEmails, currentStudents] = await Promise.all([
+    const [classrooms, existingStudents, users, takenEmails, currentStudents] = await Promise.all([
       this.repository.findOpenClassrooms(schoolId, year.id),
       this.repository.findStudentsByIdentity(schoolId, documentIds, studentCodes),
-      this.repository.findStudentCodesInOtherSchools(schoolId, studentCodes),
       this.repository.findUsersByDocument(schoolId, [...new Set(incomingGuardians.map((guardian) => guardian.documentId))]),
-      this.repository.findTakenEmails(guardianEmails),
+      this.repository.findTakenEmails(schoolId, guardianEmails),
       this.repository.countStudents(schoolId),
     ]);
     const enrollments = await this.repository.findEnrollmentsOfYear(schoolId, year.id, existingStudents.map((student) => student.id));
@@ -203,7 +202,6 @@ export class StudentImportService {
     const classroomByKey = new Map(classrooms.map((classroom) => [classroomMatchKey(labels.get(classroom.id)!), classroom.id]));
     const studentByDocument = new Map(existingStudents.map((student) => [student.documentId, student]));
     const studentByCode = new Map(existingStudents.filter((student) => student.studentCode).map((student) => [student.studentCode!, student]));
-    const foreignCodeSet = new Set(foreignCodes);
     const enrollmentByStudent = new Map(enrollments.map((enrollment) => [enrollment.studentId, enrollment]));
     const userByDocument = new Map(users.filter((user) => user.documentId).map((user) => [user.documentId!, user]));
     const emailOwner = new Map(takenEmails.map((taken) => [taken.email, taken]));
@@ -273,9 +271,7 @@ export class StudentImportService {
       const existing = studentByDocument.get(student.documentId) ?? null;
       if (student.studentCode) {
         const codeOwner = studentByCode.get(student.studentCode);
-        if (foreignCodeSet.has(student.studentCode)) {
-          issues.push(`El código SIAGIE ${student.studentCode} ya está registrado en otro colegio de la plataforma.`);
-        } else if (codeOwner && codeOwner.id !== existing?.id) {
+        if (codeOwner && codeOwner.id !== existing?.id) {
           issues.push(`El código SIAGIE ${student.studentCode} ya pertenece a ${fullNameOf(codeOwner)} (documento ${codeOwner.documentId}).`);
         } else if (seenCodes.has(student.studentCode)) {
           issues.push(`El código SIAGIE ${student.studentCode} está repetido en otra fila del archivo.`);

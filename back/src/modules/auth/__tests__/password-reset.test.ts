@@ -27,7 +27,7 @@ describe('AuthService - Password Reset (P1)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     authRepository = {
-      findUserByEmail: vi.fn(),
+      findActiveUsersByEmail: vi.fn(),
       createPasswordResetToken: vi.fn(),
       findPasswordResetToken: vi.fn(),
       markPasswordResetTokenUsed: vi.fn(),
@@ -38,7 +38,7 @@ describe('AuthService - Password Reset (P1)', () => {
 
   describe('forgotPassword', () => {
     it('responde 200 con el mensaje estándar si el correo NO existe (evita enumeración)', async () => {
-      (authRepository.findUserByEmail as any).mockResolvedValue(null);
+      (authRepository.findActiveUsersByEmail as any).mockResolvedValue([]);
 
       const res = await authService.forgotPassword({ email: 'no-existe@colegio.edu.pe' });
       expect(res.message).toBe('Si el correo está registrado, te enviamos un enlace para restablecer tu contraseña.');
@@ -46,12 +46,9 @@ describe('AuthService - Password Reset (P1)', () => {
     });
 
     it('genera token y envía correo si el correo existe y usuario está activo', async () => {
-      (authRepository.findUserByEmail as any).mockResolvedValue({
-        id: 'user-1',
-        email: 'docente@colegio.edu.pe',
-        firstName: 'Juan',
-        isActive: true,
-      });
+      (authRepository.findActiveUsersByEmail as any).mockResolvedValue([
+        { id: 'user-1', email: 'docente@colegio.edu.pe', firstName: 'Juan', isActive: true, role: 'TEACHER', school: { name: 'Colegio A' } },
+      ]);
 
       const res = await authService.forgotPassword({ email: 'docente@colegio.edu.pe' });
       expect(res.message).toBe('Si el correo está registrado, te enviamos un enlace para restablecer tu contraseña.');
@@ -63,6 +60,17 @@ describe('AuthService - Password Reset (P1)', () => {
         }),
       );
     });
+  });
+
+  it('con cuentas en dos colegios genera un enlace (token) para cada una', async () => {
+    (authRepository.findActiveUsersByEmail as any).mockResolvedValue([
+      { id: 'u-a', email: 'padre@correo.pe', firstName: 'Luis', isActive: true, role: 'PARENT', school: { name: 'Colegio A' } },
+      { id: 'u-b', email: 'padre@correo.pe', firstName: 'Luis', isActive: true, role: 'PARENT', school: { name: 'Colegio B' } },
+    ]);
+    await authService.forgotPassword({ email: 'padre@correo.pe' });
+    expect(authRepository.createPasswordResetToken).toHaveBeenCalledTimes(2);
+    expect(authRepository.createPasswordResetToken).toHaveBeenCalledWith(expect.objectContaining({ userId: 'u-a' }));
+    expect(authRepository.createPasswordResetToken).toHaveBeenCalledWith(expect.objectContaining({ userId: 'u-b' }));
   });
 
   describe('resetPassword', () => {
