@@ -161,8 +161,9 @@ export class UserRepository {
     };
   }
 
-  async findByEmail(email: string): Promise<User | null> {
-    return prisma.user.findUnique({ where: { email } });
+  /** El correo es único dentro del colegio (un apoderado puede tener cuentas en varios colegios). */
+  async findByEmail(schoolId: string, email: string): Promise<User | null> {
+    return prisma.user.findFirst({ where: { schoolId, email: { equals: email.trim(), mode: 'insensitive' } } });
   }
 
   async findByDocumentId(schoolId: string, documentId: string): Promise<User | null> {

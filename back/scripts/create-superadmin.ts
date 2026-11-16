@@ -47,7 +47,8 @@ async function main(): Promise<void> {
     },
   });
 
-  const existing = await prisma.user.findUnique({ where: { email }, select: { id: true, role: true } });
+  // El correo es único por colegio: la cuenta de soporte vive en el colegio interno de la plataforma
+  const existing = await prisma.user.findFirst({ where: { schoolId: school.id, email }, select: { id: true, role: true } });
   if (existing && existing.role !== 'SUPER_ADMIN') {
     throw new Error(`${email} ya existe con rol ${existing.role}. Usa otro correo para la cuenta de soporte.`);
   }

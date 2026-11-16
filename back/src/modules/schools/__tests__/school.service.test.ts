@@ -10,7 +10,6 @@ describe('SchoolService - createSchool validation (P4, P5)', () => {
   beforeEach(() => {
     mockRepo = {
       findByDocumentId: vi.fn(),
-      findUserByEmail: vi.fn(),
       create: vi.fn(),
       findById: vi.fn(),
     };
@@ -32,20 +31,20 @@ describe('SchoolService - createSchool validation (P4, P5)', () => {
     ).rejects.toThrow(new AppError('Ya existe un colegio registrado con ese RUC.', 409));
   });
 
-  it('rejects duplicate director email with 409 and descriptive message', async () => {
+  it('permite un director cuyo correo ya existe en otro colegio (el correo es único por colegio)', async () => {
     vi.mocked(mockRepo.findByDocumentId!).mockResolvedValue(null);
-    vi.mocked(mockRepo.findUserByEmail!).mockResolvedValue({ id: 'user-1' });
+    vi.mocked(mockRepo.create!).mockResolvedValue({ id: 'sch-2', name: 'Otro Colegio', documentId: '20987654321', plan: 'PRO' } as any);
 
     await expect(
       service.createSchool({
-        name: 'Nuevo Colegio',
+        name: 'Otro Colegio',
         documentId: '20987654321',
         adminEmail: 'director@existente.pe',
         adminPassword: 'Password123!',
         adminFirstName: 'Ana',
         adminLastNamePaternal: 'Paz',
       } as any),
-    ).rejects.toThrow(new AppError('Ese correo ya está registrado en la plataforma.', 409));
+    ).resolves.toBeTruthy();
   });
 
   it('rejects missing admin password when admin email is provided', async () => {
@@ -76,7 +75,6 @@ describe('SchoolService - createSchool validation (P4, P5)', () => {
 
   it('creates school successfully when validations pass', async () => {
     vi.mocked(mockRepo.findByDocumentId!).mockResolvedValue(null);
-    vi.mocked(mockRepo.findUserByEmail!).mockResolvedValue(null);
     vi.mocked(mockRepo.create!).mockResolvedValue({
       id: 'sch-new',
       name: 'Nuevo Colegio',

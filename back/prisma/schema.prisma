@@ -292,7 +292,8 @@ model School {
 model User {
   id           String       @id @default(uuid())
   schoolId     String
-  email        String?      @unique
+  /// Único por colegio (no en toda la plataforma): un apoderado con hijos en varios colegios tiene una cuenta en cada uno.
+  email        String?
   passwordHash String
   role         Role         @default(PARENT)
   financeRole  FinanceRole? // Solo personal administrativo: cajero, tesorero o contador
@@ -374,6 +375,8 @@ model User {
   passwordResetTokens     PasswordResetToken[]
 
   @@unique([schoolId, documentId])
+  @@unique([schoolId, email])
+  @@index([email])
   @@index([schoolId, role])
 }
 
@@ -397,7 +400,8 @@ model PasswordResetToken {
 model Student {
   id          String  @id @default(uuid())
   schoolId    String
-  studentCode String? @unique // Código de Estudiante SIAGIE (14 dígitos)
+  /// Código de Estudiante SIAGIE (14 dígitos). Único por colegio: un alumno trasladado entre dos colegios de la plataforma conserva su código en ambos.
+  studentCode String?
 
   // Requisitos SIAGIE
   firstNames          String
@@ -443,6 +447,8 @@ model Student {
   forumComments          ForumComment[]
 
   @@unique([schoolId, documentType, documentId])
+  @@unique([schoolId, studentCode])
+  @@index([studentCode])
   @@index([schoolId, documentId])
   @@index([schoolId, studentCode])
 }

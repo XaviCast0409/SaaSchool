@@ -54,15 +54,6 @@ export class StudentImportRepository {
   }
 
   /** El código SIAGIE es único en toda la plataforma: detecta los que ya usa otro colegio. */
-  async findStudentCodesInOtherSchools(schoolId: string, studentCodes: string[]): Promise<string[]> {
-    if (studentCodes.length === 0) return [];
-    const rows = await prisma.student.findMany({
-      where: { schoolId: { not: schoolId }, studentCode: { in: studentCodes } },
-      select: { studentCode: true },
-    });
-    return rows.map((row) => row.studentCode).filter((code): code is string => !!code);
-  }
-
   async findEnrollmentsOfYear(schoolId: string, academicYearId: string, studentIds: string[]) {
     return prisma.enrollment.findMany({
       where: { schoolId, academicYearId, studentId: { in: studentIds } },
@@ -77,11 +68,11 @@ export class StudentImportRepository {
     });
   }
 
-  /** El correo es único en toda la plataforma, por eso esta consulta no se limita al colegio. */
-  async findTakenEmails(emails: string[]): Promise<Array<{ email: string; schoolId: string; documentId: string | null }>> {
+  /** Correos ya usados en ESTE colegio (el correo es único por colegio, no en toda la plataforma). */
+  async findTakenEmails(schoolId: string, emails: string[]): Promise<Array<{ email: string; schoolId: string; documentId: string | null }>> {
     if (emails.length === 0) return [];
     const rows = await prisma.user.findMany({
-      where: { email: { in: emails, mode: 'insensitive' } },
+      where: { schoolId, email: { in: emails, mode: 'insensitive' } },
       select: { email: true, schoolId: true, documentId: true },
     });
     return rows.map((row) => ({ email: (row.email ?? '').toLowerCase(), schoolId: row.schoolId, documentId: row.documentId }));

@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ShieldCheck, Sparkles } from 'lucide-react';
 import { loginSchema, LoginFormData } from '../schemas/login.schema';
 import { useLogin } from '../api/useLogin';
+import { SchoolChooser, schoolOptionsFromError, type SchoolOption } from '../components/SchoolChooser';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -54,11 +55,15 @@ export const LoginPage: React.FC = () => {
   // Verificación en dos pasos (cuentas de soporte): el servidor la pide tras validar la contraseña
   const [otpStep, setOtpStep] = useState(false);
   const [otp, setOtp] = useState('');
+  // La misma persona tiene cuenta en varios colegios: elige a cuál entrar
+  const [schoolOptions, setSchoolOptions] = useState<SchoolOption[] | null>(null);
+  const [pendingPick, setPendingPick] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
     setValue,
+    getValues,
     clearErrors,
     formState: { errors },
   } = useForm<LoginFormData>({
@@ -68,13 +73,23 @@ export const LoginPage: React.FC = () => {
       : { email: '', password: '' },
   });
 
-  const onSubmit = (data: LoginFormData) => {
+  const submitLogin = (data: LoginFormData, pick?: SchoolOption) => {
     sessionStorage.removeItem('suspension_message');
     setSuspensionNotice(null);
     login(
-      { ...data, ...(otpStep && otp ? { otp } : {}) },
+      {
+        ...data,
+        ...(otpStep && otp ? { otp } : {}),
+        ...(pick ? { schoolId: pick.schoolId, accountType: pick.accountType } : {}),
+      },
       {
         onError: (e) => {
+          setPendingPick(null);
+          const options = schoolOptionsFromError(e);
+          if (options) {
+            setSchoolOptions(options);
+            return;
+          }
           const code = (e as { response?: { data?: { code?: string } } }).response?.data?.code;
           if (code === 'MFA_REQUIRED' || code === 'MFA_INVALID') {
             setOtpStep(true);
@@ -83,6 +98,19 @@ export const LoginPage: React.FC = () => {
         },
       },
     );
+  };
+
+  const onSubmit = (data: LoginFormData) => submitLogin(data);
+
+  const pickSchool = (option: SchoolOption) => {
+    setPendingPick(`${option.schoolId}|${option.accountType}`);
+    submitLogin(getValues(), option);
+  };
+
+  const cancelPick = () => {
+    setSchoolOptions(null);
+    setPendingPick(null);
+    setValue('password', '');
   };
 
   const handleSelectPreset = (email: string, pass: string) => {
@@ -107,13 +135,16 @@ export const LoginPage: React.FC = () => {
         </CardHeader>
 
         <CardContent className="pt-5 space-y-4">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5">
+          {schoolOptions && (
+            <SchoolChooser options={schoolOptions} onPick={pickSchool} onCancel={cancelPick} pendingSchoolId={pendingPick} />
+          )}
+          <form onSubmit={handleSubmit(onSubmit)} className={schoolOptions ? 'hidden' : 'space-y-3.5'}>
             {suspensionNotice && (
               <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-xs font-semibold">
                 {suspensionNotice}
               </div>
             )}
-            {error && !suspensionNotice && (
+            {error && !suspensionNotice && !schoolOptionsFromError(error) && (
               <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs font-semibold">
                 {(error as { response?: { data?: { message?: string } } }).response?.data?.message ||
                   'Credenciales incorrectas o servidor no disponible.'}

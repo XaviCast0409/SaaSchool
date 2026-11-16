@@ -64,7 +64,7 @@ export class UserService {
     }
 
     if (createUserDto.email) {
-      const existingEmail = await this.userRepository.findByEmail(createUserDto.email);
+      const existingEmail = await this.userRepository.findByEmail(schoolId, createUserDto.email);
       if (existingEmail) {
         throw new AppError(
           `El correo electrónico "${createUserDto.email}" ya está registrado a nombre de ${existingEmail.firstName} ${existingEmail.lastNamePaternal}.`,

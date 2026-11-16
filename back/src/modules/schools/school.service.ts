@@ -67,10 +67,6 @@ export class SchoolService {
       if (!createSchoolDto.adminFirstName?.trim() || !createSchoolDto.adminLastNamePaternal?.trim()) {
         throw new AppError('Indica el nombre y el apellido paterno del director.', 400);
       }
-      const existingUser = await this.schoolRepository.findUserByEmail(createSchoolDto.adminEmail);
-      if (existingUser) {
-        throw new AppError('Ese correo ya está registrado en la plataforma.', 409);
-      }
     }
     return toView(await this.schoolRepository.create(createSchoolDto));
   }
