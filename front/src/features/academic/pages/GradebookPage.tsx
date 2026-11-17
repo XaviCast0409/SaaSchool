@@ -66,7 +66,7 @@ export const GradebookPage: React.FC = () => {
         description={<>Docente: {teacherName(data.assignment.teacher)} · <PeriodStatusBadge status={data.periodStatus} /></>}
         actions={<>
           <Select aria-label="Periodo" value={period} onChange={(e) => setParams({ period: e.target.value })}>
-            {Array.from({ length: data.periodCount }, (_, i) => i + 1).map((n) => <option key={n} value={n}>Periodo {n}</option>)}
+            {Array.from({ length: data.periodCount }, (_, i) => i + 1).map((n) => <option key={n} value={n}>{data.periodNames?.[n - 1] ?? `Periodo ${n}`}</option>)}
           </Select>
           <Button asChild variant="outline" size="sm"><Link to={`/gradebook/${data.assignment.id}/quick?period=${period}`}><Smartphone className="mr-1 h-4 w-4" />Registro rápido</Link></Button>
           {data.canEdit && <Button variant="outline" size="sm" onClick={() => setCriteriaOpen(true)}><ListChecks className="mr-1 h-4 w-4" />Criterios</Button>}
@@ -118,8 +118,9 @@ export const GradebookPage: React.FC = () => {
 
       {data.competences.length === 0 ? <p className="text-sm text-muted-foreground">Este curso no tiene competencias. Revisa el plan de estudios.</p> : (
         <>
-          {tab === 'competence' && competenceId && (
-            <>
+          {/* La grilla queda montada (oculta) en las otras pestañas: no se pierde lo que aún no se guardó */}
+          {competenceId && (
+            <div hidden={tab !== 'competence'}>
               <div className="mb-3 flex flex-wrap gap-1.5">
                 {data.competences.map((c) => (
                   <button key={c.id} type="button" title={c.name} onClick={() => setCompetenceId(c.id)}
@@ -132,7 +133,7 @@ export const GradebookPage: React.FC = () => {
               {data.criteria.length === 0 && <p className="mb-3 text-sm text-muted-foreground">Este curso no usa criterios: registra directamente el calificativo final.</p>}
               <GradebookGrid data={data} competenceId={competenceId} reason={reason} onNeedReason={() => setReasonOpen(true)} onStatus={(s, msg, invalidCount) => setStatus({ s, msg, invalidCount })} />
               <p className="mt-2 text-xs text-muted-foreground">Escribe un número de 0 a 20 o AD, A, B, C, EXO. Puedes pegar columnas desde Excel. Enter baja a la siguiente fila.</p>
-            </>
+            </div>
           )}
           {tab === 'summary' && <SummaryTable data={data} onPick={(id) => { setCompetenceId(id); setTab('competence'); }} />}
           {tab === 'conclusions' && <ConclusionsWorkspace data={data} reason={reason} onNeedReason={() => setReasonOpen(true)} />}

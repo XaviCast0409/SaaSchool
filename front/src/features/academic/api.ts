@@ -101,7 +101,7 @@ export const useCopyTeachingLoad = planMutation(
 );
 
 export const useMyCourses = () =>
-  useQuery({ queryKey: ['academic', 'my-courses'], queryFn: () => get<{ courses: MyCourse[]; academicYearId: string | null }>('/academic/my-courses') });
+  useQuery({ queryKey: ['academic', 'my-courses'], queryFn: () => get<{ courses: MyCourse[]; tutorClassrooms?: MyCourse['classroom'][]; academicYearId: string | null }>('/academic/my-courses') });
 
 // ── Periodos y avance
 export const usePeriods = () => useQuery({ queryKey: ['academic', 'periods'], queryFn: () => get<PeriodsResponse>('/academic/periods') });
@@ -142,15 +142,37 @@ export const useGradebook = (assignmentId: string | undefined, periodNumber: num
     queryKey: ['academic', 'gradebook', assignmentId, periodNumber],
     queryFn: () => get<GradebookData>(`/academic/gradebook/${assignmentId}`, { periodNumber }),
     enabled: !!assignmentId,
+    // Es un formulario en edición: no se vuelve a pedir solo al volver a la pestaña ni por avisos en vivo
+    // (la grilla igual conserva lo que se está escribiendo si llegan datos nuevos)
+    refetchOnWindowFocus: false,
   });
 
 export interface ScoreInput { enrollmentId: string; competenceId: string; criterionId: string; numericScore: number | null; literalScore: ResultLetter | null }
 
-export const useSaveScores = (assignmentId: string) =>
-  useMutation({
+export const useSaveScores = (assignmentId: string) => {
+  const qc = useQueryClient();
+  return useMutation({
     mutationFn: async (v: { periodNumber: number; items: ScoreInput[]; reason?: string | null }) =>
       (await api.put<Envelope<{ saved: number; results: GradebookResult[] }>>(`/academic/gradebook/${assignmentId}/scores`, v)).data.data,
+    // Lo guardado pasa a la caché: al volver a la pestaña o a otra competencia se ve lo último, sin volver a pedirlo
+    onSuccess: (res, v) => {
+      qc.setQueryData<GradebookData>(['academic', 'gradebook', assignmentId, v.periodNumber], (old) => {
+        if (!old) return old;
+        const keyOf = (x: { enrollmentId: string; competenceId: string; criterionId: string }) => `${x.enrollmentId}|${x.competenceId}|${x.criterionId}`;
+        const scores = new Map(old.scores.map((sc) => [keyOf(sc), sc]));
+        v.items.forEach((it) => {
+          if (it.numericScore === null && it.literalScore === null) scores.delete(keyOf(it));
+          else scores.set(keyOf(it), { ...it, isExonerated: it.literalScore === 'EXO' });
+        });
+        const results = new Map(old.results.map((r) => [`${r.enrollmentId}|${r.competenceId}`, r]));
+        res.results.forEach((r) => results.set(`${r.enrollmentId}|${r.competenceId}`, r));
+        return { ...old, scores: [...scores.values()], results: [...results.values()] };
+      });
+      // Avance del docente y de Dirección cambia con cada nota
+      qc.invalidateQueries({ queryKey: ['academic', 'progress'] });
+    },
   });
+};
 
 export const useSetFinalLetter = (assignmentId: string) => {
   const invalidate = useInvalidate();

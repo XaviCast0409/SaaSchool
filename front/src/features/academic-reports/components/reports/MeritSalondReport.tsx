@@ -1,5 +1,4 @@
 import React from 'react';
-import * as XLSX from 'xlsx';
 import { MeritClassroomReportData } from '../../types';
 import { ReportHeader } from '../shared/ReportHeader';
 import { ReportFooter } from '../shared/ReportFooter';
@@ -15,7 +14,9 @@ export const MeritSalondReport: React.FC<MeritSalondReportProps> = ({ data }) =>
   const title = 'REPORTE DE ORDEN DE MÉRITO Y TERCIOS POR SALÓN';
   const subtitle = `${periodNumber}° BIMESTRE ${new Date().getFullYear()}`;
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
+    // La librería de Excel se descarga solo al exportar
+    const XLSX = await import('xlsx');
     const wb = XLSX.utils.book_new();
 
     const headers = [

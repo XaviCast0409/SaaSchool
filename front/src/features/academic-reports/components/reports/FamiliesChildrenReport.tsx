@@ -3,7 +3,6 @@ import { FamiliesChildrenReportData } from '../../types';
 import { ReportHeader } from '../shared/ReportHeader';
 import { ReportFooter } from '../shared/ReportFooter';
 import { ReportActionToolbar } from '../shared/ReportActionToolbar';
-import { exportFamiliesChildrenExcel } from '../../utils/reportExcelExport';
 
 interface FamiliesChildrenReportProps {
   data: FamiliesChildrenReportData;
@@ -15,8 +14,10 @@ export const FamiliesChildrenReport: React.FC<FamiliesChildrenReportProps> = ({ 
   const title = 'LISTADO DE FAMILIAS E HIJOS (0002)';
   const subtitle = `Total Familias: ${totalFamilies} | Total Hijos Registrados: ${totalChildren}`;
 
-  const handleExportExcel = () => {
-    exportFamiliesChildrenExcel(data);
+  const handleExportExcel = async () => {
+    // El generador de Excel (y su librería) se descarga solo al exportar
+    const { exportFamiliesChildrenExcel } = await import('../../utils/reportExcelExport');
+    await exportFamiliesChildrenExcel(data);
   };
 
   return (

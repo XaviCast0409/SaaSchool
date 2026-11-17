@@ -1,3 +1,5 @@
+import { useAuthStore } from '@/store/useAuthStore';
+import { PageHeader } from '@/components/ui/page-header';
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { ReportCode, EducationLevel } from '../types';
@@ -40,6 +42,7 @@ import {
 import { PrintPortal, usePrint } from '@/lib/print';
 
 export const AcademicReportsPage: React.FC = () => {
+  const isTeacher = useAuthStore((st) => st.user?.role) === 'TEACHER';
   const [selectedReportCode, setSelectedReportCode] = useState<ReportCode>('0021');
   const [selectedLevel, setSelectedLevel] = useState<EducationLevel>('SECONDARY');
   const [selectedGrade, setSelectedGrade] = useState<number>(4);
@@ -280,14 +283,10 @@ export const AcademicReportsPage: React.FC = () => {
     <div>
       {/* VISTA EN PANTALLA: Centro de Generación y Parámetros */}
       <div className="space-y-4">
-        <div>
-          <h1 className="text-2xl font-black tracking-tight text-foreground">
-            Centro de Emisión de Reportes
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Selecciona el reporte del catálogo, configura los parámetros y descárgalo directamente en formato PDF o Excel.
-          </p>
-        </div>
+        <PageHeader
+          title="Catálogo de reportes"
+          description={`Cuadros de mérito, nóminas, cumpleaños y reportes de familias, listos en PDF o Excel.${isTeacher ? '' : ' El consolidado oficial y las libretas están en «Notas y libretas».'}`}
+        />
 
         <AcademicReportsHub
           selectedReportCode={selectedReportCode}

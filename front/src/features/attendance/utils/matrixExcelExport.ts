@@ -1,4 +1,7 @@
-import ExcelJS from 'exceljs';
+import type ExcelJS from 'exceljs';
+
+/** La librería de Excel (pesada) se descarga solo cuando se genera un archivo. */
+const newWorkbook = async (): Promise<ExcelJS.Workbook> => new (await import('exceljs')).default.Workbook();
 import { addSchoolLogoToWorkbook } from '@/lib/excelLogo';
 import { AttendanceMatrixStudentRow } from '../types';
 
@@ -167,7 +170,7 @@ export async function exportWellMarkedMatrixExcel(params: MarkedMatrixExportPara
   const isWithAttendance = mode === 'WITH_ATTENDANCE';
   const totalCols = 4 + daysInMonth + 6; // N°, Nombre, DNI, Aula + Días + 6 Columnas de Resumen
 
-  const workbook = new ExcelJS.Workbook();
+  const workbook = await newWorkbook();
   workbook.creator = 'KIPUX';
   workbook.lastModifiedBy = 'KIPUX';
   workbook.created = new Date();

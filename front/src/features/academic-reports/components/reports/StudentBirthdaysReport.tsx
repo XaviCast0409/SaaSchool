@@ -4,7 +4,6 @@ import { StudentBirthdaysReportData } from '../../types';
 import { ReportHeader } from '../shared/ReportHeader';
 import { ReportFooter } from '../shared/ReportFooter';
 import { ReportActionToolbar } from '../shared/ReportActionToolbar';
-import { exportStudentBirthdaysExcel } from '../../utils/reportExcelExport';
 
 interface StudentBirthdaysReportProps {
   data: StudentBirthdaysReportData;
@@ -16,8 +15,10 @@ export const StudentBirthdaysReport: React.FC<StudentBirthdaysReportProps> = ({ 
   const title = 'LISTADO DE CUMPLEAÑOS DEL ALUMNO (0019)';
   const subtitle = `Periodo: ${monthName.toUpperCase()} | Total Cumpleañeros: ${totalStudents}`;
 
-  const handleExportExcel = () => {
-    exportStudentBirthdaysExcel(data);
+  const handleExportExcel = async () => {
+    // El generador de Excel (y su librería) se descarga solo al exportar
+    const { exportStudentBirthdaysExcel } = await import('../../utils/reportExcelExport');
+    await exportStudentBirthdaysExcel(data);
   };
 
   return (

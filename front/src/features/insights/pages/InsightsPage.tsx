@@ -1,3 +1,4 @@
+import { useSelectedAcademicYear } from '@/components/AcademicYearSwitcher';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -331,6 +332,8 @@ export const InsightsPage: React.FC = () => {
   const [params, setParams] = useSearchParams();
   const requested = params.get('tab') as Tab | null;
   const tab: Tab = tabs.some(([t]) => t === requested) ? requested! : tabs[0]?.[0] ?? 'siagie';
+  // La analítica es del día a día: siempre trabaja con el año vigente
+  const { isOtherYear, current } = useSelectedAcademicYear();
 
   return (
     <div className="max-w-6xl">
@@ -338,6 +341,11 @@ export const InsightsPage: React.FC = () => {
         title="Analítica y tutoría"
         description={role === 'TEACHER' ? 'Estudiantes de tus aulas de tutoría que necesitan atención, y su plan de tutoría.' : 'Detecta a tiempo a quién apoyar, dónde está fallando el aprendizaje y qué datos faltan para el SIAGIE.'}
       />
+      {isOtherYear && current && (
+        <p className="mb-4 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-2 text-sm text-indigo-900 dark:text-indigo-200">
+          La analítica muestra siempre el año vigente (<strong>{current.year}</strong>), aunque en la cabecera estés viendo otro año.
+        </p>
+      )}
       {tabs.length > 1 && (
         <div className="mb-4 inline-flex flex-wrap rounded-lg border border-border p-0.5 text-xs">
           {tabs.map(([t, label]) => (

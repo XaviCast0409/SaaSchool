@@ -3,7 +3,7 @@ import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
 import { CONCLUSION_MAX_LENGTH, CONCLUSION_MIN_LENGTH, isResultLetter, sanitizeConclusion, type ResultLetter } from './grade-engine';
 import {
-  assertPeriod, periodCount, fullNameOf, getThresholds, isAdmin, loadAssignmentForUser, shortNameOf, sortCompetences, type AcademicUser,
+  assertPeriod, periodCount, periodName, fullNameOf, getThresholds, isAdmin, loadAssignmentForUser, shortNameOf, sortCompetences, type AcademicUser,
 } from './academic.context';
 import { PeriodService } from './period.service';
 import { ResultsService } from './results.service';
@@ -133,7 +133,9 @@ export class GradebookService {
         teacher: a.teacher,
       },
       periodNumber,
-      periodCount: a.academicYear.periodType === 'TRIMESTER' ? 3 : 4,
+      periodCount: periodCount(a.academicYear),
+      // Nombres de los periodos del año del curso ("1.° bimestre"...) para el selector
+      periodNames: Array.from({ length: periodCount(a.academicYear) }, (_, i) => periodName(a.academicYear, i + 1)),
       periodStatus: status,
       canEdit: isAdmin(user) || (user.role === 'TEACHER' && status === 'OPEN' && a.academicYear.isActive),
       // La Dirección nunca queda bloqueada; el motivo es opcional y solo se guarda en la bitácora

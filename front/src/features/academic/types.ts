@@ -93,7 +93,7 @@ export interface GradebookData {
     area: { id: string; name: string; kind: CourseKind; officialAreaCode: string | null; catalogKey?: string | null };
     teacher: TeacherLite;
   };
-  periodNumber: number; periodCount: number; periodStatus: PeriodState; canEdit: boolean; requiresReason: boolean; yearIsActive: boolean; isCorrection: boolean;
+  periodNumber: number; periodCount: number; periodNames?: string[]; periodStatus: PeriodState; canEdit: boolean; requiresReason: boolean; yearIsActive: boolean; isCorrection: boolean;
   competences: Array<{ id: string; cnebNumber: number | null; name: string; shortName: string }>;
   criteria: Array<{ id: string; name: string; shortName: string; weight: number; isCustom: boolean }>;
   students: GradebookStudent[]; scores: GradebookScore[]; results: GradebookResult[];

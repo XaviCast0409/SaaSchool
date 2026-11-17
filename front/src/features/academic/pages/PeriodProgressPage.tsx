@@ -1,3 +1,4 @@
+import { useSelectedAcademicYear } from '@/components/AcademicYearSwitcher';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bell } from 'lucide-react';
@@ -20,6 +21,8 @@ type LevelFilter = 'ALL' | Level;
 const fmt = (d: string) => formatPeruDate(d, { day: '2-digit', month: 'short' });
 
 export const PeriodProgressPage: React.FC = () => {
+  // Año que se edita: el elegido en la cabecera
+  const viewedYear = useSelectedAcademicYear().selected?.year;
   const { data: periods, isLoading } = usePeriods();
   const [selected, setSelected] = useState<number | null>(null);
   const [level, setLevel] = useState<LevelFilter>('ALL');
@@ -58,7 +61,7 @@ export const PeriodProgressPage: React.FC = () => {
 
   return (
     <div className="max-w-6xl">
-      <PageHeader title="Avance y cierre de periodos" description="Revisa qué falta registrar y cierra cada periodo cuando esté completo."
+      <PageHeader title={`Avance y cierre de periodos${viewedYear ? ` ${viewedYear}` : ''}`} description="Revisa qué falta registrar y cierra cada periodo cuando esté completo."
         actions={selected && progress && progress.totals.missingGrades + progress.totals.missingConclusions > 0 && (
           <Button variant="outline" disabled={remind.isPending} onClick={() => remind.mutate(selected)}><Bell className="mr-1 h-4 w-4" />Recordar a docentes con pendientes</Button>
         )} />

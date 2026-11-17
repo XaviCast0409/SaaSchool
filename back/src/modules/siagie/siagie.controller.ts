@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { recordAudit } from '../../utils/audit.util';
+import { selectedAcademicYearId } from '../../utils/academic-year-scope';
 import { NominaService } from './nomina.service';
 import { TemplateService } from './template.service';
 
@@ -29,12 +30,12 @@ export const siagieController = {
   },
 
   inspectTemplates: async (req: Request, res: Response) => {
-    ok(res, await templates.inspect(req.user!.schoolId, filesOf(req)));
+    ok(res, await templates.inspect(req.user!.schoolId, filesOf(req), await selectedAcademicYearId(req)));
   },
 
   importTemplateGrades: async (req: Request, res: Response) => {
     const files = filesOf(req);
-    const data = await templates.importGrades(req.user!.schoolId, req.user!.userId, files);
+    const data = await templates.importGrades(req.user!.schoolId, req.user!.userId, files, await selectedAcademicYearId(req));
     recordAudit(req, { action: 'SIAGIE_TEMPLATE_GRADES_IMPORTED', entity: 'CompetencePeriodResult', after: data });
     ok(res, data);
   },
@@ -42,7 +43,7 @@ export const siagieController = {
   fillTemplates: async (req: Request, res: Response) => {
     const body = z.object({ fillFromBank: boolField.default(true), overwrite: boolField.default(true) }).parse(req.body ?? {});
     const files = filesOf(req);
-    const data = await templates.fill(req.user!.schoolId, files, body);
+    const data = await templates.fill(req.user!.schoolId, files, body, await selectedAcademicYearId(req));
     recordAudit(req, {
       action: 'SIAGIE_TEMPLATE_FILLED',
       entity: 'SiagieTemplate',

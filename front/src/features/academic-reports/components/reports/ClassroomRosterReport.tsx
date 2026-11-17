@@ -1,5 +1,4 @@
 import React from 'react';
-import * as XLSX from 'xlsx';
 import { ClassroomRosterReportData } from '../../types';
 import { ReportHeader } from '../shared/ReportHeader';
 import { ReportFooter } from '../shared/ReportFooter';
@@ -15,7 +14,9 @@ export const ClassroomRosterReport: React.FC<ClassroomRosterReportProps> = ({ da
   const title = 'REPORTE DE ALUMNOS POR SALÓN (PADRÓN OFICIAL)';
   const subtitle = `${classroom.grade}° Grado ${classroom.section} - Turno ${classroom.shift}`;
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
+    // La librería de Excel se descarga solo al exportar
+    const XLSX = await import('xlsx');
     const wb = XLSX.utils.book_new();
     const headers = [
       'N°',

@@ -3,7 +3,6 @@ import { FamiliesRelativesReportData } from '../../types';
 import { ReportHeader } from '../shared/ReportHeader';
 import { ReportFooter } from '../shared/ReportFooter';
 import { ReportActionToolbar } from '../shared/ReportActionToolbar';
-import { exportFamiliesRelativesExcel } from '../../utils/reportExcelExport';
 
 interface FamiliesRelativesReportProps {
   data: FamiliesRelativesReportData;
@@ -15,8 +14,10 @@ export const FamiliesRelativesReport: React.FC<FamiliesRelativesReportProps> = (
   const title = 'LISTADO DE FAMILIAS Y PARIENTES (0003)';
   const subtitle = `Directorio Institucional de Apoderados y Contactos de Emergencia (${totalRecords} Estudiantes)`;
 
-  const handleExportExcel = () => {
-    exportFamiliesRelativesExcel(data);
+  const handleExportExcel = async () => {
+    // El generador de Excel (y su librería) se descarga solo al exportar
+    const { exportFamiliesRelativesExcel } = await import('../../utils/reportExcelExport');
+    await exportFamiliesRelativesExcel(data);
   };
 
   return (

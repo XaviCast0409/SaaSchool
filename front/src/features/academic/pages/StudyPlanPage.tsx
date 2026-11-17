@@ -1,3 +1,4 @@
+import { useSelectedAcademicYear } from '@/components/AcademicYearSwitcher';
 import React, { useEffect, useState } from 'react';
 import { AlertTriangle, BookOpen, Lock, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
@@ -32,6 +33,8 @@ const HoursInput: React.FC<{ course: PlanCourse }> = ({ course }) => {
 };
 
 export const StudyPlanPage: React.FC = () => {
+  // Año que se edita: el elegido en la cabecera
+  const viewedYear = useSelectedAcademicYear().selected?.year;
   const { data: catalog } = useCatalog();
   const [level, setLevel] = useState<Level>('PRIMARY');
   const [grade, setGrade] = useState<number | null>(null);
@@ -60,7 +63,7 @@ export const StudyPlanPage: React.FC = () => {
   return (
     <div className="max-w-5xl">
       <PageHeader
-        title="Plan de estudios"
+        title={`Plan de estudios${viewedYear ? ` ${viewedYear}` : ''}`}
         description="Qué cursos se dictan en cada grado. Las competencias vienen del Currículo Nacional y no se editan a mano."
         actions={<>
           <Button variant="outline" onClick={() => setPhrasesOpen(true)}>Banco de frases</Button>

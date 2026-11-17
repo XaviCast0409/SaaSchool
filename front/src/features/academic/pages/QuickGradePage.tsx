@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -41,6 +41,7 @@ export const QuickGradePage: React.FC = () => {
   const [online, setOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine);
   const [pending, setPending] = useState<PendingGrade[]>([]);
   const [syncing, setSyncing] = useState(false);
+  const syncingRef = useRef(false);
   const [competenceId, setCompetenceId] = useState<string | null>(null);
   const [criterionId, setCriterionId] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>('letters');
@@ -67,28 +68,62 @@ export const QuickGradePage: React.FC = () => {
   }, [ownerId, assignmentId, period]);
 
   const sync = useCallback(async () => {
-    if (!assignmentId || !ownerId || !navigator.onLine) return;
-    const items = await pendingFor(ownerId, assignmentId, period);
-    if (!items.length) return;
-    setSyncing(true);
+    if (!assignmentId || !ownerId || !navigator.onLine || syncingRef.current) return;
+    syncingRef.current = true;
+    let changed = false;
     try {
-      await api.put(`/academic/gradebook/${assignmentId}/scores`, {
-        periodNumber: period,
-        items: items.map(({ enrollmentId, competenceId: c, criterionId: k, numericScore, literalScore }) => ({ enrollmentId, competenceId: c, criterionId: k, numericScore, literalScore })),
-      });
-      await clearSent(items);
-      await qc.invalidateQueries({ queryKey: ['academic', 'gradebook', assignmentId, period] });
-      toast.success(`${items.length} nota(s) sincronizada(s)`);
-    } catch (e: unknown) {
-      const status = (e as { response?: { status?: number; data?: { message?: string } } }).response?.status;
-      const msg = (e as { response?: { data?: { message?: string } } }).response?.data?.message;
-      // Si el servidor rechaza (periodo cerrado, permisos), se avisa; si es la red, se reintenta luego
-      if (status && status < 500) toast.error(msg ?? 'No se pudieron guardar las notas.');
+      const items = await pendingFor(ownerId, assignmentId, period);
+      if (!items.length) return;
+      const send = (list: PendingGrade[]) =>
+        api.put(`/academic/gradebook/${assignmentId}/scores`, {
+          periodNumber: period,
+          items: list.map(({ enrollmentId, competenceId: c, criterionId: k, numericScore, literalScore }) => ({ enrollmentId, competenceId: c, criterionId: k, numericScore, literalScore })),
+        });
+      const statusOf = (e: unknown) => (e as { response?: { status?: number } }).response?.status;
+      const messageOf = (e: unknown) => (e as { response?: { data?: { message?: string } } }).response?.data?.message;
+      // Rechazo definitivo (periodo cerrado, sin permiso, alumno retirado…): reintentar no sirve.
+      // Sin respuesta, 5xx, sesión vencida o demasiadas peticiones: se reintenta luego.
+      const isPermanent = (status?: number) => !!status && status >= 400 && status < 500 && status !== 401 && status !== 408 && status !== 429;
+      setSyncing(true);
+      try {
+        await send(items);
+        await clearSent(items);
+        changed = true;
+        toast.success(`${items.length} nota(s) sincronizada(s)`);
+      } catch (e: unknown) {
+        if (isPermanent(statusOf(e))) {
+          // Se prueba una por una: las válidas se guardan y solo se descartan las que el servidor no acepta
+          const rejected: PendingGrade[] = [];
+          let reason = messageOf(e);
+          let saved = 0;
+          for (const it of items) {
+            try {
+              await send([it]);
+              await clearSent([it]);
+              saved++;
+            } catch (e2) {
+              if (!isPermanent(statusOf(e2))) break;
+              rejected.push(it);
+              reason = messageOf(e2) ?? reason;
+            }
+          }
+          changed = saved > 0 || rejected.length > 0;
+          if (rejected.length) {
+            await clearSent(rejected);
+            const keys = new Set(rejected.map((r) => cellKey(r)));
+            setLocal((prev) => Object.fromEntries(Object.entries(prev).filter(([k]) => !keys.has(k))));
+            toast.error(`${rejected.length} nota(s) no se guardaron: ${reason ?? 'el servidor no las aceptó'}`, { duration: 10000 });
+          }
+          if (saved) toast.success(`${saved} nota(s) sincronizada(s)`);
+        }
+      }
     } finally {
+      if (changed) await qc.invalidateQueries({ queryKey: ['academic', 'gradebook', assignmentId, period] });
       setSyncing(false);
+      syncingRef.current = false;
       void refreshPending();
     }
-  }, [assignmentId, period, qc, refreshPending]);
+  }, [assignmentId, ownerId, period, qc, refreshPending]);
 
   useEffect(() => {
     void refreshPending().then(() => void sync());
@@ -153,7 +188,7 @@ export const QuickGradePage: React.FC = () => {
         <ArrowLeft className="mr-1 h-4 w-4" /> Registro completo
       </Link>
       <h1 className="text-lg font-semibold text-foreground">
-        {data.assignment.area.name} <span className="text-sm font-normal text-muted-foreground">· {classroomLabel(data.assignment.classroom)} · periodo {period}</span>
+        {data.assignment.area.name} <span className="text-sm font-normal text-muted-foreground">· {classroomLabel(data.assignment.classroom)} · {data.periodNames?.[period - 1] ?? `periodo ${period}`}</span>
       </h1>
 
       <div className={cn('mt-2 flex items-center gap-2 rounded-lg px-3 py-2 text-xs', online ? 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-200' : 'bg-amber-500/15 text-amber-800 dark:text-amber-200')}>

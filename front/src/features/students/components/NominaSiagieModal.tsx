@@ -44,7 +44,7 @@ export const NominaSiagieModal: React.FC<NominaSiagieModalProps> = ({
     if (!nominaData) return;
     try {
       setIsExporting(true);
-      exportNominaToExcel(nominaData);
+      await exportNominaToExcel(nominaData);
     } finally {
       setIsExporting(false);
     }

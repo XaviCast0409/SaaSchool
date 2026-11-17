@@ -1,3 +1,4 @@
+import { useSelectedAcademicYear } from '@/components/AcademicYearSwitcher';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Download, Loader2 } from 'lucide-react';
@@ -17,6 +18,8 @@ type Tab = 'consolidated' | 'report-cards' | 'siagie';
 const SITUATION: Record<string, string> = { PROMOTED: 'Promovido', RECOVERY: 'Recuperación', RETAINED: 'Permanece', TRANSFERRED: 'Trasladado', WITHDRAWN: 'Retirado' };
 
 export const AcademicReportsPage: React.FC = () => {
+  // Año que se edita: el elegido en la cabecera
+  const viewedYear = useSelectedAcademicYear().selected?.year;
   const { data: classrooms = [] } = useClassrooms();
   const { data: periods } = usePeriods();
   const [tab, setTab] = useState<Tab>('consolidated');
@@ -41,7 +44,7 @@ export const AcademicReportsPage: React.FC = () => {
 
   return (
     <div>
-      <PageHeader title="Reportes académicos" description="Consolidado del aula, libretas para imprimir y archivo para el SIAGIE." />
+      <PageHeader title={`Notas y libretas${viewedYear ? ` ${viewedYear}` : ''}`} description="Consolidado del aula, libretas para imprimir y archivo para el SIAGIE." />
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <Tabs<Tab> value={tab} onChange={setTab} items={[
           { value: 'consolidated', label: 'Consolidado' },

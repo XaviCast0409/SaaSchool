@@ -7,9 +7,13 @@ import { authMiddleware, authorizeRoles } from '../../core/middlewares/auth.midd
 import { tenantMiddleware } from '../../core/middlewares/tenant.middleware';
 import { requirePlan } from '../../core/middlewares/plan.middleware';
 import { academicController as c } from './academic.controller';
+import { useSelectedAcademicYear } from './academic-year.middleware';
 
 const router = Router();
 router.use(authMiddleware, tenantMiddleware);
+
+// Año elegido en la cabecera (Dirección) cuando la petición no indica uno
+router.use(useSelectedAcademicYear);
 
 const ADMIN = authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN');
 const STAFF = authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER');

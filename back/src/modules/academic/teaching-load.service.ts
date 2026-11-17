@@ -160,6 +160,18 @@ export class TeachingLoadService {
     await this.saveChanges(schoolId, year.id, trans.map((t) => ({ classroomId, areaId: t.areaId, teacherId: tutorId })));
   }
 
+  /**
+   * Aulas de las que el docente es tutor o tutora. Mismo criterio que usan los permisos de
+   * "Conducta y comentarios" y de las libretas del aula; incluye al tutor que no dicta cursos en ella.
+   */
+  async getMyTutorClassrooms(schoolId: string, teacherId: string) {
+    return prisma.classroom.findMany({
+      where: { schoolId, tutorTeacherId: teacherId },
+      select: { id: true, educationLevel: true, grade: true, section: true, tutorTeacherId: true },
+      orderBy: [{ educationLevel: 'asc' }, { grade: 'asc' }, { section: 'asc' }],
+    });
+  }
+
   async getMyCourses(schoolId: string, teacherId: string) {
     const year = await getActiveYear(schoolId);
     return prisma.courseAssignment.findMany({

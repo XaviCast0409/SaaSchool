@@ -20,7 +20,9 @@ export default defineConfig({
             '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select',
             '@radix-ui/react-toast', 'lucide-react', 'sonner',
           ],
-          'vendor-excel': ['exceljs', 'xlsx'],
+          // Cada librería de Excel en su paquete: se descargan solo al generar un archivo
+          'vendor-exceljs': ['exceljs'],
+          'vendor-xlsx': ['xlsx'],
           'vendor-qr': ['html5-qrcode', 'qrcode'],
         },
       },

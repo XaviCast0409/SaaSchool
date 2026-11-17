@@ -74,8 +74,8 @@ export const AcademicYearBanner: React.FC = () => {
             <Eye className="w-4 h-4 shrink-0" />
             <span>
               Estás viendo <strong>{selected.year}</strong>
-              {selected.enrollmentOpen ? ' (matrícula abierta)' : ''}: estudiantes, aulas y cobranza muestran ese año. Asistencia, notas y
-              moras siguen trabajando con <strong>{current.year}</strong>, el año vigente.
+              {selected.enrollmentOpen ? ' (matrícula abierta)' : ''}: estudiantes, aulas, personal, plan de estudios, carga docente,
+              avance de notas, libretas y cobranza muestran ese año. Asistencia, moras y analítica siguen con <strong>{current.year}</strong>, el año vigente.
             </span>
           </span>
           <button

@@ -72,7 +72,7 @@ export const consolidationQuery = z.object({
   classroomId: uuid,
   period: z.union([z.literal('FINAL'), z.coerce.number().int().min(1).max(4)]),
 });
-export const classroomQuery = z.object({ classroomId: uuid });
+export const classroomQuery = z.object({ classroomId: uuid, academicYearId: optionalYear });
 export const gradebookExportQuery = z.object({ assignmentId: uuid, periodNumber: z.coerce.number().int().min(1).max(4) });
 
 
@@ -92,8 +92,9 @@ export const phraseCreateBody = z.object({
 export const phraseUpdateBody = z.object({ text: z.string().max(2000).optional(), letter: phraseLetter.nullable().optional() });
 export const phraseHiddenBody = z.object({ phraseKey: z.string().min(5).max(120), hidden: z.boolean() });
 
-export const tutorReportQuery = z.object({ classroomId: uuid, periodNumber: z.coerce.number().int().min(1).max(4) });
+export const tutorReportQuery = z.object({ classroomId: uuid, periodNumber: z.coerce.number().int().min(1).max(4), academicYearId: optionalYear });
 export const tutorReportBody = z.object({
+  academicYearId: optionalYear,
   classroomId: uuid,
   periodNumber: z.number().int().min(1).max(4),
   rows: z.array(z.object({

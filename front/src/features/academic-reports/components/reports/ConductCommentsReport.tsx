@@ -1,6 +1,5 @@
 import React from 'react';
 import { usePeriods } from '@/features/academic-years/api/useAcademicYears';
-import * as XLSX from 'xlsx';
 import { ConductCommentsReportData } from '../../types';
 import { ReportHeader } from '../shared/ReportHeader';
 import { ReportFooter } from '../shared/ReportFooter';
@@ -17,7 +16,9 @@ export const ConductCommentsReport: React.FC<ConductCommentsReportProps> = ({ da
   const title = 'LISTADO DE COMENTARIOS A LA CONDUCTA';
   const subtitle = `${classroom.grade}° Grado ${classroom.section} - ${periodNumber}° ${periodLabel}`;
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
+    // La librería de Excel se descarga solo al exportar
+    const XLSX = await import('xlsx');
     const wb = XLSX.utils.book_new();
     const headers = ['N°', 'DNI / Doc', 'Apellidos y Nombres', 'Nota Conducta', 'Observaciones / Apreciaciones'];
     const rows = students.map((s) => [s.index, s.documentId, s.fullName, s.conductScore, s.comments]);

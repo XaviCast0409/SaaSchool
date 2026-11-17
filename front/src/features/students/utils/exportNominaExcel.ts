@@ -1,4 +1,3 @@
-import * as XLSX from 'xlsx';
 import type { NominaMatriculaResponse } from '../api/useStudents';
 
 /**
@@ -37,7 +36,9 @@ function formatDateToDMY(isoDateStr: string): string {
 /**
  * Genera y descarga el archivo Excel oficial (.xlsx) de la Nómina de Matrícula SIAGIE
  */
-export function exportNominaToExcel(data: NominaMatriculaResponse): void {
+export async function exportNominaToExcel(data: NominaMatriculaResponse): Promise<void> {
+  // La librería de Excel se descarga solo al exportar
+  const XLSX = await import('xlsx');
   const currentYear = data.academicYear?.year || new Date().getFullYear();
   const totalStudents = data.students.length;
   const countMales = data.students.filter((s) => s.gender === 'MALE').length;

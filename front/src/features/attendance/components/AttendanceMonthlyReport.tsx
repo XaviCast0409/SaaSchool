@@ -19,7 +19,6 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import type { AttendanceExportRow } from '../types';
-import * as XLSX from 'xlsx';
 import { getPeruCurrentMonth } from '@/lib/dateUtils';
 
 interface AttendanceMonthlyReportProps {
@@ -49,7 +48,9 @@ function navigateMonth(currentMonthStr: string, delta: number): string {
 }
 
 /** Genera y descarga el Acta Mensual de Asistencia en formato Excel (.xlsx) Profesional */
-function downloadExcel(rows: AttendanceExportRow[], monthStr: string): void {
+async function downloadExcel(rows: AttendanceExportRow[], monthStr: string): Promise<void> {
+  // La librería de Excel se descarga solo al exportar
+  const XLSX = await import('xlsx');
   const periodText = formatMonthSpanish(monthStr);
 
   const title1 = ['REPUBLICA DEL PERU - MINISTERIO DE EDUCACION'];
@@ -161,7 +162,7 @@ export const AttendanceMonthlyReport: React.FC<AttendanceMonthlyReportProps> = (
   const handleExport = useCallback(async () => {
     const result = await fetchExport();
     if (result.data && result.data.length > 0) {
-      downloadExcel(result.data, month);
+      await downloadExcel(result.data, month);
     }
   }, [fetchExport, month]);
 

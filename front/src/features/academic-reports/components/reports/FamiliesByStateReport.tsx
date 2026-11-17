@@ -3,7 +3,6 @@ import { FamiliesByStateReportData } from '../../types';
 import { ReportHeader } from '../shared/ReportHeader';
 import { ReportFooter } from '../shared/ReportFooter';
 import { ReportActionToolbar } from '../shared/ReportActionToolbar';
-import { exportFamiliesByStateExcel } from '../../utils/reportExcelExport';
 
 interface FamiliesByStateReportProps {
   data: FamiliesByStateReportData;
@@ -15,8 +14,10 @@ export const FamiliesByStateReport: React.FC<FamiliesByStateReportProps> = ({ da
   const title = 'LISTADO DE FAMILIAS POR ESTADO (0001)';
   const subtitle = `Filtro: ${filterState === 'ALL' ? 'Todos los Estados' : filterState} | ${totalFamilies} Familias`;
 
-  const handleExportExcel = () => {
-    exportFamiliesByStateExcel(data);
+  const handleExportExcel = async () => {
+    // El generador de Excel (y su librería) se descarga solo al exportar
+    const { exportFamiliesByStateExcel } = await import('../../utils/reportExcelExport');
+    await exportFamiliesByStateExcel(data);
   };
 
   return (

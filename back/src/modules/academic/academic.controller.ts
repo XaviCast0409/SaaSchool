@@ -151,9 +151,9 @@ export const academicController = {
   },
   myCourses: async (req: Request, res: Response) => {
     const { schoolId, user } = ctx(req);
-    const courses = await load.getMyCourses(schoolId, user.userId);
+    const [courses, tutorClassrooms] = await Promise.all([load.getMyCourses(schoolId, user.userId), load.getMyTutorClassrooms(schoolId, user.userId)]);
     const year = courses[0]?.academicYearId;
-    ok(res, { courses, academicYearId: year ?? null });
+    ok(res, { courses, tutorClassrooms, academicYearId: year ?? null });
   },
 
   periods: async (req: Request, res: Response) => {
@@ -255,12 +255,12 @@ export const academicController = {
   tutorReport: async (req: Request, res: Response) => {
     const q = S.tutorReportQuery.parse(req.query);
     const { schoolId, user } = ctx(req);
-    ok(res, await tutorReports.getForClassroom(schoolId, user, q.classroomId, q.periodNumber));
+    ok(res, await tutorReports.getForClassroom(schoolId, user, q.classroomId, q.periodNumber, q.academicYearId));
   },
   saveTutorReport: async (req: Request, res: Response) => {
     const b = S.tutorReportBody.parse(req.body);
     const { schoolId, user } = ctx(req);
-    const data = await tutorReports.save(schoolId, user, b.classroomId, b.periodNumber, b.rows);
+    const data = await tutorReports.save(schoolId, user, b.classroomId, b.periodNumber, b.rows, b.academicYearId);
     recordAudit(req, { action: 'ACADEMIC_TUTOR_REPORT_SAVED', entity: 'StudentPeriodReport', after: { classroomId: b.classroomId, periodNumber: b.periodNumber, rows: b.rows.length } });
     ok(res, data);
   },
@@ -268,7 +268,7 @@ export const academicController = {
     const q = S.classroomQuery.parse(req.query);
     const { schoolId, user } = ctx(req);
     if (!['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'].includes(user.role)) throw new AppError('No autorizado.', 403);
-    ok(res, await reportCards.getClassroomReportCards(schoolId, user, q.classroomId));
+    ok(res, await reportCards.getClassroomReportCards(schoolId, user, q.classroomId, q.academicYearId));
   },
 
   exportConsolidation: async (req: Request, res: Response) => {

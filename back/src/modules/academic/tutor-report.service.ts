@@ -2,7 +2,7 @@ import type { EducationLevel } from '@prisma/client';
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
 import { scoreToLetter } from '../grades/letter-scale';
-import { assertPeriod, fullNameOf, getActiveYear, getThresholds, isAdmin, periodName, type AcademicUser } from './academic.context';
+import { assertPeriod, fullNameOf, getThresholds, isAdmin, periodName, resolveYear, type AcademicUser } from './academic.context';
 import { PeriodService } from './period.service';
 
 /** Largo máximo de los comentarios de la libreta interna (conducta y tutor). */
@@ -39,9 +39,9 @@ export class TutorReportService {
     return { classroom, canEdit };
   }
 
-  async getForClassroom(schoolId: string, user: AcademicUser, classroomId: string, periodNumber: number) {
+  async getForClassroom(schoolId: string, user: AcademicUser, classroomId: string, periodNumber: number, academicYearId?: string) {
     const { classroom, canEdit } = await this.loadClassroom(schoolId, user, classroomId);
-    const year = await getActiveYear(schoolId);
+    const year = await resolveYear(schoolId, academicYearId);
     assertPeriod(year, periodNumber);
     const status = await this.periods.getEffectiveStatus(year.id, periodNumber, classroom.id);
     const enrollments = await prisma.enrollment.findMany({
@@ -73,10 +73,10 @@ export class TutorReportService {
     };
   }
 
-  async save(schoolId: string, user: AcademicUser, classroomId: string, periodNumber: number, input: TutorReportRowInput[]) {
+  async save(schoolId: string, user: AcademicUser, classroomId: string, periodNumber: number, input: TutorReportRowInput[], academicYearId?: string) {
     const { classroom, canEdit } = await this.loadClassroom(schoolId, user, classroomId);
     if (!canEdit) throw new AppError('Solo el tutor o tutora del aula puede registrar estos datos.', 403);
-    const year = await getActiveYear(schoolId);
+    const year = await resolveYear(schoolId, academicYearId);
     assertPeriod(year, periodNumber);
     const status = await this.periods.getEffectiveStatus(year.id, periodNumber, classroom.id);
     if (status === 'CLOSED' && !isAdmin(user)) throw new AppError('El periodo está cerrado: pide a Dirección que lo reabra para editar.', 409);

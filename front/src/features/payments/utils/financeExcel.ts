@@ -1,4 +1,7 @@
-import ExcelJS from 'exceljs';
+import type ExcelJS from 'exceljs';
+
+/** La librería de Excel (pesada) se descarga solo cuando se genera un archivo. */
+const newWorkbook = async (): Promise<ExcelJS.Workbook> => new (await import('exceljs')).default.Workbook();
 import { addSchoolLogoToWorkbook } from '@/lib/excelLogo';
 
 /**
@@ -42,7 +45,7 @@ const toDate = (v: unknown) => {
 };
 
 export async function exportFinanceExcel(fileName: string, schoolName: string, sheets: ExcelSheet<any>[]): Promise<void> {
-  const wb = new ExcelJS.Workbook();
+  const wb = await newWorkbook();
   wb.creator = 'KIPUX';
   wb.created = new Date();
 

@@ -7,7 +7,7 @@ import { scoreToLetter, type LetterScaleThresholds } from '../grades/letter-scal
 import { CNEB_AREAS, gradeLabel } from './cneb.catalog';
 import { isRemainderKey } from './preuniversity.catalog';
 import { isLetter, isResultLetter, LETTER_NUMERIC_VALUE, type ResultLetter } from './grade-engine';
-import { fullNameOf, getThresholds, isAdmin, periodCount, periodName, type AcademicUser } from './academic.context';
+import { fullNameOf, getThresholds, isAdmin, periodCount, periodName, resolveYear, type AcademicUser } from './academic.context';
 import { ConsolidationService } from './consolidation.service';
 import { PeriodService } from './period.service';
 
@@ -31,11 +31,22 @@ function criterionCell(
   return { score: null, letter: isResultLetter(g.literalScore) ? (g.literalScore as ResultLetter) : null };
 }
 
+/**
+ * Caché de una solicitud: lo que es igual para todo el aula (estados de periodo, consolidados, cursos,
+ * colegio, tutor) se calcula una sola vez aunque se armen las libretas de todos sus estudiantes.
+ */
+type ReportCardBatch = Map<string, Promise<unknown>>;
+
 export class ReportCardService {
   private readonly consolidation = new ConsolidationService();
   private readonly periods = new PeriodService();
 
-  async getReportCard(schoolId: string, user: AcademicUser, enrollmentId: string) {
+  private memo<T>(batch: ReportCardBatch, key: string, load: () => Promise<T>): Promise<T> {
+    if (!batch.has(key)) batch.set(key, load());
+    return batch.get(key) as Promise<T>;
+  }
+
+  async getReportCard(schoolId: string, user: AcademicUser, enrollmentId: string, batch: ReportCardBatch = new Map()) {
     const enr = await prisma.enrollment.findFirst({
       where: { id: enrollmentId, schoolId },
       include: {
@@ -59,15 +70,19 @@ export class ReportCardService {
     const level = enr.classroom.educationLevel as EducationLevel;
     const total = periodCount(year);
     const statuses = await Promise.all(
-      Array.from({ length: total }, (_, i) => this.periods.getEffectiveStatus(year.id, i + 1, enr.classroomId)),
+      Array.from({ length: total }, (_, i) =>
+        this.memo(batch, `status:${year.id}:${i + 1}:${enr.classroomId}`, () => this.periods.getEffectiveStatus(year.id, i + 1, enr.classroomId)),
+      ),
     );
     const familyView = user.role === 'PARENT' || user.role === 'STUDENT';
     const visiblePeriods = statuses.map((s, i) => ({ n: i + 1, s })).filter((x) => !familyView || x.s === 'CLOSED').map((x) => x.n);
     const allClosed = statuses.every((s) => s === 'CLOSED');
 
     // Áreas oficiales (por periodo visible y final)
-    const perPeriod = await Promise.all(visiblePeriods.map((p) => this.consolidation.getClassroomConsolidation(schoolId, enr.classroomId, p, year.id)));
-    const final = allClosed || !familyView ? await this.consolidation.getClassroomConsolidation(schoolId, enr.classroomId, 'FINAL', year.id) : null;
+    const consolidate = (p: number | 'FINAL') =>
+      this.memo(batch, `consolidation:${year.id}:${enr.classroomId}:${p}`, () => this.consolidation.getClassroomConsolidation(schoolId, enr.classroomId, p, year.id));
+    const perPeriod = await Promise.all(visiblePeriods.map((p) => consolidate(p)));
+    const final = allClosed || !familyView ? await consolidate('FINAL') : null;
     const base = final ?? perPeriod[0] ?? null;
     const officialAreas = (base?.matrix.consolidatedAreas ?? []).map((area) => ({
       code: area.code,
@@ -96,21 +111,24 @@ export class ReportCardService {
 
     // Detalle interno curso por curso: competencias, criterios (rúbricas) con nota numérica y literal.
     const thresholds = await getThresholds(schoolId, level);
-    const assignments = await prisma.courseAssignment.findMany({
-      where: { classroomId: enr.classroomId, academicYearId: year.id, deletedAt: null },
-      include: {
-        area: { include: { competences: { where: { isActive: true } }, parentArea: { select: { name: true } } } },
-        teacher: { select: { firstName: true, lastNamePaternal: true } },
-      },
+    const { assignments, teacherLabels } = await this.memo(batch, `courses:${year.id}:${enr.classroomId}`, async () => {
+      const list = await prisma.courseAssignment.findMany({
+        where: { classroomId: enr.classroomId, academicYearId: year.id, deletedAt: null },
+        include: {
+          area: { include: { competences: { where: { isActive: true } }, parentArea: { select: { name: true } } } },
+          teacher: { select: { firstName: true, lastNamePaternal: true } },
+        },
+      });
+      const planOrder = await prisma.studyPlanCourse.findMany({
+        where: { academicYearId: year.id, educationLevel: level, grade: enr.classroom.grade },
+        select: { areaId: true, order: true },
+      });
+      const orderOf = (areaId: string) => planOrder.find((p) => p.areaId === areaId)?.order ?? 999;
+      // Con reemplazos de docente, cada uno aparece con los periodos que dictó
+      const labels = await teacherHistoryService.labelsFor(list, year);
+      list.sort((a, b) => orderOf(a.areaId) - orderOf(b.areaId) || a.area.name.localeCompare(b.area.name, 'es'));
+      return { assignments: list, teacherLabels: labels };
     });
-    const planOrder = await prisma.studyPlanCourse.findMany({
-      where: { academicYearId: year.id, educationLevel: level, grade: enr.classroom.grade },
-      select: { areaId: true, order: true },
-    });
-    const orderOf = (areaId: string) => planOrder.find((p) => p.areaId === areaId)?.order ?? 999;
-    // Con reemplazos de docente, cada uno aparece con los periodos que dictó
-    const teacherLabels = await teacherHistoryService.labelsFor(assignments, year);
-    assignments.sort((a, b) => orderOf(a.areaId) - orderOf(b.areaId) || a.area.name.localeCompare(b.area.name, 'es'));
     const [courseResults, criterionGrades] = await Promise.all([
       prisma.competencePeriodResult.findMany({
         where: { enrollmentId: enr.id, courseAssignmentId: { in: assignments.map((a) => a.id) }, periodNumber: { in: visiblePeriods } },
@@ -210,8 +228,10 @@ export class ReportCardService {
       };
     });
 
-    const school = await prisma.school.findUnique({ where: { id: schoolId }, select: { name: true, modularCode: true, documentId: true, address: true, logoUrl: true } });
-    const tutor = await classroomTutorInYear(enr.classroom, enr.academicYear);
+    const school = await this.memo(batch, 'school', () =>
+      prisma.school.findUnique({ where: { id: schoolId }, select: { name: true, modularCode: true, documentId: true, address: true, logoUrl: true } }),
+    );
+    const tutor = await this.memo(batch, `tutor:${year.id}:${enr.classroomId}`, () => classroomTutorInYear(enr.classroom, enr.academicYear));
     return {
       school,
       student: { fullName: fullNameOf(enr.student), studentCode: enr.student.studentCode, documentId: enr.student.documentId },
@@ -229,10 +249,9 @@ export class ReportCardService {
     };
   }
 
-  /** Libretas de todo un aula (vista de impresión). */
-  async getClassroomReportCards(schoolId: string, user: AcademicUser, classroomId: string) {
-    const year = await prisma.academicYear.findFirst({ where: { schoolId, isActive: true } });
-    if (!year) throw new AppError('No hay un año lectivo activo.', 409);
+  /** Libretas de todo un aula (vista de impresión), del año elegido o del vigente. */
+  async getClassroomReportCards(schoolId: string, user: AcademicUser, classroomId: string, academicYearId?: string) {
+    const year = await resolveYear(schoolId, academicYearId);
     const classroom = await prisma.classroom.findFirst({ where: { id: classroomId, schoolId } });
     if (!classroom) throw new AppError('Aula no encontrada.', 404);
     if (user.role === 'TEACHER' && classroom.tutorTeacherId !== user.userId) throw new AppError('Solo el tutor o tutora del aula puede imprimir sus libretas.', 403);
@@ -241,8 +260,14 @@ export class ReportCardService {
       include: { student: { select: { lastNamePaternal: true, lastNameMaternal: true, firstNames: true } } },
       orderBy: [{ student: { lastNamePaternal: 'asc' } }, { student: { lastNameMaternal: 'asc' } }, { student: { firstNames: 'asc' } }],
     });
-    const cards = [];
-    for (const e of enrollments) cards.push(await this.getReportCard(schoolId, user, e.id));
+    // Lo común del aula se calcula una vez; las libretas se arman de a pocas en paralelo
+    const batch: ReportCardBatch = new Map();
+    const cards: Awaited<ReturnType<ReportCardService['getReportCard']>>[] = [];
+    const CONCURRENCY = 4;
+    for (let i = 0; i < enrollments.length; i += CONCURRENCY) {
+      const chunk = enrollments.slice(i, i + CONCURRENCY);
+      cards.push(...(await Promise.all(chunk.map((e) => this.getReportCard(schoolId, user, e.id, batch)))));
+    }
     return cards;
   }
 }

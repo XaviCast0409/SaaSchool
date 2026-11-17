@@ -1,6 +1,5 @@
 import React from 'react';
 import { usePeriods } from '@/features/academic-years/api/useAcademicYears';
-import * as XLSX from 'xlsx';
 import { ConsolidatedGradesReportData } from '../../types';
 import { ReportHeader } from '../shared/ReportHeader';
 import { ReportFooter } from '../shared/ReportFooter';
@@ -18,7 +17,9 @@ export const ConsolidatedGradesReport: React.FC<ConsolidatedGradesReportProps> =
   const subtitle = `${classroom.grade}° Grado ${classroom.section} - ${periodNumber}° ${periodLabel}`;
 
   // Exportar a Excel con formato tabular
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
+    // La librería de Excel se descarga solo al exportar
+    const XLSX = await import('xlsx');
     const wb = XLSX.utils.book_new();
 
     const headers = [

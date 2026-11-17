@@ -1,5 +1,6 @@
+import { useSelectedAcademicYear } from '@/components/AcademicYearSwitcher';
 import { confirmDialog } from '@/components/ui/confirm';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle, BookOpen, CheckCircle2, ChevronDown, Clock, Filter, GraduationCap, Search, Sparkles, UserCheck, Users, Wand2, X,
 } from 'lucide-react';
@@ -62,6 +63,8 @@ const ProgressBar: React.FC<{ value: number; className?: string }> = ({ value, c
 );
 
 export const TeachingLoadPage: React.FC = () => {
+  // Año que se edita: el elegido en la cabecera
+  const viewedYear = useSelectedAcademicYear().selected?.year;
   const [level, setLevel] = useState<Level>('PRIMARY');
   const { data, isLoading } = useTeachingLoad(level);
   const save = useSaveTeachingLoad();
@@ -126,6 +129,17 @@ export const TeachingLoadPage: React.FC = () => {
     return m;
   }, [data, pending]);
 
+  // Cerrar o recargar la pestaña con cambios sin guardar: el navegador pregunta antes
+  useEffect(() => {
+    if (changes.length === 0) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [changes.length]);
+
   const changeLevel = async (l: Level) => {
     if (changes.length && !(await confirmDialog({ title: '¿Descartar los cambios sin guardar?', description: 'Tienes cambios en la carga docente que todavía no guardaste.', confirmText: 'Descartar cambios', cancelText: 'Seguir editando' }))) return;
     setPending({});
@@ -143,7 +157,7 @@ export const TeachingLoadPage: React.FC = () => {
             <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
               <GraduationCap className="h-3.5 w-3.5" /> Gestión académica
             </div>
-            <h1 className="text-2xl font-bold tracking-tight">Carga docente</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Carga docente{viewedYear ? ` ${viewedYear}` : ''}</h1>
             <p className="mt-1 max-w-xl text-sm text-muted-foreground">
               Elige el docente de cada curso por aula. Cambiar de docente conserva las notas.
             </p>

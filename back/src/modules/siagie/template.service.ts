@@ -2,7 +2,7 @@ import JSZip from 'jszip';
 import type { EducationLevel } from '@prisma/client';
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
-import { assertPeriod, fullNameOf, getActiveYear, periodCount } from '../academic/academic.context';
+import { assertPeriod, fullNameOf, periodCount, resolveYear } from '../academic/academic.context';
 import { countsInPeriod } from '../enrollments/withdrawal.rules';
 import { CNEB_AREAS, CNEB_COMPETENCES, gradeLabel } from '../academic/cneb.catalog';
 import { ConsolidationService } from '../academic/consolidation.service';
@@ -65,11 +65,12 @@ export class TemplateService {
     return out;
   }
 
-  private async context(schoolId: string, t: ParsedTemplate): Promise<ClassroomContext> {
-    const year = await getActiveYear(schoolId);
+  /** Año del consolidado que se está viendo (el elegido en la cabecera) o el vigente. */
+  private async context(schoolId: string, t: ParsedTemplate, academicYearId?: string): Promise<ClassroomContext> {
+    const year = await resolveYear(schoolId, academicYearId);
     const issues: string[] = [];
     const warnings: string[] = [...t.warnings];
-    if (t.year && t.year !== year.year) issues.push(`La plantilla es del año ${t.year} y el año lectivo activo es ${year.year}.`);
+    if (t.year && t.year !== year.year) issues.push(`La plantilla es del año ${t.year} y estás trabajando con el año ${year.year}.`);
     if (!t.level || t.grade === null || !t.section) issues.push('No se pudo leer el nivel, grado o sección de la plantilla.');
     if (t.periodNumber === null || t.periodNumber > periodCount(year)) issues.push(`Periodo de evaluación no reconocido (${t.periodText || t.periodCode}).`);
 
@@ -111,11 +112,11 @@ export class TemplateService {
   }
 
   // ───────────────────────── Fase 4: revisar la plantilla
-  async inspect(schoolId: string, files: UploadedFile[]) {
+  async inspect(schoolId: string, files: UploadedFile[], academicYearId?: string) {
     const parsed = await this.parse(files);
     const out = [];
     for (const t of parsed) {
-      const ctx = await this.context(schoolId, t);
+      const ctx = await this.context(schoolId, t, academicYearId);
       const m = matchStudents(t, ctx.enrollments);
       let filledGrades = 0;
       let filledConclusions = 0;
@@ -173,11 +174,11 @@ export class TemplateService {
   }
 
   // ───────────────────────── Fase 4b: traer a la app las notas que ya trae la plantilla
-  async importGrades(schoolId: string, userId: string, files: UploadedFile[]) {
+  async importGrades(schoolId: string, userId: string, files: UploadedFile[], academicYearId?: string) {
     const parsed = await this.parse(files);
     const results = [];
     for (const t of parsed) {
-      const ctx = await this.context(schoolId, t);
+      const ctx = await this.context(schoolId, t, academicYearId);
       if (ctx.issues.length || !ctx.classroom || t.periodNumber === null) {
         results.push({ fileName: t.fileName, importedGrades: 0, importedConclusions: 0, skipped: ctx.issues.length ? ctx.issues : ['No se encontró el aula.'] });
         continue;
@@ -241,7 +242,7 @@ export class TemplateService {
   }
 
   // ───────────────────────── Fase 5: devolver la plantilla llena
-  async fill(schoolId: string, files: UploadedFile[], opts: { fillFromBank: boolean; overwrite: boolean }) {
+  async fill(schoolId: string, files: UploadedFile[], opts: { fillFromBank: boolean; overwrite: boolean }, academicYearId?: string) {
     const parsed = await this.parse(files);
     const outputs: Array<{ name: string; buffer: Buffer }> = [];
     const reports = [];
@@ -266,7 +267,7 @@ export class TemplateService {
     };
 
     for (const t of parsed) {
-      const ctx = await this.context(schoolId, t);
+      const ctx = await this.context(schoolId, t, academicYearId);
       const report = {
         fileName: t.fileName,
         outputName: t.fileName,

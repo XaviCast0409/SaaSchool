@@ -10,6 +10,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PeriodStatusBadge, ProgressBar } from '@/components/ui/letter-badge';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useGetActiveSchool } from '@/features/schools/api/useSchool';
+import { PLAN_HIERARCHY } from '@/layouts/navigation';
 import { useMyCourses, useMyProgress, usePeriods } from '../api';
 import { classroomLabel } from '../types';
 
@@ -21,12 +23,22 @@ export const MyCoursesPage: React.FC = () => {
   useEffect(() => {
     if (periods && period === null) setPeriod(periods.periods.find((p) => p.status === 'OPEN')?.periodNumber ?? periods.periods[periods.periods.length - 1]?.periodNumber ?? 1);
   }, [periods, period]);
-  const { data: progress } = useMyProgress(period);
+  // Registro de notas, avance y libretas son del plan PRO: en BASIC el docente usa el aula virtual
+  const { data: school } = useGetActiveSchool();
+  const hasGrades = school ? (PLAN_HIERARCHY[school.plan ?? 'BASIC'] ?? 1) >= PLAN_HIERARCHY.PRO : null;
+  const { data: progress } = useMyProgress(hasGrades ? period : null);
   const [virtualClassroom, setVirtualClassroom] = useState<React.ComponentProps<typeof TeacherCourseContentsModal>['assignment']>(null);
   const gradebookUrl = (assignmentId: string) => `/gradebook/${assignmentId}?period=${period ?? 1}`;
   const current = periods?.periods.find((p) => p.periodNumber === period);
+  // Aulas de tutoría: las que envía el servidor (aunque no dicte cursos en ellas) y, por compatibilidad, las de sus cursos
   const tutorRooms = useMemo(
-    () => [...new Map((data?.courses ?? []).filter((c) => c.classroom.tutorTeacherId === user?.id).map((c) => [c.classroom.id, c.classroom])).values()],
+    () => [
+      ...new Map(
+        [...(data?.tutorClassrooms ?? []), ...(data?.courses ?? []).map((c) => c.classroom)]
+          .filter((room) => room.tutorTeacherId === user?.id)
+          .map((room) => [room.id, room]),
+      ).values(),
+    ],
     [data, user],
   );
 
@@ -44,6 +56,11 @@ export const MyCoursesPage: React.FC = () => {
           </Select>
         )}
       />
+      {hasGrades === false && (
+        <p className="mb-4 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+          El registro de notas, el avance y las libretas están disponibles en el plan PRO del colegio. Mientras tanto, publica tus clases y tareas en el aula virtual.
+        </p>
+      )}
       {courses.length === 0 ? (
         <EmptyState icon={<BookOpen className="h-8 w-8" />} title="Aún no tienes cursos asignados" description="La Dirección asigna los cursos en Carga docente." />
       ) : (
@@ -52,25 +69,42 @@ export const MyCoursesPage: React.FC = () => {
             const p = progress?.rows.find((r) => r.assignmentId === c.id);
             return (
               <Card key={c.id} className="flex h-full flex-col p-4 transition-colors hover:border-primary/50">
-                <Link to={gradebookUrl(c.id)} className="flex-1">
-                  <p className="text-sm font-semibold">{c.area.name}</p>
-                  <p className="text-sm text-muted-foreground">{classroomLabel(c.classroom)}</p>
-                  <div className="mt-3">{p?.noStudents ? <span className="text-xs text-muted-foreground">Sin estudiantes matriculados</span> : <ProgressBar percent={p?.percent ?? 0} />}</div>
-                  {p && (p.missingGrades > 0 || p.missingConclusions > 0) && (
-                    <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
-                      {p.missingGrades > 0 && `${p.missingGrades} calificativos pendientes`}
-                      {p.missingGrades > 0 && p.missingConclusions > 0 && ' · '}
-                      {p.missingConclusions > 0 && `${p.missingConclusions} conclusiones`}
-                    </p>
+                {hasGrades === false ? (
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold">{c.area.name}</p>
+                    <p className="text-sm text-muted-foreground">{classroomLabel(c.classroom)}</p>
+                  </div>
+                ) : (
+                  <Link to={gradebookUrl(c.id)} className="flex-1">
+                    <p className="text-sm font-semibold">{c.area.name}</p>
+                    <p className="text-sm text-muted-foreground">{classroomLabel(c.classroom)}</p>
+                    <div className="mt-3">
+                      {p?.noStudents ? (
+                        <span className="text-xs text-muted-foreground">Sin estudiantes matriculados</span>
+                      ) : p ? (
+                        <ProgressBar percent={p.percent} />
+                      ) : (
+                        <div className="h-2 w-full animate-pulse rounded-full bg-muted" aria-hidden />
+                      )}
+                    </div>
+                    {p && (p.missingGrades > 0 || p.missingConclusions > 0) && (
+                      <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                        {p.missingGrades > 0 && `${p.missingGrades} calificativos pendientes`}
+                        {p.missingGrades > 0 && p.missingConclusions > 0 && ' · '}
+                        {p.missingConclusions > 0 && `${p.missingConclusions} conclusiones`}
+                      </p>
+                    )}
+                  </Link>
+                )}
+                <div className={`mt-3 grid gap-2 border-t border-border pt-3 ${hasGrades === false ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                  {hasGrades !== false && (
+                    <Button asChild size="sm" variant="outline" className="gap-1.5">
+                      <Link to={gradebookUrl(c.id)}>
+                        <BookOpenCheck className="h-4 w-4" />
+                        Notas
+                      </Link>
+                    </Button>
                   )}
-                </Link>
-                <div className="mt-3 grid grid-cols-2 gap-2 border-t border-border pt-3">
-                  <Button asChild size="sm" variant="outline" className="gap-1.5">
-                    <Link to={gradebookUrl(c.id)}>
-                      <BookOpenCheck className="h-4 w-4" />
-                      Notas
-                    </Link>
-                  </Button>
                   <Button
                     size="sm"
                     className="gap-1.5"
@@ -91,7 +125,7 @@ export const MyCoursesPage: React.FC = () => {
           })}
         </div>
       )}
-      {tutorRooms.length > 0 && (
+      {tutorRooms.length > 0 && hasGrades !== false && (
         <Card className="mt-6 p-4">
           <p className="text-sm font-semibold">Mi aula</p>
           <div className="mt-2 flex flex-wrap gap-2">

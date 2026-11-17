@@ -1,4 +1,7 @@
-import ExcelJS from 'exceljs';
+import type ExcelJS from 'exceljs';
+
+/** La librería de Excel (pesada) se descarga solo cuando se genera un archivo. */
+const newWorkbook = async (): Promise<ExcelJS.Workbook> => new (await import('exceljs')).default.Workbook();
 import { formatEducationLevel } from '@/lib/utils';
 import { addSchoolLogoToWorkbook } from '@/lib/excelLogo';
 import {
@@ -161,7 +164,7 @@ export const exportConsolidatedGradesExcel = async (data: ConsolidatedGradesRepo
   const { dateStr, timeStr } = getFormattedDateTime();
   const year = new Date().getFullYear();
 
-  const wb = new ExcelJS.Workbook();
+  const wb = await newWorkbook();
   wb.creator = 'KIPUX';
   wb.lastModifiedBy = 'KIPUX';
   wb.created = new Date();
@@ -523,7 +526,7 @@ export const exportMeritClassroomExcel = async (data: MeritClassroomReportData):
   const { dateStr, timeStr } = getFormattedDateTime();
   const year = new Date().getFullYear();
 
-  const wb = new ExcelJS.Workbook();
+  const wb = await newWorkbook();
   wb.creator = 'KIPUX';
 
   const ws = wb.addWorksheet('Merito_Salon', {
@@ -813,7 +816,7 @@ export const exportMeritGradeExcel = async (data: MeritGradeReportData): Promise
   const { dateStr, timeStr } = getFormattedDateTime();
   const year = new Date().getFullYear();
 
-  const wb = new ExcelJS.Workbook();
+  const wb = await newWorkbook();
   wb.creator = 'KIPUX';
 
   const ws = wb.addWorksheet('Merito_Grado', {
@@ -1087,7 +1090,7 @@ export const exportDraftRegisterExcel = async (data: DraftRegisterReportData): P
   const { dateStr, timeStr } = getFormattedDateTime();
   const year = new Date().getFullYear();
 
-  const wb = new ExcelJS.Workbook();
+  const wb = await newWorkbook();
   const ws = wb.addWorksheet('Borrador', {
     pageSetup: { orientation: 'landscape', paperSize: 9, fitToPage: true, fitToWidth: 1 },
   });
@@ -1181,7 +1184,7 @@ export const exportConductCommentsExcel = async (data: ConductCommentsReportData
   const { dateStr, timeStr } = getFormattedDateTime();
   const year = new Date().getFullYear();
 
-  const wb = new ExcelJS.Workbook();
+  const wb = await newWorkbook();
   const ws = wb.addWorksheet('Conducta', {
     pageSetup: { orientation: 'portrait', paperSize: 9, fitToPage: true, fitToWidth: 1 },
   });
@@ -1281,7 +1284,7 @@ export const exportClassroomRosterExcel = async (data: ClassroomRosterReportData
   const { school, classroom, students, totalStudents } = data;
   const { dateStr, timeStr } = getFormattedDateTime();
 
-  const wb = new ExcelJS.Workbook();
+  const wb = await newWorkbook();
   const ws = wb.addWorksheet('Padron', {
     pageSetup: { orientation: 'landscape', paperSize: 9, fitToPage: true, fitToWidth: 1 },
   });
@@ -1400,7 +1403,7 @@ export const exportClassroomRosterExcel = async (data: ClassroomRosterReportData
 export const exportFamiliesByStateExcel = async (
   data: FamiliesByStateReportData,
 ): Promise<void> => {
-  const wb = new ExcelJS.Workbook();
+  const wb = await newWorkbook();
   wb.creator = 'KIPUX';
   wb.created = new Date();
 
@@ -1532,7 +1535,7 @@ export const exportFamiliesByStateExcel = async (
 export const exportFamiliesChildrenExcel = async (
   data: FamiliesChildrenReportData,
 ): Promise<void> => {
-  const wb = new ExcelJS.Workbook();
+  const wb = await newWorkbook();
   wb.creator = 'KIPUX';
   wb.created = new Date();
 
@@ -1668,7 +1671,7 @@ export const exportFamiliesChildrenExcel = async (
 export const exportFamiliesRelativesExcel = async (
   data: FamiliesRelativesReportData,
 ): Promise<void> => {
-  const wb = new ExcelJS.Workbook();
+  const wb = await newWorkbook();
   wb.creator = 'KIPUX';
   wb.created = new Date();
 
@@ -1803,7 +1806,7 @@ export const exportFamiliesRelativesExcel = async (
 export const exportStudentBirthdaysExcel = async (
   data: StudentBirthdaysReportData,
 ): Promise<void> => {
-  const wb = new ExcelJS.Workbook();
+  const wb = await newWorkbook();
   wb.creator = 'KIPUX';
   wb.created = new Date();
 
