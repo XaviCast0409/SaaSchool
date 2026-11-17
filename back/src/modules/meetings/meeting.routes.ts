@@ -17,9 +17,14 @@ import { generateSlots, hasMinimumNotice, limaDateTime, weeklyDates, withoutOver
 export const meetingRouter = Router();
 meetingRouter.use(authMiddleware, tenantMiddleware);
 
-// Solo quien las familias pueden reservar: tutor, docentes del aula y Dirección (ver staffContactsForStudent).
-// Secretaría no figura entre esos contactos, así que sus horarios nunca se podrían reservar.
+// Las familias reservan solo con los docentes que enseñan a su hijo: tutor(a) y docentes de sus cursos.
+// Dirección no recibe reservas (salvo que también dicte en el aula); Secretaría tampoco.
 const STAFF = ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'] as const;
+/** Una solicitud de horario por familia, alumno y docente cada 24 horas, con un tope diario por familia. */
+const REQUEST_COOLDOWN_HOURS = 24;
+const MAX_REQUESTS_PER_DAY = 10;
+/** Una solicitud sin atender se muestra a la familia como vigente esta cantidad de días; luego puede volver a pedir. */
+const REQUEST_VISIBLE_DAYS = 7;
 const MIN_NOTICE_HOURS = 2;
 const MAX_SLOTS_PER_PUBLISH = 120;
 const uuid = z.string().uuid();
@@ -47,6 +52,11 @@ const whenSentence = (d: Date) => {
   const when = formatLimaDateTime(d);
   return when.endsWith('.') ? when : `${when}.`;
 };
+
+/** Docentes que enseñan al alumno este año: tutor(a) y docentes de sus cursos (sin Dirección). */
+async function teachersOfStudent(schoolId: string, studentId: string) {
+  return (await staffContactsForStudent(schoolId, studentId)).filter((c) => c.roleLabel !== 'Dirección');
+}
 
 async function schoolName(schoolId: string) {
   return (await prisma.school.findUnique({ where: { id: schoolId }, select: { name: true } }))?.name ?? '';
@@ -87,12 +97,34 @@ meetingRouter.post('/slots/bulk', authorizeRoles(...STAFF), async (req: Request,
     select: { startsAt: true, endsAt: true },
   });
   const fresh = withoutOverlaps(candidates, existing);
+  let notified = 0;
   if (fresh.length > 0) {
     await prisma.meetingSlot.createMany({
       data: fresh.map((s) => ({ schoolId, staffId, startsAt: s.startsAt, endsAt: s.endsAt, mode: dto.mode, location: dto.location || null })),
     });
+    // Familias que le pidieron horario: se les avisa que ya pueden reservar
+    const requests = await prisma.meetingRequest.findMany({
+      where: { schoolId, staffId, status: 'PENDING' },
+      select: { id: true, parentId: true, staff: { select: { firstName: true, lastNamePaternal: true } } },
+    });
+    if (requests.length > 0) {
+      await prisma.meetingRequest.updateMany({ where: { id: { in: requests.map((r) => r.id) } }, data: { status: 'RESOLVED', resolvedAt: new Date() } });
+      const parents = [...new Set(requests.map((r) => r.parentId))];
+      notified = parents.length;
+      await deliver(
+        schoolId,
+        parents.map((userId) => ({ userId })),
+        {
+          title: 'Ya puedes reservar tu entrevista',
+          message: `${fullName(requests[0].staff)} publicó horarios de entrevista, como pediste. Elige el que te acomode.`,
+          type: 'GENERAL',
+          link: '/meetings',
+        },
+        { schoolName: await schoolName(schoolId) },
+      );
+    }
   }
-  res.status(201).json({ status: 'success', data: { created: fresh.length, skipped: candidates.length - fresh.length } });
+  res.status(201).json({ status: 'success', data: { created: fresh.length, skipped: candidates.length - fresh.length, notified } });
 });
 
 /** Mis horarios (próximos y de los últimos 7 días). */
@@ -133,16 +165,61 @@ meetingRouter.delete('/slots/:id', authorizeRoles(...STAFF), async (req: Request
   res.status(200).json({ status: 'success', data: { cancelled: true } });
 });
 
+/** Familias que me pidieron horario de entrevista y aún esperan (últimos 30 días). */
+meetingRouter.get('/requests', authorizeRoles(...STAFF), async (req: Request, res: Response) => {
+  const rows = await prisma.meetingRequest.findMany({
+    where: { schoolId: req.user!.schoolId, staffId: req.user!.userId, status: 'PENDING', createdAt: { gte: new Date(Date.now() - 30 * 86_400_000) } },
+    orderBy: { createdAt: 'desc' },
+    take: 100,
+    select: {
+      id: true,
+      message: true,
+      createdAt: true,
+      parent: { select: { id: true, firstName: true, lastNamePaternal: true, cellphone: true } },
+      student: { select: { id: true, firstNames: true, lastNamePaternal: true } },
+    },
+  });
+  res.status(200).json({
+    status: 'success',
+    data: rows.map((r) => ({ ...r, student: { id: r.student.id, name: studentShortName(r.student) } })),
+  });
+});
+
+/** El docente da por atendida una solicitud (p. ej. ya conversó con la familia por otro medio). */
+meetingRouter.post('/requests/:id/dismiss', authorizeRoles(...STAFF), async (req: Request, res: Response) => {
+  const { id } = z.object({ id: uuid }).parse(req.params);
+  const updated = await prisma.meetingRequest.updateMany({
+    where: { id, schoolId: req.user!.schoolId, staffId: req.user!.userId, status: 'PENDING' },
+    data: { status: 'RESOLVED', resolvedAt: new Date() },
+  });
+  if (updated.count === 0) throw new AppError('Solicitud no encontrada.', 404);
+  res.status(200).json({ status: 'success', data: { dismissed: true } });
+});
+
 // ---------------------------------------------------------------- Familias
 
 /** Horarios libres del tutor y docentes de un hijo. */
 meetingRouter.get('/available', authorizeRoles('PARENT'), async (req: Request, res: Response) => {
   const { studentId } = z.object({ studentId: uuid }).parse(req.query);
   const schoolId = req.user!.schoolId;
-  const rel = await prisma.familyRelationship.findFirst({ where: { userId: req.user!.userId, studentId }, select: { id: true } });
+  const parentId = req.user!.userId;
+  const rel = await prisma.familyRelationship.findFirst({ where: { userId: parentId, studentId }, select: { id: true } });
   if (!rel) throw new AppError('Solo puedes reservar para tus hijos.', 403);
 
-  const contacts = await staffContactsForStudent(schoolId, studentId);
+  const contacts = await teachersOfStudent(schoolId, studentId);
+  // Solicitudes de horario de esta familia para este hijo que el docente aún no atiende
+  const requests = await prisma.meetingRequest.findMany({
+    where: {
+      schoolId,
+      parentId,
+      studentId,
+      status: 'PENDING',
+      staffId: { in: contacts.map((c) => c.id) },
+      createdAt: { gte: new Date(Date.now() - REQUEST_VISIBLE_DAYS * 86_400_000) },
+    },
+    orderBy: { createdAt: 'desc' },
+    select: { staffId: true, createdAt: true },
+  });
   const slots = await prisma.meetingSlot.findMany({
     where: {
       schoolId,
@@ -154,12 +231,67 @@ meetingRouter.get('/available', authorizeRoles('PARENT'), async (req: Request, r
     take: 300,
     select: { id: true, staffId: true, startsAt: true, endsAt: true, mode: true, location: true },
   });
+  // Todos los docentes del hijo, también los que aún no publican horarios (se les puede pedir uno)
   res.status(200).json({
     status: 'success',
-    data: contacts
-      .map((c) => ({ ...c, slots: slots.filter((s) => s.staffId === c.id) }))
-      .filter((c) => c.slots.length > 0),
+    data: contacts.map((c) => ({
+      ...c,
+      slots: slots.filter((s) => s.staffId === c.id),
+      requestedAt: requests.find((r) => r.staffId === c.id)?.createdAt ?? null,
+    })),
   });
+});
+
+const requestSchema = z.object({ studentId: uuid, staffId: uuid, message: z.string().trim().max(500).optional() });
+
+/** La familia le pide a un docente de su hijo que publique horarios de entrevista. */
+meetingRouter.post('/requests', authorizeRoles('PARENT'), async (req: Request, res: Response) => {
+  const dto = requestSchema.parse(req.body);
+  const schoolId = req.user!.schoolId;
+  const parentId = req.user!.userId;
+  const rel = await prisma.familyRelationship.findFirst({ where: { userId: parentId, studentId: dto.studentId }, select: { id: true } });
+  if (!rel) throw new AppError('Solo puedes pedir entrevistas para tus hijos.', 403);
+  const teachers = await teachersOfStudent(schoolId, dto.studentId);
+  if (!teachers.some((t) => t.id === dto.staffId)) throw new AppError('Solo puedes pedir entrevista a los docentes de tu hijo(a).', 403);
+
+  const free = await prisma.meetingSlot.count({
+    where: { schoolId, staffId: dto.staffId, status: 'AVAILABLE', startsAt: { gte: new Date(Date.now() + MIN_NOTICE_HOURS * 3_600_000) } },
+  });
+  if (free > 0) throw new AppError('Este docente ya tiene horarios libres: reserva uno directamente.', 409);
+  const since = new Date(Date.now() - REQUEST_COOLDOWN_HOURS * 3_600_000);
+  const [recent, today] = await Promise.all([
+    prisma.meetingRequest.findFirst({ where: { schoolId, parentId, studentId: dto.studentId, staffId: dto.staffId, createdAt: { gte: since } }, select: { id: true } }),
+    prisma.meetingRequest.count({ where: { schoolId, parentId, createdAt: { gte: since } } }),
+  ]);
+  if (recent) throw new AppError('Ya se lo pediste hoy. Te avisaremos cuando publique horarios.', 409);
+  if (today >= MAX_REQUESTS_PER_DAY) throw new AppError('Llegaste al límite de solicitudes por hoy. Inténtalo mañana.', 429);
+
+  // Una solicitud anterior sin atender queda reemplazada por esta (el docente no ve duplicados)
+  await prisma.meetingRequest.updateMany({
+    where: { schoolId, parentId, studentId: dto.studentId, staffId: dto.staffId, status: 'PENDING' },
+    data: { status: 'RESOLVED', resolvedAt: new Date() },
+  });
+  const created = await prisma.meetingRequest.create({
+    data: { schoolId, parentId, studentId: dto.studentId, staffId: dto.staffId, message: dto.message || null },
+    select: {
+      id: true,
+      createdAt: true,
+      parent: { select: { firstName: true, lastNamePaternal: true } },
+      student: { select: { firstNames: true, lastNamePaternal: true } },
+    },
+  });
+  await deliver(
+    schoolId,
+    [{ userId: dto.staffId }],
+    {
+      title: 'Una familia pide una entrevista',
+      message: `${fullName(created.parent)} (${studentShortName(created.student)}) quiere una entrevista contigo${dto.message ? `: «${dto.message}»` : ''}. Publica tus horarios en Entrevistas y le avisaremos.`,
+      type: 'GENERAL',
+      link: '/meetings',
+    },
+    { schoolName: await schoolName(schoolId) },
+  );
+  res.status(201).json({ status: 'success', data: { id: created.id, requestedAt: created.createdAt } });
 });
 
 /** Mis entrevistas reservadas. */
@@ -188,8 +320,8 @@ meetingRouter.post('/slots/:id/book', authorizeRoles('PARENT'), async (req: Requ
   if (!rel) throw new AppError('Solo puedes reservar para tus hijos.', 403);
   const slot = await prisma.meetingSlot.findFirst({ where: { id, schoolId }, select: { staffId: true, startsAt: true } });
   if (!slot) throw new AppError('Horario no encontrado.', 404);
-  const contacts = await staffContactsForStudent(schoolId, dto.studentId);
-  if (!contacts.some((c) => c.id === slot.staffId)) throw new AppError('Este docente no enseña a tu hijo(a).', 403);
+  const teachers = await teachersOfStudent(schoolId, dto.studentId);
+  if (!teachers.some((c) => c.id === slot.staffId)) throw new AppError('Solo puedes reservar con los docentes de tu hijo(a).', 403);
   if (!hasMinimumNotice(slot.startsAt, MIN_NOTICE_HOURS)) throw new AppError(`Reserva con al menos ${MIN_NOTICE_HOURS} horas de anticipación.`, 400);
   // Una sola entrevista pendiente por familia, alumno y docente: deja horarios libres para las demás familias
   const pending = await prisma.meetingSlot.findFirst({

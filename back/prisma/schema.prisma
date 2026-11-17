@@ -275,6 +275,7 @@ model School {
   messages                  Message[]
   announcementResponses     AnnouncementResponse[]
   meetingSlots              MeetingSlot[]
+  meetingRequests           MeetingRequest[]
   scheduleBlocks            ScheduleBlock[]
   events                    SchoolEvent[]
   timetableTemplates        TimetableTemplate[]
@@ -342,6 +343,8 @@ model User {
   announcementResponses   AnnouncementResponse[]
   meetingSlotsOwned       MeetingSlot[]             @relation("MeetingStaff")
   meetingSlotsBooked      MeetingSlot[]             @relation("MeetingParent")
+  meetingRequestsMade     MeetingRequest[]          @relation("MeetingRequestParent")
+  meetingRequestsReceived MeetingRequest[]          @relation("MeetingRequestStaff")
   createdEvents           SchoolEvent[]
   teacherAvailabilities   TeacherAvailability[]
   paymentReportsSent      PaymentReport[]           @relation("PaymentReportReporter")
@@ -443,6 +446,7 @@ model Student {
   conversations          Conversation[]
   announcementResponses  AnnouncementResponse[]
   meetingSlots           MeetingSlot[]
+  meetingRequests        MeetingRequest[]
   admissionApplications  AdmissionApplication[]
   ratifications          EnrollmentRatification[]
   documentRequests       DocumentRequest[]
@@ -1801,6 +1805,32 @@ enum MeetingMode {
   IN_PERSON
   VIRTUAL
   PHONE
+}
+
+enum MeetingRequestStatus {
+  PENDING // El docente aún no publica horarios desde la solicitud
+  RESOLVED // El docente publicó horarios (se avisó a la familia)
+}
+
+/// Pedido de una familia a un docente de su hijo para que publique horarios de entrevista.
+model MeetingRequest {
+  id         String               @id @default(uuid())
+  schoolId   String
+  parentId   String
+  studentId  String
+  staffId    String
+  message    String?              @db.Text
+  status     MeetingRequestStatus @default(PENDING)
+  createdAt  DateTime             @default(now())
+  resolvedAt DateTime?
+
+  school  School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  parent  User    @relation("MeetingRequestParent", fields: [parentId], references: [id], onDelete: Cascade)
+  staff   User    @relation("MeetingRequestStaff", fields: [staffId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, staffId, status])
+  @@index([parentId, studentId, staffId, createdAt])
 }
 
 /// Horario de entrevista publicado por un docente o tutor, que un apoderado puede reservar.

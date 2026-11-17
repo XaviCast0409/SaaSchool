@@ -38,6 +38,17 @@ export interface AvailableByStaff {
   subjects: string[];
   isTutor: boolean;
   slots: Array<{ id: string; startsAt: string; endsAt: string; mode: MeetingMode; location: string | null }>;
+  /** Cuándo la familia le pidió horario (si aún no lo atiende) */
+  requestedAt?: string | null;
+}
+
+/** Familia que le pidió horario al docente y aún espera. */
+export interface MeetingRequestItem {
+  id: string;
+  message: string | null;
+  createdAt: string;
+  parent: Person;
+  student: { id: string; name: string };
 }
 
 const KEY = ['meetings'];
@@ -68,7 +79,7 @@ export const useCreateSlots = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { date: string; from: string; to: string; durationMinutes: number; mode: MeetingMode; location?: string; repeatWeeks?: number }) =>
-      (await api.post<{ data: { created: number; skipped: number } }>('/meetings/slots/bulk', input)).data.data,
+      (await api.post<{ data: { created: number; skipped: number; notified?: number } }>('/meetings/slots/bulk', input)).data.data,
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 };
@@ -90,6 +101,32 @@ export const useBookSlot = () => {
       (await api.post(`/meetings/slots/${id}/book`, { studentId, reason })).data,
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
     onError: () => qc.invalidateQueries({ queryKey: KEY }),
+  });
+};
+
+/** Familia: pedirle a un docente que publique horarios. */
+export const useRequestMeeting = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { studentId: string; staffId: string; message?: string }) =>
+      (await api.post<{ data: { id: string; requestedAt: string } }>('/meetings/requests', input)).data.data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+  });
+};
+
+/** Docente: familias que le pidieron horario. */
+export const useMeetingRequests = (enabled: boolean) =>
+  useQuery({
+    queryKey: [...KEY, 'requests'],
+    enabled,
+    queryFn: async () => (await api.get<{ data: MeetingRequestItem[] }>('/meetings/requests')).data.data,
+  });
+
+export const useDismissMeetingRequest = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => (await api.post(`/meetings/requests/${id}/dismiss`)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 };
 

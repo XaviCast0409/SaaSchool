@@ -29,10 +29,15 @@ import { useParentStore } from '@/store/useParentStore';
 import { useGetMyChildren } from '@/features/students/api/useStudents';
 import { ChildSwitcher } from '@/features/parent/components/ChildSwitcher';
 import { apiErrorMessage } from '@/features/academic/api';
+import { useNavigate } from 'react-router-dom';
+import { useOpenConversation } from '@/features/messages/api/useMessages';
 import {
   MODE_LABEL,
   useAvailableSlots,
   useBookSlot,
+  useDismissMeetingRequest,
+  useMeetingRequests,
+  useRequestMeeting,
   useCancelBooking,
   useCancelSlot,
   useCreateSlots,
@@ -165,7 +170,9 @@ const PublishSlotsCard: React.FC = () => {
       {
         onSuccess: (r) => {
           const weeks = form.repeatWeeks > 1 ? ` en ${form.repeatWeeks} semanas` : '';
-          toast.success(r.skipped ? `${r.created} horario(s) publicados${weeks}; ${r.skipped} se omitieron por cruce.` : `${r.created} horario(s) publicados${weeks}.`);
+          const base = r.skipped ? `${r.created} horario(s) publicados${weeks}; ${r.skipped} se omitieron por cruce.` : `${r.created} horario(s) publicados${weeks}.`;
+          // Familias que habían pedido horario: ya recibieron el aviso
+          toast.success(r.notified ? `${base} Avisamos a ${r.notified} familia(s) que te pidieron entrevista.` : base);
         },
         onError: (err) => toast.error(apiErrorMessage(err)),
       },
@@ -235,7 +242,56 @@ const CANCEL_NOTICE_MS = 2 * 3_600_000;
 
 type SlotFilter = 'ALL' | 'BOOKED' | 'AVAILABLE' | 'PAST';
 
+/** Familias que le pidieron horario al docente: al publicar horarios se les avisa solo. */
+const RequestsPanel: React.FC = () => {
+  const { data: requests = [] } = useMeetingRequests(true);
+  const dismiss = useDismissMeetingRequest();
+  if (requests.length === 0) return null;
+  return (
+    <section className={cn(panel, 'border-amber-500/40')}>
+      <PanelHeader
+        icon={<MessageSquare className="h-4 w-4" />}
+        title={`${requests.length} familia${requests.length === 1 ? '' : 's'} te ${requests.length === 1 ? 'pidió' : 'pidieron'} una entrevista`}
+        description="Publica tus horarios abajo y les avisaremos para que reserven."
+      />
+      <ul className="divide-y divide-border/60">
+        {requests.map((r) => (
+          <li key={r.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:px-5">
+            <div className="min-w-0 flex-1 space-y-0.5">
+              <p className="text-sm font-bold text-foreground">
+                {r.parent.firstName} {r.parent.lastNamePaternal}
+                <span className="font-normal text-muted-foreground"> · {r.student.name}</span>
+              </p>
+              {r.message && <p className="text-sm text-muted-foreground">«{r.message}»</p>}
+              <p className="text-xs text-muted-foreground">
+                Pedido el {formatPeruDate(r.createdAt, { day: 'numeric', month: 'long' })}
+                {r.parent.cellphone ? ` · Cel. ${r.parent.cellphone}` : ''}
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-9 shrink-0 self-start rounded-xl text-xs font-bold text-muted-foreground"
+              disabled={dismiss.isPending}
+              onClick={() =>
+                dismiss.mutate(r.id, {
+                  onSuccess: () => toast.success('Solicitud marcada como atendida.'),
+                  onError: (e) => toast.error(apiErrorMessage(e)),
+                })
+              }
+              title="Ya conversaste con la familia por otro medio"
+            >
+              Ya lo atendí
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+};
+
 const StaffView: React.FC = () => {
+  const isDirection = useAuthStore((s) => s.user?.role === 'SCHOOL_ADMIN' || s.user?.role === 'SUPER_ADMIN');
   const { data, isLoading } = useMySlots(true);
   const cancel = useCancelSlot();
   const [filter, setFilter] = useState<SlotFilter>('ALL');
@@ -286,6 +342,14 @@ const StaffView: React.FC = () => {
         <StatTile label="Reservados" value={booked} icon={<CalendarCheck2 className="h-4 w-4" />} tone="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" />
         <StatTile label="Libres" value={free} icon={<Clock className="h-4 w-4" />} tone="bg-amber-500/15 text-amber-600 dark:text-amber-400" />
       </div>
+
+      {isDirection && (
+        <p className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+          Las familias reservan entrevistas solo con los docentes que enseñan a sus hijos. Si dictas cursos o eres tutor(a) de un aula, publica aquí tus horarios.
+        </p>
+      )}
+
+      <RequestsPanel />
 
       <PublishSlotsCard />
 
@@ -452,6 +516,36 @@ const ParentView: React.FC = () => {
   const [tab, setTab] = useState<ParentTab>('BOOK');
   const [picked, setPicked] = useState<{ id: string; label: string } | null>(null);
   const [reason, setReason] = useState('');
+  // Docentes con horarios libres (se reservan) y sin horarios (se les pide uno)
+  const withSlots = (available ?? []).filter((s) => s.slots.length > 0);
+  const withoutSlots = (available ?? []).filter((s) => s.slots.length === 0);
+  const requestMeeting = useRequestMeeting();
+  const [requesting, setRequesting] = useState<{ id: string; name: string } | null>(null);
+  const [requestMessage, setRequestMessage] = useState('');
+  const openChat = useOpenConversation();
+  const navigate = useNavigate();
+
+  const writeTo = (staffId: string) => {
+    if (!childId) return;
+    openChat.mutate(
+      { studentId: childId, counterpartId: staffId },
+      { onSuccess: (c) => navigate(`/messages?c=${c.id}`), onError: (e) => toast.error(apiErrorMessage(e)) },
+    );
+  };
+
+  const confirmRequest = () => {
+    if (!requesting || !childId) return;
+    requestMeeting.mutate(
+      { studentId: childId, staffId: requesting.id, message: requestMessage.trim() || undefined },
+      {
+        onSuccess: () => {
+          toast.success(`Listo: le avisamos a ${requesting.name}. Te contaremos cuando publique horarios.`);
+          setRequesting(null);
+        },
+        onError: (e) => toast.error(apiErrorMessage(e)),
+      },
+    );
+  };
 
   const confirmBooking = () => {
     if (!picked || !childId) return;
@@ -561,13 +655,18 @@ const ParentView: React.FC = () => {
           </div>
         ) : !available || available.length === 0 ? (
           <section className={panel}>
-            <EmptyBlock icon={<CalendarClock />} title="Aún no hay horarios libres">
-              Por ahora ningún docente de tu hijo(a) tiene horarios libres. También puedes escribirles desde Mensajes.
+            <EmptyBlock icon={<CalendarClock />} title="Aún no hay docentes asignados">
+              Cuando el colegio asigne los cursos de tu hijo(a), aquí verás a sus docentes para pedirles una entrevista.
             </EmptyBlock>
           </section>
         ) : (
           <div className="space-y-4">
-            {available.map((staff) => (
+            {withSlots.length === 0 && (
+              <p className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+                Por ahora ningún docente de tu hijo(a) tiene horarios libres. Pídele uno y te avisaremos en cuanto lo publique.
+              </p>
+            )}
+            {withSlots.map((staff) => (
               <section key={staff.id} className={panel}>
                 <div className="flex items-center gap-3 border-b border-border bg-muted/30 px-4 py-3 sm:px-5">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-sm font-black text-primary">
@@ -612,6 +711,74 @@ const ParentView: React.FC = () => {
                 </div>
               </section>
             ))}
+
+            {/* Docentes que aún no publican horarios: se les pide uno o se les escribe */}
+            {withoutSlots.length > 0 && (
+              <section className={panel}>
+                <PanelHeader
+                  icon={<CalendarPlus className="h-4 w-4" />}
+                  title="Docentes sin horarios publicados"
+                  description="Pídeles un horario: te avisaremos cuando lo publiquen."
+                />
+                <ul className="divide-y divide-border/60">
+                  {withoutSlots.map((staff) => {
+                    const requested = Boolean(staff.requestedAt);
+                    return (
+                      <li key={staff.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:px-5">
+                        <div className="flex min-w-0 flex-1 items-center gap-3">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted text-sm font-black text-muted-foreground">
+                            {staff.name.charAt(0)}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <p className="truncate text-sm font-bold text-foreground">{staff.name}</p>
+                              {staff.isTutor && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">
+                                  <GraduationCap className="h-3 w-3" aria-hidden /> Tutor(a)
+                                </span>
+                              )}
+                            </div>
+                            <p className="truncate text-xs text-muted-foreground">
+                              {staff.subjects.length ? staff.subjects.join(', ') : staff.roleLabel}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-10 gap-1.5 rounded-xl text-xs font-bold sm:h-8"
+                            disabled={openChat.isPending}
+                            onClick={() => writeTo(staff.id)}
+                          >
+                            <MessageSquare className="h-3.5 w-3.5" aria-hidden /> Escribir
+                          </Button>
+                          {requested ? (
+                            <span
+                              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-emerald-500/10 px-3 text-xs font-bold text-emerald-700 dark:text-emerald-300 sm:h-8"
+                              title="Te avisaremos cuando publique horarios"
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5" aria-hidden /> Pedido el {formatPeruDate(staff.requestedAt!, { day: 'numeric', month: 'short' })}
+                            </span>
+                          ) : (
+                            <Button
+                              size="sm"
+                              className="h-10 gap-1.5 rounded-xl text-xs font-bold sm:h-8"
+                              onClick={() => {
+                                setRequestMessage('');
+                                setRequesting({ id: staff.id, name: staff.name });
+                              }}
+                            >
+                              <CalendarPlus className="h-3.5 w-3.5" aria-hidden /> Pedir horario
+                            </Button>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            )}
           </div>
         )}
       </div>
@@ -651,6 +818,37 @@ const ParentView: React.FC = () => {
         />
         <p className="mt-1 text-right text-xs text-muted-foreground">{reason.length}/500</p>
       </Modal>
+
+      <Modal
+        open={Boolean(requesting)}
+        onClose={() => setRequesting(null)}
+        title="Pedir horario de entrevista"
+        description={requesting ? `Le avisaremos a ${requesting.name} que quieres conversar. Cuando publique horarios, te llegará un aviso para reservar.` : undefined}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" className="rounded-xl text-xs font-bold" onClick={() => setRequesting(null)}>
+              Volver
+            </Button>
+            <Button size="sm" onClick={confirmRequest} disabled={requestMeeting.isPending} className="gap-1.5 rounded-xl text-xs font-bold">
+              {requestMeeting.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <CalendarPlus className="h-3.5 w-3.5" aria-hidden />} Pedir horario
+            </Button>
+          </div>
+        }
+      >
+        <label className="mb-1 block text-xs font-bold text-foreground" htmlFor="meeting-request-message">
+          Motivo (opcional)
+        </label>
+        <Textarea
+          id="meeting-request-message"
+          className="rounded-xl text-sm"
+          rows={3}
+          maxLength={500}
+          value={requestMessage}
+          onChange={(e) => setRequestMessage(e.target.value)}
+          placeholder="Ej.: quisiera conversar sobre sus notas del bimestre."
+        />
+        <p className="mt-1 text-right text-xs text-muted-foreground">{requestMessage.length}/500</p>
+      </Modal>
     </div>
   );
 };
@@ -668,7 +866,7 @@ export const MeetingsPage: React.FC = () => {
           <h1 className="text-2xl font-black tracking-tight text-foreground">Entrevistas</h1>
           <p className="text-xs text-muted-foreground sm:text-sm">
             {isParent
-              ? 'Reserva una cita con el tutor o los docentes de tu hijo(a), sin llamadas ni cuaderno de control.'
+              ? 'Reserva una cita con el tutor o los docentes de tu hijo(a), o pídeles un horario, sin llamadas ni cuaderno de control.'
               : 'Publica tus horarios de atención y las familias reservan desde su app. Reciben un recordatorio la víspera.'}
           </p>
         </div>
