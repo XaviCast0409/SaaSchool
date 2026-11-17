@@ -22,6 +22,12 @@ const TYPE_TITLE: Record<string, string> = {
   AUTHORIZATION: 'Se requiere tu autorización',
   POLL: 'Encuesta',
 };
+/** Lo que ve quien publicó o supervisa: el seguimiento, no una petición dirigida a él. */
+const STAFF_TITLE: Record<string, string> = {
+  ACKNOWLEDGE: 'Confirmaciones de lectura recibidas',
+  AUTHORIZATION: 'Autorizaciones recibidas',
+  POLL: 'Respuestas de la encuesta',
+};
 
 /** Botones de respuesta para el apoderado, uno por cada hijo involucrado. */
 const ParentResponses: React.FC<{ a: Announcement; closed: boolean }> = ({ a, closed }) => {
@@ -189,7 +195,7 @@ export const AnnouncementResponsePanel: React.FC<{ announcement: Announcement }>
     <div className="mb-4 rounded-xl border border-primary/20 bg-primary/5 p-3">
       <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-primary">
         <ClipboardCheck className="h-4 w-4" aria-hidden />
-        {TYPE_TITLE[a.responseType]}
+        {showParent ? TYPE_TITLE[a.responseType] : STAFF_TITLE[a.responseType]}
         {a.responseDeadline && (
           <span className="font-normal text-muted-foreground">
             · {closed ? 'plazo vencido' : `hasta el ${formatPeruDate(a.responseDeadline, { day: 'numeric', month: 'long' })}`}

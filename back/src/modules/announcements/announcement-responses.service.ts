@@ -1,4 +1,4 @@
-import type { Announcement, Prisma } from '@prisma/client';
+import type { Announcement, EducationLevel, Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
 import { deliver } from '../automations/delivery';
@@ -17,8 +17,25 @@ async function activeYearId(schoolId: string) {
   return y?.id ?? null;
 }
 
+type AnnouncementScope = Pick<Announcement, 'classroomId' | 'targetLevel' | 'targetGrade'>;
+type ClassroomRef = { id: string; educationLevel: EducationLevel; grade: number };
+
+/** ¿El comunicado llega a esta aula? (todo el colegio, su nivel, su grado o el aula misma) */
+export function appliesToClassroom(a: AnnouncementScope, c: ClassroomRef): boolean {
+  if (a.classroomId) return a.classroomId === c.id;
+  if (a.targetLevel) return a.targetLevel === c.educationLevel && (a.targetGrade == null || a.targetGrade === c.grade);
+  return true;
+}
+
+/** Filtro de matrículas del público del comunicado. */
+function scopeEnrollmentWhere(a: AnnouncementScope): Prisma.EnrollmentWhereInput {
+  if (a.classroomId) return { classroomId: a.classroomId };
+  if (a.targetLevel) return { classroom: { educationLevel: a.targetLevel, ...(a.targetGrade != null ? { grade: a.targetGrade } : {}) } };
+  return {};
+}
+
 /** Aulas (año activo) de los hijos de un apoderado, o del propio alumno. */
-export async function viewerClassroomIds(viewer: Viewer): Promise<string[]> {
+export async function viewerClassrooms(viewer: Viewer): Promise<ClassroomRef[]> {
   const yearId = await activeYearId(viewer.schoolId);
   if (!yearId) return [];
   const studentIds =
@@ -28,24 +45,35 @@ export async function viewerClassroomIds(viewer: Viewer): Promise<string[]> {
   if (studentIds.length === 0) return [];
   const enr = await prisma.enrollment.findMany({
     where: { schoolId: viewer.schoolId, academicYearId: yearId, isActive: true, studentId: { in: studentIds } },
-    select: { classroomId: true },
+    select: { classroom: { select: { id: true, educationLevel: true, grade: true } } },
   });
-  return [...new Set(enr.map((e) => e.classroomId))];
+  const byId = new Map(enr.map((e) => [e.classroom.id, e.classroom]));
+  return [...byId.values()];
 }
 
-/** Filtro de visibilidad: familias y alumnos solo ven comunicados generales o del aula de sus hijos. */
+export async function viewerClassroomIds(viewer: Viewer): Promise<string[]> {
+  return (await viewerClassrooms(viewer)).map((c) => c.id);
+}
+
+/** Filtro de visibilidad: familias y alumnos ven lo general, lo de su nivel o grado y lo de su aula. */
 export async function visibilityWhere(viewer: Viewer): Promise<Prisma.AnnouncementWhereInput> {
   if (viewer.role !== 'PARENT' && viewer.role !== 'STUDENT') return {};
-  const classroomIds = await viewerClassroomIds(viewer);
-  return { OR: [{ classroomId: null }, { classroomId: { in: classroomIds } }] };
+  const classrooms = await viewerClassrooms(viewer);
+  const or: Prisma.AnnouncementWhereInput[] = [{ classroomId: null, targetLevel: null }];
+  if (classrooms.length) or.push({ classroomId: { in: classrooms.map((c) => c.id) } });
+  for (const c of classrooms) {
+    or.push({ classroomId: null, targetLevel: c.educationLevel, targetGrade: null });
+    or.push({ classroomId: null, targetLevel: c.educationLevel, targetGrade: c.grade });
+  }
+  return { OR: or };
 }
 
 /** Pares apoderado–alumno que deben responder un comunicado. */
-export async function expectedRespondents(a: Pick<Announcement, 'schoolId' | 'classroomId'>): Promise<Array<ExpectedPair & { studentName: string; classroom: string }>> {
+export async function expectedRespondents(a: Pick<Announcement, 'schoolId' | 'classroomId' | 'targetLevel' | 'targetGrade'>): Promise<Array<ExpectedPair & { studentName: string; classroom: string }>> {
   const yearId = await activeYearId(a.schoolId);
   if (!yearId) return [];
   const enrollments = await prisma.enrollment.findMany({
-    where: { schoolId: a.schoolId, academicYearId: yearId, isActive: true, enrollmentState: 'REGISTERED', ...(a.classroomId ? { classroomId: a.classroomId } : {}) },
+    where: { schoolId: a.schoolId, academicYearId: yearId, isActive: true, enrollmentState: 'REGISTERED', ...scopeEnrollmentWhere(a) },
     select: {
       classroom: { select: { grade: true, section: true, educationLevel: true } },
       student: {
@@ -88,10 +116,10 @@ export async function enrichForViewer<T extends Announcement>(viewer: Viewer, li
     const enr = yearId
       ? await prisma.enrollment.findMany({
           where: { academicYearId: yearId, isActive: true, studentId: { in: children.map((c) => c.student.id) } },
-          select: { studentId: true, classroomId: true },
+          select: { studentId: true, classroom: { select: { id: true, educationLevel: true, grade: true } } },
         })
       : [];
-    const classroomOf = new Map(enr.map((e) => [e.studentId, e.classroomId]));
+    const classroomOf = new Map(enr.map((e) => [e.studentId, e.classroom]));
     const myResponses = await prisma.announcementResponse.findMany({
       where: { userId: viewer.userId, announcementId: { in: withResponse.map((a) => a.id) } },
       select: { announcementId: true, studentId: true, response: true, respondedAt: true },
@@ -99,7 +127,7 @@ export async function enrichForViewer<T extends Announcement>(viewer: Viewer, li
     return list.map((a) => {
       if (a.responseType === 'NONE') return { ...a, myTargets: [], responseStats: null };
       const targets = children
-        .filter((c) => classroomOf.has(c.student.id) && (!a.classroomId || classroomOf.get(c.student.id) === a.classroomId))
+        .filter((c) => { const room = classroomOf.get(c.student.id); return !!room && appliesToClassroom(a, room); })
         .map((c) => {
           const r = myResponses.find((x) => x.announcementId === a.id && x.studentId === c.student.id);
           return { studentId: c.student.id, studentName: studentShortName(c.student), response: r?.response ?? null, respondedAt: r?.respondedAt ?? null };
@@ -114,10 +142,12 @@ export async function enrichForViewer<T extends Announcement>(viewer: Viewer, li
   if (visibleStats.length > 0) {
     // Una consulta por alcance (todo el colegio o un aula) y una sola para todas las respuestas,
     // en vez de recargar matrículas y familias por cada comunicado de la página
-    const scopes = [...new Set(visibleStats.map((a) => a.classroomId ?? ''))];
+    const scopeKey = (a: AnnouncementScope) => `${a.classroomId ?? ''}|${a.targetLevel ?? ''}|${a.targetGrade ?? ''}`;
+    const scopeByKey = new Map(visibleStats.map((a) => [scopeKey(a), { classroomId: a.classroomId, targetLevel: a.targetLevel, targetGrade: a.targetGrade }]));
+    const scopes = [...scopeByKey.keys()];
     const [expectedByScope, responses] = await Promise.all([
-      Promise.all(scopes.map((c) => expectedRespondents({ schoolId: viewer.schoolId, classroomId: c || null }))).then(
-        (lists) => new Map(scopes.map((c, i) => [c, lists[i]])),
+      Promise.all(scopes.map((k) => expectedRespondents({ schoolId: viewer.schoolId, ...scopeByKey.get(k)! }))).then(
+        (lists) => new Map(scopes.map((k, i) => [k, lists[i]])),
       ),
       prisma.announcementResponse.findMany({
         where: { announcementId: { in: visibleStats.map((a) => a.id) } },
@@ -126,7 +156,7 @@ export async function enrichForViewer<T extends Announcement>(viewer: Viewer, li
     ]);
     for (const a of visibleStats) {
       const s = summarizeByStudent(
-        expectedByScope.get(a.classroomId ?? '') ?? [],
+        expectedByScope.get(scopeKey(a)) ?? [],
         responses.filter((r) => r.announcementId === a.id),
       );
       stats.set(a.id, { expected: s.expectedStudents, responded: s.respondedStudents, tally: s.tally });
@@ -149,9 +179,9 @@ export async function respond(
 
   const rel = await prisma.familyRelationship.findFirst({ where: { userId: viewer.userId, studentId: input.studentId }, select: { id: true } });
   if (!rel) throw new AppError('Solo puedes responder por tus hijos.', 403);
-  if (a.classroomId) {
-    const classrooms = await viewerClassroomIds(viewer);
-    if (!classrooms.includes(a.classroomId)) throw new AppError('Este comunicado no es para el aula de tu hijo(a).', 403);
+  if (a.classroomId || a.targetLevel) {
+    const classrooms = await viewerClassrooms(viewer);
+    if (!classrooms.some((c) => appliesToClassroom(a, c))) throw new AppError('Este comunicado no es para el aula de tu hijo(a).', 403);
   }
 
   const data = {
@@ -240,7 +270,7 @@ export async function remindPending(viewer: Viewer, announcementId: string) {
 }
 
 /** Destinatarios de un comunicado nuevo (respeta el aula) para notificarlos con push. */
-export async function announcementRecipients(a: Pick<Announcement, 'schoolId' | 'classroomId' | 'targetRoles' | 'authorId'>) {
+export async function announcementRecipients(a: Pick<Announcement, 'schoolId' | 'classroomId' | 'targetLevel' | 'targetGrade' | 'targetRoles' | 'authorId'>) {
   const recipients = new Set<string>();
   const roles = a.targetRoles.filter((r) => r !== 'PARENT');
   if (roles.length > 0) {
@@ -251,7 +281,7 @@ export async function announcementRecipients(a: Pick<Announcement, 'schoolId' | 
     users.forEach((u) => recipients.add(u.id));
   }
   if (a.targetRoles.includes('PARENT')) {
-    if (a.classroomId) {
+    if (a.classroomId || a.targetLevel) {
       (await expectedRespondents(a)).forEach((e) => recipients.add(e.userId));
     } else {
       const parents = await prisma.user.findMany({ where: { schoolId: a.schoolId, isActive: true, role: 'PARENT' }, select: { id: true } });

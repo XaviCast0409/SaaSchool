@@ -17,7 +17,7 @@ export const SectionTabsLayout: React.FC<{ group: TabGroupKey }> = ({ group }) =
       {tabs.length > 1 && (
         <nav
           aria-label="Secciones"
-          className="-mx-4 flex gap-1 overflow-x-auto border-b border-border px-4 md:mx-0 md:px-0 print:hidden"
+          className="-mx-4 flex gap-1 overflow-x-auto overflow-y-hidden shadow-[inset_0_-1px_0_hsl(var(--border))] px-4 md:mx-0 md:px-0 print:hidden"
         >
           {tabs.map((tab) => (
             <NavLink
@@ -25,7 +25,7 @@ export const SectionTabsLayout: React.FC<{ group: TabGroupKey }> = ({ group }) =
               to={tab.path}
               end
               className={({ isActive }) =>
-                `-mb-px shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-semibold transition-colors ${
+                `shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-semibold transition-colors ${
                   isActive
                     ? 'border-primary text-primary'
                     : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'

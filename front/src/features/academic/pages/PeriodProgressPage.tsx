@@ -1,5 +1,6 @@
 import { useSelectedAcademicYear } from '@/components/AcademicYearSwitcher';
 import React, { useEffect, useMemo, useState } from 'react';
+import { currentPeriodNumber } from '../utils/periods';
 import { Link } from 'react-router-dom';
 import { Bell } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
@@ -34,7 +35,7 @@ export const PeriodProgressPage: React.FC = () => {
   const [deadline, setDeadline] = useState('');
 
   useEffect(() => {
-    if (periods && selected === null) setSelected(periods.periods.find((p) => p.status !== 'CLOSED')?.periodNumber ?? 1);
+    if (periods && selected === null) setSelected(currentPeriodNumber(periods.periods));
   }, [periods, selected]);
   const current = periods?.periods.find((p) => p.periodNumber === selected);
   useEffect(() => { setDeadline(current?.gradingDeadline ? current.gradingDeadline.slice(0, 10) : ''); }, [current]);

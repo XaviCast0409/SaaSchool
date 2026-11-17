@@ -189,7 +189,11 @@ export interface FinancialSummary {
   totalExpected: number;
   totalCollected: number;
   totalPending: number;
+  /** Saldo que vence hasta fin del mes en curso, incluidas las cuotas ya vencidas. */
+  pendingThisMonth?: number;
   overdueCount: number;
+  /** Alumnos distintos con al menos una cuota vencida. */
+  overdueStudents?: number;
 }
 
 export interface ReceiptData {

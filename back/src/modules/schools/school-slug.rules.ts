@@ -43,9 +43,16 @@ export const normalizeSlug = (value: string): string => value.trim().toLowerCase
 export const isValidSlug = (value: string): boolean =>
   SLUG_REGEX.test(value) && !value.includes('--') && !RESERVED_SLUGS.has(value);
 
-/** Genera un código a partir del nombre del colegio ("I.E.P. San José" → "iep-san-jose"). */
+/**
+ * Siglas del tipo de institución que no ayudan a reconocer al colegio en un enlace
+ * («I.E.P.», «IEP», «I.E.I.», «I.E.», «C.E.P.», «CEP»).
+ */
+const INSTITUTION_PREFIX = /^\s*(?:i\.?\s*e\.?\s*(?:p|i)?\.?|c\.?\s*e\.?\s*p\.?)\s+(?=\S)/i;
+
+/** Genera un código a partir del nombre del colegio ("I.E.P. San José" → "san-jose"). */
 export const slugify = (name: string): string => {
   const base = name
+    .replace(INSTITUTION_PREFIX, '')
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase()

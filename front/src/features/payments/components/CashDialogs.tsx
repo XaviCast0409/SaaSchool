@@ -83,7 +83,7 @@ export const ExpenseModal: React.FC<{ open: boolean; availableCash: number; onCl
       open={open}
       onClose={onClose}
       title="Registrar egreso de caja chica"
-      description={`Sale en efectivo de tu caja. Disponible: ${soles(availableCash)}`}
+      description="Sale en efectivo de tu caja. Registra el monto exacto que entregas."
       footer={
         <>
           <Button variant="ghost" size="sm" onClick={onClose}>
@@ -152,14 +152,17 @@ export const CloseCashModal: React.FC<{
   const close = useCloseCash();
   const [counted, setCounted] = useState('');
   const [note, setNote] = useState('');
+  // Arqueo ciego: primero se cuenta, y recién después se muestra cuánto se esperaba.
+  const [revealed, setRevealed] = useState(false);
   useEffect(() => {
     if (open) {
       setCounted('');
       setNote('');
+      setRevealed(false);
     }
   }, [open]);
   const hasValue = counted.trim() !== '' && Number(counted) >= 0;
-  const diff = hasValue ? Math.round((Number(counted) - expectedCash) * 100) / 100 : null;
+  const diff = hasValue && revealed ? Math.round((Number(counted) - expectedCash) * 100) / 100 : null;
 
   const submit = () =>
     close.mutate(
@@ -186,27 +189,38 @@ export const CloseCashModal: React.FC<{
           <Button variant="ghost" size="sm" onClick={onClose}>
             Cancelar
           </Button>
-          <Button size="sm" disabled={!hasValue || (diff !== 0 && note.trim().length < 5)} isLoading={close.isPending} onClick={submit}>
-            Cerrar caja
-          </Button>
+          {revealed ? (
+            <Button size="sm" disabled={!hasValue || (diff !== 0 && note.trim().length < 5)} isLoading={close.isPending} onClick={submit}>
+              Cerrar caja
+            </Button>
+          ) : (
+            <Button size="sm" disabled={!hasValue} onClick={() => setRevealed(true)}>
+              Registrar conteo
+            </Button>
+          )}
         </>
       }
     >
       <div className="space-y-3">
-        <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-3 text-sm">
-          <span className="text-muted-foreground">Efectivo esperado</span>
-          <span className="font-bold">{soles(expectedCash)}</span>
-        </div>
         <label className="block space-y-1 text-xs font-semibold">
           Efectivo contado (S/)
-          <Input type="number" step="0.01" min="0" autoFocus value={counted} onChange={(e) => setCounted(e.target.value)} />
+          <Input type="number" step="0.01" min="0" autoFocus disabled={revealed} value={counted} onChange={(e) => setCounted(e.target.value)} />
         </label>
+        {!revealed ? (
+          <p className="text-xs text-muted-foreground">Cuenta billetes y monedas antes de ver el monto esperado: así el arqueo refleja lo que realmente hay en caja.</p>
+        ) : (
+          <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-3 text-sm">
+            <span className="text-muted-foreground">Efectivo esperado</span>
+            <span className="font-bold">{soles(expectedCash)}</span>
+          </div>
+        )}
         {diff !== null && (
           <div className="flex items-center justify-between rounded-lg border border-border p-3 text-sm">
             <span className="text-muted-foreground">Diferencia</span>
             <DifferenceText value={diff} />
           </div>
         )}
+        {revealed && (
         <label className="block space-y-1 text-xs font-semibold">
           Observación {diff !== null && diff !== 0 ? '(obligatoria si hay diferencia)' : '(opcional)'}
           <textarea
@@ -218,6 +232,7 @@ export const CloseCashModal: React.FC<{
             placeholder="Ej: Faltan S/ 2 de vuelto que se dio a un apoderado"
           />
         </label>
+        )}
         <p className="text-xs text-muted-foreground">
           Después de cerrar ya no podrás cobrar en esta caja ni anular sus movimientos. Si hubo un error, el tesorero puede reabrirla.
         </p>
@@ -246,6 +261,8 @@ export const CashSessionDetailModal: React.FC<{
   const [receiptId, setReceiptId] = useState<string | null>(null);
 
   const isOwn = s?.cashierId === currentUserId;
+  // Arqueo ciego: quien tiene su caja abierta no ve los totales hasta cerrarla
+  const blind = isOwn && s?.status === 'OPEN';
   const canReview = canManage && s?.status === 'CLOSED' && (!isOwn || isAdmin);
   const hasDiff = s?.difference != null && Number(s.difference) !== 0;
 
@@ -275,9 +292,9 @@ export const CashSessionDetailModal: React.FC<{
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
               {[
                 ['Fondo inicial', soles(s.openingAmount)],
-                ['Cobrado (todos los medios)', soles(s.totals.totalCollected)],
+                ['Cobrado (todos los medios)', blind ? 'Al cerrar' : soles(s.totals.totalCollected)],
                 ['Egresos', soles(s.totals.expensesTotal)],
-                ['Efectivo esperado', soles(s.status === 'OPEN' ? s.totals.expectedCash : s.expectedCash)],
+                ['Efectivo esperado', blind ? 'Al cerrar' : soles(s.status === 'OPEN' ? s.totals.expectedCash : s.expectedCash)],
                 ['Efectivo contado', s.countedCash == null ? '—' : soles(s.countedCash)],
               ].map(([label, value]) => (
                 <div key={label} className="rounded-lg border border-border p-2.5">
@@ -300,7 +317,7 @@ export const CashSessionDetailModal: React.FC<{
               </div>
             )}
 
-            <MethodTotals byMethod={s.totals.byMethod} countByMethod={s.totals.countByMethod} />
+            <MethodTotals byMethod={s.totals.byMethod} countByMethod={s.totals.countByMethod} hideCashTotal={blind} />
 
             <section className="space-y-2">
               <h3 className="text-xs font-bold uppercase text-muted-foreground">Cobros ({s.totals.paymentsCount} vigentes, {s.totals.voidedCount} anulados)</h3>

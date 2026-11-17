@@ -29,6 +29,23 @@ export async function syncEnrollmentActiveFlags(tx: Tx, schoolId: string, active
   });
 }
 
+/** El número del año, el nombre y las fechas deben contar la misma historia. */
+export function validateYearDates(dto: { year: number; name?: string | null; startDate: string; endDate: string }): void {
+  const start = new Date(dto.startDate);
+  const end = new Date(dto.endDate);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) throw new AppError('Las fechas del año lectivo no son válidas.', 400);
+  if (start >= end) throw new AppError('La fecha de inicio del año lectivo debe ser anterior a la fecha de término.', 400);
+  const startYear = start.getUTCFullYear();
+  const endYear = end.getUTCFullYear();
+  if (startYear !== dto.year || endYear < dto.year || endYear > dto.year + 1) {
+    throw new AppError(`Las fechas (${startYear === endYear ? startYear : `${startYear}–${endYear}`}) no corresponden al año lectivo ${dto.year}. Revisa el número de año o las fechas.`, 400);
+  }
+  const yearInName = dto.name?.match(/\b(20\d{2})\b/)?.[1];
+  if (yearInName && Number(yearInName) !== dto.year) {
+    throw new AppError(`El nombre dice ${yearInName}, pero el año lectivo es ${dto.year}.`, 400);
+  }
+}
+
 function validatePeriods(dto: {
   periodType?: string;
   periodsConfig?: Array<{ periodNumber: number; name: string; startDate: string; endDate: string }> | null;
@@ -135,6 +152,7 @@ export class AcademicYearService {
     if (existing) {
       throw new AppError(`El Año Lectivo ${createDto.year} ya se encuentra registrado en este colegio.`, 409);
     }
+    validateYearDates({ year: createDto.year, name: createDto.name, startDate: createDto.startDate, endDate: createDto.endDate });
     validatePeriods(createDto);
     const created = await this.academicYearRepository.create(schoolId, createDto);
     // El año nuevo empieza con las mismas secciones que el vigente (sin tutores: se asignan después)
@@ -161,6 +179,12 @@ export class AcademicYearService {
     if (updateDto.isActive === false && current.isActive) {
       throw new AppError('No puedes dejar el colegio sin año activo. Para cambiar de año, activa el otro año.', 400);
     }
+    validateYearDates({
+      year: updateDto.year ?? current.year,
+      name: updateDto.name ?? current.name,
+      startDate: updateDto.startDate ?? current.startDate.toISOString(),
+      endDate: updateDto.endDate ?? current.endDate.toISOString(),
+    });
     validatePeriods({
       periodType: updateDto.periodType ?? current.periodType,
       periodsConfig: updateDto.periodsConfig === undefined

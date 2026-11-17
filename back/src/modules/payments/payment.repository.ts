@@ -349,7 +349,12 @@ export class PaymentRepository {
     let totalCollected = 0;
     let totalPending = 0;
     let overdueCount = 0;
+    let pendingThisMonth = 0;
+    const overdueStudents = new Set<string>();
     const now = new Date();
+    // Fin del mes en curso (hora de Lima): lo que vence hasta ahí, incluidas las cuotas ya vencidas.
+    const [year, month] = getSchoolNow().dateStr.split('-').map(Number);
+    const endOfMonth = new Date(Date.UTC(year, month, 0, 23, 59, 59));
 
     for (const ob of obligations) {
       totalExpected += Number(ob.amountDue);
@@ -359,8 +364,10 @@ export class PaymentRepository {
       const remaining = Number(ob.amountDue) - obPaid;
       if (remaining > 0) {
         totalPending += remaining;
+        if (new Date(ob.dueDate) <= endOfMonth) pendingThisMonth += remaining;
         if (new Date(ob.dueDate) < now && ob.status !== 'PAID') {
           overdueCount++;
+          overdueStudents.add(ob.enrollmentId);
         }
       }
     }
@@ -370,7 +377,9 @@ export class PaymentRepository {
       totalExpected: Number(totalExpected.toFixed(2)),
       totalCollected: Number(totalCollected.toFixed(2)),
       totalPending: Number(totalPending.toFixed(2)),
+      pendingThisMonth: Number(pendingThisMonth.toFixed(2)),
       overdueCount,
+      overdueStudents: overdueStudents.size,
     };
   }
 

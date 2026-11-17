@@ -106,10 +106,23 @@ const display = (value: unknown): string => {
   return String(value);
 };
 
+const NAME_FIELDS = new Set<keyof ImportStudent>(['firstNames', 'lastNamePaternal', 'lastNameMaternal']);
+const bare = (text: string | null | undefined): string =>
+  (text ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toLocaleUpperCase('es');
+
+/**
+ * ¿El archivo trae a otra persona con un DNI ya registrado? Si el apellido paterno no coincide
+ * (sin contar tildes ni mayúsculas), casi siempre es un DNI mal digitado: no se tocan los nombres.
+ */
+export const isIdentityMismatch = (existing: Pick<ExistingStudent, 'lastNamePaternal'>, incoming: Pick<ImportStudent, 'lastNamePaternal'>): boolean =>
+  !!incoming.lastNamePaternal && bare(existing.lastNamePaternal) !== bare(incoming.lastNamePaternal);
+
 function studentChanges(existing: ExistingStudent, incoming: ImportStudent): { changes: string[]; data: Prisma.StudentUncheckedUpdateInput } {
   const changes: string[] = [];
   const data: Record<string, unknown> = {};
+  const keepNames = isIdentityMismatch(existing, incoming);
   for (const [field, label] of STUDENT_FIELDS) {
+    if (keepNames && NAME_FIELDS.has(field)) continue;
     const next = incoming[field];
     if (next === null || next === undefined) continue;
     const current = existing[field as keyof ExistingStudent] as unknown;
@@ -281,6 +294,12 @@ export class StudentImportService {
       if (issues.length) { reject(); continue; }
 
       const changes = existing ? studentChanges(existing, student).changes : [];
+      if (existing && isIdentityMismatch(existing, student)) {
+        warnings.push(
+          `El documento ${student.documentId} ya es de ${fullNameOf(existing)}, pero el archivo dice ${[student.lastNamePaternal, student.lastNameMaternal].filter(Boolean).join(' ')}, ${student.firstNames}. `
+          + 'No se cambia el nombre: si el DNI está mal digitado, corrígelo en el Excel; si el alumno cambió de nombre, edítalo en su ficha.',
+        );
+      }
       const enrollment = existing ? enrollmentByStudent.get(existing.id) : undefined;
       if (enrollment && enrollment.classroomId !== classroomId) {
         const currentRoom = labels.get(enrollment.classroomId) ?? 'otra aula';

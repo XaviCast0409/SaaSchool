@@ -54,6 +54,24 @@ export class AnnouncementService {
   }
 
   /** El aula de un comunicado tiene que ser del mismo colegio. */
+  /**
+   * Los adjuntos deben ser archivos de este colegio. Se marcan como SCHOOL_ASSET para que cualquier
+   * familia o docente del colegio pueda abrirlos desde el comunicado (por defecto un archivo del
+   * personal solo lo ve el personal).
+   */
+  private async prepareAttachments(schoolId: string, uploaderId: string, attachments?: Array<{ fileId: string }>): Promise<void> {
+    if (!attachments?.length) return;
+    const ids = [...new Set(attachments.map((a) => a.fileId))];
+    // Solo archivos que subió quien publica y que no son privados de un alumno o de pagos:
+    // así nadie puede volver público un voucher o una tarea adjuntando su id.
+    const files = await prisma.storedFile.findMany({
+      where: { id: { in: ids }, schoolId, deletedAt: null, uploadedById: uploaderId, purpose: { in: ['COURSE_MATERIAL', 'SCHOOL_ASSET', 'STAFF_RESOURCE'] } },
+      select: { id: true },
+    });
+    if (files.length !== ids.length) throw new AppError('Solo puedes adjuntar archivos que subiste tú para este comunicado.', 400);
+    await prisma.storedFile.updateMany({ where: { id: { in: ids }, schoolId }, data: { purpose: 'SCHOOL_ASSET' } });
+  }
+
   private async assertClassroomInSchool(schoolId: string, classroomId?: string | null): Promise<void> {
     if (!classroomId) return;
     const found = await prisma.classroom.count({ where: { id: classroomId, schoolId } });
@@ -77,6 +95,10 @@ export class AnnouncementService {
     authorRole?: string,
   ): Promise<Announcement> {
     await this.assertClassroomInSchool(schoolId, createDto.classroomId);
+    await this.prepareAttachments(schoolId, authorId, createDto.attachments);
+    if (authorRole === 'TEACHER' && createDto.targetLevel) {
+      throw new AppError('Los docentes publican para sus aulas; los comunicados por nivel o grado los publica la Dirección.', 403);
+    }
     if (authorRole === 'TEACHER') {
       await this.validateTeacherAnnouncement(schoolId, authorId, createDto.classroomId, createDto.targetRoles);
     }
@@ -119,6 +141,7 @@ export class AnnouncementService {
   ): Promise<Announcement> {
     const current = await this.getAnnouncementById(announcementId, schoolId);
     if (updateDto.classroomId !== undefined) await this.assertClassroomInSchool(schoolId, updateDto.classroomId);
+    if (updateDto.attachments !== undefined) await this.prepareAttachments(schoolId, editor?.userId ?? current.authorId, updateDto.attachments);
     // Un docente solo puede modificar sus propios comunicados
     if (editor?.role === 'TEACHER') {
       if (current.authorId !== editor.userId) {

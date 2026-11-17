@@ -1,6 +1,6 @@
 import { useSelectedAcademicYear } from '@/components/AcademicYearSwitcher';
 import React, { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { CheckCircle2, ClipboardCheck, Loader2, Lock, FileEdit } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
@@ -302,16 +302,21 @@ const SiagieTab: React.FC = () => {
           <Card className="overflow-hidden">
             <ul className="divide-y divide-border">
               {rows.map((r) => (
-                <li key={r.studentId} className="p-3 text-sm">
-                  <p className="font-medium text-foreground">
-                    {r.name} <span className="text-xs font-normal text-muted-foreground">· {r.classroom}</span>
-                  </p>
-                  <p className="text-xs text-amber-700 dark:text-amber-300">{r.issues.join(' · ')}</p>
+                <li key={r.studentId} className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm">
+                  <div className="min-w-0">
+                    <p className="font-medium text-foreground">
+                      {r.name} <span className="text-xs font-normal text-muted-foreground">· {r.classroom}</span>
+                    </p>
+                    <p className="text-xs text-amber-700 dark:text-amber-300">{r.issues.join(' · ')}</p>
+                  </div>
+                  <Link to={`/students?q=${encodeURIComponent(r.name)}`} className="text-xs font-semibold text-primary hover:underline">
+                    Corregir ficha
+                  </Link>
                 </li>
               ))}
             </ul>
           </Card>
-          <p className="text-xs text-muted-foreground">Corrígelos en Matrícula SIAGIE (Alumnos) antes de exportar las actas o la nómina.</p>
+          <p className="text-xs text-muted-foreground">Corrígelos antes de exportar las actas o la nómina: «Corregir ficha» abre al alumno en Alumnos y matrícula.</p>
         </>
       )}
     </div>

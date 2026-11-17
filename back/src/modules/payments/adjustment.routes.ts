@@ -4,7 +4,7 @@ import { authMiddleware } from '../../core/middlewares/auth.middleware';
 import { tenantMiddleware } from '../../core/middlewares/tenant.middleware';
 import { recordAudit } from '../../utils/audit.util';
 import { AdjustmentService } from './adjustment.service';
-import { ADJUSTMENT_TYPES } from './adjustment.rules';
+import { ADJUSTMENT_TYPES, LATE_FEE_MAX_ANNUAL_RATE } from './adjustment.rules';
 import { requireFinance } from './finance-access';
 import { MIN_REASON_LENGTH } from './finance.rules';
 import { PAYMENT_CONCEPTS } from './payment.schema';
@@ -127,7 +127,7 @@ adjustmentRouter.get('/finance-settings', requireFinance('collect', 'view'), asy
 adjustmentRouter.put('/finance-settings', requireFinance('manage'), async (req: Request, res: Response) => {
   const dto = z
     .object({
-      lateFeeAnnualRate: z.number().min(0).max(100).nullable(),
+      lateFeeAnnualRate: z.number().min(0).max(LATE_FEE_MAX_ANNUAL_RATE, `La tasa no puede superar el ${LATE_FEE_MAX_ANNUAL_RATE} % anual: la Ley 27665 la limita a la tasa interbancaria del BCRP.`).nullable(),
       lateFeeGraceDays: z.number().int().min(0).max(120),
     })
     .parse(req.body);

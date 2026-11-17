@@ -298,7 +298,7 @@ export const AttendanceJustificationsPage: React.FC = () => {
 
       {/* Diálogo de Rechazo con Nota */}
       {rejectingItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-150">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-150">
           <div className="w-full max-w-md rounded-2xl border border-border bg-card shadow-2xl p-5 space-y-4">
             <div>
               <h3 className="text-base font-black text-foreground">

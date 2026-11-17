@@ -13,12 +13,15 @@ const fmt = (n: number | null | undefined) => (n === null || n === undefined ? '
 /** Periodo que se muestra por defecto: el último publicado. */
 export const defaultReportPeriod = (card: Pick<ReportCard, 'visiblePeriods'>) => card.visiblePeriods[card.visiblePeriods.length - 1] ?? null;
 
-/** Nota numérica y literal juntas: "12 B". */
-const Grade: React.FC<{ cell?: GradeCell; strong?: boolean }> = ({ cell, strong }) => {
+/**
+ * Calificativo de la libreta. La nota numérica solo se muestra cuando el colegio califica por
+ * criterios (notas reales del docente); si el docente registró solo la letra, no se inventa un número.
+ */
+const Grade: React.FC<{ cell?: GradeCell; strong?: boolean; showScore?: boolean }> = ({ cell, strong, showScore = true }) => {
   if (!cell || (cell.score === null && !cell.letter)) return <span className="text-muted-foreground">—</span>;
   return (
     <span className="inline-flex items-center justify-center gap-1">
-      {cell.score !== null && <span className={cn('tabular-nums', strong && 'font-semibold')}>{fmt(cell.score)}</span>}
+      {showScore && cell.score !== null && <span className={cn('tabular-nums', strong && 'font-semibold')}>{fmt(cell.score)}</span>}
       <LetterBadge letter={cell.letter} className="min-w-[1.75rem] px-1 py-0 text-[10px]" />
     </span>
   );
@@ -33,6 +36,9 @@ export const ReportCardSheet: React.FC<{ card: ReportCard; periodNumber?: number
   const areas = card.areas ?? [];
   const conduct = (card.conduct ?? []).find((c) => c.periodNumber === p);
   const cellCls = 'px-1 py-1 text-center whitespace-nowrap';
+  // Sin criterios el docente registra solo AD/A/B/C: cualquier número sería una conversión interna.
+  const showScores = cols.length > 0;
+  const competenceAreas = (card.officialAreas ?? []).filter((a) => a.competences.length > 0);
 
   return (
     <article className={printable ? `bg-white p-6 text-[11px] text-black ${className}` : `rounded-xl border border-border bg-card p-5 text-sm ${className}`}>
@@ -67,7 +73,7 @@ export const ReportCardSheet: React.FC<{ card: ReportCard; periodNumber?: number
                   <tr className="border-b-2 border-border text-muted-foreground">
                     <th className="py-1.5 text-left font-semibold">Área / curso</th>
                     {cols.map((k) => <th key={k.id} title={k.name} className={cn(cellCls, 'font-semibold')}>{k.shortName}</th>)}
-                    <th className={cn(cellCls, 'font-semibold text-foreground')}>Promedio</th>
+                    <th className={cn(cellCls, 'font-semibold text-foreground')}>{showScores ? 'Promedio' : 'Calificativo del área'}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -81,7 +87,7 @@ export const ReportCardSheet: React.FC<{ card: ReportCard; periodNumber?: number
                             {area.isWorkshop && <span className="ml-1 text-[10px] font-normal text-muted-foreground">(taller, no va al SIAGIE)</span>}
                           </td>
                           {cols.map((k) => <td key={k.id} className={cellCls}><Grade cell={course.criteria.find((x) => x.id === k.id)?.periods[p]} /></td>)}
-                          <td className={cellCls}><Grade cell={course.average[p]} strong /></td>
+                          <td className={cellCls}><Grade cell={course.average[p]} strong showScore={showScores} /></td>
                         </tr>
                       );
                     }
@@ -90,13 +96,13 @@ export const ReportCardSheet: React.FC<{ card: ReportCard; periodNumber?: number
                         <tr className="border-b border-border bg-muted/40">
                           <td className="py-1.5 pr-2 font-semibold">{area.name}</td>
                           {cols.map((k) => <td key={k.id} />)}
-                          <td className={cellCls}><Grade cell={area.average[p]} strong /></td>
+                          <td className={cellCls}><Grade cell={area.average[p]} strong showScore={showScores} /></td>
                         </tr>
                         {area.courses.map((course) => (
                           <tr key={course.id} className="border-b border-border/60">
                             <td className="py-1 pl-4 pr-2">{course.name}</td>
                             {cols.map((k) => <td key={k.id} className={cellCls}><Grade cell={course.criteria.find((x) => x.id === k.id)?.periods[p]} /></td>)}
-                            <td className={cellCls}><Grade cell={course.average[p]} strong /></td>
+                            <td className={cellCls}><Grade cell={course.average[p]} strong showScore={showScores} /></td>
                           </tr>
                         ))}
                       </React.Fragment>
@@ -110,11 +116,42 @@ export const ReportCardSheet: React.FC<{ card: ReportCard; periodNumber?: number
             </div>
           )}
 
+          {competenceAreas.length > 0 && (
+            <section className="mt-4">
+              <h2 className="mb-1 text-sm font-semibold">Calificativo por competencia</h2>
+              <table className="w-full border-collapse text-xs">
+                <thead>
+                  <tr className="border-b-2 border-border text-muted-foreground">
+                    <th className="py-1.5 text-left font-semibold">Área / competencia</th>
+                    <th className={cn(cellCls, 'font-semibold')}>Calificativo</th>
+                    <th className="py-1.5 pl-2 text-left font-semibold">Conclusión descriptiva</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {competenceAreas.map((area) => (
+                    <React.Fragment key={area.code}>
+                      <tr className="border-b border-border bg-muted/40">
+                        <td colSpan={3} className="py-1.5 pr-2 font-semibold">{area.name}</td>
+                      </tr>
+                      {area.competences.map((c) => (
+                        <tr key={c.number} className="border-b border-border/60 break-inside-avoid">
+                          <td className="py-1 pl-4 pr-2">{c.name}</td>
+                          <td className={cellCls}><Grade cell={{ score: null, letter: c.letters[p] ?? null }} /></td>
+                          <td className="py-1 pl-2 text-[11px]">{c.conclusions[p] || <span className="text-muted-foreground">—</span>}</td>
+                        </tr>
+                      ))}
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </section>
+          )}
+
           <section className="mt-4 grid gap-4 break-inside-avoid sm:grid-cols-[auto_1fr]">
             <div>
               <h2 className="mb-1 text-sm font-semibold">Conducta</h2>
               <div className="flex items-center gap-2 text-base">
-                <Grade cell={conduct ? { score: conduct.score, letter: conduct.letter } : undefined} strong />
+                <Grade cell={conduct ? { score: conduct.score, letter: conduct.letter } : undefined} strong showScore={showScores} />
               </div>
             </div>
             <div>

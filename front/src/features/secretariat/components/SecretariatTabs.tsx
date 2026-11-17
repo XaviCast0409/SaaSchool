@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import QRCode from 'qrcode';
+import { useStudents } from '@/features/students/api/useStudents';
 import { SchoolLetterhead } from '@/features/schools/components/SchoolLetterhead';
 import { toast } from 'sonner';
 import { BellRing, Copy, Download, ExternalLink, FileUp, Loader2, Lock, Printer, QrCode } from 'lucide-react';
@@ -17,7 +19,9 @@ import { useUploadMaterial } from '@/features/course-contents/api/useCourseConte
 import { openFile } from '@/features/course-contents/utils/fileUrls';
 import {
   DOCUMENT_STATUS_LABEL,
+  DOCUMENT_TYPE_LABEL,
   useComplaints,
+  useCreateDocumentAtDesk,
   useDocumentRequests,
   useRatifications,
   useRemindRatification,
@@ -27,6 +31,7 @@ import {
   type Complaint,
   type DocumentRequestRow,
   type DocumentStatus,
+  type DocumentType as DocType,
   type SecretariatSettings,
 } from '../api/useSecretariat';
 
@@ -40,7 +45,21 @@ const STATUS_VARIANT: Record<DocumentStatus, 'secondary' | 'warning' | 'success'
 
 // ------------------------------------------------------------------ Configuración y enlaces públicos
 
-export const PublicLinksCard: React.FC<{ schoolId: string; settings: SecretariatSettings; canEdit: boolean }> = ({ schoolId, settings, canEdit }) => {
+/** Abre una hoja lista para imprimir con el QR del Libro de Reclamaciones (para colocar junto al aviso). */
+const printComplaintsQr = async (url: string, schoolName: string) => {
+  const dataUrl = await QRCode.toDataURL(url, { margin: 1, width: 480 });
+  const win = window.open('', '_blank', 'width=720,height=900');
+  if (!win) return toast.error('Permite las ventanas emergentes para imprimir el QR.');
+  const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] as string);
+  win.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Libro de Reclamaciones - ${esc(schoolName)}</title>
+    <style>body{font-family:system-ui,sans-serif;text-align:center;padding:40px;color:#111}h1{font-size:28px;margin:0 0 8px}p{margin:6px 0}img{width:320px;height:320px;margin:24px auto;display:block}small{color:#555;word-break:break-all}</style>
+    </head><body><h1>Libro de Reclamaciones</h1><p>${esc(schoolName)}</p><img src="${dataUrl}" alt="Código QR"><p>Escanee el código para registrar su reclamo o queja.</p><small>${esc(url)}</small>
+    <script>window.onload=function(){window.print()}</script></body></html>`);
+  win.document.close();
+  return undefined;
+};
+
+export const PublicLinksCard: React.FC<{ schoolId: string; schoolSlug?: string | null; schoolName?: string; settings: SecretariatSettings; canEdit: boolean }> = ({ schoolId, schoolSlug, schoolName = 'el colegio', settings, canEdit }) => {
   const save = useSaveSecretariatSettings();
   const nextYear = new Date().getFullYear() + 1;
   const [form, setForm] = useState({
@@ -53,8 +72,10 @@ export const PublicLinksCard: React.FC<{ schoolId: string; settings: Secretariat
   });
   const [open, setOpen] = useState(false);
   const origin = window.location.origin;
-  const admissionUrl = `${origin}/admision/${schoolId}`;
-  const complaintsUrl = `${origin}/reclamaciones/${schoolId}`;
+  // Con el código corto del colegio el enlace es fácil de leer y de dictar por teléfono
+  const publicKey = schoolSlug || schoolId;
+  const admissionUrl = `${origin}/admision/${publicKey}`;
+  const complaintsUrl = `${origin}/reclamaciones/${publicKey}`;
   const copy = (url: string) => navigator.clipboard.writeText(url).then(() => toast.success('Enlace copiado'), () => toast.error('No se pudo copiar'));
 
   const submit = () =>
@@ -99,7 +120,10 @@ export const PublicLinksCard: React.FC<{ schoolId: string; settings: Secretariat
       </div>
       <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
         <QrCode className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-        Indecopi exige exhibir el aviso del Libro de Reclamaciones en el local. Puedes imprimir un QR con el enlace y colocarlo junto al aviso.
+        <span className="flex-1">Indecopi exige exhibir el aviso del Libro de Reclamaciones en el local. Imprime el QR y colócalo junto al aviso.</span>
+        <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => void printComplaintsQr(complaintsUrl, schoolName)}>
+          <QrCode className="h-3.5 w-3.5" aria-hidden /> Imprimir QR
+        </Button>
       </p>
 
       <Modal open={open} onClose={() => setOpen(false)} title="Admisión y ratificación" size="lg"
@@ -265,20 +289,85 @@ const DocumentModal: React.FC<{ doc: DocumentRequestRow | null; onClose: () => v
   );
 };
 
+/** Registrar en ventanilla una constancia que la familia pide en persona. */
+const DeskRequestModal: React.FC<{ open: boolean; onClose: () => void }> = ({ open, onClose }) => {
+  const create = useCreateDocumentAtDesk();
+  const [search, setSearch] = useState('');
+  const [student, setStudent] = useState<{ id: string; name: string } | null>(null);
+  const [type, setType] = useState<DocType>('CONSTANCIA_MATRICULA' as DocType);
+  const [purpose, setPurpose] = useState('');
+  const [copies, setCopies] = useState(1);
+  const [requesterName, setRequesterName] = useState('');
+  const { data: found } = useStudents({ page: 1, limit: 8, search: search.trim(), scope: 'all' }, open && !student && search.trim().length >= 3);
+  useEffect(() => {
+    if (open) { setSearch(''); setStudent(null); setPurpose(''); setCopies(1); setRequesterName(''); }
+  }, [open]);
+  const canSave = !!student && requesterName.trim().length >= 3 && (type !== 'OTRO' || purpose.trim().length > 0);
+  const submit = () =>
+    student && create.mutate(
+      { studentId: student.id, type, purpose: purpose.trim() || undefined, copies, requesterName: requesterName.trim() },
+      { onSuccess: () => { toast.success('Trámite registrado. Lo verás en la lista para atenderlo.'); onClose(); }, onError: (e) => toast.error(apiErrorMessage(e)) },
+    );
+  return (
+    <Modal open={open} onClose={onClose} title="Registrar trámite en ventanilla" size="md"
+      footer={<Button onClick={submit} disabled={!canSave || create.isPending}>{create.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Registrar</Button>}>
+      <div className="space-y-3 text-sm">
+        <label className="block space-y-1">
+          <span className="font-medium">Alumno</span>
+          {student ? (
+            <div className="flex items-center justify-between rounded-md border bg-muted/40 px-3 py-2">
+              <span>{student.name}</span>
+              <Button size="sm" variant="ghost" onClick={() => setStudent(null)}>Cambiar</Button>
+            </div>
+          ) : (
+            <>
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Apellido, nombre o DNI (mínimo 3 letras)" />
+              {(found?.data ?? []).length > 0 && (
+                <ul className="divide-y rounded-md border">
+                  {(found?.data ?? []).map((st) => (
+                    <li key={st.id}>
+                      <button type="button" className="w-full px-3 py-1.5 text-left hover:bg-muted" onClick={() => setStudent({ id: st.id, name: `${[st.lastNamePaternal, st.lastNameMaternal].filter(Boolean).join(' ')}, ${st.firstNames}` })}>
+                        {[st.lastNamePaternal, st.lastNameMaternal].filter(Boolean).join(' ')}, {st.firstNames} <span className="text-xs text-muted-foreground">· {st.documentId}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
+        </label>
+        <label className="block space-y-1">
+          <span className="font-medium">Documento</span>
+          <select value={type} onChange={(e) => setType(e.target.value as DocType)} className="w-full rounded-md border border-input bg-background px-3 py-2">
+            {(Object.keys(DOCUMENT_TYPE_LABEL) as DocType[]).map((t) => <option key={t} value={t}>{DOCUMENT_TYPE_LABEL[t]}</option>)}
+          </select>
+        </label>
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+          <label className="block space-y-1"><span className="font-medium">¿Quién lo pide?</span><Input value={requesterName} onChange={(e) => setRequesterName(e.target.value)} placeholder="Ej.: Rosa Huamán (madre)" /></label>
+          <label className="block space-y-1"><span className="font-medium">Copias</span><Input type="number" min={1} max={5} value={copies} onChange={(e) => setCopies(Math.min(5, Math.max(1, Number(e.target.value) || 1)))} className="w-20" /></label>
+        </div>
+        <label className="block space-y-1"><span className="font-medium">Para qué lo necesita {type === 'OTRO' ? '(obligatorio)' : '(opcional)'}</span><Input value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder="Ej.: Trámite de traslado" maxLength={300} /></label>
+      </div>
+    </Modal>
+  );
+};
+
 export const DocumentsTab: React.FC = () => {
   const [status, setStatus] = useState<DocumentStatus | undefined>(undefined);
   const { data, isLoading } = useDocumentRequests(status);
   const [selected, setSelected] = useState<DocumentRequestRow | null>(null);
+  const [deskOpen, setDeskOpen] = useState(false);
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
+        <Button size="sm" className="mr-auto gap-1" onClick={() => setDeskOpen(true)}><FileUp className="h-3.5 w-3.5" aria-hidden /> Registrar en ventanilla</Button>
         <Button size="sm" variant={!status ? 'default' : 'outline'} onClick={() => setStatus(undefined)}>Todos</Button>
         {(['REQUESTED', 'IN_PROCESS', 'READY', 'DELIVERED', 'REJECTED'] as DocumentStatus[]).map((s) => (
           <Button key={s} size="sm" variant={status === s ? 'default' : 'outline'} onClick={() => setStatus(s)}>{DOCUMENT_STATUS_LABEL[s]}</Button>
         ))}
       </div>
       {isLoading ? <Skeleton className="h-48" /> : !data?.length ? (
-        <EmptyState title="Sin trámites" description="Las familias piden constancias y certificados desde «Trámites» en su app. Aparecerán aquí." />
+        <EmptyState title="Sin trámites" description="Las familias piden constancias y certificados desde «Trámites» en su app. Si alguien lo pide en persona, usa «Registrar en ventanilla»." />
       ) : (
         <Card className="divide-y">
           {data.map((d) => (
@@ -294,6 +383,7 @@ export const DocumentsTab: React.FC = () => {
         </Card>
       )}
       <DocumentModal doc={selected} onClose={() => setSelected(null)} />
+      <DeskRequestModal open={deskOpen} onClose={() => setDeskOpen(false)} />
     </div>
   );
 };

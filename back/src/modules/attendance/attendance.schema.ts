@@ -157,9 +157,12 @@ export const citeFamilyAlertSchema = z.object({
 
 export const checkoutSchema = z.object({
   code: z.string().min(1).max(64),
-  pickupType: z.enum(['GUARDIAN', 'AUTHORIZED', 'SELF']),
+  pickupType: z.enum(['GUARDIAN', 'AUTHORIZED', 'SELF', 'OTHER']),
   pickupPersonId: z.string().uuid().optional(),
   earlyLeaveReason: z.string().trim().max(200).optional().nullable(),
+  // OTHER: persona eventual que trae una autorización escrita del apoderado (un día puntual)
+  otherPickupName: z.string().trim().min(5, 'Escribe nombres y apellidos de quien recoge').max(120).optional(),
+  otherPickupDocument: z.string().trim().min(6, 'Escribe el documento de quien recoge').max(20).optional(),
 });
 
 export const checkoutPreviewSchema = z.object({

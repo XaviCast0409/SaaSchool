@@ -1245,6 +1245,9 @@ model Announcement {
   schoolId         String
   authorId         String
   classroomId      String? // Opcional: si está dirigido a un aula específica
+  targetLevel      EducationLevel? // Opcional: todo un nivel (sin aula). Con targetGrade, todo un grado
+  targetGrade      Int?
+  attachments      Json                     @default("[]") // Adjuntos: [{ fileId, name, size, type }] (archivos SCHOOL_ASSET)
   title            String
   content          String
   priority         AnnouncementPriority     @default(NORMAL)

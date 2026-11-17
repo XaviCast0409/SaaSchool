@@ -25,6 +25,8 @@ export const createIncidentSchema = z
     actionTaken: z.string().optional().nullable(),
     citationDate: z.string().optional().nullable(),
     isViolenceCase: z.boolean().default(false),
+    // Hay casos que la Dirección prefiere conversar antes de avisar por la app (p. ej. temas sensibles)
+    notifyFamily: z.boolean().default(true),
   })
   .refine((data) => Boolean(data.enrollmentId || data.studentId), {
     message: 'Debe especificar enrollmentId o studentId',

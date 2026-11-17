@@ -1,6 +1,6 @@
 import { prisma } from '../../config/prisma';
 import { AppError } from '../../core/errors/app-error';
-import { buildOnboarding, isProfileComplete, type OnboardingStatus } from './onboarding.rules';
+import { buildOnboarding, isProfileComplete, profileMissingFields, type OnboardingStatus } from './onboarding.rules';
 
 /**
  * Ficha del colegio para SUPER_ADMIN: estado de puesta en marcha y notas internas del equipo.
@@ -14,7 +14,7 @@ export class SchoolOverviewService {
     });
     if (!school) throw new AppError('Colegio no encontrado', 404);
 
-    const [adminLoggedIn, activeYears, classrooms, teachers, students, courseAssignments, familyLinks, paymentObligations, attendance] =
+    const [adminLoggedIn, activeYears, classrooms, teachers, students, courseAssignments, familyLinks, paymentObligations, attendance, feeSchedules] =
       await Promise.all([
         prisma.user.count({
           where: { schoolId, role: 'SCHOOL_ADMIN', OR: [{ mustChangePassword: false }, { lastSeenAt: { not: null } }] },
@@ -28,10 +28,13 @@ export class SchoolOverviewService {
         prisma.paymentObligation.count({ where: { schoolId } }),
         // Basta saber si existe al menos un registro
         prisma.attendance.findFirst({ where: { schoolId }, select: { id: true } }),
+        prisma.feeSchedule.count({ where: { schoolId } }),
       ]);
 
     return buildOnboarding({
       profileComplete: isProfileComplete(school),
+      profileMissing: profileMissingFields(school),
+      feeSchedules,
       adminHasLoggedIn: adminLoggedIn > 0,
       activeYears,
       classrooms,

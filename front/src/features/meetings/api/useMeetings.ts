@@ -53,6 +53,19 @@ export interface MeetingRequestItem {
 
 const KEY = ['meetings'];
 
+export interface MeetingsOverview {
+  byStaff: Array<{ staffId: string; name: string; published: number; booked: number; pendingRequests: number }>;
+  upcoming: MeetingSlot[];
+}
+
+/** Supervisión de la Dirección: atención a familias de todo el colegio (próximos 30 días). */
+export const useMeetingsOverview = (enabled: boolean) =>
+  useQuery({
+    queryKey: [...KEY, 'overview'],
+    enabled,
+    queryFn: async () => (await api.get<{ data: MeetingsOverview }>('/meetings/school-overview')).data.data,
+  });
+
 export const useMySlots = (enabled: boolean) =>
   useQuery({
     queryKey: [...KEY, 'mine'],

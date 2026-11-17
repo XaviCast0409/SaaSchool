@@ -228,7 +228,7 @@ export const SchoolLoginPage: React.FC<{ codeOverride?: string }> = ({ codeOverr
                 id="school-login-password"
                 type="password"
                 autoComplete="current-password"
-                placeholder="••••••••"
+                placeholder="Tu contraseña"
                 {...register('password')}
                 className="h-10 text-sm"
               />

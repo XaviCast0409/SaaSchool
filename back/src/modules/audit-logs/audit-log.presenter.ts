@@ -137,6 +137,8 @@ export const ACTION_CATALOG: Record<string, { label: string; verb: string; categ
   ADMISSION_STATUS_CHANGED: { label: 'Postulación', verb: 'cambió el estado de una postulación', category: 'MATRICULA' },
   ADMISSION_CONVERTED: { label: 'Postulante registrado', verb: 'registró a un postulante admitido como estudiante', category: 'MATRICULA' },
   ENROLLMENT_RATIFIED: { label: 'Ratificación de matrícula', verb: 'respondió la ratificación de matrícula', category: 'MATRICULA' },
+  DOCUMENT_REQUEST_CREATED: { label: 'Trámite en ventanilla', verb: 'registró un trámite pedido en ventanilla', category: 'MATRICULA' },
+  STUDENTS_BULK_IMPORTED: { label: 'Carga masiva', verb: 'cargó alumnos desde Excel', category: 'MATRICULA' },
   DOCUMENT_REQUEST_UPDATED: { label: 'Trámite documentario', verb: 'actualizó un trámite documentario', category: 'MATRICULA' },
   DOCUMENT_HOLD_RELEASED: { label: 'Retención liberada', verb: 'liberó la retención por deuda de un certificado', category: 'PAGOS' },
   COMPLAINT_ANSWERED: { label: 'Libro de Reclamaciones', verb: 'respondió un reclamo del Libro de Reclamaciones', category: 'COLEGIO' },

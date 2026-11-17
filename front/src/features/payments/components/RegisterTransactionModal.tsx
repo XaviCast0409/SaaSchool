@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { DollarSign, X, Check } from 'lucide-react';
@@ -10,6 +10,7 @@ import { PAYMENT_METHODS, PAYMENT_METHOD_LABEL, PaymentObligation } from '../typ
 import { useCurrentCash } from '../api/useCash';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { ReceiptModal } from './ReceiptModal';
 
 interface RegisterTransactionModalProps {
   obligation: PaymentObligation;
@@ -21,6 +22,8 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
   onClose,
 }) => {
   const { mutate: registerTransaction, isPending, error } = useRegisterTransaction();
+  // Tras cobrar se muestra el recibo para imprimirlo o enviarlo, en vez de solo un aviso.
+  const [receiptId, setReceiptId] = useState<string | null>(null);
 
   // Calcular saldo pendiente
   const alreadyPaid = obligation.transactions.reduce((sum, tx) => sum + tx.amountPaid, 0);
@@ -30,6 +33,7 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
     register,
     handleSubmit,
     watch,
+    setError,
     formState: { errors },
   } = useForm<RegisterTransactionFormData>({
     resolver: zodResolver(registerTransactionSchema),
@@ -49,11 +53,16 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
     : 'Estudiante';
 
   const onSubmit = (data: RegisterTransactionFormData) => {
+    if (data.amountPaid > remainingBalance + 0.001) {
+      setError('amountPaid', { type: 'manual', message: `No puedes cobrar más que el saldo pendiente (S/ ${remainingBalance.toFixed(2)}).` });
+      return;
+    }
     const payload = { ...data, operationNumber: data.paymentMethod === 'CASH' ? undefined : data.operationNumber };
     registerTransaction(payload, {
       onSuccess: (tx) => {
         toast.success(`Pago de S/ ${data.amountPaid.toFixed(2)} registrado para ${studentName}. Recibo ${tx.receiptNumber ?? ''}.`);
-        onClose();
+        if (tx?.id) setReceiptId(tx.id);
+        else onClose();
       },
       onError: (err: any) => {
         toast.error(err?.response?.data?.message || 'Error al registrar el cobro.');
@@ -61,9 +70,11 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
     });
   };
 
+  if (receiptId) return <ReceiptModal transactionId={receiptId} onClose={onClose} />;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col">
+      <div role="dialog" aria-modal="true" aria-label="Registrar cobro" className="w-full max-w-md rounded-xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border p-4 bg-card shrink-0">
           <div className="flex items-center gap-2">
@@ -79,6 +90,7 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
           </div>
           <button
             onClick={onClose}
+            aria-label="Cerrar"
             className="rounded-md p-1.5 text-muted-foreground hover:bg-muted transition-colors"
           >
             <X className="w-4 h-4" />
@@ -94,7 +106,7 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
             </span>
           </div>
           <div className="text-right">
-            <span className="text-xs text-muted-foreground block font-medium">Monto Total Deuda:</span>
+            <span className="text-xs text-muted-foreground block font-medium">Monto de esta cuota:</span>
             <span className="text-sm font-semibold text-foreground">
               S/ {obligation.amountDue.toFixed(2)}
             </span>
@@ -102,7 +114,7 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="p-4 space-y-4">
+        <form noValidate onSubmit={handleSubmit(onSubmit)} className="p-4 space-y-4">
           {error && (
             <div className="p-3 rounded-md bg-destructive/10 text-destructive text-xs font-medium border border-destructive/20">
               {(error as { response?: { data?: { message?: string } } }).response?.data?.message ||
@@ -114,13 +126,12 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
 
           {/* Monto a Cobrar */}
           <div className="space-y-1">
-            <label className="text-xs font-semibold uppercase tracking-wide text-foreground">
+            <label htmlFor="registertransactionmodal-amountPaid" className="text-xs font-semibold uppercase tracking-wide text-foreground">
               Monto a Cobrar (S/)
             </label>
-            <Input
+            <Input id="registertransactionmodal-amountPaid"
               type="number"
               step="0.01"
-              max={remainingBalance}
               {...register('amountPaid')}
               className="h-9 font-semibold text-base"
             />
@@ -131,10 +142,10 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
 
           {/* Método de Pago */}
           <div className="space-y-1">
-            <label className="text-xs font-semibold uppercase tracking-wide text-foreground">
+            <label htmlFor="registertransactionmodal-paymentMethod" className="text-xs font-semibold uppercase tracking-wide text-foreground">
               Método de Pago
             </label>
-            <select
+            <select id="registertransactionmodal-paymentMethod"
               {...register('paymentMethod')}
               className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
@@ -160,20 +171,20 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
           {/* N° Operación */}
           {method !== 'CASH' && (
             <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase tracking-wide text-foreground">
+              <label htmlFor="registertransactionmodal-operationNumber" className="text-xs font-semibold uppercase tracking-wide text-foreground">
                 N° de operación ({PAYMENT_METHOD_LABEL[method]})
               </label>
-              <Input placeholder="Ej: 09812345" {...register('operationNumber')} className="h-9 text-xs" />
+              <Input id="registertransactionmodal-operationNumber" placeholder="Ej: 09812345" {...register('operationNumber')} className="h-9 text-xs" />
               {errors.operationNumber && <p className="text-xs text-destructive">{errors.operationNumber.message}</p>}
             </div>
           )}
 
           {/* Observaciones */}
           <div className="space-y-1">
-            <label className="text-xs font-semibold uppercase tracking-wide text-foreground">
+            <label htmlFor="registertransactionmodal-notes" className="text-xs font-semibold uppercase tracking-wide text-foreground">
               Observación / Nota opcional
             </label>
-            <Input placeholder="Ej: Pago realizado por el apoderado en caja central" {...register('notes')} className="h-9 text-xs" />
+            <Input id="registertransactionmodal-notes" placeholder="Ej: Pago realizado por el apoderado en caja central" {...register('notes')} className="h-9 text-xs" />
           </div>
 
           {/* Actions */}

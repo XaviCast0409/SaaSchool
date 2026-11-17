@@ -1140,6 +1140,20 @@ export class AttendanceService {
       pickedUpByName = authPickup.fullName;
       pickedUpByDocument = authPickup.documentId;
       relationshipLabel = authPickup.relationship;
+    } else if (dto.pickupType === 'OTHER') {
+      // Persona eventual: solo la oficina puede registrarla y siempre con el detalle de la autorización.
+      if (!['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'].includes(userContext.role)) {
+        throw new AppError('Solo Dirección o Secretaría puede registrar el retiro por una persona eventual.', 403);
+      }
+      if (!dto.otherPickupName || !dto.otherPickupDocument) {
+        throw new AppError('Escribe el nombre y el documento de la persona que recoge.', 422);
+      }
+      if (!dto.earlyLeaveReason || dto.earlyLeaveReason.trim().length < 5) {
+        throw new AppError('Describe la autorización del apoderado (quién la firmó o cómo se confirmó).', 422);
+      }
+      pickedUpByName = dto.otherPickupName;
+      pickedUpByDocument = dto.otherPickupDocument.toUpperCase();
+      relationshipLabel = 'persona eventual con autorización';
     } else {
       // SELF
       pickedUpByName = null;
@@ -1153,7 +1167,7 @@ export class AttendanceService {
       data: {
         checkOutTime,
         checkOutById: userContext.userId,
-        pickupPersonId: dto.pickupType === 'SELF' ? null : dto.pickupPersonId,
+        pickupPersonId: dto.pickupType === 'SELF' || dto.pickupType === 'OTHER' ? null : dto.pickupPersonId,
         pickedUpByName,
         pickedUpByDocument,
         earlyLeaveReason: dto.earlyLeaveReason?.trim() || null,

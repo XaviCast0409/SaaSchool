@@ -79,6 +79,12 @@ export const StudentImportModal: React.FC<{ open: boolean; onClose: () => void }
   const rejectedCount = summary ? summary.errors + summary.duplicates : 0;
   const loadable = summary ? summary.total - rejectedCount : 0;
   const pendingWork = summary ? summary.createStudents + summary.updateStudents + summary.createEnrollments + summary.createGuardians : 0;
+  const newCount = summary?.createStudents ?? 0;
+  const updateCount = summary?.updateStudents ?? 0;
+  // El botón dice exactamente qué va a pasar: alumnos nuevos y fichas que se actualizan.
+  const commitLabel = loadable === 0 ? 'Cargar'
+    : [newCount > 0 ? `${newCount} nuevo${newCount === 1 ? '' : 's'}` : '', updateCount > 0 ? `actualizar ${updateCount}` : '']
+      .filter(Boolean).join(' y ').replace(/^/, 'Cargar ') || `Cargar ${loadable} alumnos`;
   const canCommit = !!plan && !commit.isPending && plan.blocking.length === 0 && loadable > 0;
 
   return (
@@ -93,7 +99,7 @@ export const StudentImportModal: React.FC<{ open: boolean; onClose: () => void }
           <Button variant="outline" onClick={close}>Cancelar</Button>
           <Button onClick={runCommit} disabled={!canCommit}>
             {commit.isPending ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Upload className="mr-1 h-4 w-4" />}
-            {loadable > 0 ? `Cargar ${loadable} alumnos` : 'Cargar'}
+            {commitLabel}
           </Button>
         </>
       )}
@@ -101,7 +107,7 @@ export const StudentImportModal: React.FC<{ open: boolean; onClose: () => void }
       <div className="space-y-4">
         <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/40 p-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm">
-            <span className="font-medium">1. Descarga la plantilla y entrégala al colegio.</span>
+            <span className="font-medium">1. Descarga la plantilla y llénala (o pásala a quien tenga los datos).</span>
             <span className="block text-xs text-muted-foreground">
               Trae las aulas abiertas{viewedYear ? ` en ${viewedYear.year}` : ''} en una lista desplegable. Crea antes las aulas que falten.
             </span>

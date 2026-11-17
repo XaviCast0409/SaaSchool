@@ -142,6 +142,49 @@ meetingRouter.get('/mine', authorizeRoles(...STAFF), async (req: Request, res: R
   });
 });
 
+/**
+ * Supervisión para la Dirección: cómo va la atención a familias en todo el colegio (próximos 30 días).
+ * Por docente: horarios publicados, reservados y solicitudes de horario sin atender.
+ */
+meetingRouter.get('/school-overview', authorizeRoles('SUPER_ADMIN', 'SCHOOL_ADMIN'), async (req: Request, res: Response) => {
+  const schoolId = req.user!.schoolId;
+  const now = new Date();
+  const until = new Date(now.getTime() + 30 * 86_400_000);
+  const requestSince = new Date(now.getTime() - REQUEST_VISIBLE_DAYS * 86_400_000);
+  const [slots, requests, teachers] = await Promise.all([
+    prisma.meetingSlot.findMany({
+      where: { schoolId, startsAt: { gte: now, lte: until }, status: { not: 'CANCELLED' } },
+      orderBy: { startsAt: 'asc' },
+      take: 1000,
+      select: SLOT_SELECT,
+    }),
+    prisma.meetingRequest.findMany({
+      where: { schoolId, status: 'PENDING', createdAt: { gte: requestSince } },
+      select: { staffId: true },
+    }),
+    prisma.user.findMany({
+      where: { schoolId, role: 'TEACHER', isActive: true },
+      select: { id: true, firstName: true, lastNamePaternal: true },
+      orderBy: [{ lastNamePaternal: 'asc' }, { firstName: 'asc' }],
+    }),
+  ]);
+  const byStaff = teachers.map((t) => {
+    const mine = slots.filter((x) => x.staff.id === t.id);
+    return {
+      staffId: t.id,
+      name: fullName(t),
+      published: mine.length,
+      booked: mine.filter((x) => x.status === 'BOOKED').length,
+      pendingRequests: requests.filter((r) => r.staffId === t.id).length,
+    };
+  });
+  const upcoming = slots
+    .filter((x) => x.status === 'BOOKED')
+    .slice(0, 50)
+    .map((x) => ({ ...x, student: x.student ? { id: x.student.id, name: studentShortName(x.student) } : null }));
+  res.status(200).json({ status: 'success', data: { byStaff, upcoming } });
+});
+
 /** El personal anula un horario. Si estaba reservado, avisa a la familia (con el motivo, si lo da). */
 meetingRouter.delete('/slots/:id', authorizeRoles(...STAFF), async (req: Request, res: Response) => {
   const { id } = z.object({ id: uuid }).parse(req.params);

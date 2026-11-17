@@ -125,7 +125,7 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-card w-full max-w-lg rounded-2xl border border-border shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-border bg-muted/40 shrink-0">
@@ -157,12 +157,12 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
         <form onSubmit={handleSubmit(onSubmit)} className="p-4 sm:p-6 space-y-4 overflow-y-auto">
           {/* Estudiante */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+            <label htmlFor="createindividualobligationmodal-field-1" className="text-xs font-bold text-foreground flex items-center gap-1.5">
               <User className="w-3.5 h-3.5 text-primary" />
               <span>Estudiante a Cobrar:</span>
             </label>
             <div className="space-y-1">
-              <input
+              <input id="createindividualobligationmodal-field-1"
                 type="text"
                 placeholder="Filtrar por apellido o DNI..."
                 value={searchTerm}
@@ -192,8 +192,8 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
           {/* Concepto y Título */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground">Concepto:</label>
-              <select
+              <label htmlFor="createindividualobligationmodal-concept" className="text-xs font-bold text-foreground">Concepto:</label>
+              <select id="createindividualobligationmodal-concept"
                 {...register('concept')}
                 className="w-full h-9 rounded-lg border border-border bg-background px-3 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
               >
@@ -211,8 +211,8 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground">Título / Glosa:</label>
-              <Input
+              <label htmlFor="createindividualobligationmodal-title" className="text-xs font-bold text-foreground">Título / Glosa:</label>
+              <Input id="createindividualobligationmodal-title"
                 {...register('title')}
                 placeholder="Ej. Certificado de Estudios"
                 className="h-9 text-xs"
@@ -228,11 +228,11 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
           {/* Monto y Fecha Vencimiento */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <label htmlFor="createindividualobligationmodal-amountDue" className="text-xs font-bold text-foreground flex items-center gap-1.5">
                 <DollarSign className="w-3.5 h-3.5 text-primary" />
                 <span>Monto a Cobrar (S/):</span>
               </label>
-              <Input
+              <Input id="createindividualobligationmodal-amountDue"
                 type="number"
                 step="0.01"
                 min="0.10"
@@ -247,11 +247,11 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <label htmlFor="createindividualobligationmodal-dueDate" className="text-xs font-bold text-foreground flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5 text-primary" />
                 <span>Fecha:</span>
               </label>
-              <Input
+              <Input id="createindividualobligationmodal-dueDate"
                 type="date"
                 {...register('dueDate')}
                 className="h-9 text-xs"
@@ -293,8 +293,8 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* Método de Pago */}
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-foreground">Método de Cobro:</label>
-                    <select
+                    <label htmlFor="createindividualobligationmodal-paymentMethod" className="text-xs font-bold text-foreground">Método de Cobro:</label>
+                    <select id="createindividualobligationmodal-paymentMethod"
                       {...register('paymentMethod')}
                       className="w-full h-8 rounded-lg border border-border bg-background px-2.5 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
                     >
@@ -309,10 +309,10 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
                   {/* N° Operación (si no es efectivo) */}
                   {paymentMethod !== 'CASH' ? (
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-muted-foreground">
+                      <label htmlFor="createindividualobligationmodal-operationNumber" className="text-xs font-bold text-muted-foreground">
                         N° de operación ({PAYMENT_METHOD_LABEL[paymentMethod]}):
                       </label>
-                      <Input
+                      <Input id="createindividualobligationmodal-operationNumber"
                         {...register('operationNumber')}
                         placeholder="Ej: 94827104"
                         className="h-8 text-xs font-mono"
@@ -336,11 +336,11 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
 
           {/* Notas */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
+            <label htmlFor="createindividualobligationmodal-notes" className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
               <FileText className="w-3.5 h-3.5" />
               <span>Observaciones / Notas (Opcional):</span>
             </label>
-            <textarea
+            <textarea id="createindividualobligationmodal-notes"
               {...register('notes')}
               rows={2}
               placeholder="Detalle o justificación administrativa..."

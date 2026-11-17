@@ -37,6 +37,9 @@ export const DirectorOnboardingCard: React.FC<DirectorOnboardingCardProps> = ({
       case 'courses':
         navigate('/academic/teaching-load');
         break;
+      case 'fee-schedule':
+        navigate('/payments/fee-schedules');
+        break;
       case 'payments':
         navigate('/payments/fee-schedules');
         break;

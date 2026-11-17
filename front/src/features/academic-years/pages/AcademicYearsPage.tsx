@@ -68,6 +68,37 @@ function getDefaultPeriods(periodType: 'BIMESTER' | 'TRIMESTER', year: number): 
   ];
 }
 
+/** Mueve una fecha YYYY-MM-DD al mismo día y mes de otro año (29/02 pasa a 28/02 si hace falta). */
+function moveToYear(dateString: string, fromYear: number, toYear: number): string {
+  if (!dateString) return dateString;
+  const [y, m, d] = dateString.slice(0, 10).split('-').map(Number);
+  const targetYear = y + (toYear - fromYear);
+  const lastDay = new Date(Date.UTC(targetYear, m, 0)).getUTCDate();
+  return `${targetYear}-${String(m).padStart(2, '0')}-${String(Math.min(d, lastDay)).padStart(2, '0')}`;
+}
+
+/**
+ * Al cambiar el número del año, el nombre y todas las fechas lo acompañan: así no se puede
+ * guardar «2026» con nombre y periodos de 2027 por olvido.
+ */
+function withYear<T extends { year: number; name: string; startDate: string; endDate: string; periodsConfig: PeriodDateConfig[] }>(form: T, nextYear: number): T {
+  const prevYear = form.year;
+  if (!nextYear || nextYear < 2000 || nextYear > 2100 || !prevYear || nextYear === prevYear) return { ...form, year: nextYear };
+  const autoName = !form.name.trim() || /^Año Escolar \d{4}$/.test(form.name.trim());
+  return {
+    ...form,
+    year: nextYear,
+    name: autoName ? `Año Escolar ${nextYear}` : form.name.replace(String(prevYear), String(nextYear)),
+    startDate: moveToYear(form.startDate, prevYear, nextYear),
+    endDate: moveToYear(form.endDate, prevYear, nextYear),
+    periodsConfig: form.periodsConfig.map((p) => ({
+      ...p,
+      startDate: moveToYear(p.startDate, prevYear, nextYear),
+      endDate: moveToYear(p.endDate, prevYear, nextYear),
+    })),
+  };
+}
+
 export const AcademicYearsPage: React.FC = () => {
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN';
@@ -274,7 +305,7 @@ export const AcademicYearsPage: React.FC = () => {
             <Clock className="w-4 h-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+            <div className={`text-sm font-bold ${activeYearObj ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
               {activeYearObj
                 ? `${formatDateDisplay(activeYearObj.startDate)} ── ${formatDateDisplay(activeYearObj.endDate)}`
                 : 'Sin vigencia'}
@@ -376,6 +407,16 @@ export const AcademicYearsPage: React.FC = () => {
                   </div>
                 </div>
 
+                {ay.periodsConfig && ay.periodsConfig.length > 0 && (
+                  <ul className="grid grid-cols-2 gap-1 text-[11px] text-muted-foreground">
+                    {[...ay.periodsConfig].sort((a, b) => a.periodNumber - b.periodNumber).map((p) => (
+                      <li key={p.periodNumber}>
+                        <span className="font-semibold text-foreground">{p.name}:</span> {formatDateDisplay(p.startDate)} – {formatDateDisplay(p.endDate)}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
                 {isAdmin && ay.isActive && (
                   <div className="pt-2 flex justify-end">
                     <Button
@@ -423,7 +464,7 @@ export const AcademicYearsPage: React.FC = () => {
 
       {/* Modal Crear / Editar Año Lectivo */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="relative w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4">
             <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
               <Calendar className="w-5 h-5 text-primary" />
@@ -432,25 +473,25 @@ export const AcademicYearsPage: React.FC = () => {
 
             <form onSubmit={handleSave} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">
+                <label htmlFor="academicyearspage-field-1" className="block text-xs font-bold text-muted-foreground uppercase mb-1">
                   Número de Año (Ej: 2026) *
                 </label>
-                <input
+                <input id="academicyearspage-field-1"
                   type="number"
                   required
                   min={2000}
                   max={2100}
                   value={formData.year}
-                  onChange={(e) => setFormData({ ...formData, year: Number(e.target.value) })}
+                  onChange={(e) => setFormData(withYear(formData, Number(e.target.value)))}
                   className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">
+                <label htmlFor="academicyearspage-field-2" className="block text-xs font-bold text-muted-foreground uppercase mb-1">
                   Nombre del Año Lectivo *
                 </label>
-                <input
+                <input id="academicyearspage-field-2"
                   type="text"
                   required
                   placeholder='Ej: "Año Escolar 2026"'
@@ -462,10 +503,10 @@ export const AcademicYearsPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">
+                  <label htmlFor="academicyearspage-field-3" className="block text-xs font-bold text-muted-foreground uppercase mb-1">
                     Fecha Inicio *
                   </label>
-                  <input
+                  <input id="academicyearspage-field-3"
                     type="date"
                     required
                     value={formData.startDate}
@@ -475,10 +516,10 @@ export const AcademicYearsPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">
+                  <label htmlFor="academicyearspage-field-4" className="block text-xs font-bold text-muted-foreground uppercase mb-1">
                     Fecha Término *
                   </label>
-                  <input
+                  <input id="academicyearspage-field-4"
                     type="date"
                     required
                     value={formData.endDate}
@@ -491,10 +532,10 @@ export const AcademicYearsPage: React.FC = () => {
               {/* Régimen de Periodos y Modo de Cálculo Anual */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">
+                  <label htmlFor="academicyearspage-field-5" className="block text-xs font-bold text-muted-foreground uppercase mb-1">
                     Régimen de Periodos
                   </label>
-                  <select
+                  <select id="academicyearspage-field-5"
                     value={formData.periodType}
                     onChange={(e) => {
                       const newType = e.target.value as 'BIMESTER' | 'TRIMESTER';
@@ -512,10 +553,10 @@ export const AcademicYearsPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">
+                  <label htmlFor="academicyearspage-field-6" className="block text-xs font-bold text-muted-foreground uppercase mb-1">
                     Cálculo Anual SIAGIE
                   </label>
-                  <select
+                  <select id="academicyearspage-field-6"
                     value={formData.annualCalculationMode}
                     onChange={(e) =>
                       setFormData({

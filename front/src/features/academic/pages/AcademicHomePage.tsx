@@ -42,8 +42,12 @@ export const AcademicHomePage: React.FC = () => {
     },
     {
       title: 'Carga docente',
-      ok: data.coursesWithoutTeacher === 0 && data.classrooms > 0,
-      detail: `${data.coursesWithoutTeacher} cursos sin docente · ${data.teachersWithoutLoad} docentes sin cursos`,
+      // Sin plan de estudios no hay cursos que asignar: «0 sin docente» no significa que esté listo.
+      ok: data.coursesWithoutTeacher === 0 && data.classrooms > 0 && data.gradesInUse > 0 && data.invalidPlans.length === 0
+        && data.teachers > data.teachersWithoutLoad,
+      detail: data.gradesInUse === 0 || data.invalidPlans.length > 0
+        ? 'Primero completa el plan de estudios: de ahí salen los cursos que se asignan'
+        : `${data.coursesWithoutTeacher} cursos sin docente · ${data.teachersWithoutLoad} docentes sin cursos`,
       to: '/academic/teaching-load',
     },
     {

@@ -28,7 +28,7 @@ export const SecretariatPage: React.FC = () => {
       {isLoading || !settings ? (
         <Skeleton className="h-28" />
       ) : (
-        school?.id && <PublicLinksCard key={`${settings.admissionsOpen}-${settings.ratificationOpen}-${settings.admissionsYear}`} schoolId={school.id} settings={settings} canEdit={isManager} />
+        school?.id && <PublicLinksCard key={`${settings.admissionsOpen}-${settings.ratificationOpen}-${settings.admissionsYear}`} schoolId={school.id} schoolSlug={school.slug ?? null} schoolName={school.name} settings={settings} canEdit={isManager} />
       )}
       <Tabs<Tab>
         value={tab}

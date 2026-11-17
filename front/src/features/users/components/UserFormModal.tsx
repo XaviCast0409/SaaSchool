@@ -37,10 +37,15 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PAR
     ? 'TEACHER'
     : defaultRole;
 
+  // Desde «Personal» se registra personal; los apoderados se crean desde la matrícula o Familias.
+  const isParentFlow = defaultRole === 'PARENT';
+  const [showPassword, setShowPassword] = useState(false);
+
   const {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<CreateUserFormData>({
     resolver: zodResolver(createUserSchema),
@@ -51,6 +56,20 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PAR
   });
 
   const selectedRole = watch('role');
+
+  /** Contraseña temporal legible (sin 0/O ni 1/l) que cumple la regla: letras y números. */
+  const generatePassword = () => {
+    const letters = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ';
+    const digits = '23456789';
+    const pick = (set: string) => set[crypto.getRandomValues(new Uint32Array(1))[0] % set.length];
+    const chars = [pick(letters), pick(letters), pick(digits), pick(digits), ...Array.from({ length: 6 }, () => pick(letters + digits))];
+    for (let i = chars.length - 1; i > 0; i -= 1) {
+      const j = crypto.getRandomValues(new Uint32Array(1))[0] % (i + 1);
+      [chars[i], chars[j]] = [chars[j], chars[i]];
+    }
+    setValue('password', chars.join(''), { shouldValidate: true });
+    setShowPassword(true);
+  };
   const isStaff = selectedRole !== 'PARENT';
 
   // Años para los que se contrata (por defecto, el que se está viendo); solo vigente y siguientes
@@ -96,17 +115,18 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PAR
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-2xl overflow-y-auto max-h-[90vh]">
+      <div role="dialog" aria-modal="true" aria-labelledby="user-form-title" className="w-full max-w-lg rounded-xl border border-border bg-card shadow-2xl overflow-y-auto max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border p-5 sticky top-0 bg-card z-10">
           <div>
-            <h2 className="font-semibold text-base text-foreground">Registrar Usuario</h2>
+            <h2 id="user-form-title" className="font-semibold text-base text-foreground">{isParentFlow ? 'Registrar apoderado' : 'Registrar personal'}</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
               Rol: <strong>{ROLE_LABELS[defaultRole]}</strong>
             </p>
           </div>
           <button
             onClick={onClose}
+            aria-label="Cerrar"
             className="rounded-md p-1.5 text-muted-foreground hover:bg-muted transition-colors"
           >
             <X className="w-4 h-4" />
@@ -124,13 +144,13 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PAR
 
           {/* Role */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold uppercase tracking-wide text-foreground">Rol</label>
-            <select
+            <label htmlFor="userformmodal-role" className="text-xs font-semibold uppercase tracking-wide text-foreground">Rol</label>
+            <select id="userformmodal-role"
               {...register('role')}
               className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
+              {isParentFlow && <option value="PARENT">Apoderado / Padre de Familia</option>}
               <option value="TEACHER">Profesor(a)</option>
-              <option value="PARENT">Apoderado / Padre de Familia</option>
               {!isAdministrative && (
                 <>
                   <option value="ADMINISTRATIVE">Personal Administrativo (Secretaría / Caja)</option>
@@ -143,18 +163,18 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PAR
           {/* Nombre y Apellidos */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wide text-foreground">Nombre(s)</label>
-              <Input placeholder="Ej: Luis Alberto" {...register('firstName')} />
+              <label htmlFor="userformmodal-firstName" className="text-xs font-semibold uppercase tracking-wide text-foreground">Nombre(s) *</label>
+              <Input id="userformmodal-firstName" placeholder="Ej: Luis Alberto" {...register('firstName')} />
               {errors.firstName && <p className="text-xs text-destructive">{errors.firstName.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wide text-foreground">Apellido Paterno</label>
-              <Input placeholder="Ej: García" {...register('lastNamePaternal')} />
+              <label htmlFor="userformmodal-lastNamePaternal" className="text-xs font-semibold uppercase tracking-wide text-foreground">Apellido Paterno *</label>
+              <Input id="userformmodal-lastNamePaternal" placeholder="Ej: García" {...register('lastNamePaternal')} />
               {errors.lastNamePaternal && <p className="text-xs text-destructive">{errors.lastNamePaternal.message}</p>}
             </div>
             <div className="space-y-1.5 sm:col-span-2">
-              <label className="text-xs font-semibold uppercase tracking-wide text-foreground">Apellido Materno</label>
-              <Input placeholder="Ej: Torres" {...register('lastNameMaternal')} />
+              <label htmlFor="userformmodal-lastNameMaternal" className="text-xs font-semibold uppercase tracking-wide text-foreground">Apellido Materno</label>
+              <Input id="userformmodal-lastNameMaternal" placeholder="Ej: Torres" {...register('lastNameMaternal')} />
               {errors.lastNameMaternal && <p className="text-xs text-destructive">{errors.lastNameMaternal.message}</p>}
             </div>
           </div>
@@ -162,8 +182,8 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PAR
           {/* Documento */}
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wide text-foreground">Tipo Doc.</label>
-              <select
+              <label htmlFor="userformmodal-documentType" className="text-xs font-semibold uppercase tracking-wide text-foreground">Tipo Doc.</label>
+              <select id="userformmodal-documentType"
                 {...register('documentType')}
                 className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
@@ -175,8 +195,8 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PAR
               </select>
             </div>
             <div className="space-y-1.5 col-span-2">
-              <label className="text-xs font-semibold uppercase tracking-wide text-foreground">N° Documento</label>
-              <Input placeholder="Ej: 47812345" {...register('documentId')} />
+              <label htmlFor="userformmodal-documentId" className="text-xs font-semibold uppercase tracking-wide text-foreground">N° Documento *</label>
+              <Input id="userformmodal-documentId" placeholder="Ej: 47812345" {...register('documentId')} />
               {errors.documentId && <p className="text-xs text-destructive">{errors.documentId.message}</p>}
             </div>
           </div>
@@ -184,15 +204,15 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PAR
           {/* Contacto */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wide text-foreground">
+              <label htmlFor="userformmodal-email" className="text-xs font-semibold uppercase tracking-wide text-foreground">
                 {selectedRole === 'PARENT' ? 'Correo Electrónico (Opcional)' : 'Correo Electrónico *'}
               </label>
-              <Input type="email" placeholder="correo@ejemplo.com" {...register('email')} />
+              <Input id="userformmodal-email" type="email" placeholder="correo@ejemplo.com" {...register('email')} />
               {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wide text-foreground">Celular</label>
-              <Input placeholder="Ej: 987654321" {...register('cellphone')} />
+              <label htmlFor="userformmodal-cellphone" className="text-xs font-semibold uppercase tracking-wide text-foreground">Celular</label>
+              <Input id="userformmodal-cellphone" placeholder="Ej: 987654321" {...register('cellphone')} />
             </div>
           </div>
 
@@ -220,8 +240,19 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PAR
 
           {/* Contraseña */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold uppercase tracking-wide text-foreground">Contraseña Inicial</label>
-            <Input type="password" placeholder="Mínimo 8 caracteres" {...register('password')} />
+            <div className="flex items-center justify-between gap-2">
+              <label htmlFor="user-form-password" className="text-xs font-semibold uppercase tracking-wide text-foreground">Contraseña inicial *</label>
+              <div className="flex gap-3">
+                <button type="button" onClick={() => setShowPassword((v) => !v)} className="text-xs text-muted-foreground hover:underline">
+                  {showPassword ? 'Ocultar' : 'Mostrar'}
+                </button>
+                <button type="button" onClick={generatePassword} className="text-xs font-medium text-primary hover:underline">
+                  Generar contraseña
+                </button>
+              </div>
+            </div>
+            <Input id="user-form-password" type={showPassword ? 'text' : 'password'} placeholder="Mínimo 8 caracteres, con letras y números" autoComplete="new-password" {...register('password')} />
+            <p className="text-[11px] text-muted-foreground">Entrégasela a la persona: el sistema le pedirá cambiarla en su primer ingreso.</p>
             {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
           </div>
 

@@ -20,7 +20,7 @@ export interface ScheduleBlock {
 export interface ClassroomSchedule {
   classroom: { id: string; label: string };
   blocks: ScheduleBlock[];
-  courses: Array<{ id: string; name: string; teacherName: string | null; weeklyMinutes: number }>;
+  courses: Array<{ id: string; name: string; isTransversal?: boolean; teacherName: string | null; weeklyMinutes: number }>;
 }
 
 export interface DayAgenda {

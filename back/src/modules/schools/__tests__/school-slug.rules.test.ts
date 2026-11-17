@@ -4,7 +4,10 @@ import { createSchoolSchema, updateSchoolSchema } from '../school.schema';
 
 describe('código del colegio (slug)', () => {
   it('genera el código desde el nombre, sin tildes ni signos', () => {
-    expect(slugify('I.E.P. San José de Ñaña')).toBe('i-e-p-san-jose-de-nana');
+    expect(slugify('I.E.P. San José de Ñaña')).toBe('san-jose-de-nana');
+    expect(slugify('IEP Auditoría San Martín')).toBe('auditoria-san-martin');
+    expect(slugify('I.E. 1234')).toBe('1234');
+    expect(slugify('Iepa Kids')).toBe('iepa-kids');
     expect(slugify('Innova Academy')).toBe('innova-academy');
     expect(slugify('  Colegio   Los Álamos  ')).toBe('colegio-los-alamos');
   });

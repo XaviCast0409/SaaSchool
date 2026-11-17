@@ -41,8 +41,8 @@ export function computeRisk(input: RiskInput): RiskResult {
     const n = Math.max(0, input[rule.key]);
     if (!n) continue;
     score += Math.min(rule.cap, n * rule.weight);
-    // Las tardanzas solo se mencionan si son varias
-    if (rule.key !== 'lates30' || n >= 3) reasons.push(rule.text(n));
+    // Todo lo que suma al índice se explica: un alumno en la lista sin motivo visible no ayuda al tutor
+    reasons.push(rule.text(n));
   }
   score = Math.round(score * 10) / 10;
   const level: RiskLevel = score >= 12 ? 'ALTO' : score >= 6 ? 'MEDIO' : score > 0 ? 'BAJO' : 'NINGUNO';

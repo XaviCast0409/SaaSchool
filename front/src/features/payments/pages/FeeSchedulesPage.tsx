@@ -52,7 +52,9 @@ const FeeScheduleModal: React.FC<{
   editing: FeeSchedule | null;
   initialLevel: EducationLevel;
   gradesByLevel: Record<EducationLevel, number[]>;
-}> = ({ open, onClose, academicYearId, editing, initialLevel, gradesByLevel }) => {
+  /** Tras registrar un tarifario nuevo: revisar si hay matrículas sin cuotas. */
+  onCreated?: () => void;
+}> = ({ open, onClose, academicYearId, editing, initialLevel, gradesByLevel, onCreated }) => {
   const save = useSaveFeeSchedule();
   const [applyToPending, setApplyToPending] = useState(false);
   const [f, setF] = useState<FormState>({
@@ -127,6 +129,7 @@ const FeeScheduleModal: React.FC<{
               : 'Tarifario registrado.',
           );
           onClose();
+          if (!editing) onCreated?.();
         },
         onError: (e) => toast.error(apiError(e, 'No se pudo guardar el tarifario.')),
       },
@@ -156,8 +159,8 @@ const FeeScheduleModal: React.FC<{
       <div className="space-y-4 text-xs">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="font-semibold block mb-1">Nivel *</label>
-            <select
+            <label htmlFor="feeschedulespage-field-1" className="font-semibold block mb-1">Nivel *</label>
+            <select id="feeschedulespage-field-1"
               className={selectCls}
               value={f.educationLevel}
               disabled={!!editing}
@@ -171,8 +174,8 @@ const FeeScheduleModal: React.FC<{
             </select>
           </div>
           <div>
-            <label className="font-semibold block mb-1">Aplica a</label>
-            <select className={selectCls} value={f.grade} disabled={!!editing} onChange={(e) => setF({ ...f, grade: e.target.value })}>
+            <label htmlFor="feeschedulespage-field-2" className="font-semibold block mb-1">Aplica a</label>
+            <select id="feeschedulespage-field-2" className={selectCls} value={f.grade} disabled={!!editing} onChange={(e) => setF({ ...f, grade: e.target.value })}>
               <option value="">Todo el nivel</option>
               {grades.map((g) => (
                 <option key={g} value={g}>
@@ -186,24 +189,24 @@ const FeeScheduleModal: React.FC<{
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label className="font-semibold block mb-1">Matrícula (S/)</label>
-            <Input type="number" min="0" step="0.01" className="text-xs rounded-xl font-mono" value={f.enrollmentFee} onChange={(e) => setF({ ...f, enrollmentFee: e.target.value })} placeholder="0.00" />
+            <label htmlFor="feeschedulespage-field-3" className="font-semibold block mb-1">Matrícula (S/)</label>
+            <Input id="feeschedulespage-field-3" type="number" min="0" step="0.01" className="text-xs rounded-xl font-mono" value={f.enrollmentFee} onChange={(e) => setF({ ...f, enrollmentFee: e.target.value })} placeholder="0.00" />
           </div>
           <div>
-            <label className="font-semibold block mb-1">Pensión mensual (S/) *</label>
-            <Input type="number" min="0" step="0.01" className="text-xs rounded-xl font-mono" value={f.monthlyFee} onChange={(e) => setF({ ...f, monthlyFee: e.target.value })} placeholder="0.00" />
+            <label htmlFor="feeschedulespage-field-4" className="font-semibold block mb-1">Pensión mensual (S/) *</label>
+            <Input id="feeschedulespage-field-4" type="number" min="0" step="0.01" className="text-xs rounded-xl font-mono" value={f.monthlyFee} onChange={(e) => setF({ ...f, monthlyFee: e.target.value })} placeholder="0.00" />
           </div>
           <div>
-            <label className="font-semibold block mb-1">Cuota de ingreso (S/)</label>
-            <Input type="number" min="0" step="0.01" className="text-xs rounded-xl font-mono" value={f.admissionFee} onChange={(e) => setF({ ...f, admissionFee: e.target.value })} placeholder="0.00" />
+            <label htmlFor="feeschedulespage-field-5" className="font-semibold block mb-1">Cuota de ingreso (S/)</label>
+            <Input id="feeschedulespage-field-5" type="number" min="0" step="0.01" className="text-xs rounded-xl font-mono" value={f.admissionFee} onChange={(e) => setF({ ...f, admissionFee: e.target.value })} placeholder="0.00" />
             <p className="text-xs text-muted-foreground mt-1">Solo para alumnos ingresantes.</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label className="font-semibold block mb-1">Pensión desde</label>
-            <select className={selectCls} value={f.firstMonth} onChange={(e) => setF({ ...f, firstMonth: Number(e.target.value) })}>
+            <label htmlFor="feeschedulespage-field-6" className="font-semibold block mb-1">Pensión desde</label>
+            <select id="feeschedulespage-field-6" className={selectCls} value={f.firstMonth} onChange={(e) => setF({ ...f, firstMonth: Number(e.target.value) })}>
               {MONTH_LONG.map((m, i) => (
                 <option key={m} value={i + 1}>
                   {m}
@@ -212,8 +215,8 @@ const FeeScheduleModal: React.FC<{
             </select>
           </div>
           <div>
-            <label className="font-semibold block mb-1">Hasta</label>
-            <select className={selectCls} value={f.lastMonth} onChange={(e) => setF({ ...f, lastMonth: Number(e.target.value) })}>
+            <label htmlFor="feeschedulespage-field-7" className="font-semibold block mb-1">Hasta</label>
+            <select id="feeschedulespage-field-7" className={selectCls} value={f.lastMonth} onChange={(e) => setF({ ...f, lastMonth: Number(e.target.value) })}>
               {MONTH_LONG.map((m, i) => (
                 <option key={m} value={i + 1}>
                   {m}
@@ -222,8 +225,8 @@ const FeeScheduleModal: React.FC<{
             </select>
           </div>
           <div>
-            <label className="font-semibold block mb-1">Vence el día</label>
-            <Input type="number" min="1" max="31" className="text-xs rounded-xl font-mono" value={f.dueDay} onChange={(e) => setF({ ...f, dueDay: e.target.value })} />
+            <label htmlFor="feeschedulespage-field-8" className="font-semibold block mb-1">Vence el día</label>
+            <Input id="feeschedulespage-field-8" type="number" min="1" max="31" className="text-xs rounded-xl font-mono" value={f.dueDay} onChange={(e) => setF({ ...f, dueDay: e.target.value })} />
             <p className="text-xs text-muted-foreground mt-1">31 = último día de cada mes.</p>
           </div>
         </div>
@@ -250,7 +253,10 @@ const FeeScheduleModal: React.FC<{
             </span>
           </label>
         )}
-        {errors.length > 0 && <p className="text-xs text-destructive font-medium">{errors[0]}</p>}
+        {/* «Ingresa la pensión» no es un error mientras el formulario está recién abierto. */}
+        {errors.length > 0 && !(errors[0] === 'Ingresa la pensión mensual.' && f.monthlyFee === '') && (
+          <p className="text-xs text-destructive font-medium">{errors[0]}</p>
+        )}
       </div>
     </Modal>
   );
@@ -568,6 +574,7 @@ export const FeeSchedulesPage: React.FC = () => {
           editing={modal.editing}
           initialLevel={modal.level}
           gradesByLevel={gradesByLevel}
+          onCreated={previewMissing}
         />
       )}
       <CopyModal open={copyOpen} onClose={() => setCopyOpen(false)} toYearId={yearId} years={yearOptions} />

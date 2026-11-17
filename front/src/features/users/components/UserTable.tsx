@@ -163,9 +163,11 @@ export const UserTable: React.FC<UserTableProps> = ({
                 size="sm"
                 className="h-7 px-2 text-xs text-primary hover:bg-primary/10"
                 onClick={() => setSelectedUserForEdit(user)}
+                title="Editar"
+                aria-label={`Editar a ${user.firstName} ${user.lastNamePaternal}`}
               >
-                <Pencil className="w-3.5 h-3.5 mr-1" />
-                Editar
+                <Pencil className="w-3.5 h-3.5 2xl:mr-1" />
+                <span className="hidden 2xl:inline">Editar</span>
               </Button>
             )}
 
@@ -196,9 +198,10 @@ export const UserTable: React.FC<UserTableProps> = ({
                 }}
                 disabled={isResetting}
                 title="Restablecer clave temporal"
+                aria-label={`Restablecer la clave de ${user.firstName} ${user.lastNamePaternal}`}
               >
-                <KeyRound className="w-3.5 h-3.5 mr-1" />
-                Restablecer Clave
+                <KeyRound className="w-3.5 h-3.5 2xl:mr-1" />
+                <span className="hidden 2xl:inline">Restablecer clave</span>
               </Button>
             )}
 
@@ -213,9 +216,11 @@ export const UserTable: React.FC<UserTableProps> = ({
                   className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
                   onClick={() => deactivate(user.id)}
                   disabled={isDeactivating}
+                  title="Desactivar"
+                  aria-label={`Desactivar a ${user.firstName} ${user.lastNamePaternal}`}
                 >
-                  <UserX className="w-3.5 h-3.5 mr-1" />
-                  Desactivar
+                  <UserX className="w-3.5 h-3.5 2xl:mr-1" />
+                  <span className="hidden 2xl:inline">Desactivar</span>
                 </Button>
               ) : (
                 <Button
@@ -224,9 +229,11 @@ export const UserTable: React.FC<UserTableProps> = ({
                   className="h-7 px-2 text-xs text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-600"
                   onClick={() => reactivate(user.id)}
                   disabled={isReactivating}
+                  title="Reactivar"
+                  aria-label={`Reactivar a ${user.firstName} ${user.lastNamePaternal}`}
                 >
-                  <UserCheck className="w-3.5 h-3.5 mr-1" />
-                  Reactivar
+                  <UserCheck className="w-3.5 h-3.5 2xl:mr-1" />
+                  <span className="hidden 2xl:inline">Reactivar</span>
                 </Button>
               ))}
           </div>

@@ -177,7 +177,7 @@ export const LoginPage: React.FC = () => {
               </div>
               <Input
                 type="password"
-                placeholder="••••••••"
+                placeholder="Tu contraseña"
                 {...register('password')}
                 className="h-9.5 text-sm"
               />

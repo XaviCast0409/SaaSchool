@@ -7,7 +7,12 @@ export const createUserSchema = z
       .email('Ingresa un correo electrónico válido')
       .optional()
       .or(z.literal('')),
-    password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+    // Misma regla que el backend: 8 caracteres como mínimo, con letras y números.
+    password: z
+      .string()
+      .min(8, 'La contraseña debe tener al menos 8 caracteres')
+      .regex(/[A-Za-zÁÉÍÓÚÑáéíóúñ]/, 'La contraseña debe incluir al menos una letra')
+      .regex(/\d/, 'La contraseña debe incluir al menos un número'),
     firstName: z.string().min(2, 'Nombre requerido (mínimo 2 caracteres)'),
     lastNamePaternal: z.string().min(2, 'Apellido paterno requerido'),
     lastNameMaternal: z.string().optional().or(z.literal('')),

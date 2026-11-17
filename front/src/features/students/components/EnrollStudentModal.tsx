@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { UbigeoPicker } from './UbigeoPicker';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -16,7 +17,7 @@ import {
   TemporaryCredentialsDialog,
   type TemporaryCredential,
 } from '@/components/ui/TemporaryCredentialsDialog';
-import { useRegisterFichaMatricula, useSiagieCatalogs, useStudents } from '../api/useStudents';
+import { useRegisterFichaMatricula, useStudents } from '../api/useStudents';
 import type { QuickEnrollStudent } from './QuickEnrollModal';
 import { useClassroomsForYear } from '@/features/classrooms/api/useClassrooms';
 import { useAcademicYears } from '@/features/academic-years/api/useAcademicYears';
@@ -36,7 +37,7 @@ const enrollWizardSchema = z
     lastNameMaternal: z.string().trim().optional(),
     documentType: z.enum(['DNI', 'CE', 'PTP', 'PASSPORT', 'BIRTH_CERTIFICATE', 'CARNET_EXTRANJERIA', 'PNA', 'CODIGO_TEMPORAL', 'OTHER']).default('DNI'),
     documentId: z.string().trim().min(1, 'Número de documento requerido'),
-    gender: z.enum(['MALE', 'FEMALE']),
+    gender: z.enum(['MALE', 'FEMALE'], { errorMap: () => ({ message: 'Selecciona el género' }) }),
     birthDate: z.string().min(1, 'Fecha de nacimiento requerida'),
     birthCountry: z.string().trim().default('PERÚ'),
     birthUbigeo: z.string().trim().optional(),
@@ -68,7 +69,7 @@ const enrollWizardSchema = z
     newParentDocumentId: z.string().trim().optional(),
     newParentEmail: z.string().trim().optional(),
     newParentCellphone: z.string().trim().optional(),
-    newParentEducationLevel: z.string().default('SECUNDARIA_COMPLETA'),
+    newParentEducationLevel: z.string().optional(),
 
     // Atributos de Relación Familiar
     relationshipType: z
@@ -80,23 +81,43 @@ const enrollWizardSchema = z
     livesWithStudent: z.boolean().default(true),
   })
   .superRefine((data, ctx) => {
+    crossFieldIssues(data).forEach((issue) => ctx.addIssue({ code: z.ZodIssueCode.custom, message: issue.message, path: [issue.path] }));
+  });
+
+type CrossFieldIssue = { path: CrossFieldPath; message: string };
+type CrossFieldPath =
+  | 'documentId' | 'birthUbigeo' | 'residenceUbigeo' | 'studentCode' | 'previousSchoolModularCode'
+  | 'newParentFirstName' | 'newParentLastNamePaternal' | 'newParentEmail' | 'newParentDocumentId' | 'newParentCellphone' | 'existingParentId';
+interface CrossFieldData {
+  documentType: string; documentId: string; birthUbigeo?: string; residenceUbigeo?: string; studentCode?: string;
+  condition: string; previousSchoolModularCode?: string; parentMode: string; existingParentId?: string;
+  newParentFirstName?: string; newParentLastNamePaternal?: string; newParentEmail?: string;
+  newParentDocumentType: string; newParentDocumentId?: string; newParentCellphone?: string;
+}
+
+/**
+ * Reglas que dependen de otro campo (tipo de documento, condición, modo de apoderado).
+ * Viven fuera del esquema porque Zod solo ejecuta `superRefine` cuando todo lo demás es válido:
+ * así se pueden revisar al pasar de paso, sin esperar a que se llene la ficha entera.
+ */
+const crossFieldIssues = (data: CrossFieldData): CrossFieldIssue[] => {
+  const issues: CrossFieldIssue[] = [];
+
     // Validar Documento de Alumno (8 dígitos numéricos exactos si es DNI, 6-15 si extranjero)
     if (data.documentType === 'DNI') {
       const cleanDoc = data.documentId.trim();
       if (!/^\d{8}$/.test(cleanDoc)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+        issues.push({
           message: 'El DNI peruano debe tener exactamente 8 dígitos numéricos (ej: 72819203)',
-          path: ['documentId'],
+          path: 'documentId',
         });
       }
     } else if (['CE', 'PTP', 'PASSPORT', 'BIRTH_CERTIFICATE'].includes(data.documentType)) {
       const cleanDoc = data.documentId.trim();
       if (!/^[A-Za-z0-9-]{6,15}$/.test(cleanDoc)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+        issues.push({
           message: 'El documento extranjero debe tener entre 6 y 15 caracteres alfanuméricos',
-          path: ['documentId'],
+          path: 'documentId',
         });
       }
     }
@@ -104,20 +125,18 @@ const enrollWizardSchema = z
     // Validar Ubigeos (6 dígitos si se ingresan)
     if (data.birthUbigeo && data.birthUbigeo.trim().length > 0) {
       if (!/^\d{6}$/.test(data.birthUbigeo.trim())) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+        issues.push({
           message: 'El Ubigeo de nacimiento consta de 6 dígitos INEI (ej: 150101)',
-          path: ['birthUbigeo'],
+          path: 'birthUbigeo',
         });
       }
     }
 
     if (data.residenceUbigeo && data.residenceUbigeo.trim().length > 0) {
       if (!/^\d{6}$/.test(data.residenceUbigeo.trim())) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+        issues.push({
           message: 'El Ubigeo de residencia consta de 6 dígitos INEI (ej: 150101)',
-          path: ['residenceUbigeo'],
+          path: 'residenceUbigeo',
         });
       }
     }
@@ -126,10 +145,9 @@ const enrollWizardSchema = z
     if (data.studentCode && data.studentCode.trim().length > 0) {
       const cleanCode = data.studentCode.trim();
       if (!/^\d{14}$/.test(cleanCode)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+        issues.push({
           message: 'El código de estudiante SIAGIE debe tener exactamente 14 dígitos',
-          path: ['studentCode'],
+          path: 'studentCode',
         });
       }
     }
@@ -137,10 +155,9 @@ const enrollWizardSchema = z
     // Validar Código modular si es traslado
     if (data.condition === 'TRASLADO') {
       if (!data.previousSchoolModularCode || !/^\d{7}$/.test(data.previousSchoolModularCode.trim())) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+        issues.push({
           message: 'El Código Modular de la I.E. de origen debe constar de 7 dígitos numéricos',
-          path: ['previousSchoolModularCode'],
+          path: 'previousSchoolModularCode',
         });
       }
     }
@@ -148,66 +165,72 @@ const enrollWizardSchema = z
     // Validaciones si parentMode === 'NEW'
     if (data.parentMode === 'NEW') {
       if (!data.newParentFirstName || data.newParentFirstName.trim().length < 2) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+        issues.push({
           message: 'Nombres del apoderado requeridos',
-          path: ['newParentFirstName'],
+          path: 'newParentFirstName',
         });
       }
       if (!data.newParentLastNamePaternal || data.newParentLastNamePaternal.trim().length < 2) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+        issues.push({
           message: 'Apellido paterno del apoderado requerido',
-          path: ['newParentLastNamePaternal'],
+          path: 'newParentLastNamePaternal',
         });
       }
       if (data.newParentEmail && data.newParentEmail.trim().length > 0) {
         if (!z.string().email().safeParse(data.newParentEmail).success) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+          issues.push({
             message: 'Ingresa un correo electrónico válido para el apoderado',
-            path: ['newParentEmail'],
+            path: 'newParentEmail',
           });
         }
       }
 
       if (data.newParentDocumentType === 'DNI') {
         if (!data.newParentDocumentId || !/^\d{8}$/.test(data.newParentDocumentId.trim())) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+          issues.push({
             message: 'El DNI del apoderado debe constar de 8 dígitos numéricos para su acceso',
-            path: ['newParentDocumentId'],
+            path: 'newParentDocumentId',
           });
         }
       } else if (['CE', 'PTP', 'PASSPORT'].includes(data.newParentDocumentType)) {
         if (!data.newParentDocumentId || !/^[A-Za-z0-9-]{6,15}$/.test(data.newParentDocumentId.trim())) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+          issues.push({
             message: 'El documento extranjero debe tener entre 6 y 15 caracteres alfanuméricos',
-            path: ['newParentDocumentId'],
+            path: 'newParentDocumentId',
           });
         }
       }
 
       if (data.newParentCellphone && data.newParentCellphone.trim().length > 0) {
         if (!/^9\d{8}$/.test(data.newParentCellphone.trim())) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+          issues.push({
             message: 'El celular debe constar de 9 dígitos y empezar con 9 (ej: 912345678)',
-            path: ['newParentCellphone'],
+            path: 'newParentCellphone',
           });
         }
       }
     } else {
       if (!data.existingParentId) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+        issues.push({
           message: 'Debes seleccionar un apoderado del directorio o cambiar a "Crear Nuevo Apoderado"',
-          path: ['existingParentId'],
+          path: 'existingParentId',
         });
       }
     }
-  });
+  
+  return issues;
+};
+
+/** Paso del asistente donde vive cada campo, para llevar al usuario directo al error. */
+const STEP_OF_FIELD: Record<string, 1 | 2 | 3> = {
+  firstNames: 1, lastNamePaternal: 1, lastNameMaternal: 1, documentType: 1, documentId: 1, gender: 1, birthDate: 1,
+  birthCountry: 1, birthUbigeo: 1, residenceUbigeo: 1, address: 1, motherTongue: 1, studentCode: 1,
+  academicYearId: 2, classroomId: 2, condition: 2, previousSchoolModularCode: 2, customPensionAmount: 2,
+};
+const STEP_FIELDS: Record<1 | 2, CrossFieldPath[]> = {
+  1: ['documentId', 'birthUbigeo', 'residenceUbigeo', 'studentCode'],
+  2: ['previousSchoolModularCode'],
+};
 
 type EnrollWizardFormData = z.infer<typeof enrollWizardSchema>;
 
@@ -224,7 +247,6 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [tempCredentials, setTempCredentials] = useState<TemporaryCredential[] | null>(null);
 
-  const { data: catalogs } = useSiagieCatalogs();
   const { data: academicYears = [] } = useAcademicYears();
   const { data: existingParents = [] } = useUsers('PARENT');
 
@@ -236,13 +258,15 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
     watch,
     setValue,
     trigger,
+    getValues,
+    setError,
     formState: { errors },
     reset,
   } = useForm<EnrollWizardFormData>({
     resolver: zodResolver(enrollWizardSchema),
     defaultValues: {
       documentType: 'DNI',
-      gender: 'MALE',
+      gender: undefined,
       birthCountry: 'PERÚ',
       motherTongue: 'CASTELLANO',
       hasDisability: false,
@@ -251,7 +275,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
       parentMode: 'EXISTING',
       relationshipType: '' as unknown as 'FATHER',
       newParentDocumentType: 'DNI',
-      newParentEducationLevel: 'SECUNDARIA_COMPLETA',
+      newParentEducationLevel: '',
       isLegalGuardian: true,
       isFinancialResponsible: true,
       livesWithStudent: true,
@@ -272,6 +296,12 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
   const { data: sameDocument } = useStudents({ page: 1, limit: 5, search: typedDocument, scope: 'all' }, isOpen && step === 1 && typedDocument.length >= 8);
   const existingStudent = (sameDocument?.data ?? []).find((s) => s.documentId === typedDocument) ?? null;
 
+  // Sin apoderados en el directorio no hay nada que elegir: se abre directo «Registrar nuevo».
+  const hasParents = existingParents.length > 0;
+  React.useEffect(() => {
+    if (isOpen && !hasParents) setValue('parentMode', 'NEW');
+  }, [isOpen, hasParents, setValue]);
+
   const filteredParents = existingParents.filter(
     (p) =>
       p.firstName.toLowerCase().includes(parentSearch.toLowerCase()) ||
@@ -291,6 +321,24 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
 
   if (!isOpen) return null;
 
+  /** Revisa las reglas cruzadas del paso y marca cada campo con su error. */
+  const stepCrossFieldsOk = (stepNumber: 1 | 2): boolean => {
+    const issues = crossFieldIssues(getValues() as CrossFieldData).filter((i) => STEP_FIELDS[stepNumber].includes(i.path));
+    issues.forEach((i) => setError(i.path, { type: 'manual', message: i.message }));
+    return issues.length === 0;
+  };
+
+  /** Si al enviar queda un error en un paso anterior, se vuelve a ese paso en vez de fallar en silencio. */
+  const onInvalid = (formErrors: Record<string, unknown>) => {
+    const firstStep = Math.min(3, ...Object.keys(formErrors).map((k) => STEP_OF_FIELD[k] ?? 3)) as 1 | 2 | 3;
+    setStep(firstStep);
+    toast.error(
+      firstStep === 3
+        ? 'Revisa los datos del apoderado marcados en rojo.'
+        : `Hay datos por corregir en el paso ${firstStep} (${firstStep === 1 ? 'Datos del alumno' : 'Matrícula escolar'}).`,
+    );
+  };
+
   const handleNextStep1 = async () => {
     setSubmitError(null);
     const valid = await trigger([
@@ -306,7 +354,9 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
       'residenceUbigeo',
       'studentCode',
     ]);
-    if (valid) {
+    // Se revisan ambas cosas siempre, para mostrar todos los errores del paso de una vez
+    const crossOk = stepCrossFieldsOk(1);
+    if (valid && crossOk) {
       setStep(2);
     } else {
       toast.error('Corrige los datos obligatorios de la ficha del alumno.');
@@ -316,7 +366,8 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
   const handleNextStep2 = async () => {
     setSubmitError(null);
     const valid = await trigger(['academicYearId', 'classroomId', 'condition', 'previousSchoolModularCode']);
-    if (valid) {
+    const crossOk = stepCrossFieldsOk(2);
+    if (valid && crossOk) {
       setStep(3);
     } else {
       toast.error('Completa los datos de matrícula y aula antes de continuar.');
@@ -370,7 +421,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                   documentType: data.newParentDocumentType,
                   documentId: data.newParentDocumentId?.trim() || null,
                   cellphone: data.newParentCellphone?.trim() || null,
-                  educationLevel: data.newParentEducationLevel,
+                  educationLevel: data.newParentEducationLevel || undefined,
                 }
               : undefined,
         },
@@ -442,7 +493,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="relative w-full max-w-2xl rounded-2xl border border-border bg-card p-6 shadow-2xl overflow-y-auto max-h-[90vh] space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-border">
@@ -493,7 +544,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
           </div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-4">
           {/* ======================================================== */}
           {/* PASO 1: DATOS DEL ESTUDIANTE (CAMPOS SEPARADOS)           */}
           {/* ======================================================== */}
@@ -502,10 +553,11 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Primer Apellido */}
                 <div>
-                  <label className="text-xs font-semibold text-foreground block mb-1">
+                  <label htmlFor="enroll-lastNamePaternal" className="text-xs font-semibold text-foreground block mb-1">
                     Primer Apellido (Paterno) *
                   </label>
                   <Input
+                    id="enroll-lastNamePaternal"
                     {...register('lastNamePaternal')}
                     placeholder="Ej: Castillo"
                     className="text-xs rounded-xl"
@@ -517,10 +569,11 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
 
                 {/* Segundo Apellido */}
                 <div>
-                  <label className="text-xs font-semibold text-foreground block mb-1">
+                  <label htmlFor="enroll-lastNameMaternal" className="text-xs font-semibold text-foreground block mb-1">
                     Segundo Apellido (Materno) <span className="text-xs font-normal text-muted-foreground">(Opcional)</span>
                   </label>
                   <Input
+                    id="enroll-lastNameMaternal"
                     {...register('lastNameMaternal')}
                     placeholder="Ej: Mendoza"
                     className="text-xs rounded-xl"
@@ -537,7 +590,8 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                   Nombres Completos *
                 </label>
                 <Input
-                  {...register('firstNames')}
+                  id="enroll-firstNames"
+                    {...register('firstNames')}
                   placeholder="Ej: Javier Alejandro"
                   className="text-xs rounded-xl"
                 />
@@ -549,10 +603,11 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
               {/* Tipo y Número de Documento */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-foreground block mb-1">
+                  <label htmlFor="enroll-documentType" className="text-xs font-semibold text-foreground block mb-1">
                     Tipo de Documento *
                   </label>
                   <select
+                    id="enroll-documentType"
                     {...register('documentType')}
                     className="w-full text-xs rounded-xl border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   >
@@ -566,10 +621,11 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-foreground block mb-1">
+                  <label htmlFor="enroll-documentId" className="text-xs font-semibold text-foreground block mb-1">
                     Número de Documento *
                   </label>
                   <Input
+                    id="enroll-documentId"
                     {...register('documentId')}
                     placeholder="8 dígitos para DNI"
                     maxLength={15}
@@ -610,27 +666,31 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                 )}
 
                 <div>
-                  <label className="text-xs font-semibold text-foreground block mb-1">
+                  <label htmlFor="enroll-gender" className="text-xs font-semibold text-foreground block mb-1">
                     Género *
                   </label>
                   <select
+                    id="enroll-gender"
                     {...register('gender')}
                     className="w-full text-xs rounded-xl border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   >
+                    <option value="">— Selecciona —</option>
                     <option value="MALE">Masculino (M)</option>
                     <option value="FEMALE">Femenino (F)</option>
                   </select>
+                  {errors.gender && <p className="text-[10px] text-destructive mt-1">{errors.gender.message}</p>}
                 </div>
               </div>
 
               {/* Fecha y País de Nacimiento */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-foreground block mb-1">
+                  <label htmlFor="enroll-birthDate" className="text-xs font-semibold text-foreground block mb-1">
                     Fecha de Nacimiento *
                   </label>
                   <Input
                     type="date"
+                    id="enroll-birthDate"
                     {...register('birthDate')}
                     className="text-xs rounded-xl"
                   />
@@ -640,10 +700,11 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-foreground block mb-1">
+                  <label htmlFor="enroll-birthCountry" className="text-xs font-semibold text-foreground block mb-1">
                     País de Nacimiento
                   </label>
                   <Input
+                    id="enroll-birthCountry"
                     {...register('birthCountry')}
                     placeholder="PERÚ"
                     defaultValue="PERÚ"
@@ -652,57 +713,43 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                 </div>
               </div>
 
-              {/* Ubigeos INEI (Nacimiento y Residencia) */}
+              {/* Ubigeos INEI (Nacimiento y Residencia): buscador sobre el catálogo completo del INEI */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-foreground block mb-1">
-                    Ubigeo Nacimiento (6 dígitos INEI)
+                  <label htmlFor="enroll-birthUbigeo" className="text-xs font-semibold text-foreground block mb-1">
+                    Lugar de nacimiento (ubigeo)
                   </label>
-                  <Input
-                    {...register('birthUbigeo')}
-                    list="ubigeos-list"
-                    placeholder="Ej: 150101 (Lima/Lima/Lima)"
-                    maxLength={6}
-                    className="text-xs rounded-xl font-mono"
+                  <UbigeoPicker
+                    id="enroll-birthUbigeo"
+                    value={watch('birthUbigeo') || ''}
+                    invalid={!!errors.birthUbigeo}
+                    onChange={(code) => setValue('birthUbigeo', code, { shouldValidate: false, shouldDirty: true })}
                   />
-                  {errors.birthUbigeo && (
-                    <p className="text-xs text-destructive mt-1 font-medium">{errors.birthUbigeo.message}</p>
-                  )}
+                  {errors.birthUbigeo && <p className="text-xs text-destructive mt-1 font-medium">{errors.birthUbigeo.message}</p>}
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-foreground block mb-1">
-                    Ubigeo Residencia (6 dígitos INEI)
+                  <label htmlFor="enroll-residenceUbigeo" className="text-xs font-semibold text-foreground block mb-1">
+                    Distrito de residencia (ubigeo)
                   </label>
-                  <Input
-                    {...register('residenceUbigeo')}
-                    list="ubigeos-list"
-                    placeholder="Ej: 150101 (Distrito actual)"
-                    maxLength={6}
-                    className="text-xs rounded-xl font-mono"
+                  <UbigeoPicker
+                    id="enroll-residenceUbigeo"
+                    value={watch('residenceUbigeo') || ''}
+                    invalid={!!errors.residenceUbigeo}
+                    onChange={(code) => setValue('residenceUbigeo', code, { shouldValidate: false, shouldDirty: true })}
                   />
-                  {errors.residenceUbigeo && (
-                    <p className="text-xs text-destructive mt-1 font-medium">{errors.residenceUbigeo.message}</p>
-                  )}
+                  {errors.residenceUbigeo && <p className="text-xs text-destructive mt-1 font-medium">{errors.residenceUbigeo.message}</p>}
                 </div>
               </div>
 
-              {/* Datalist de Ubigeos Comunes SIAGIE */}
-              <datalist id="ubigeos-list">
-                {catalogs?.commonUbigeos?.map((u) => (
-                  <option key={u.code} value={u.code}>
-                    {u.department} - {u.province} - {u.district}
-                  </option>
-                ))}
-              </datalist>
-
               {/* Dirección detallada */}
               <div>
-                <label className="text-xs font-semibold text-foreground block mb-1">
+                <label htmlFor="enroll-address" className="text-xs font-semibold text-foreground block mb-1">
                   Dirección Domiciliaria (Vía, Nro, Mz/Lt, Urb)
                 </label>
                 <Input
-                  {...register('address')}
+                  id="enroll-address"
+                    {...register('address')}
                   placeholder="Ej: Av. Las Palmeras 450, Mz B Lote 12, Urb. San Felipe"
                   className="text-xs rounded-xl"
                 />
@@ -728,10 +775,11 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-foreground block mb-1">
+                  <label htmlFor="enroll-studentCode" className="text-xs font-semibold text-foreground block mb-1">
                     Código de Estudiante SIAGIE (14 dígitos)
                   </label>
                   <Input
+                    id="enroll-studentCode"
                     {...register('studentCode')}
                     placeholder="Ej: 20261234567890 (opcional)"
                     maxLength={14}
@@ -796,11 +844,12 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
 
               {/* Año Lectivo */}
               <div>
-                <label className="text-xs font-semibold text-foreground block mb-1">
+                <label htmlFor="enroll-academicYearId" className="text-xs font-semibold text-foreground block mb-1">
                   Año Lectivo Escolar *
                 </label>
                 <select
-                  {...register('academicYearId')}
+                  id="enroll-academicYearId"
+                    {...register('academicYearId')}
                   className="w-full text-xs rounded-xl border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   <option value="">-- Selecciona el Año Lectivo --</option>
@@ -838,11 +887,12 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
 
               {/* Condición de Matrícula */}
               <div>
-                <label className="text-xs font-semibold text-foreground block mb-1">
+                <label htmlFor="enroll-condition" className="text-xs font-semibold text-foreground block mb-1">
                   Condición de Matrícula SIAGIE *
                 </label>
                 <select
-                  {...register('condition')}
+                  id="enroll-condition"
+                    {...register('condition')}
                   className="w-full text-xs rounded-xl border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   <option value="CONTINUO">Continuo / Promovido (Permanece en la misma I.E.)</option>
@@ -855,10 +905,11 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
               {/* Si es Traslado: Código Modular de Origen */}
               {condition === 'TRASLADO' && (
                 <div className="p-3 rounded-xl border border-border bg-muted/30 animate-in fade-in duration-150">
-                  <label className="text-xs font-semibold text-foreground block mb-1">
+                  <label htmlFor="enroll-previousSchoolModularCode" className="text-xs font-semibold text-foreground block mb-1">
                     Código Modular del Colegio de Origen (7 dígitos) *
                   </label>
                   <Input
+                    id="enroll-previousSchoolModularCode"
                     {...register('previousSchoolModularCode')}
                     placeholder="Ej: 0382910"
                     maxLength={7}
@@ -894,14 +945,15 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-semibold text-foreground block mb-1">
+                    <label htmlFor="enroll-customPensionAmount" className="text-xs font-semibold text-foreground block mb-1">
                       Monto de Pensión Personalizada (S/)
                     </label>
                     <Input
                       type="number"
                       step="0.01"
                       min="0"
-                      {...register('customPensionAmount')}
+                      id="enroll-customPensionAmount"
+                    {...register('customPensionAmount')}
                       placeholder="Ej: 350.00 (dejar vacío si es regular)"
                       className="text-xs rounded-xl font-mono"
                     />
@@ -1021,11 +1073,12 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                 <div className="space-y-3 p-3 rounded-xl border border-border bg-secondary/10">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-semibold text-foreground block mb-1">
+                      <label htmlFor="enroll-newParentLastNamePaternal" className="text-xs font-semibold text-foreground block mb-1">
                         Primer Apellido (Paterno) *
                       </label>
                       <Input
-                        {...register('newParentLastNamePaternal')}
+                        id="enroll-newParentLastNamePaternal"
+                    {...register('newParentLastNamePaternal')}
                         placeholder="Ej: Castillo"
                         className="text-xs rounded-xl"
                       />
@@ -1071,11 +1124,12 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                     </div>
 
                     <div>
-                      <label className="text-xs font-semibold text-foreground block mb-1">
+                      <label htmlFor="enroll-newParentDocumentId" className="text-xs font-semibold text-foreground block mb-1">
                         N° Documento *
                       </label>
                       <Input
-                        {...register('newParentDocumentId')}
+                        id="enroll-newParentDocumentId"
+                    {...register('newParentDocumentId')}
                         placeholder="N° de documento"
                         maxLength={15}
                         className="text-xs rounded-xl font-mono"
@@ -1084,16 +1138,17 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                         <p className="text-xs text-destructive mt-1 font-medium">{errors.newParentDocumentId.message}</p>
                       )}
                       <span className="text-xs text-muted-foreground block mt-0.5">
-                        Será su usuario y contraseña de acceso inicial.
+                        Será su usuario. La contraseña temporal se genera al registrar.
                       </span>
                     </div>
 
                     <div>
-                      <label className="text-xs font-semibold text-foreground block mb-1">
+                      <label htmlFor="enroll-newParentCellphone" className="text-xs font-semibold text-foreground block mb-1">
                         Celular (9 dígitos)
                       </label>
                       <Input
-                        {...register('newParentCellphone')}
+                        id="enroll-newParentCellphone"
+                    {...register('newParentCellphone')}
                         placeholder="Ej: 987654321"
                         maxLength={9}
                         className="text-xs rounded-xl font-mono"
@@ -1117,13 +1172,15 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
                       )}
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-foreground block mb-1">
+                      <label htmlFor="enroll-newParentEducationLevel" className="text-xs font-semibold text-foreground block mb-1">
                         Grado de Instrucción (SIAGIE)
                       </label>
                       <select
-                        {...register('newParentEducationLevel')}
+                        id="enroll-newParentEducationLevel"
+                    {...register('newParentEducationLevel')}
                         className="w-full text-xs rounded-xl border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                       >
+                        <option value="">— Sin especificar —</option>
                         <option value="SECUNDARIA_COMPLETA">Secundaria Completa</option>
                         <option value="SECUNDARIA_INCOMPLETA">Secundaria Incompleta</option>
                         <option value="PRIMARIA_COMPLETA">Primaria Completa</option>
@@ -1140,10 +1197,11 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
               {/* Atributos del Parentesco */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <div>
-                  <label className="text-xs font-semibold text-foreground block mb-1">
+                  <label htmlFor="enroll-relationshipType" className="text-xs font-semibold text-foreground block mb-1">
                     Parentesco con el Alumno *
                   </label>
                   <select
+                    id="enroll-relationshipType"
                     {...register('relationshipType')}
                     className="w-full text-xs rounded-xl border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   >

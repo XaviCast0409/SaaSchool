@@ -68,6 +68,8 @@ export interface CreateIncidentPayload {
   actionTaken?: string;
   citationDate?: string;
   isViolenceCase?: boolean;
+  /** false = se registra sin avisar a la familia por la app. */
+  notifyFamily?: boolean;
 }
 
 export interface IncidentFilterParams {

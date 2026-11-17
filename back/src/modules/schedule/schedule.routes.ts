@@ -70,7 +70,7 @@ scheduleRouter.get('/classroom/:classroomId', authorizeRoles('SUPER_ADMIN', 'SCH
     prisma.scheduleBlock.findMany({ where: { schoolId, classroomId, academicYearId: year.id }, include: BLOCK_INCLUDE }),
     prisma.courseAssignment.findMany({
       where: { schoolId, classroomId, academicYearId: year.id, deletedAt: null },
-      select: { id: true, area: { select: { name: true } }, teacher: { select: { firstName: true, lastNamePaternal: true } } },
+      select: { id: true, area: { select: { name: true, isTransversal: true } }, teacher: { select: { firstName: true, lastNamePaternal: true } } },
       orderBy: { area: { name: 'asc' } },
     }),
   ]);
@@ -80,7 +80,8 @@ scheduleRouter.get('/classroom/:classroomId', authorizeRoles('SUPER_ADMIN', 'SCH
     data: {
       classroom: { ...classroom, label: classroomLabel(classroom) },
       blocks: sortBlocks(blocks).map(presentBlock),
-      courses: assignments.map((a) => ({ id: a.id, name: a.area.name, teacherName: teacherName(a.teacher), weeklyMinutes: minutes.get(a.id) ?? 0 })),
+      // Las competencias transversales se evalúan, pero no son una clase con hora propia en el horario.
+      courses: assignments.map((a) => ({ id: a.id, name: a.area.name, isTransversal: a.area.isTransversal, teacherName: teacherName(a.teacher), weeklyMinutes: minutes.get(a.id) ?? 0 })),
     },
   });
 });

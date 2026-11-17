@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { UbigeoPicker } from './UbigeoPicker';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -81,6 +82,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isO
     handleSubmit,
     reset,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<EditStudentFormData>({
     resolver: zodResolver(editStudentSchema),
@@ -141,7 +143,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isO
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-150">
       <div className="w-full max-w-xl rounded-2xl border border-border bg-card shadow-2xl overflow-y-auto max-h-[90vh] space-y-4 p-6">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-border">
@@ -173,27 +175,27 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isO
           {/* Nombres y Apellidos Separados */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-foreground">Primer Apellido (Paterno) *</label>
-              <Input {...register('lastNamePaternal')} className="h-9 text-xs" />
+              <label htmlFor="editstudentmodal-lastNamePaternal" className="text-xs font-medium text-foreground">Primer Apellido (Paterno) *</label>
+              <Input id="editstudentmodal-lastNamePaternal" {...register('lastNamePaternal')} className="h-9 text-xs" />
               {errors.lastNamePaternal && <span className="text-xs text-destructive">{errors.lastNamePaternal.message}</span>}
             </div>
             <div>
-              <label className="text-xs font-medium text-foreground">Segundo Apellido (Materno)</label>
-              <Input {...register('lastNameMaternal')} placeholder="Opcional" className="h-9 text-xs" />
+              <label htmlFor="editstudentmodal-lastNameMaternal" className="text-xs font-medium text-foreground">Segundo Apellido (Materno)</label>
+              <Input id="editstudentmodal-lastNameMaternal" {...register('lastNameMaternal')} placeholder="Opcional" className="h-9 text-xs" />
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-medium text-foreground">Nombres Completos *</label>
-            <Input {...register('firstNames')} className="h-9 text-xs" />
+            <label htmlFor="editstudentmodal-firstNames" className="text-xs font-medium text-foreground">Nombres Completos *</label>
+            <Input id="editstudentmodal-firstNames" {...register('firstNames')} className="h-9 text-xs" />
             {errors.firstNames && <span className="text-xs text-destructive">{errors.firstNames.message}</span>}
           </div>
 
           {/* Documento y Género */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="text-xs font-medium text-foreground">Tipo Doc. *</label>
-              <select
+              <label htmlFor="editstudentmodal-documentType" className="text-xs font-medium text-foreground">Tipo Doc. *</label>
+              <select id="editstudentmodal-documentType"
                 {...register('documentType')}
                 className="w-full h-9 rounded-md border border-border bg-background px-3 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               >
@@ -206,13 +208,13 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isO
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium text-foreground">Número de Doc. *</label>
-              <Input {...register('documentId')} className="h-9 text-xs font-mono" />
+              <label htmlFor="editstudentmodal-documentId" className="text-xs font-medium text-foreground">Número de Doc. *</label>
+              <Input id="editstudentmodal-documentId" {...register('documentId')} className="h-9 text-xs font-mono" />
               {errors.documentId && <span className="text-xs text-destructive">{errors.documentId.message}</span>}
             </div>
             <div>
-              <label className="text-xs font-medium text-foreground">Género *</label>
-              <select
+              <label htmlFor="editstudentmodal-gender" className="text-xs font-medium text-foreground">Género *</label>
+              <select id="editstudentmodal-gender"
                 {...register('gender')}
                 className="w-full h-9 rounded-md border border-border bg-background px-3 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               >
@@ -225,42 +227,45 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isO
           {/* Fecha Nacimiento, País, Código SIAGIE */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="text-xs font-medium text-foreground">Fecha Nacimiento *</label>
-              <Input type="date" {...register('birthDate')} className="h-9 text-xs" />
+              <label htmlFor="editstudentmodal-birthDate" className="text-xs font-medium text-foreground">Fecha Nacimiento *</label>
+              <Input id="editstudentmodal-birthDate" type="date" {...register('birthDate')} className="h-9 text-xs" />
               {errors.birthDate && <span className="text-xs text-destructive">{errors.birthDate.message}</span>}
             </div>
             <div>
-              <label className="text-xs font-medium text-foreground">País de Nacimiento</label>
-              <Input {...register('birthCountry')} className="h-9 text-xs" />
+              <label htmlFor="editstudentmodal-birthCountry" className="text-xs font-medium text-foreground">País de Nacimiento</label>
+              <Input id="editstudentmodal-birthCountry" {...register('birthCountry')} className="h-9 text-xs" />
             </div>
             <div>
-              <label className="text-xs font-medium text-foreground">Código SIAGIE</label>
-              <Input {...register('studentCode')} placeholder="14 dígitos" className="h-9 text-xs font-mono" />
+              <label htmlFor="editstudentmodal-studentCode" className="text-xs font-medium text-foreground">Código SIAGIE</label>
+              <Input id="editstudentmodal-studentCode" {...register('studentCode')} placeholder="14 dígitos" className="h-9 text-xs font-mono" />
             </div>
           </div>
 
           {/* Ubigeos INEI */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-foreground">Ubigeo Nacimiento (6 dígitos)</label>
-              <Input {...register('birthUbigeo')} placeholder="Ej: 150101" maxLength={6} className="h-9 text-xs font-mono" />
+              <label htmlFor="edit-birthUbigeo" className="text-xs font-medium text-foreground">Lugar de nacimiento (ubigeo)</label>
+              <UbigeoPicker id="edit-birthUbigeo" value={watch('birthUbigeo') || ''} invalid={!!errors.birthUbigeo}
+                onChange={(code) => setValue('birthUbigeo', code, { shouldDirty: true })} />
               {errors.birthUbigeo && <span className="text-xs text-destructive">{errors.birthUbigeo.message}</span>}
             </div>
             <div>
-              <label className="text-xs font-medium text-foreground">Ubigeo Residencia (6 dígitos)</label>
-              <Input {...register('residenceUbigeo')} placeholder="Ej: 150101" maxLength={6} className="h-9 text-xs font-mono" />
+              <label htmlFor="edit-residenceUbigeo" className="text-xs font-medium text-foreground">Distrito de residencia (ubigeo)</label>
+              <UbigeoPicker id="edit-residenceUbigeo" value={watch('residenceUbigeo') || ''} invalid={!!errors.residenceUbigeo}
+                onChange={(code) => setValue('residenceUbigeo', code, { shouldDirty: true })} />
+              {errors.residenceUbigeo && <span className="text-xs text-destructive">{errors.residenceUbigeo.message}</span>}
             </div>
           </div>
 
           {/* Dirección y Lengua Materna */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-foreground">Lengua Materna</label>
-              <Input {...register('motherTongue')} className="h-9 text-xs" />
+              <label htmlFor="editstudentmodal-motherTongue" className="text-xs font-medium text-foreground">Lengua Materna</label>
+              <Input id="editstudentmodal-motherTongue" {...register('motherTongue')} className="h-9 text-xs" />
             </div>
             <div>
-              <label className="text-xs font-medium text-foreground">Dirección Domiciliaria</label>
-              <Input {...register('address')} placeholder="Av, Jr, Mz, Lt, Urb" className="h-9 text-xs" />
+              <label htmlFor="editstudentmodal-address" className="text-xs font-medium text-foreground">Dirección Domiciliaria</label>
+              <Input id="editstudentmodal-address" {...register('address')} placeholder="Av, Jr, Mz, Lt, Urb" className="h-9 text-xs" />
             </div>
           </div>
 
@@ -277,8 +282,8 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isO
 
             {hasDisability && (
               <div>
-                <label className="text-xs font-medium text-foreground">Detalle / Tipo de Discapacidad</label>
-                <Input {...register('disabilityType')} placeholder="Ej. Visual, Motora, TEA..." className="h-9 text-xs" />
+                <label htmlFor="editstudentmodal-disabilityType" className="text-xs font-medium text-foreground">Detalle / Tipo de Discapacidad</label>
+                <Input id="editstudentmodal-disabilityType" {...register('disabilityType')} placeholder="Ej. Visual, Motora, TEA..." className="h-9 text-xs" />
               </div>
             )}
           </div>

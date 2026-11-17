@@ -243,7 +243,7 @@ export const GradebookGrid: React.FC<Props> = ({ data, competenceId, reason, onN
                       {(['AD', 'A', 'B', 'C', 'EXO'] as const).map((l) => <option key={l} value={l}>{l}</option>)}
                     </select>
                     <LetterBadge letter={r?.finalLetter} />
-                    {r?.isOverridden && <span className="text-[10px] text-muted-foreground" title="Calificativo ajustado por el docente">ajustado</span>}
+                    {r?.isOverridden && data.criteria.length > 0 && <span className="text-[10px] text-muted-foreground" title="El docente eligió este calificativo en lugar del sugerido por los criterios">elegido a mano</span>}
                   </div>
                 </td>
               </tr>

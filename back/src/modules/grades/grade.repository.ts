@@ -63,36 +63,9 @@ export class GradeRepository {
       orderBy: { order: 'asc' },
     });
 
-    if (existing.length > 0) {
-      return existing;
-    }
-
-    const anyEverCreated = await prisma.evaluationCriterion.findFirst({
-      where: { schoolId },
-    });
-    if (anyEverCreated) {
-      return [];
-    }
-
-    const defaultCriteria = [
-      { name: 'Práctica Mensual', shortName: 'PM', order: 1, weight: 1.0 },
-      { name: 'Examen Mensual', shortName: 'EM', order: 2, weight: 1.0 },
-      { name: 'Revisión de Cuaderno / Tareas', shortName: 'RC', order: 3, weight: 1.0 },
-      { name: 'Examen Bimestral', shortName: 'EB', order: 4, weight: 2.0 },
-    ];
-
-    await prisma.evaluationCriterion.createMany({
-      data: defaultCriteria.map((c) => ({
-        ...c,
-        schoolId,
-        isActive: true,
-      })),
-    });
-
-    return prisma.evaluationCriterion.findMany({
-      where: { schoolId, isActive: true },
-      orderBy: { order: 'asc' },
-    });
+    // Sin efectos secundarios: un colegio sin criterios califica directo (calificativo final).
+    // La plantilla estándar solo se carga cuando la Dirección lo pide desde «Criterios y escala».
+    return existing;
   }
 
   async createCriterion(schoolId: string, data: CreateCriterionDto): Promise<EvaluationCriterion> {

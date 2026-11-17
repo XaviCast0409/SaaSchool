@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { X, School as SchoolIcon, Save, Loader2, Lock, ShieldAlert, Palette, RotateCcw, CalendarCheck, MessagesSquare } from 'lucide-react';
 import { useGetActiveSchool, useUpdateSchool } from '../api/useSchool';
@@ -19,6 +19,7 @@ interface SchoolFormValues {
   department: string;
   province: string;
   district: string;
+  modularCode: string;
   blockCertificatesOnOverdue: boolean;
   brandColor?: string | null;
   notifyAbsencesToFamilies: boolean;
@@ -34,6 +35,19 @@ interface SchoolFormValues {
   loginMessage: string;
 }
 
+const SETTINGS_TABS = [
+  { id: 'identity', label: 'Datos del colegio' },
+  { id: 'families', label: 'Asistencia y familias' },
+  { id: 'login', label: 'Página de ingreso' },
+  { id: 'plan', label: 'Plan' },
+] as const;
+type SettingsTab = (typeof SETTINGS_TABS)[number]['id'];
+
+/** Cupo de alumnos por plan (mismo catálogo que back/src/modules/schools/plan.rules.ts). */
+const PLAN_QUOTA: Record<string, string> = { BASIC: '150 alumnos', PRO: '500 alumnos', ENTERPRISE: 'Ilimitado' };
+/** Correo de soporte de la plataforma (VITE_SUPPORT_EMAIL). Sin configurar, no se muestra el botón. */
+const SUPPORT_EMAIL: string | undefined = import.meta.env.VITE_SUPPORT_EMAIL || undefined;
+
 export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
   isOpen,
   onClose,
@@ -42,6 +56,7 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
   const { mutateAsync: updateSchool, isPending } = useUpdateSchool();
 
   const { register, handleSubmit, reset, watch, setValue } = useForm<SchoolFormValues>();
+  const [tab, setTab] = useState<SettingsTab>('identity');
   const brandColorValue = watch('brandColor');
   const loginPageValues = {
     loginBackgroundUrl: watch('loginBackgroundUrl') ?? '',
@@ -59,6 +74,7 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
         department: school.department || '',
         province: school.province || '',
         district: school.district || '',
+        modularCode: school.modularCode || '',
         blockCertificatesOnOverdue: school.blockCertificatesOnOverdue ?? false,
         brandColor: school.brandColor || null,
         notifyAbsencesToFamilies: school.notifyAbsencesToFamilies ?? true,
@@ -150,6 +166,23 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
           </div>
         ) : (
           <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-4">
+            {/* Pestañas: cada tema por separado. Los campos quedan montados para no perder lo escrito. */}
+            <div role="tablist" aria-label="Secciones de ajustes" className="flex flex-wrap gap-1 rounded-xl bg-muted/50 p-1">
+              {SETTINGS_TABS.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === t.id}
+                  onClick={() => setTab(t.id)}
+                  className={`flex-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors ${tab === t.id ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            <div role="tabpanel" className={tab === 'identity' ? 'space-y-4' : 'hidden'}>
             {/* Logo: se sube como imagen y se guarda al instante */}
             <SchoolLogoUploader logoUrl={school?.logoUrl} schoolName={school?.name || 'el colegio'} />
 
@@ -217,6 +250,36 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
                 {...register('name', { required: true })}
                 className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label htmlFor="school-ruc-input" className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
+                  RUC
+                </label>
+                <input
+                  id="school-ruc-input"
+                  type="text"
+                  value={school?.documentId ?? ''}
+                  readOnly
+                  title="El RUC lo registra KIPUX al dar de alta el colegio"
+                  className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2 text-sm text-muted-foreground"
+                />
+              </div>
+              <div>
+                <label htmlFor="school-modular-input" className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
+                  Código modular
+                </label>
+                <input
+                  id="school-modular-input"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={7}
+                  placeholder="7 dígitos (ESCALE)"
+                  {...register('modularCode')}
+                  className="w-full rounded-xl border border-border bg-background px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -299,6 +362,9 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
               </div>
             </div>
 
+            </div>
+
+            <div role="tabpanel" className={tab === 'families' ? 'space-y-4' : 'hidden'}>
             {/* Retener constancias oficiales por deuda vencida (Ley 27665) */}
             <div className="p-4 rounded-xl bg-card border border-border space-y-2">
               <div className="flex items-start justify-between gap-3">
@@ -463,6 +529,9 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
               </p>
             </div>
 
+            </div>
+
+            <div role="tabpanel" className={tab === 'login' ? 'space-y-4' : 'hidden'}>
             <LoginPageSettingsSection
               slug={school?.slug}
               schoolName={school?.name ?? 'tu colegio'}
@@ -472,20 +541,44 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
               setValue={setValue}
             />
 
-            {/* Plan de Suscripción Contratado (Solo Lectura) */}
-            <div className="p-4 rounded-xl bg-secondary/40 border border-border space-y-1.5 shadow-sm">
+            </div>
+
+            <div role="tabpanel" className={tab === 'plan' ? 'space-y-4' : 'hidden'}>
+            {/* Plan de suscripción (solo lectura: lo gestiona la plataforma) */}
+            <div className="p-4 rounded-xl bg-secondary/40 border border-border space-y-3 shadow-sm">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-foreground uppercase flex items-center gap-1.5">
                   <Lock className="w-3.5 h-3.5 text-amber-500" />
-                  Plan de Suscripción Contratado
+                  Plan contratado
                 </span>
                 <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-primary/10 text-primary border border-primary/20">
                   PLAN {school?.plan || 'BASIC'}
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground pt-1">
-                🔒 El plan de suscripción solo puede ser gestionado por el Administrador General SaaS (SuperAdmin). Para cambiar tu plan, solicita un Upgrade a Soporte.
+              <dl className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <dt className="text-muted-foreground">Vigente hasta</dt>
+                  <dd className="font-semibold text-foreground">
+                    {school?.planExpiresAt
+                      ? new Date(school.planExpiresAt).toLocaleDateString('es-PE', { timeZone: 'UTC', day: '2-digit', month: 'long', year: 'numeric' })
+                      : 'Sin fecha de vencimiento'}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Cupo de alumnos</dt>
+                  <dd className="font-semibold text-foreground">{PLAN_QUOTA[school?.plan || 'BASIC'] ?? '—'}</dd>
+                </div>
+              </dl>
+              <p className="text-xs text-muted-foreground">
+                El plan lo gestiona KIPUX. Para cambiarlo o renovarlo, {SUPPORT_EMAIL ? 'escríbenos desde aquí.' : 'comunícate con tu asesor de KIPUX.'}
               </p>
+              {SUPPORT_EMAIL && <a
+                href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`Cambio de plan - ${school?.name ?? ''}`)}`}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary"
+              >
+                Solicitar cambio de plan
+              </a>}
+            </div>
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">

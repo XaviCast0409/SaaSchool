@@ -176,7 +176,7 @@ export const AuditLogsPage: React.FC = () => {
         <Card className="overflow-hidden">
           {byDay.map((group) => (
             <section key={group.day}>
-              <h2 className="border-b border-border bg-muted/40 px-4 py-2 text-xs font-semibold capitalize text-muted-foreground">{group.day}</h2>
+              <h2 className="border-b border-border bg-muted/40 px-4 py-2 text-xs font-semibold text-muted-foreground">{group.day.charAt(0).toUpperCase() + group.day.slice(1)}</h2>
               <ul className="divide-y divide-border">
                 {group.items.map((log) => <LogRow key={log.id} log={log} />)}
               </ul>

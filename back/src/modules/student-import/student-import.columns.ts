@@ -62,7 +62,7 @@ export const IMPORT_COLUMNS: readonly ImportColumn[] = [
   { key: 'documentId', header: 'N.° de documento', group: 'STUDENT', required: true, width: 17, help: 'DNI: 8 dígitos, con sus ceros a la izquierda.', example: '07654321' },
   { key: 'gender', header: 'Sexo', group: 'STUDENT', required: true, width: 11, options: GENDER_OPTIONS, help: 'Hombre o Mujer.', example: 'Mujer' },
   { key: 'birthDate', header: 'Fecha de nacimiento', group: 'STUDENT', required: true, width: 19, help: 'Día/mes/año. Ejemplo: 15/03/2015', example: '15/03/2015' },
-  { key: 'classroom', header: 'Aula', group: 'ENROLLMENT', required: true, width: 32, options: 'CLASSROOMS', help: 'Elige el aula de la lista. Si falta alguna, pídela a soporte antes de llenar.', example: '' },
+  { key: 'classroom', header: 'Aula', group: 'ENROLLMENT', required: true, width: 32, options: 'CLASSROOMS', help: 'Elige el aula de la lista. Si falta alguna, créala en «Aulas y secciones» y vuelve a descargar la plantilla.', example: '' },
   { key: 'studentCode', header: 'Código de estudiante SIAGIE', group: 'ENROLLMENT', required: false, width: 26, help: '14 dígitos. Opcional.', example: '15012345600010' },
   { key: 'condition', header: 'Condición de matrícula', group: 'ENROLLMENT', required: false, width: 22, options: CONDITION_OPTIONS, help: 'Si lo dejas vacío se asume Continuo.', example: 'Continuo' },
   { key: 'repeatingGrade', header: 'Repite el grado', group: 'ENROLLMENT', required: false, width: 15, options: YES_NO_OPTIONS, help: 'Sí o No. Vacío = No.', example: 'No' },

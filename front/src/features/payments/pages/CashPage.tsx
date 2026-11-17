@@ -121,20 +121,22 @@ const MyCash: React.FC<{ canManage: boolean }> = ({ canManage }) => {
             Esta caja se abrió otro día. Ciérrala y abre una nueva para que cada día tenga su propio arqueo.
           </p>
         )}
+        {/* Arqueo ciego: mientras la caja está abierta no se muestra cuánto efectivo debería haber;
+            se revela al cerrar, después de contar. */}
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[
             ['Fondo inicial', soles(s.totals.openingAmount)],
-            ['Cobrado en efectivo', soles(s.totals.byMethod.CASH)],
+            ['Cobros en efectivo', `${s.totals.countByMethod?.CASH ?? 0} cobro(s)`],
             ['Egresos', soles(s.totals.expensesTotal)],
-            ['Efectivo esperado', soles(s.totals.expectedCash)],
+            ['Efectivo esperado', 'Se muestra al cerrar'],
           ].map(([label, value], i) => (
             <div key={label} className={`rounded-lg border p-3 ${i === 3 ? 'border-primary/30 bg-primary/5' : 'border-border'}`}>
               <p className="text-xs text-muted-foreground">{label}</p>
-              <p className="text-lg font-bold">{value}</p>
+              <p className={i === 3 ? 'text-sm font-semibold text-muted-foreground' : 'text-lg font-bold'}>{value}</p>
             </div>
           ))}
         </div>
-        <MethodTotals byMethod={s.totals.byMethod} countByMethod={s.totals.countByMethod} />
+        <MethodTotals byMethod={s.totals.byMethod} countByMethod={s.totals.countByMethod} hideCashTotal />
         <section className="space-y-2">
           <h3 className="text-xs font-bold uppercase text-muted-foreground">Mis cobros de este turno</h3>
           <PaymentsList transactions={s.transactions} onOpenReceipt={setReceiptId} />
@@ -268,9 +270,10 @@ const SessionsHistory: React.FC<{ canView: boolean; canManage: boolean; isAdmin:
                     <td className="p-2 whitespace-nowrap">{personName(s.cashier)}</td>
                     <td className="p-2 whitespace-nowrap">{formatPeruDateTime(s.openedAt)}</td>
                     <td className="p-2 whitespace-nowrap">{s.closedAt ? formatPeruDateTime(s.closedAt) : '—'}</td>
-                    <td className="p-2 text-right">{soles(s.totals.totalCollected)}</td>
+                    {/* Arqueo ciego: en la propia caja abierta no se muestran cobrado ni esperado */}
+                    <td className="p-2 text-right">{s.status === 'OPEN' && s.cashierId === userId ? '—' : soles(s.totals.totalCollected)}</td>
                     <td className="p-2 text-right">{soles(s.totals.expensesTotal)}</td>
-                    <td className="p-2 text-right">{soles(s.status === 'OPEN' ? s.totals.expectedCash : s.expectedCash)}</td>
+                    <td className="p-2 text-right">{s.status === 'OPEN' && s.cashierId === userId ? 'Al cerrar' : soles(s.status === 'OPEN' ? s.totals.expectedCash : s.expectedCash)}</td>
                     <td className="p-2 text-right">{s.countedCash == null ? '—' : soles(s.countedCash)}</td>
                     <td className="p-2 whitespace-nowrap">{s.status === 'OPEN' ? '—' : <DifferenceText value={s.difference} />}</td>
                     <td className="p-2">
@@ -293,7 +296,10 @@ const SessionsHistory: React.FC<{ canView: boolean; canManage: boolean; isAdmin:
                   <td className="p-2 text-right">{soles(totals.expenses)}</td>
                   <td className="p-2" colSpan={2} />
                   <td className="p-2" colSpan={3}>
-                    <DifferenceText value={Math.round(totals.diff * 100) / 100} />
+                    {/* Mientras alguna caja siga abierta no hay arqueo total que mostrar. */}
+                    {sessions.some((x) => x.difference == null)
+                      ? <span className="text-xs text-muted-foreground">{sessions.filter((x) => x.difference == null).length} caja(s) sin cerrar</span>
+                      : <DifferenceText value={Math.round(totals.diff * 100) / 100} />}
                   </td>
                 </tr>
               </tfoot>

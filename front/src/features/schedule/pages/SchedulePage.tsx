@@ -22,6 +22,8 @@ const levelName = (l: string) => (l === 'INITIAL' ? 'Inicial' : l === 'PRIMARY' 
 const ClassroomScheduleView: React.FC<{ canEdit: boolean }> = ({ canEdit }) => {
   const { data: classrooms = [], isLoading } = useClassrooms();
   const [classroomId, setClassroomId] = useState<string>('');
+  // El editor avisa si hay cambios sin guardar; cambiar de aula también los perdería.
+  const [editorDirty, setEditorDirty] = useState(false);
   useEffect(() => {
     if (!classroomId && classrooms.length) setClassroomId(classrooms[0].id);
   }, [classrooms, classroomId]);
@@ -33,7 +35,11 @@ const ClassroomScheduleView: React.FC<{ canEdit: boolean }> = ({ canEdit }) => {
         <select
           className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
           value={classroomId}
-          onChange={(e) => setClassroomId(e.target.value)}
+          onChange={(e) => {
+            if (editorDirty && !window.confirm('Tienes cambios sin guardar en este horario. Si cambias de aula se perderán. ¿Continuar?')) return;
+            setEditorDirty(false);
+            setClassroomId(e.target.value);
+          }}
         >
           {classrooms.map((c) => (
             <option key={c.id} value={c.id}>
@@ -42,7 +48,7 @@ const ClassroomScheduleView: React.FC<{ canEdit: boolean }> = ({ canEdit }) => {
           ))}
         </select>
       </label>
-      {classroomId && <ScheduleEditor key={classroomId} classroomId={classroomId} canEdit={canEdit} />}
+      {classroomId && <ScheduleEditor key={classroomId} classroomId={classroomId} canEdit={canEdit} onDirtyChange={setEditorDirty} />}
     </div>
   );
 };

@@ -32,7 +32,7 @@ export const ChangePasswordModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-card w-full max-w-md rounded-2xl shadow-2xl border border-border p-6 space-y-6 text-foreground">
         {/* Header con icono de alerta de seguridad */}
         <div className="text-center space-y-2">
@@ -43,7 +43,7 @@ export const ChangePasswordModal: React.FC = () => {
             Primer Ingreso: Cambio de Contraseña
           </h2>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Hola <strong className="text-foreground">{user.firstName}</strong>. Usa la contraseña temporal que te entregó tu colegio. Por seguridad, debes definir una nueva contraseña personal.
+            Hola <strong className="text-foreground">{user.firstName}</strong>. Ingresaste con una contraseña temporal. Por seguridad, define ahora una contraseña personal que solo tú conozcas.
           </p>
         </div>
 

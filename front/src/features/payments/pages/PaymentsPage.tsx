@@ -21,8 +21,10 @@ import {
   Percent,
   BarChart3,
   FileSpreadsheet,
+  ChevronDown,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/useAuthStore';
 import {
@@ -66,6 +68,7 @@ import { formatFullName, formatEducationLevel } from '@/lib/utils';
 import { useQueryAction } from '@/lib/useQueryAction';
 
 export const PaymentsPage: React.FC = () => {
+  const navigate = useNavigate();
   const { user } = useAuthStore();
   const isParent = user?.role === 'PARENT';
   const isAdministrative = user?.role === 'ADMINISTRATIVE';
@@ -200,84 +203,59 @@ export const PaymentsPage: React.FC = () => {
         </div>
 
         {canManagePayments && (
+          // Las dos acciones del día a día a la vista; el resto (que ya está en el menú lateral) en «Más».
           <div className="flex flex-wrap items-center gap-2">
-            <Button asChild size="sm" className="gap-2 text-xs">
-              <Link to="/payments/cash">
-                <Wallet className="w-3.5 h-3.5" />
-                <span>{canCollect ? 'Mi caja' : 'Cierres de caja'}</span>
-              </Link>
-            </Button>
-            {(canView || canManage) && (
-              <Button asChild variant="outline" size="sm" className="gap-2 text-xs">
-                <Link to="/payments/benefits">
-                  <Percent className="w-3.5 h-3.5 text-primary" />
-                  <span>Becas y moras</span>
-                </Link>
-              </Button>
-            )}
-            {canManagePayments && (
-              <Button asChild variant="outline" size="sm" className="gap-2 text-xs">
-                <Link to="/payments/reports">
-                  <BarChart3 className="w-3.5 h-3.5 text-primary" />
-                  <span>{canView ? 'Reportes y estados de cuenta' : 'Estados de cuenta'}</span>
-                </Link>
-              </Button>
-            )}
-            {canView && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2 text-xs"
-                onClick={() => setIsDailyCashCloseOpen(true)}
-              >
-                <Receipt className="w-3.5 h-3.5 text-primary" />
-                <span>Resumen del día</span>
-              </Button>
-            )}
             {canCollect && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2 text-xs"
-                onClick={() => setIsCreateIndividualOpen(true)}
-              >
-                <PlusCircle className="w-3.5 h-3.5 text-primary" />
-                <span>Nuevo Cobro</span>
-              </Button>
-            )}
-            {canCollect && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2 text-xs"
-                onClick={() => setIsWhatsAppQueueOpen(true)}
-              >
-                <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
-                <span>WhatsApp en cola</span>
+              <Button size="sm" className="gap-2 text-xs" onClick={() => setIsCreateIndividualOpen(true)}>
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span>Nuevo cobro</span>
               </Button>
             )}
             {canManage && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2 text-xs"
-                onClick={handleBulkReminders}
-                disabled={isSendingBulk}
-              >
-                <Send className="w-3.5 h-3.5 text-amber-500" />
-                <span>{isSendingBulk ? 'Enviando...' : 'Recordatorios Morosos'}</span>
+              <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={() => setIsBulkModalOpen(true)}>
+                <Layers className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Generar pensiones</span>
               </Button>
             )}
-            {canManage && (
-              <Button
-                size="sm"
-                className="gap-2 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
-                onClick={() => setIsBulkModalOpen(true)}
-              >
-                <Layers className="w-3.5 h-3.5" />
-                <span>Generar Pensiones</span>
-              </Button>
-            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+                  Más
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-64" align="end">
+                <DropdownMenuLabel>Cobranza</DropdownMenuLabel>
+                {canManage && (
+                  <DropdownMenuItem icon={Send} hint="Avisa a las familias con cuotas vencidas" onSelect={handleBulkReminders} disabled={isSendingBulk}>
+                    {isSendingBulk ? 'Enviando…' : 'Recordatorios a morosos'}
+                  </DropdownMenuItem>
+                )}
+                {canCollect && (
+                  <DropdownMenuItem icon={MessageCircle} hint="Mensajes de WhatsApp listos para enviar" onSelect={() => setIsWhatsAppQueueOpen(true)}>
+                    WhatsApp en cola
+                  </DropdownMenuItem>
+                )}
+                {canView && (
+                  <DropdownMenuItem icon={Receipt} hint="Cobros de todas las cajas de hoy" onSelect={() => setIsDailyCashCloseOpen(true)}>
+                    Resumen del día
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Ir a</DropdownMenuLabel>
+                <DropdownMenuItem icon={Wallet} onSelect={() => navigate('/payments/cash')}>
+                  {canCollect ? 'Mi caja' : 'Cierres de caja'}
+                </DropdownMenuItem>
+                {(canView || canManage) && (
+                  <DropdownMenuItem icon={Percent} onSelect={() => navigate('/payments/benefits')}>
+                    Becas y moras
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem icon={BarChart3} onSelect={() => navigate('/payments/reports')}>
+                  {canView ? 'Reportes y estados de cuenta' : 'Estados de cuenta'}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         )}
       </div>
@@ -341,10 +319,15 @@ export const PaymentsPage: React.FC = () => {
                 <Skeleton className="h-7 w-24" />
               ) : (
                 <div className="text-xl font-extrabold text-amber-600 dark:text-amber-400">
-                  S/ {financialSummary?.totalPending.toFixed(2) || '0.00'}
+                  S/ {(financialSummary?.pendingThisMonth ?? financialSummary?.totalPending ?? 0).toFixed(2)}
                 </div>
               )}
-              <p className="text-xs text-muted-foreground mt-1">Por cobrar este mes</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Vence hasta fin de mes (incluye vencidas)
+                {financialSummary && financialSummary.pendingThisMonth !== undefined && (
+                  <> · Total del año: S/ {financialSummary.totalPending.toFixed(2)}</>
+                )}
+              </p>
             </CardContent>
           </Card>
 
@@ -358,10 +341,10 @@ export const PaymentsPage: React.FC = () => {
                 <Skeleton className="h-7 w-20" />
               ) : (
                 <div className="text-xl font-extrabold text-destructive">
-                  {financialSummary?.overdueCount || 0}
+                  {financialSummary?.overdueStudents ?? financialSummary?.overdueCount ?? 0}
                 </div>
               )}
-              <p className="text-xs text-muted-foreground mt-1">Pensiones vencidas</p>
+              <p className="text-xs text-muted-foreground mt-1">{financialSummary?.overdueCount ?? 0} cuota(s) vencida(s)</p>
             </CardContent>
           </Card>
         </div>

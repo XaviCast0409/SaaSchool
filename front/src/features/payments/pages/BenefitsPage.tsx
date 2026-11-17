@@ -96,8 +96,8 @@ const NewScholarshipModal: React.FC<{ open: boolean; onClose: () => void }> = ({
     >
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1 sm:col-span-2">
-          <label className="text-xs font-semibold">Estudiante</label>
-          <Input placeholder="Buscar por apellido o DNI (mínimo 2 letras)" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <label htmlFor="benefitspage-field-1" className="text-xs font-semibold">Estudiante</label>
+          <Input id="benefitspage-field-1" placeholder="Buscar por apellido o DNI (mínimo 2 letras)" value={search} onChange={(e) => setSearch(e.target.value)} />
           {search.trim().length >= 2 && (
             <select
               size={Math.min(6, Math.max(2, students.length))}
@@ -389,7 +389,8 @@ const LateFeesTab: React.FC<{ canManage: boolean }> = ({ canManage }) => {
           <div className="flex flex-wrap items-end gap-3">
             <label className="space-y-1 text-xs font-semibold">
               Tasa anual (%)
-              <Input type="number" step="0.001" min="0" className="w-32" value={rate} disabled={!canManage} onChange={(e) => setRate(e.target.value)} placeholder="Sin mora" />
+              <Input type="number" step="0.001" min="0" max="15" className="w-32" value={rate} disabled={!canManage} onChange={(e) => setRate(e.target.value)} placeholder="Sin mora" />
+              {Number(rate) > 15 && <span className="block text-[10px] font-normal text-destructive">Máximo 15 % anual (Ley 27665).</span>}
             </label>
             <label className="space-y-1 text-xs font-semibold">
               Días de gracia

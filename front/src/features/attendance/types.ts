@@ -425,7 +425,9 @@ export interface CheckoutPreviewData {
 
 export interface CheckoutPayload {
   code: string;
-  pickupType: 'GUARDIAN' | 'AUTHORIZED' | 'SELF';
+  pickupType: 'GUARDIAN' | 'AUTHORIZED' | 'SELF' | 'OTHER';
   pickupPersonId?: string;
   earlyLeaveReason?: string | null;
+  otherPickupName?: string;
+  otherPickupDocument?: string;
 }

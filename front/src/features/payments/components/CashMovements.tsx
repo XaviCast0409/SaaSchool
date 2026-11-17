@@ -22,12 +22,14 @@ export { soles };
 export const MethodTotals: React.FC<{
   byMethod: Record<PaymentMethod, number>;
   countByMethod?: Record<PaymentMethod, number>;
-}> = ({ byMethod, countByMethod }) => (
+  /** Arqueo ciego: el cajero no ve el total en efectivo mientras su caja está abierta. */
+  hideCashTotal?: boolean;
+}> = ({ byMethod, countByMethod, hideCashTotal }) => (
   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
     {PAYMENT_METHODS.map((m) => (
       <div key={m} className="rounded-lg border border-border bg-card p-2.5">
         <p className="text-xs font-semibold uppercase text-muted-foreground">{PAYMENT_METHOD_LABEL[m]}</p>
-        <p className="text-sm font-bold text-foreground">{soles(byMethod?.[m])}</p>
+        <p className="text-sm font-bold text-foreground">{hideCashTotal && m === 'CASH' ? 'Al cerrar' : soles(byMethod?.[m])}</p>
         {countByMethod && <p className="text-xs text-muted-foreground">{countByMethod[m] ?? 0} cobros</p>}
       </div>
     ))}

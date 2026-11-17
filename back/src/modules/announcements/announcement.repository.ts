@@ -102,10 +102,13 @@ export class AnnouncementRepository {
         priority: data.priority,
         targetRoles: data.targetRoles,
         classroomId: data.classroomId,
+        targetLevel: data.classroomId ? null : data.targetLevel ?? null,
+        targetGrade: data.classroomId || !data.targetLevel ? null : data.targetGrade ?? null,
         expiresAt: data.expiresAt,
         responseType: data.responseType,
         responseDeadline: data.responseDeadline,
         pollOptions: data.responseType === 'POLL' ? [...new Set(data.pollOptions)] : [],
+        attachments: data.attachments ?? [],
       },
     });
   }

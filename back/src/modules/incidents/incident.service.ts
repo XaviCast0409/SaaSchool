@@ -10,10 +10,20 @@ export interface IncidentUserContext {
   studentId?: string;
 }
 
+/** Nombre legible del tipo de registro, para los avisos a la familia. */
+const INCIDENT_TYPE_LABEL: Record<string, string> = {
+  MERITO: 'Mérito o reconocimiento',
+  DEMERITO: 'Falta de conducta',
+  ATENCION_TOPICO: 'Atención en tópico',
+  CITACION_PADRES: 'Citación a la familia',
+};
+
 export class IncidentService {
   constructor(private readonly incidentRepository: IncidentRepository) {}
 
   async createIncident(schoolId: string, authorId: string, dto: CreateIncidentDto) {
+    // La severidad solo describe faltas y atenciones; un mérito no tiene «gravedad».
+    if (dto.type === 'MERITO') dto = { ...dto, severity: 'LOW' };
     let enrollmentId = dto.enrollmentId;
 
     if (!enrollmentId && dto.studentId) {
@@ -70,11 +80,12 @@ export class IncidentService {
       },
     });
 
-    if (enrollmentWithStudent?.student) {
+    if (enrollmentWithStudent?.student && dto.notifyFamily !== false) {
       const student = enrollmentWithStudent.student;
       const studentName = `${student.firstNames} ${student.lastNamePaternal}`;
-      const notifTitle = `Registro de Incidencia: ${studentName}`;
-      const notifMessage = `Se registró una incidencia de tipo ${dto.type} (${dto.title}).`;
+      const typeLabel = INCIDENT_TYPE_LABEL[dto.type] ?? 'incidencia';
+      const notifTitle = dto.type === 'MERITO' ? `Reconocimiento para ${studentName}` : `Registro en la agenda: ${studentName}`;
+      const notifMessage = `${typeLabel}: ${dto.title}.`;
 
       // 1. Notificación in-app y push a los padres
       const parentUserIds = student.familyRelations

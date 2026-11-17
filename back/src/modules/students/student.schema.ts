@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { UBIGEO_CODES } from './ubigeo.catalog';
 import { EducationLevel } from '@prisma/client';
 
 const emptyToUndefined = z.literal('').transform(() => undefined);
@@ -26,33 +27,36 @@ const documentTypeSchema = z.enum([
   'OTHER',
 ]);
 
+/** Ubigeo INEI de 6 dígitos que existe en el catálogo oficial (vacío = sin dato). */
+const ubigeoField = (label: string) =>
+  z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, `El ubigeo de ${label} debe tener 6 dígitos INEI (ej: 150101)`)
+    .refine((code) => UBIGEO_CODES.has(code), `El ubigeo de ${label} no existe en el catálogo del INEI`)
+    .optional()
+    .nullable()
+    .or(z.literal(''));
+
+/** Los nombres se guardan en MAYÚSCULAS, igual que en el SIAGIE y en la carga masiva. */
+const upperName = (value: string) => value.replace(/\s+/g, ' ').toLocaleUpperCase('es');
+const upperOptional = (value: string | null | undefined) => (typeof value === 'string' ? upperName(value) : value);
+
 export const createStudentSchema = z
   .object({
-    firstNames: z.string().trim().min(2, 'Nombres requeridos (mínimo 2 caracteres)'),
-    lastNamePaternal: z.string().trim().min(2, 'Apellido paterno requerido'),
-    lastNameMaternal: z.string().trim().optional().nullable().or(z.literal('')),
+    firstNames: z.string().trim().min(2, 'Nombres requeridos (mínimo 2 caracteres)').transform(upperName),
+    lastNamePaternal: z.string().trim().min(2, 'Apellido paterno requerido').transform(upperName),
+    lastNameMaternal: z.string().trim().optional().nullable().or(z.literal('')).transform(upperOptional),
     documentType: documentTypeSchema.default('DNI'),
     documentId: z.string().trim().min(1, 'Número de documento requerido'),
     gender: genderSchema,
     birthDate: z.string().min(1, 'Fecha de nacimiento requerida'),
     birthCountry: z.string().trim().default('PERÚ'),
-    birthUbigeo: z
-      .string()
-      .trim()
-      .regex(/^\d{6}$/, 'El Ubigeo de nacimiento debe tener 6 dígitos INEI (ej: 150101)')
-      .optional()
-      .nullable()
-      .or(z.literal('')),
+    birthUbigeo: ubigeoField('nacimiento'),
     birthDepartment: z.string().trim().optional().nullable().or(z.literal('')),
     birthProvince: z.string().trim().optional().nullable().or(z.literal('')),
     birthDistrict: z.string().trim().optional().nullable().or(z.literal('')),
-    residenceUbigeo: z
-      .string()
-      .trim()
-      .regex(/^\d{6}$/, 'El Ubigeo de residencia debe tener 6 dígitos INEI (ej: 150101)')
-      .optional()
-      .nullable()
-      .or(z.literal('')),
+    residenceUbigeo: ubigeoField('residencia'),
     motherTongue: z.string().trim().default('CASTELLANO'),
     hasDisability: z.boolean().default(false),
     disabilityType: z.string().trim().optional().nullable().or(z.literal('')),
@@ -90,14 +94,15 @@ export const createStudentSchema = z
 
 export const updateStudentSchema = z
   .object({
-    firstNames: z.string().trim().min(2).optional(),
-    lastNamePaternal: z.string().trim().min(2).optional(),
-    lastNameMaternal: z.string().trim().optional().nullable().or(z.literal('')),
+    firstNames: z.string().trim().min(2).transform(upperName).optional(),
+    lastNamePaternal: z.string().trim().min(2).transform(upperName).optional(),
+    lastNameMaternal: z.string().trim().optional().nullable().or(z.literal('')).transform(upperOptional),
     documentType: documentTypeSchema.optional(),
     documentId: z.string().trim().min(1).optional(),
     gender: genderSchema.optional(),
     birthDate: z.string().optional(),
     birthCountry: z.string().trim().optional(),
+    // Al editar solo se exige el formato: no se bloquean fichas antiguas por un código ya retirado
     birthUbigeo: z.string().trim().regex(/^\d{6}$/).optional().nullable().or(z.literal('')),
     birthDepartment: z.string().trim().optional().nullable().or(z.literal('')),
     birthProvince: z.string().trim().optional().nullable().or(z.literal('')),

@@ -233,9 +233,12 @@ export const IncidentsPage: React.FC = () => {
                       {typeInfo.icon}
                       <span>{typeInfo.label}</span>
                     </span>
-                    <Badge variant="outline" className={`text-xs ${severityInfo.badgeClass}`}>
-                      Severidad: {severityInfo.label}
-                    </Badge>
+                    {/* Un mérito no tiene gravedad */}
+                    {inc.type !== 'MERITO' && inc.type !== 'POSITIVE' && (
+                      <Badge variant="outline" className={`text-xs ${severityInfo.badgeClass}`}>
+                        Severidad: {severityInfo.label}
+                      </Badge>
+                    )}
 
                     {inc.isViolenceCase && (
                       inc.siseveCode ? (
@@ -364,7 +367,7 @@ export const IncidentsPage: React.FC = () => {
 
       {/* Modal para Registrar Código SíseVe */}
       {siseveModalIncidentId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-card w-full max-w-sm rounded-2xl border border-border p-6 shadow-2xl space-y-4">
             <h3 className="text-base font-bold text-foreground">
               Registrar Código SíseVe

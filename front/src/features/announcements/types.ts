@@ -7,6 +7,9 @@ export interface Announcement {
   schoolId: string;
   authorId: string;
   classroomId?: string | null;
+  targetLevel?: 'INITIAL' | 'PRIMARY' | 'SECONDARY' | null;
+  targetGrade?: number | null;
+  attachments?: AnnouncementAttachment[];
   title: string;
   content: string;
   priority: AnnouncementPriority;
@@ -60,16 +63,27 @@ export interface AnnouncementsResponse {
   };
 }
 
+/** Archivo adjunto a un comunicado (se abre con /api/files/<fileId>). */
+export interface AnnouncementAttachment {
+  fileId: string;
+  name: string;
+  size: number;
+  type: string;
+}
+
 export interface CreateAnnouncementPayload {
   title: string;
   content: string;
   priority: AnnouncementPriority;
   targetRoles: UserRole[];
   classroomId?: string;
+  targetLevel?: 'INITIAL' | 'PRIMARY' | 'SECONDARY' | null;
+  targetGrade?: number | null;
   expiresAt?: string | null;
   responseType?: AnnouncementResponseType;
   responseDeadline?: string | null;
   pollOptions?: string[];
+  attachments?: AnnouncementAttachment[];
 }
 
 export interface AnnouncementResponsesDetail {

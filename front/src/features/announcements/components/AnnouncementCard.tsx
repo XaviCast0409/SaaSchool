@@ -19,6 +19,8 @@ import { useUpdateAnnouncementExpiry } from '../api/useAnnouncements';
 import { endOfDayLima, limaDateOf, addDays } from '../lib/expiry';
 import { getPeruToday } from '@/lib/dateUtils';
 import { toast } from 'sonner';
+import { Paperclip } from 'lucide-react';
+import { openFile } from '@/features/course-contents/utils/fileUrls';
 import { formatEducationLevel } from '@/lib/utils';
 
 /** Firma del comunicado según quién lo publicó (antes Secretaría salía como «Dirección Escolar») */
@@ -122,6 +124,16 @@ export const AnnouncementCard: React.FC<AnnouncementCardProps> = ({
             </Badge>
           )}
 
+          {!announcement.classroom && announcement.targetLevel && (
+            <Badge variant="outline" className="text-xs font-semibold gap-1 bg-secondary/40 text-foreground border-border">
+              <School className="w-3.5 h-3.5 text-primary" />
+              <span>
+                Todo {announcement.targetGrade ? `${announcement.targetLevel === 'INITIAL' ? `${announcement.targetGrade} años` : `${announcement.targetGrade}.°`} de ` : ''}
+                {formatEducationLevel(announcement.targetLevel)}
+              </span>
+            </Badge>
+          )}
+
           {announcement.classroom && (
             <Badge variant="outline" className="text-xs font-semibold gap-1 bg-secondary/40 text-foreground border-border">
               <School className="w-3.5 h-3.5 text-primary" />
@@ -217,6 +229,23 @@ export const AnnouncementCard: React.FC<AnnouncementCardProps> = ({
       <p className="text-xs sm:text-sm text-muted-foreground whitespace-pre-line mb-4 leading-relaxed">
         {announcement.content}
       </p>
+
+      {(announcement.attachments?.length ?? 0) > 0 && (
+        <ul className="mb-4 flex flex-wrap gap-2" aria-label="Archivos adjuntos">
+          {announcement.attachments!.map((a) => (
+            <li key={a.fileId}>
+              <button
+                type="button"
+                onClick={() => void openFile(`/api/files/${a.fileId}`).catch(() => toast.error('No se pudo abrir el archivo.'))}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-secondary/40 px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary"
+              >
+                <Paperclip className="h-3.5 w-3.5 text-primary" />
+                {a.name}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
 
       <AnnouncementResponsePanel announcement={announcement} />
 

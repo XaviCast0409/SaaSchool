@@ -186,6 +186,16 @@ export const useDocumentRequests = (status?: DocumentStatus) =>
     queryFn: async () => (await api.get<{ data: DocumentRequestRow[] }>('/secretariat/documents', { params: { status } })).data.data,
   });
 
+/** Trámite pedido en ventanilla (lo registra Secretaría en nombre de la familia). */
+export const useCreateDocumentAtDesk = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { studentId: string; type: DocumentType; purpose?: string; copies: number; requesterName: string }) =>
+      (await api.post<{ data: DocumentRequestRow }>('/secretariat/documents', input)).data.data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+  });
+};
+
 export const useUpdateDocument = () => {
   const qc = useQueryClient();
   return useMutation({

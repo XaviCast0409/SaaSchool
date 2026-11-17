@@ -89,3 +89,10 @@ export function lateFeeInterest(balance: Money, annualRatePct: Money, daysOverdu
 export function pendingLateFee(interestDue: Money, alreadyCharged: Money): number {
   return fromCents(Math.max(0, toCents(interestDue) - toCents(alreadyCharged)));
 }
+
+/**
+ * Tope de la tasa de interés moratorio anual (%). La Ley 27665 la limita a la tasa de interés
+ * interbancaria del BCRP (alrededor de 4-5 %). Se deja margen para variaciones, pero se rechaza
+ * cualquier tasa claramente usuraria.
+ */
+export const LATE_FEE_MAX_ANNUAL_RATE = 15;

@@ -59,7 +59,7 @@ export const BulkCredentialsModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+      <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
         <div className="bg-card w-full max-w-md rounded-2xl shadow-2xl border border-border p-6 space-y-5 text-foreground">
           {/* Header */}
           <div className="flex items-start justify-between gap-4">

@@ -1,5 +1,6 @@
 import { useSelectedAcademicYear } from '@/components/AcademicYearSwitcher';
 import React, { useEffect, useState } from 'react';
+import { currentPeriodNumber } from '../utils/periods';
 import { Link } from 'react-router-dom';
 import { Download, Loader2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
@@ -25,10 +26,11 @@ export const AcademicReportsPage: React.FC = () => {
   const [tab, setTab] = useState<Tab>('consolidated');
   const [showCourses, setShowCourses] = useState(true);
   const [classroomId, setClassroomId] = useState<string | null>(null);
-  const [period, setPeriod] = useState<number | 'FINAL'>(1);
+  const [period, setPeriod] = useState<number | 'FINAL' | null>(null);
+  useEffect(() => { if (periods && period === null) setPeriod(currentPeriodNumber(periods.periods)); }, [periods, period]);
   const [downloading, setDownloading] = useState(false);
   useEffect(() => { if (!classroomId && classrooms.length) setClassroomId(classrooms[0].id); }, [classrooms, classroomId]);
-  const { data, isLoading } = useConsolidation(tab === 'report-cards' ? null : classroomId, period);
+  const { data, isLoading } = useConsolidation(tab === 'report-cards' || period === null ? null : classroomId, period ?? 1);
   const coursesOf = (areaCode: string) => (showCourses && data ? data.matrix.courses.filter((c) => c.officialCode === areaCode) : []);
   const sorted = [...classrooms].sort((a, b) => a.educationLevel.localeCompare(b.educationLevel) || a.grade - b.grade || a.section.localeCompare(b.section));
 
@@ -55,7 +57,7 @@ export const AcademicReportsPage: React.FC = () => {
           {sorted.map((c) => <option key={c.id} value={c.id}>{classroomLabel({ educationLevel: c.educationLevel as Level, grade: c.grade, section: c.section })}</option>)}
         </Select>
         {tab !== 'report-cards' && (
-          <Select aria-label="Periodo" value={String(period)} onChange={(e) => setPeriod(e.target.value === 'FINAL' ? 'FINAL' : Number(e.target.value))}>
+          <Select aria-label="Periodo" value={String(period ?? '')} onChange={(e) => setPeriod(e.target.value === 'FINAL' ? 'FINAL' : Number(e.target.value))}>
             {periods?.periods.map((p) => <option key={p.periodNumber} value={p.periodNumber}>{p.name}</option>)}
             <option value="FINAL">Calificativo final</option>
           </Select>

@@ -110,7 +110,7 @@ export const EditObligationModal: React.FC<EditObligationModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-card w-full max-w-lg rounded-2xl border border-border shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-border bg-muted/40">
@@ -137,11 +137,11 @@ export const EditObligationModal: React.FC<EditObligationModalProps> = ({
         <form onSubmit={handleSubmit} className="p-5 space-y-4 text-xs">
           {/* Concepto / Título */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+            <label htmlFor="editobligationmodal-field-1" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
               <Tag className="w-3.5 h-3.5 text-primary" />
               <span>Título de la cuota</span>
             </label>
-            <Input
+            <Input id="editobligationmodal-field-1"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="text-xs h-9 rounded-xl"
@@ -150,8 +150,8 @@ export const EditObligationModal: React.FC<EditObligationModalProps> = ({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-foreground">Concepto</label>
-            <select
+            <label htmlFor="editobligationmodal-field-2" className="text-xs font-semibold text-foreground">Concepto</label>
+            <select id="editobligationmodal-field-2"
               value={concept}
               onChange={(e) => setConcept(e.target.value)}
               className="w-full text-xs h-9 rounded-xl border border-input bg-background px-3 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
@@ -173,11 +173,11 @@ export const EditObligationModal: React.FC<EditObligationModalProps> = ({
           {/* Monto y Fecha */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <label htmlFor="editobligationmodal-field-3" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                 <DollarSign className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span>Monto a Cobrar (S/)</span>
               </label>
-              <Input
+              <Input id="editobligationmodal-field-3"
                 type="number"
                 step="0.01"
                 min="0"
@@ -189,11 +189,11 @@ export const EditObligationModal: React.FC<EditObligationModalProps> = ({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <label htmlFor="editobligationmodal-field-4" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5 text-primary" />
                 <span>Fecha de Vencimiento</span>
               </label>
-              <Input
+              <Input id="editobligationmodal-field-4"
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
@@ -210,11 +210,11 @@ export const EditObligationModal: React.FC<EditObligationModalProps> = ({
 
           {/* Motivo / Notas */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+            <label htmlFor="editobligationmodal-field-5" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
               <FileText className="w-3.5 h-3.5 text-muted-foreground" />
               <span>Motivo del cambio (obligatorio si cambias el monto o el concepto)</span>
             </label>
-            <textarea
+            <textarea id="editobligationmodal-field-5"
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}

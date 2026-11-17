@@ -1,3 +1,4 @@
+import { UBIGEO_CODES } from '../students/ubigeo.catalog';
 import type { DocumentType, EnrollmentCondition, Gender, RelationshipType } from '@prisma/client';
 import { SIAGIE_CATALOGS } from '../students/student.catalogs';
 import type { RawRow } from './student-import.columns';
@@ -198,7 +199,11 @@ function optionalUbigeo(text: string, label: string, warnings: string[]): string
   const value = cleanIdentifier(text);
   if (!value) return null;
   const padded = /^\d{5}$/.test(value) ? value.padStart(6, '0') : value;
-  if (/^\d{6}$/.test(padded)) return padded;
+  if (/^\d{6}$/.test(padded)) {
+    if (UBIGEO_CODES.has(padded)) return padded;
+    warnings.push(`El ${label} "${padded}" no existe en el catálogo del INEI. Se carga sin ese dato.`);
+    return null;
+  }
   warnings.push(`El ${label} debe tener 6 dígitos ("${value}"). Se carga sin ese dato.`);
   return null;
 }
@@ -215,8 +220,8 @@ function parseGuardian(cells: GuardianCells, owner: string, issues: string[], wa
   else if (!relationshipType) issues.push(`Parentesco ${owner} no reconocido: "${clean(cells.relationship)}".`);
   const firstName = upper(clean(cells.firstName));
   const lastNamePaternal = upper(clean(cells.lastNamePaternal));
-  if (firstName.length < 2) issues.push(`Faltan los nombres ${owner}.`);
-  if (lastNamePaternal.length < 2) issues.push(`Falta el apellido paterno ${owner}.`);
+  if (firstName.length < 2) issues.push(firstName ? `Los nombres ${owner} son muy cortos ("${firstName}").` : `Faltan los nombres ${owner}.`);
+  if (lastNamePaternal.length < 2) issues.push(lastNamePaternal ? `El apellido paterno ${owner} es muy corto ("${lastNamePaternal}").` : `Falta el apellido paterno ${owner}.`);
   const documentType = parseDocumentType(cells.documentType);
   if (!documentType) issues.push(`Tipo de documento ${owner} no reconocido: "${clean(cells.documentType)}".`);
   const document = checkDocument(documentType ?? 'DNI', cells.documentId, owner);
@@ -251,8 +256,8 @@ export function parseImportRow(raw: RawRow, rowNumber: number, today: Date = new
   // ── Alumno
   const firstNames = upper(clean(raw.firstNames));
   const lastNamePaternal = upper(clean(raw.lastNamePaternal));
-  if (lastNamePaternal.length < 2) issues.push('Falta el apellido paterno del alumno.');
-  if (firstNames.length < 2) issues.push('Faltan los nombres del alumno.');
+  if (lastNamePaternal.length < 2) issues.push(lastNamePaternal ? `El apellido paterno del alumno es muy corto ("${lastNamePaternal}").` : 'Falta el apellido paterno del alumno.');
+  if (firstNames.length < 2) issues.push(firstNames ? `Los nombres del alumno son muy cortos ("${firstNames}").` : 'Faltan los nombres del alumno.');
 
   const documentType = parseDocumentType(raw.documentType);
   if (!documentType) issues.push(`Tipo de documento del alumno no reconocido: "${clean(raw.documentType)}".`);

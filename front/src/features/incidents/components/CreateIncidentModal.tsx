@@ -20,7 +20,8 @@ import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import type { IncidentType } from '../types';
 
 const incidentSchema = z.object({
-  studentId: z.string().min(1, 'Selecciona un estudiante'),
+  // Los alumnos se eligen aparte (pueden ser varios); el campo queda para compatibilidad
+  studentId: z.string().optional(),
   type: z.enum([
     'MERITO',
     'DEMERITO',
@@ -38,6 +39,7 @@ const incidentSchema = z.object({
   actionTaken: z.string().optional(),
   citationDate: z.string().optional(),
   isViolenceCase: z.boolean().default(false),
+  notifyFamily: z.boolean().default(true),
 });
 
 type FormData = z.infer<typeof incidentSchema>;
@@ -61,6 +63,9 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
   defaultStudentId,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  // Una incidencia puede involucrar a varios alumnos (p. ej. una pelea): se registra una ficha por alumno
+  const [picked, setPicked] = useState<Array<{ id: string; name: string; room: string }>>([]);
+  const [pickError, setPickError] = useState<string | null>(null);
   const debouncedSearch = useDebouncedValue(searchTerm.trim(), 300);
   const { data: studentsData, isLoading: loadingStudents } = useStudents(
     { page: 1, limit: 50, search: debouncedSearch || undefined },
@@ -86,6 +91,7 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
       actionTaken: '',
       citationDate: '',
       isViolenceCase: false,
+      notifyFamily: true,
     },
   });
 
@@ -96,21 +102,35 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
 
   const students = studentsData?.data || [];
 
-  const onSubmit = async (data: FormData) => {
-    try {
-      await createMutation.mutateAsync({
-        studentId: data.studentId,
-        type: data.type,
-        severity: data.severity,
-        title: data.title,
-        description: data.description,
-        actionTaken: data.actionTaken || undefined,
-        citationDate: data.citationDate || undefined,
-        isViolenceCase: Boolean(data.isViolenceCase),
-      });
+  const roomOf = (st: (typeof students)[number]) => {
+    const c = st.enrollments?.find((e) => e.classroom)?.classroom as { grade?: number; section?: string } | undefined;
+    return c?.grade ? `${c.grade}° "${c.section ?? ''}"` : '';
+  };
 
-      toast.success('Incidencia registrada y notificada a los apoderados.');
+  const onSubmit = async (data: FormData) => {
+    const targets = picked.length > 0 ? picked : defaultStudentId ? [{ id: defaultStudentId, name: '', room: '' }] : [];
+    if (targets.length === 0) {
+      setPickError('Elige al menos un estudiante.');
+      return;
+    }
+    try {
+      for (const t of targets) {
+        await createMutation.mutateAsync({
+          studentId: t.id,
+          type: data.type,
+          severity: data.type === 'MERITO' ? 'LOW' : data.severity,
+          title: data.title,
+          description: data.description,
+          actionTaken: data.actionTaken || undefined,
+          citationDate: data.citationDate || undefined,
+          isViolenceCase: Boolean(data.isViolenceCase),
+          notifyFamily: Boolean(data.notifyFamily),
+        });
+      }
+      const who = targets.length === 1 ? 'Incidencia registrada' : `${targets.length} incidencias registradas (una por alumno)`;
+      toast.success(data.notifyFamily ? `${who} y notificada(s) a los apoderados.` : `${who} sin aviso a las familias.`);
       reset();
+      setPicked([]);
       onClose();
     } catch (err: unknown) {
       const errorMsg =
@@ -121,7 +141,7 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-card w-full max-w-lg rounded-2xl border border-border shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-border bg-muted/40">
@@ -157,27 +177,49 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
               <User className="w-3.5 h-3.5 text-primary" />
               <span>Estudiante:</span>
             </label>
-            <div className="space-y-1">
+            <div className="space-y-1.5">
+              {picked.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {picked.map((p) => (
+                    <span key={p.id} className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                      {p.name}{p.room ? ` · ${p.room}` : ''}
+                      <button type="button" aria-label={`Quitar a ${p.name}`} onClick={() => setPicked((list) => list.filter((x) => x.id !== p.id))}>
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
               <input
                 type="text"
-                placeholder="Filtrar por apellido o documento..."
+                placeholder="Busca por apellido, nombre o DNI y elige (puedes agregar varios)"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                aria-label="Buscar estudiante"
                 className="w-full text-xs h-8 bg-background border border-border rounded-lg px-2.5 text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary"
               />
-              <select
-                {...register('studentId')}
-                className="w-full h-9 rounded-lg border border-border bg-background px-3 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
-              >
-                <option value="">— Selecciona un Estudiante —</option>
-                {students.map((st) => (
-                  <option key={st.id} value={st.id}>
-                    {st.lastNamePaternal} {st.lastNameMaternal || ''}, {st.firstNames} (
-                    {st.documentType}: {st.documentId})
-                  </option>
-                ))}
-              </select>
+              {searchTerm.trim().length >= 2 && (
+                <ul className="max-h-40 overflow-y-auto divide-y divide-border rounded-lg border border-border">
+                  {students.filter((st) => !picked.some((p) => p.id === st.id)).slice(0, 12).map((st) => (
+                    <li key={st.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPicked((list) => [...list, { id: st.id, name: `${st.lastNamePaternal} ${st.lastNameMaternal || ''}, ${st.firstNames}`.replace(/\s+,/, ','), room: roomOf(st) }]);
+                          setSearchTerm('');
+                          setPickError(null);
+                        }}
+                        className="flex w-full items-center justify-between gap-2 px-2.5 py-1.5 text-left text-xs hover:bg-muted"
+                      >
+                        <span>{st.lastNamePaternal} {st.lastNameMaternal || ''}, {st.firstNames}</span>
+                        <span className="text-muted-foreground">{roomOf(st) || st.documentId}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
+            {pickError && <p className="text-xs text-destructive font-semibold">{pickError}</p>}
             {errors.studentId && (
               <p className="text-xs text-destructive font-semibold">
                 {errors.studentId.message}
@@ -188,8 +230,8 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
           {/* Tipo y Severidad */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground">Tipo de Evento:</label>
-              <select
+              <label htmlFor="createincidentmodal-type" className="text-xs font-bold text-foreground">Tipo de Evento:</label>
+              <select id="createincidentmodal-type"
                 {...register('type')}
                 className="w-full h-9 rounded-lg border border-border bg-background px-3 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
               >
@@ -206,9 +248,10 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
               )}
             </div>
 
+            {selectedType !== 'MERITO' && (
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground">Severidad:</label>
-              <select
+              <label htmlFor="createincidentmodal-severity" className="text-xs font-bold text-foreground">Severidad:</label>
+              <select id="createincidentmodal-severity"
                 {...register('severity')}
                 className="w-full h-9 rounded-lg border border-border bg-background px-3 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
               >
@@ -218,14 +261,15 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
                 <option value="CRITICAL">Grave / Urgente</option>
               </select>
             </div>
+            )}
           </div>
 
           {/* Título */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-foreground">Título de la Incidencia:</label>
-            <Input
+            <label htmlFor="createincidentmodal-title" className="text-xs font-bold text-foreground">Título de la Incidencia:</label>
+            <Input id="createincidentmodal-title"
               {...register('title')}
-              placeholder="Ej. Fiebre y malestar estomacal en clase"
+              placeholder={selectedType === 'MERITO' ? 'Ej. Ayudó a un compañero en clase' : selectedType === 'ATENCION_TOPICO' ? 'Ej. Fiebre y malestar estomacal en clase' : selectedType === 'CITACION_PADRES' ? 'Ej. Citación por inasistencias' : 'Ej. Interrumpió la clase reiteradamente'}
               className="h-9 text-xs"
             />
             {errors.title && (
@@ -238,11 +282,11 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
           {/* Fecha de Citación si aplica */}
           {selectedType === 'CITACION_PADRES' && (
             <div className="space-y-1.5 p-3 rounded-xl bg-purple-500/10 border border-purple-500/20">
-              <label className="text-xs font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
+              <label htmlFor="createincidentmodal-citationDate" className="text-xs font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
                 <CalendarClock className="w-3.5 h-3.5" />
                 <span>Fecha y Hora de la Citación:</span>
               </label>
-              <Input
+              <Input id="createincidentmodal-citationDate"
                 type="datetime-local"
                 {...register('citationDate')}
                 className="h-9 text-xs bg-background"
@@ -252,8 +296,8 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
 
           {/* Descripción */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-foreground">Descripción detallada:</label>
-            <textarea
+            <label htmlFor="createincidentmodal-description" className="text-xs font-bold text-foreground">Descripción detallada:</label>
+            <textarea id="createincidentmodal-description"
               {...register('description')}
               rows={3}
               placeholder="Explica lo sucedido con claridad y objetividad..."
@@ -268,10 +312,10 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
 
           {/* Medida o Acción Tomada */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-muted-foreground">
+            <label htmlFor="createincidentmodal-actionTaken" className="text-xs font-bold text-muted-foreground">
               Medida adoptada / Acción tomada (Opcional):
             </label>
-            <Input
+            <Input id="createincidentmodal-actionTaken"
               {...register('actionTaken')}
               placeholder="Ej. Se aplicó compresa fría, se llamó al padre, etc."
               className="h-9 text-xs"
@@ -301,6 +345,14 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
             )}
           </div>
 
+          <label className="flex items-start gap-2.5 cursor-pointer">
+            <input type="checkbox" {...register('notifyFamily')} className="mt-0.5 h-4 w-4 rounded border-border accent-primary" />
+            <span className="text-xs text-foreground leading-snug select-none">
+              <strong>Avisar a la familia por la app</strong>
+              <span className="block text-muted-foreground">Desmárcalo si prefieres conversarlo antes en persona; el registro queda igual en la agenda.</span>
+            </span>
+          </label>
+
           {/* Footer */}
           <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
             <Button
@@ -317,7 +369,7 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
               disabled={isSubmitting || loadingStudents}
               className="text-xs font-black bg-primary text-primary-foreground hover:bg-primary/90"
             >
-              {isSubmitting ? 'Registrando...' : 'Guardar y Notificar'}
+              {isSubmitting ? 'Registrando...' : watch('notifyFamily') ? 'Guardar y avisar' : 'Guardar sin avisar'}
             </Button>
           </div>
         </form>

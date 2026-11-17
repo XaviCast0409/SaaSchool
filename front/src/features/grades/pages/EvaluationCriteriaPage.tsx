@@ -451,9 +451,13 @@ export const EvaluationCriteriaPage: React.FC = () => {
               <p className="text-sm font-semibold text-foreground">
                 No hay criterios configurados aún
               </p>
-              <p className="text-xs max-w-sm mx-auto">
-                Haz clic en el botón superior para agregar el primer criterio de evaluación para tu colegio.
+              <p className="text-xs max-w-md mx-auto">
+                Mientras no haya criterios, cada docente registra directamente el calificativo de cada competencia (AD, A, B o C).
+                Si tu colegio califica por rubros (prácticas, exámenes, cuaderno), agrega tus criterios o carga la plantilla estándar.
               </p>
+              <Button type="button" variant="outline" size="sm" onClick={handleApplyPreset} disabled={isSaving}>
+                Cargar plantilla estándar
+              </Button>
             </div>
           ) : (
             <div className="overflow-x-auto">

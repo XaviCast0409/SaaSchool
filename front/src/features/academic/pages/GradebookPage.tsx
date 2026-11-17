@@ -132,7 +132,11 @@ export const GradebookPage: React.FC = () => {
               <p className="mb-3 text-sm text-muted-foreground">{data.competences.find((c) => c.id === competenceId)?.name}</p>
               {data.criteria.length === 0 && <p className="mb-3 text-sm text-muted-foreground">Este curso no usa criterios: registra directamente el calificativo final.</p>}
               <GradebookGrid data={data} competenceId={competenceId} reason={reason} onNeedReason={() => setReasonOpen(true)} onStatus={(s, msg, invalidCount) => setStatus({ s, msg, invalidCount })} />
-              <p className="mt-2 text-xs text-muted-foreground">Escribe un número de 0 a 20 o AD, A, B, C, EXO. Puedes pegar columnas desde Excel. Enter baja a la siguiente fila.</p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {data.criteria.length > 0
+                  ? 'En cada criterio escribe un número de 0 a 20 o AD, A, B, C, EXO. Puedes pegar columnas desde Excel. Enter baja a la siguiente fila. El calificativo final se sugiere solo; puedes cambiarlo.'
+                  : 'Elige el calificativo de cada estudiante en la lista (AD, A, B, C o EXO). Se guarda al instante.'}
+              </p>
             </div>
           )}
           {tab === 'summary' && <SummaryTable data={data} onPick={(id) => { setCompetenceId(id); setTab('competence'); }} />}

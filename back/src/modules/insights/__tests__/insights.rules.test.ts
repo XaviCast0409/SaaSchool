@@ -20,10 +20,10 @@ describe('alerta temprana académica', () => {
     expect(computeRisk({ ...zero, unjustifiedAbsences30: 20 }).level).toBe('MEDIO');
   });
 
-  it('las tardanzas suman poco y solo se mencionan si son varias', () => {
+  it('las tardanzas suman poco, pero siempre se explican', () => {
     const r = computeRisk({ ...zero, lates30: 2 });
     expect(r.level).toBe('BAJO');
-    expect(r.reasons).toEqual([]);
+    expect(r.reasons).toEqual(['2 tardanzas en 30 días']);
     expect(computeRisk({ ...zero, lates30: 4 }).reasons).toEqual(['4 tardanzas en 30 días']);
   });
 

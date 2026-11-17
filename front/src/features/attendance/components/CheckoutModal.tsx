@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/axios';
 import {
   X,
   LogOut,
@@ -19,6 +21,17 @@ import { useCheckoutPreview, useCheckout } from '../api/useCheckout';
 import { useResolvedFileUrl } from '@/features/course-contents/api/useResolvedFileUrl';
 import { formatPeruTime } from '@/lib/dateUtils';
 import { relationshipLabel } from '@/features/users/family-relationships/relationshipLabels';
+import { useAuthStore } from '@/store/useAuthStore';
+
+interface RosterStudent {
+  studentCode: string | null;
+  documentId: string;
+  fullName: string;
+  classroom: string;
+}
+
+/** Sin tildes ni mayúsculas, para que «quispe» encuentre a «QUISPE HUAMÁN». */
+const fold = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
 interface CheckoutModalProps {
   open: boolean;
@@ -75,13 +88,33 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
   const [useCamera, setUseCamera] = useState(false);
 
   // Selección de persona
-  const [selectedPickupType, setSelectedPickupType] = useState<'GUARDIAN' | 'AUTHORIZED' | 'SELF' | null>(null);
+  const [selectedPickupType, setSelectedPickupType] = useState<'GUARDIAN' | 'AUTHORIZED' | 'SELF' | 'OTHER' | null>(null);
+  // Persona eventual (con autorización escrita del apoderado): solo la oficina puede registrarla
+  const [otherName, setOtherName] = useState('');
+  const [otherDocument, setOtherDocument] = useState('');
+  const role = useAuthStore((s) => s.user?.role);
+  const canRegisterOther = role === 'SCHOOL_ADMIN' || role === 'ADMINISTRATIVE' || role === 'SUPER_ADMIN';
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [earlyLeaveReason, setEarlyLeaveReason] = useState('');
   // Confirmación grande tras registrar: el portero ve de un vistazo que quedó hecho
   const [lastCheckout, setLastCheckout] = useState<{ student: string; detail: string; familyNotified: boolean } | null>(null);
 
   const { data: previewData, isLoading: isLoadingPreview, error: previewError } = useCheckoutPreview(scannedCode);
+
+  // Padrón del colegio (el mismo del escáner QR) para buscar por nombre: el portero suele saber
+  // cómo se llama el alumno, no su DNI.
+  const { data: roster = [] } = useQuery({
+    queryKey: ['attendance', 'scan-roster'],
+    queryFn: async () => (await api.get<{ data: RosterStudent[] }>('/attendance/scan-roster')).data.data,
+    enabled: open,
+    staleTime: 5 * 60_000,
+  });
+  const nameQuery = manualCode.trim();
+  const nameMatches = useMemo(() => {
+    if (nameQuery.length < 3 || /^\d+$/.test(nameQuery)) return [];
+    const words = fold(nameQuery).split(/\s+/).filter(Boolean);
+    return roster.filter((r) => words.every((w) => fold(r.fullName).includes(w))).slice(0, 8);
+  }, [roster, nameQuery]);
   const { mutateAsync: doCheckout, isPending: isCheckingOut } = useCheckout();
 
   if (!open) return null;
@@ -99,12 +132,20 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
   const handleManualSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!manualCode.trim()) return;
+    // Si escribió un nombre: con una sola coincidencia se abre directo; con varias, se elige de la lista.
+    if (!/^\d+$/.test(nameQuery) && nameQuery.length >= 3) {
+      if (nameMatches.length === 1) return handleScanCode(nameMatches[0].documentId);
+      if (nameMatches.length > 1) return;
+      // Sin coincidencias por nombre puede ser un documento con letras (CE, pasaporte): se busca como código.
+    }
     handleScanCode(manualCode);
   };
 
   const handleResetSearch = () => {
     setScannedCode(null);
     setManualCode('');
+    setOtherName('');
+    setOtherDocument('');
     setSelectedPickupType(null);
     setSelectedPersonId(null);
     setEarlyLeaveReason('');
@@ -112,13 +153,16 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
 
   const handleSubmitCheckout = async () => {
     if (!scannedCode || !selectedPickupType) return;
-    if (selectedPickupType !== 'SELF' && !selectedPersonId) return;
+    if (selectedPickupType === 'OTHER') {
+      if (otherName.trim().length < 5 || otherDocument.trim().length < 6 || earlyLeaveReason.trim().length < 5) return;
+    } else if (selectedPickupType !== 'SELF' && !selectedPersonId) return;
 
     await doCheckout({
       code: scannedCode,
       pickupType: selectedPickupType,
-      pickupPersonId: selectedPersonId || undefined,
+      pickupPersonId: selectedPickupType === 'OTHER' ? undefined : selectedPersonId || undefined,
       earlyLeaveReason: earlyLeaveReason.trim() || undefined,
+      ...(selectedPickupType === 'OTHER' ? { otherPickupName: otherName.trim(), otherPickupDocument: otherDocument.trim() } : {}),
     });
 
     const pickerName =
@@ -153,7 +197,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
   const hasNoEntry = !attendance || !['PRESENT', 'LATE_JUSTIFIED', 'LATE_UNJUSTIFIED'].includes(attendance.status);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 sm:p-4 backdrop-blur-sm animate-in fade-in">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 sm:p-4 backdrop-blur-sm animate-in fade-in">
       <div className="w-full max-w-2xl rounded-2xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border p-4 bg-muted/30">
@@ -233,8 +277,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
                   type="text"
                   value={manualCode}
                   onChange={(e) => setManualCode(e.target.value)}
-                  placeholder="Ingresa DNI o código del estudiante..."
-                  aria-label="DNI o código del estudiante"
+                  placeholder="Nombre, apellido, DNI o código del estudiante..."
+                  aria-label="Nombre, DNI o código del estudiante"
                   // Listo para escribir o escanear (lector USB) sin tocar la pantalla
                   autoFocus
                   className="flex-1 rounded-xl border border-border bg-background px-3.5 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
@@ -244,6 +288,25 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
                   <span>Buscar</span>
                 </Button>
               </form>
+              {nameMatches.length > 0 && (
+                <ul className="divide-y divide-border rounded-xl border border-border" aria-label="Coincidencias por nombre">
+                  {nameMatches.map((r) => (
+                    <li key={r.documentId}>
+                      <button
+                        type="button"
+                        onClick={() => handleScanCode(r.documentId)}
+                        className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-xs hover:bg-muted"
+                      >
+                        <span className="font-semibold text-foreground">{r.fullName}</span>
+                        <span className="text-muted-foreground">{r.classroom}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {nameQuery.length >= 3 && !/^\d+$/.test(nameQuery) && nameMatches.length === 0 && roster.length > 0 && (
+                <p className="text-xs text-muted-foreground">Ningún alumno matriculado coincide con «{nameQuery}».</p>
+              )}
             </div>
           ) : isLoadingPreview ? (
             <div className="p-12 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
@@ -413,6 +476,42 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
                       );
                     })}
 
+                    {/* Persona eventual: alguien no registrado que trae autorización escrita del apoderado */}
+                    {canRegisterOther && (
+                      <div
+                        onClick={() => {
+                          setSelectedPickupType('OTHER');
+                          setSelectedPersonId(null);
+                        }}
+                        className={`p-3 rounded-xl border cursor-pointer space-y-2 transition-all ${
+                          selectedPickupType === 'OTHER'
+                            ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                            : 'border-dashed border-border bg-card hover:border-primary/40'
+                        }`}
+                      >
+                        <span className="text-xs font-bold text-foreground block">Otra persona con autorización escrita</span>
+                        <span className="text-xs text-muted-foreground block">Solo hoy. Queda registrada y se avisa a la familia.</span>
+                        {selectedPickupType === 'OTHER' && (
+                          <div className="grid gap-2 sm:grid-cols-2" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              value={otherName}
+                              onChange={(e) => setOtherName(e.target.value)}
+                              placeholder="Nombres y apellidos"
+                              aria-label="Nombres y apellidos de quien recoge"
+                              className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs"
+                            />
+                            <input
+                              value={otherDocument}
+                              onChange={(e) => setOtherDocument(e.target.value)}
+                              placeholder="DNI o documento"
+                              aria-label="Documento de quien recoge"
+                              className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {/* Opción Salida por su cuenta (Solo Secundaria) */}
                     {isSecondary && (
                       <div
@@ -455,13 +554,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
                   {/* Motivo de salida anticipada */}
                   <div>
                     <label className="text-xs font-bold text-foreground block mb-1">
-                      Motivo de salida anticipada (opcional)
+                      {selectedPickupType === 'OTHER' ? 'Autorización del apoderado (obligatorio)' : 'Motivo de salida anticipada (opcional)'}
                     </label>
                     <input
                       type="text"
                       value={earlyLeaveReason}
                       onChange={(e) => setEarlyLeaveReason(e.target.value)}
-                      placeholder="Ej. Cita odontológica, retiro con autorización escrita..."
+                      placeholder={selectedPickupType === 'OTHER' ? 'Ej. Carta firmada por la madre; se confirmó por llamada a las 12:10' : 'Ej. Cita odontológica, retiro con autorización escrita...'}
                       className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
@@ -484,7 +583,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
               disabled={
                 isCheckingOut ||
                 !selectedPickupType ||
-                (selectedPickupType !== 'SELF' && !selectedPersonId)
+                (selectedPickupType === 'OTHER'
+                  ? otherName.trim().length < 5 || otherDocument.trim().length < 6 || earlyLeaveReason.trim().length < 5
+                  : selectedPickupType !== 'SELF' && !selectedPersonId)
               }
               onClick={handleSubmitCheckout}
               className="rounded-xl text-xs font-bold gap-1.5"

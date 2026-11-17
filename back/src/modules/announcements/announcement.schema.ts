@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Role, AnnouncementPriority } from '@prisma/client';
+import { Role, AnnouncementPriority, EducationLevel } from '@prisma/client';
 
 const baseAnnouncementSchema = z.object({
   title: z.string().min(3, 'El título debe tener al menos 3 caracteres').max(200),
@@ -7,6 +7,9 @@ const baseAnnouncementSchema = z.object({
   priority: z.nativeEnum(AnnouncementPriority).default(AnnouncementPriority.NORMAL),
   targetRoles: z.array(z.nativeEnum(Role)).min(1, 'Debe especificar al menos un rol de destino'),
   classroomId: z.string().uuid('ID de aula inválido').optional(),
+  // Alternativa al aula: todo un nivel o, con targetGrade, todo un grado (p. ej. «todo 5.° de Primaria»)
+  targetLevel: z.nativeEnum(EducationLevel).optional().nullable(),
+  targetGrade: z.number().int().min(1).max(6).optional().nullable(),
   // "Visible hasta": null = sin fecha (se archiva solo a los 60 días de publicado)
   expiresAt: z
     .string()
@@ -22,9 +25,27 @@ const baseAnnouncementSchema = z.object({
     .nullable()
     .transform((val) => (val ? new Date(val) : null)),
   pollOptions: z.array(z.string().trim().min(1).max(80)).max(6).default([]),
+  // Hasta 3 archivos ya subidos con /uploads/materials (circular en PDF, afiche, formulario)
+  attachments: z
+    .array(
+      z.object({
+        fileId: z.string().uuid(),
+        name: z.string().trim().min(1).max(200),
+        size: z.number().int().min(0).max(30 * 1024 * 1024),
+        type: z.string().trim().max(120),
+      }),
+    )
+    .max(3, 'Puedes adjuntar hasta 3 archivos.')
+    .optional(),
 });
 
-const responseRules = <T extends { responseType?: string; pollOptions?: string[]; targetRoles?: string[] }>(v: T, ctx: z.RefinementCtx) => {
+const responseRules = <T extends { responseType?: string; pollOptions?: string[]; targetRoles?: string[]; classroomId?: string; targetLevel?: string | null; targetGrade?: number | null }>(v: T, ctx: z.RefinementCtx) => {
+  if (v.targetGrade != null && !v.targetLevel) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['targetGrade'], message: 'Para dirigir a un grado indica también el nivel.' });
+  }
+  if (v.classroomId && v.targetLevel) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['targetLevel'], message: 'Elige un aula o un nivel/grado, no ambos.' });
+  }
   if (v.responseType === 'POLL' && new Set(v.pollOptions ?? []).size < 2) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['pollOptions'], message: 'La encuesta necesita al menos 2 opciones distintas.' });
   }

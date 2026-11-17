@@ -167,6 +167,10 @@ export class CashService {
     if (session.cashierId === actor.userId && actor.level !== 'ADMIN') {
       throw new AppError('Otra persona (tesorería o Dirección) debe revisar tu propio cierre.', 403);
     }
+    // La Dirección puede revisar su propia caja (colegios donde no hay otra persona), pero debe dejarlo escrito.
+    if (session.cashierId === actor.userId && !reviewNote?.trim()) {
+      throw new AppError('Estás revisando tu propio cierre: escribe una observación para que quede constancia.', 400);
+    }
     if (session.difference && Number(session.difference) !== 0 && !reviewNote?.trim()) {
       throw new AppError('El cierre tiene diferencia: escribe una observación al revisarlo.', 400);
     }

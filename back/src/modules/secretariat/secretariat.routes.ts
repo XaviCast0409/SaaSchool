@@ -333,6 +333,47 @@ const documentUpdate = z.object({
   releaseHold: z.boolean().optional(),
 });
 
+/**
+ * Solicitud registrada en ventanilla: la familia pidió la constancia en persona (no tiene la app
+ * o prefiere hacerlo en el colegio). Sigue el mismo flujo y las mismas reglas que las de la app.
+ */
+secretariatRouter.post('/documents', staffOnly, async (req: Request, res: Response) => {
+  const dto = z
+    .object({
+      studentId: z.string().uuid(),
+      type: z.enum(DOCUMENT_TYPES),
+      purpose: z.string().trim().max(300).optional(),
+      copies: z.number().int().min(1).max(5).default(1),
+      requesterName: z.string().trim().min(3, 'Indica quién lo solicita.').max(120),
+    })
+    .refine((v) => v.type !== 'OTRO' || v.purpose, { message: 'Describe qué documento necesita.', path: ['purpose'] })
+    .parse(req.body);
+  const schoolId = req.user!.schoolId;
+  const student = await prisma.student.findFirst({
+    where: { id: dto.studentId, schoolId },
+    select: { id: true, firstNames: true, lastNamePaternal: true, lastNameMaternal: true },
+  });
+  if (!student) throw new AppError('Alumno no encontrado.', 404);
+  const open = await prisma.documentRequest.count({ where: { studentId: dto.studentId, type: dto.type, status: { in: ['REQUESTED', 'IN_PROCESS'] } } });
+  if (open) throw new AppError('Ya hay una solicitud en trámite de este documento para el alumno.', 409);
+
+  const school = await prisma.school.findUnique({ where: { id: schoolId }, select: { blockCertificatesOnOverdue: true } });
+  const debt = school?.blockCertificatesOnOverdue && dto.type === 'CERTIFICADO_ESTUDIOS' ? await overdueDebt(schoolId, dto.studentId) : 0;
+  const debtHold = Boolean(school?.blockCertificatesOnOverdue) && debtHoldApplies(dto.type, debt);
+  const purpose = [dto.purpose, `Solicitado en ventanilla por ${dto.requesterName}`].filter(Boolean).join(' · ');
+
+  const row = await prisma.documentRequest.create({
+    data: { schoolId, studentId: dto.studentId, requestedById: req.user!.userId, type: dto.type, purpose, copies: dto.copies, debtHold },
+  });
+  recordAudit(req, {
+    action: 'DOCUMENT_REQUEST_CREATED',
+    entity: 'DocumentRequest',
+    entityId: row.id,
+    after: { alumno: studentShortName(student), documento: DOCUMENT_LABEL[dto.type], solicitante: dto.requesterName },
+  });
+  res.status(201).json({ status: 'success', data: { ...row, typeLabel: DOCUMENT_LABEL[row.type] } });
+});
+
 secretariatRouter.patch('/documents/:id', staffOnly, async (req: Request, res: Response) => {
   const { id } = idParam.parse(req.params);
   const dto = documentUpdate.parse(req.body);

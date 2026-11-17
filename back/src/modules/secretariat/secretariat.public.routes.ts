@@ -17,11 +17,13 @@ import { requireTurnstile } from '../../core/middlewares/turnstile.middleware';
  */
 export const secretariatPublicRouter = Router();
 
-const schoolParam = z.object({ schoolId: z.string().uuid() });
+// Acepta el id del colegio o su código corto (slug): /admision/santaelena es más fácil de compartir.
+const schoolParam = z.object({ schoolId: z.string().trim().min(2).max(80) });
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-async function loadSchool(schoolId: string) {
+async function loadSchool(schoolKey: string) {
   const school = await prisma.school.findFirst({
-    where: { id: schoolId, isActive: true },
+    where: { ...(UUID_RE.test(schoolKey) ? { id: schoolKey } : { slug: schoolKey.toLowerCase() }), isActive: true },
     select: {
       id: true,
       name: true,
@@ -45,8 +47,7 @@ async function loadSchool(schoolId: string) {
 }
 
 secretariatPublicRouter.get('/:schoolId', async (req: Request, res: Response) => {
-  const { schoolId } = schoolParam.parse(req.params);
-  const school = await loadSchool(schoolId);
+  const school = await loadSchool(schoolParam.parse(req.params).schoolId);
   res.status(200).json({ status: 'success', data: school });
 });
 
@@ -78,8 +79,8 @@ const admissionSchema = z.object({
 });
 
 secretariatPublicRouter.post('/:schoolId/admissions', publicFormRateLimiter, requireTurnstile, async (req: Request, res: Response) => {
-  const { schoolId } = schoolParam.parse(req.params);
-  const school = await loadSchool(schoolId);
+  const school = await loadSchool(schoolParam.parse(req.params).schoolId);
+  const schoolId = school.id;
   const dto = admissionSchema.parse(req.body);
   // Al bot se le responde "éxito" para que no reintente con otro truco
   if (isLikelyBot(dto.website)) {
@@ -161,8 +162,8 @@ const complaintSchema = z
   .refine((v) => !v.isMinor || v.guardianName, { message: 'Si es menor de edad, indique el nombre del padre, madre o apoderado.', path: ['guardianName'] });
 
 secretariatPublicRouter.post('/:schoolId/complaints', publicFormRateLimiter, requireTurnstile, async (req: Request, res: Response) => {
-  const { schoolId } = schoolParam.parse(req.params);
-  const school = await loadSchool(schoolId);
+  const school = await loadSchool(schoolParam.parse(req.params).schoolId);
+  const schoolId = school.id;
   const dto = complaintSchema.parse(req.body);
   if (isLikelyBot(dto.website)) {
     res.status(201).json({ status: 'success', data: { code: 'RCL-RECIBIDO' } });

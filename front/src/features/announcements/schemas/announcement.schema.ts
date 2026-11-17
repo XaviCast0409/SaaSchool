@@ -6,7 +6,8 @@ export const createAnnouncementSchema = z.object({
   content: z.string().min(5, 'El contenido debe tener al menos 5 caracteres'),
   priority: z.enum(['NORMAL', 'IMPORTANT', 'URGENT']).default('NORMAL'),
   targetRoles: z.array(z.enum(['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT'])).min(1, 'Selecciona al menos un destinatario'),
-  classroomId: z.string().uuid().optional().or(z.literal('')),
+  // Alcance: '' = todo el colegio, 'L:<nivel>' = todo un nivel, 'G:<nivel>:<grado>' = todo un grado, o el id del aula
+  classroomId: z.string().optional().or(z.literal('')),
   expiresAt: z.string().optional().or(z.literal('')),
   responseType: z.enum(['NONE', 'ACKNOWLEDGE', 'AUTHORIZATION', 'POLL']).default('NONE'),
   responseDeadline: z.string().optional().or(z.literal('')),

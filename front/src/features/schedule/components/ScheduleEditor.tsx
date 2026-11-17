@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { apiErrorMessage } from '@/features/academic/api';
 import { DAY_NAMES, SHORT_DAYS, useClassroomSchedule, useSaveClassroomSchedule, type ScheduleBlock } from '../api/useSchedule';
 import { WeeklySchedule } from './WeeklySchedule';
+import { useUnsavedChangesGuard } from '@/lib/useUnsavedChangesGuard';
 
 const BREAK = '__break__';
 
@@ -18,11 +19,13 @@ const fromMin = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:$
 const overlap = (a: ScheduleBlock, b: ScheduleBlock) => a.dayOfWeek === b.dayOfWeek && a.startTime < b.endTime && b.startTime < a.endTime;
 
 /** Editor del horario semanal de un aula (Dirección). Los cambios se guardan juntos al final. */
-export const ScheduleEditor: React.FC<{ classroomId: string; canEdit: boolean }> = ({ classroomId, canEdit }) => {
+export const ScheduleEditor: React.FC<{ classroomId: string; canEdit: boolean; onDirtyChange?: (dirty: boolean) => void }> = ({ classroomId, canEdit, onDirtyChange }) => {
   const { data, isLoading } = useClassroomSchedule(classroomId);
   const save = useSaveClassroomSchedule(classroomId);
   const [blocks, setBlocks] = useState<ScheduleBlock[]>([]);
   const [dirty, setDirty] = useState(false);
+  useUnsavedChangesGuard(dirty, 'Tienes cambios sin guardar en el horario. Si sales ahora se perderán. ¿Salir de todos modos?');
+  useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
   const [conflicts, setConflicts] = useState<string[]>([]);
   const [form, setForm] = useState({ days: [1] as number[], startTime: '08:00', endTime: '08:45', course: '', label: 'Recreo', room: '' });
 
@@ -160,7 +163,7 @@ export const ScheduleEditor: React.FC<{ classroomId: string; canEdit: boolean }>
               Curso
               <select className={select} value={form.course} onChange={(e) => setForm({ ...form, course: e.target.value })}>
                 <option value="">Elegir…</option>
-                {data.courses.map((c) => (
+                {data.courses.filter((c) => !c.isTransversal).map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                     {c.teacherName ? ` · ${c.teacherName}` : ''}
@@ -218,7 +221,7 @@ export const ScheduleEditor: React.FC<{ classroomId: string; canEdit: boolean }>
       <Card className="p-4">
         <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Horas por curso a la semana</h3>
         <div className="flex flex-wrap gap-2">
-          {data.courses.map((c) => {
+          {data.courses.filter((c) => !c.isTransversal).map((c) => {
             const minutes = blocks.filter((b) => b.courseAssignmentId === c.id).reduce((s, b) => s + toMin(b.endTime) - toMin(b.startTime), 0);
             return (
               <span key={c.id} className={cn('rounded-lg px-2.5 py-1 text-xs', minutes ? 'bg-muted text-foreground' : 'bg-amber-500/10 text-amber-800 dark:text-amber-200')}>

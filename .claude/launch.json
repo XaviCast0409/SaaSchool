@@ -8,6 +8,13 @@
       "port": 3000
     },
     {
+      "name": "back-audit",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "back", "run", "dev"],
+      "env": { "SMTP_HOST": "127.0.0.1", "SMTP_PORT": "2525", "SMTP_SECURE": "false" },
+      "port": 3000
+    },
+    {
       "name": "front",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--dir", "front", "run", "dev"],

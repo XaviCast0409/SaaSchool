@@ -26,6 +26,20 @@ export class ProgressService {
       },
       orderBy: [{ classroom: { educationLevel: 'asc' } }, { classroom: { grade: 'asc' } }, { classroom: { section: 'asc' } }],
     });
+    // Dentro de cada aula, los cursos van en el mismo orden que el plan de estudios (orden del SIAGIE).
+    const planRows = await prisma.studyPlanCourse.findMany({
+      where: { schoolId, academicYearId: year.id },
+      select: { educationLevel: true, grade: true, areaId: true, order: true },
+    });
+    const planOrder = new Map(planRows.map((r) => [`${r.educationLevel}|${r.grade}|${r.areaId}`, r.order]));
+    const orderOf = (a: (typeof assignments)[number]) => planOrder.get(`${a.classroom.educationLevel}|${a.classroom.grade}|${a.areaId}`) ?? 999;
+    const levelRank: Record<string, number> = { INITIAL: 0, PRIMARY: 1, SECONDARY: 2 };
+    assignments.sort((x, y) =>
+      (levelRank[x.classroom.educationLevel] ?? 9) - (levelRank[y.classroom.educationLevel] ?? 9)
+      || x.classroom.grade - y.classroom.grade
+      || x.classroom.section.localeCompare(y.classroom.section)
+      || orderOf(x) - orderOf(y)
+      || x.area.name.localeCompare(y.area.name));
     const classroomIds = [...new Set(assignments.map((a) => a.classroomId))];
     // Matriculados y retirados que completaron este periodo (sus notas también se suben al SIAGIE)
     const enrollments = (await prisma.enrollment.findMany({

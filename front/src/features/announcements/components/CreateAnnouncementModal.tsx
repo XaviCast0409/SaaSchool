@@ -1,4 +1,7 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
+import { Paperclip, X as XIcon } from 'lucide-react';
+import { useUploadMaterial } from '@/features/course-contents/api/useCourseContents';
+import type { AnnouncementAttachment } from '../types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { X, Send, AlertTriangle, Bell, Info, Loader2, CalendarClock } from 'lucide-react';
@@ -10,6 +13,18 @@ import { getPeruToday, formatPeruDate } from '@/lib/dateUtils';
 import { endOfDayLima, expiryPresets, UNDATED_ARCHIVE_DAYS } from '../lib/expiry';
 import { useAuthStore } from '@/store/useAuthStore';
 
+type ScopeLevel = 'INITIAL' | 'PRIMARY' | 'SECONDARY';
+/** Traduce el valor del selector de alcance al payload del API. */
+const parseScope = (value?: string): { classroomId?: string; targetLevel?: ScopeLevel | null; targetGrade?: number | null } => {
+  if (!value) return {};
+  if (value.startsWith('L:')) return { targetLevel: value.slice(2) as ScopeLevel };
+  if (value.startsWith('G:')) {
+    const [, level, grade] = value.split(':');
+    return { targetLevel: level as ScopeLevel, targetGrade: Number(grade) };
+  }
+  return { classroomId: value };
+};
+
 interface CreateAnnouncementModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -20,6 +35,24 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
   onClose,
 }) => {
   const { mutateAsync: createAnnouncement, isPending } = useCreateAnnouncement();
+  // Adjuntos: se suben al elegirlos (como los materiales) y se envían con el comunicado
+  const upload = useUploadMaterial();
+  const [attachments, setAttachments] = useState<AnnouncementAttachment[]>([]);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const addFiles = async (files: FileList | null) => {
+    if (!files) return;
+    for (const file of Array.from(files)) {
+      if (attachments.length >= 3) { toast.error('Puedes adjuntar hasta 3 archivos.'); break; }
+      try {
+        const r = await upload.mutateAsync({ file, purpose: 'SCHOOL_ASSET' });
+        setAttachments((list) => [...list, { fileId: r.fileId, name: r.fileName, size: r.fileSize, type: r.fileType }].slice(0, 3));
+      } catch (error: unknown) {
+        const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+        toast.error(msg || `No se pudo subir ${file.name}.`);
+      }
+    }
+    if (fileInput.current) fileInput.current.value = '';
+  };
   const currentUser = useAuthStore((s) => s.user);
   const isTeacher = currentUser?.role === 'TEACHER';
 
@@ -45,6 +78,12 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
     },
   });
   const { data: classrooms = [] } = useClassrooms();
+  // Niveles y grados que el colegio tiene abiertos, para dirigir un comunicado a todo un nivel o grado
+  const LEVEL_NAME: Record<string, string> = { INITIAL: 'Inicial', PRIMARY: 'Primaria', SECONDARY: 'Secundaria' };
+  const gradeName = (level: string, grade: number) => (level === 'INITIAL' ? `${grade} años` : `${grade}.°`);
+  const levelOptions = [...new Set(classrooms.map((c) => c.educationLevel))];
+  const gradeOptions = [...new Map(classrooms.map((c) => [`${c.educationLevel}:${c.grade}`, c])).values()]
+    .sort((a, b) => a.educationLevel.localeCompare(b.educationLevel) || a.grade - b.grade);
   const responseType = watch('responseType');
 
   const selectedRoles = watch('targetRoles') || [];
@@ -74,7 +113,7 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
         content: data.content,
         priority: data.priority,
         targetRoles: data.targetRoles,
-        classroomId: data.classroomId || undefined,
+        ...parseScope(data.classroomId),
         // Visible hasta el final del día indicado (hora de Lima)
         expiresAt: data.expiresAt ? endOfDayLima(data.expiresAt) : null,
         responseType: data.responseType,
@@ -84,9 +123,11 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
             ? new Date(`${data.responseDeadline}T23:59:59-05:00`).toISOString()
             : null,
         pollOptions: data.responseType === 'POLL' ? parsePollOptions(data.pollOptionsText) : [],
+        attachments,
       });
       toast.success('Comunicado publicado');
       reset();
+      setAttachments([]);
       onClose();
     } catch (error: unknown) {
       const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -95,7 +136,7 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="relative w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between pb-4 border-b border-border">
           <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
@@ -112,10 +153,10 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
 
         <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
+            <label htmlFor="createannouncementmodal-title" className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
               Título del Comunicado *
             </label>
-            <input
+            <input id="createannouncementmodal-title"
               type="text"
               placeholder="Ej: Citación a Reunión General de Padres"
               {...register('title')}
@@ -204,20 +245,35 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
             >
               {!isTeacher && <option value="">Todo el colegio</option>}
               {isTeacher && <option value="">-- Selecciona tu aula (obligatorio) --</option>}
-              {classrooms.map((c) => (
-                <option key={c.id} value={c.id}>
-                  Solo {c.educationLevel === 'INITIAL' ? `${c.grade} años` : `${c.grade}.°`} "{c.section}" ·{' '}
-                  {c.educationLevel === 'INITIAL' ? 'Inicial' : c.educationLevel === 'PRIMARY' ? 'Primaria' : 'Secundaria'}
-                </option>
-              ))}
+              {!isTeacher && levelOptions.length > 0 && (
+                <optgroup label="Por nivel">
+                  {levelOptions.map((l) => <option key={l} value={`L:${l}`}>Todo {LEVEL_NAME[l]}</option>)}
+                </optgroup>
+              )}
+              {!isTeacher && gradeOptions.length > 0 && (
+                <optgroup label="Por grado">
+                  {gradeOptions.map((c) => (
+                    <option key={`${c.educationLevel}:${c.grade}`} value={`G:${c.educationLevel}:${c.grade}`}>
+                      Todo {gradeName(c.educationLevel, c.grade)} de {LEVEL_NAME[c.educationLevel]}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              <optgroup label="Un aula">
+                {classrooms.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    Solo {gradeName(c.educationLevel, c.grade)} "{c.section}" · {LEVEL_NAME[c.educationLevel]}
+                  </option>
+                ))}
+              </optgroup>
             </select>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
+            <label htmlFor="createannouncementmodal-content" className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
               Contenido del Mensaje *
             </label>
-            <textarea
+            <textarea id="createannouncementmodal-content"
               rows={4}
               placeholder="Escribe el aviso oficial aquí..."
               {...register('content')}
@@ -226,6 +282,33 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
             {errors.content && (
               <p className="mt-1 text-xs text-destructive">{errors.content.message}</p>
             )}
+          </div>
+
+          <div>
+            <span className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Archivos adjuntos (opcional)</span>
+            {attachments.length > 0 && (
+              <ul className="mb-2 space-y-1">
+                {attachments.map((a) => (
+                  <li key={a.fileId} className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-1.5 text-xs">
+                    <span className="truncate">{a.name} <span className="text-muted-foreground">· {(a.size / 1024 / 1024).toFixed(1)} MB</span></span>
+                    <button type="button" aria-label={`Quitar ${a.name}`} onClick={() => setAttachments((list) => list.filter((x) => x.fileId !== a.fileId))}>
+                      <XIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <input ref={fileInput} type="file" multiple className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.webp" onChange={(e) => void addFiles(e.target.files)} />
+            <button
+              type="button"
+              disabled={upload.isPending || attachments.length >= 3}
+              onClick={() => fileInput.current?.click()}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary disabled:opacity-50"
+            >
+              {upload.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Paperclip className="h-3.5 w-3.5" />}
+              {upload.isPending ? 'Subiendo…' : 'Adjuntar archivo (PDF, Word, imagen…)'}
+            </button>
+            <p className="mt-1 text-[10px] text-muted-foreground">Hasta 3 archivos de 25 MB. Las familias los abren desde el comunicado.</p>
           </div>
 
           <div className="rounded-xl border border-border p-3 space-y-2.5">

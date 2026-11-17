@@ -4,6 +4,9 @@
  */
 export interface OnboardingCounts {
   profileComplete: boolean; // Código modular, teléfono, correo, dirección y logo
+  /** Qué datos faltan del perfil, para decirle a la Dirección exactamente qué completar. */
+  profileMissing?: string[];
+  feeSchedules?: number;
   adminHasLoggedIn: boolean; // La dirección ya entró y cambió su clave inicial
   activeYears: number;
   classrooms: number;
@@ -36,9 +39,20 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 export function buildOnboarding(c: OnboardingCounts): OnboardingStatus {
   const steps: OnboardingStep[] = [
     { key: 'admin-login', label: 'La dirección ingresó y cambió su clave', done: c.adminHasLoggedIn },
-    { key: 'profile', label: 'Datos institucionales y logo completos', done: c.profileComplete },
+    {
+      key: 'profile',
+      label: 'Datos institucionales y logo completos',
+      done: c.profileComplete,
+      detail: !c.profileComplete && c.profileMissing?.length ? `falta: ${c.profileMissing.join(', ')}` : undefined,
+    },
     { key: 'academic-year', label: 'Año escolar activo', done: c.activeYears > 0 },
     { key: 'classrooms', label: 'Aulas creadas', done: c.classrooms > 0, detail: plural(c.classrooms, 'aula', 'aulas') },
+    {
+      // Antes de matricular: sin tarifario las matrículas no generan cuotas.
+      key: 'fee-schedule',
+      label: 'Tarifario de pensiones configurado',
+      done: (c.feeSchedules ?? 0) > 0 || c.paymentObligations > 0,
+    },
     { key: 'teachers', label: 'Docentes registrados', done: c.teachers > 0, detail: plural(c.teachers, 'docente', 'docentes') },
     { key: 'students', label: 'Alumnos cargados', done: c.students > 0, detail: plural(c.students, 'alumno', 'alumnos') },
     {
@@ -73,4 +87,19 @@ export const isProfileComplete = (s: {
   email?: string | null;
   address?: string | null;
   logoUrl?: string | null;
-}): boolean => Boolean(s.modularCode && s.phone && s.email && s.address && s.logoUrl);
+}): boolean => profileMissingFields(s).length === 0;
+
+/** Datos del perfil que faltan, en el lenguaje de la pantalla de Ajustes. */
+export const profileMissingFields = (s: {
+  modularCode?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  logoUrl?: string | null;
+}): string[] => [
+  !s.modularCode && 'código modular',
+  !s.phone && 'teléfono',
+  !s.email && 'correo',
+  !s.address && 'dirección',
+  !s.logoUrl && 'logo',
+].filter((x): x is string => Boolean(x));

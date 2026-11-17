@@ -260,10 +260,10 @@ const StaffAttendancePage: React.FC = () => {
       {!isNonTutorTeacher && (
       <>
       {/* Navigation Tabs */}
-      <div className="flex items-center gap-1 border-b border-border overflow-x-auto">
+      <div className="flex items-center gap-1 overflow-x-auto overflow-y-hidden shadow-[inset_0_-1px_0_hsl(var(--border))]">
         <button
           onClick={() => setActiveTab('DAILY')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap -mb-px ${activeTab === 'DAILY'
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'DAILY'
             ? 'border-primary text-primary font-bold'
             : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
@@ -274,7 +274,7 @@ const StaffAttendancePage: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('MATRIX')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap -mb-px ${activeTab === 'MATRIX'
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'MATRIX'
             ? 'border-primary text-primary font-bold'
             : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
@@ -286,7 +286,7 @@ const StaffAttendancePage: React.FC = () => {
         {canSeeMonthlyReport && (
           <button
             onClick={() => setActiveTab('MONTHLY')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap -mb-px ${activeTab === 'MONTHLY'
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'MONTHLY'
               ? 'border-primary text-primary font-bold'
               : 'border-transparent text-muted-foreground hover:text-foreground'
               }`}
