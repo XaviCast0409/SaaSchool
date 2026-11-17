@@ -1,35 +1,76 @@
 import React, { useState } from 'react';
-import { UserPlus, Trash2, Shield, CreditCard, Home } from 'lucide-react';
-import { useAuthStore } from '@/store/useAuthStore';
-import { useStudentParents, useDeleteRelationship } from '../api/useFamilyRelationships';
+import { UserPlus, Trash2, Shield, CreditCard, Home, Phone, Mail, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
+import { useStudentParents, useDeleteRelationship, useUpdateRelationship } from '../api/useFamilyRelationships';
 import { LinkParentModal } from './LinkParentModal';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { DirectoryUser } from '@/features/users/types';
-import { RELATIONSHIP_LABELS } from '../relationshipLabels';
+import { confirmDialog } from '@/components/ui/confirm';
+import { RELATIONSHIP_OPTIONS } from '../relationshipLabels';
+import type { FamilyRelationship, RelationshipType } from '../types';
 
 interface StudentParentsPanelProps {
   studentId: string;
   studentName: string;
-  availableParents: DirectoryUser[];
 }
 
+type Flag = 'isLegalGuardian' | 'isFinancialResponsible' | 'livesWithStudent';
 
-export const StudentParentsPanel: React.FC<StudentParentsPanelProps> = ({
-  studentId,
-  studentName,
-  availableParents,
-}) => {
-  const { user } = useAuthStore();
-  const { data: relationships = [], isLoading } = useStudentParents(studentId);
-  const { mutate: deleteRelationship, isPending: isDeleting } = useDeleteRelationship(studentId);
+const FLAGS: Array<{ key: Flag; label: string; icon: React.ElementType; on: string; help: string }> = [
+  {
+    key: 'isLegalGuardian',
+    label: 'Apoderado legal',
+    icon: Shield,
+    on: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+    help: 'Figura como apoderado oficial (SIAGIE)',
+  },
+  {
+    key: 'isFinancialResponsible',
+    label: 'Responsable de pago',
+    icon: CreditCard,
+    on: 'border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-300',
+    help: 'Recibe los recordatorios de pensión y figura en las boletas',
+  },
+  {
+    key: 'livesWithStudent',
+    label: 'Vive con el alumno',
+    icon: Home,
+    on: 'border-border bg-muted text-foreground',
+    help: 'Vive en el mismo domicilio que el alumno',
+  },
+];
+
+/** Apoderados de un alumno: ver, vincular, marcar roles y desvincular (Dirección y Secretaría). */
+export const StudentParentsPanel: React.FC<StudentParentsPanelProps> = ({ studentId, studentName }) => {
+  const { data: relationships = [], isLoading, isError, refetch } = useStudentParents(studentId);
+  const { mutateAsync: deleteRelationship } = useDeleteRelationship(studentId);
+  const { mutate: updateRelationship, isPending: isUpdating } = useUpdateRelationship(studentId);
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
 
-  const canManage =
-    user?.role === 'SCHOOL_ADMIN' ||
-    user?.role === 'SUPER_ADMIN' ||
-    user?.role === 'ADMINISTRATIVE';
+  const fullName = (rel: FamilyRelationship) =>
+    [rel.user?.firstName, rel.user?.lastNamePaternal, rel.user?.lastNameMaternal].filter(Boolean).join(' ');
+
+  const update = (rel: FamilyRelationship, patch: Partial<Record<Flag, boolean>> & { relationshipType?: RelationshipType }) =>
+    updateRelationship(
+      { id: rel.id, ...patch },
+      { onError: (err: any) => toast.error(err?.response?.data?.message || 'No se pudo guardar el cambio.') },
+    );
+
+  const unlink = async (rel: FamilyRelationship) => {
+    const ok = await confirmDialog({
+      title: '¿Desvincular a este apoderado?',
+      description: `${fullName(rel)} dejará de ver notas, asistencia y avisos de ${studentName}. Su cuenta no se borra y puedes volver a vincularlo.`,
+      confirmText: 'Desvincular',
+      variant: 'danger',
+    });
+    if (!ok) return;
+    try {
+      await deleteRelationship(rel.id);
+      toast.success('Apoderado desvinculado.');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'No se pudo desvincular.');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -40,97 +81,129 @@ export const StudentParentsPanel: React.FC<StudentParentsPanelProps> = ({
     );
   }
 
+  if (isError) {
+    return (
+      <div className="flex items-center justify-between gap-3 p-4 text-sm text-destructive">
+        No se pudieron cargar los apoderados.
+        <Button size="sm" variant="outline" onClick={() => refetch()}>
+          Reintentar
+        </Button>
+      </div>
+    );
+  }
+
+  const noPayer = relationships.length > 0 && !relationships.some((r) => r.isFinancialResponsible);
+
   return (
-    <div className="p-4 space-y-3">
-      {/* Panel Header */}
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold text-foreground">
-          Apoderados registrados ({relationships.length})
-        </span>
-        {canManage && (
-          <Button
-            size="sm"
-            variant="outline"
-            className="gap-1.5 text-xs"
-            onClick={() => setIsLinkModalOpen(true)}
-          >
-            <UserPlus className="w-3.5 h-3.5" />
-            <span>Vincular</span>
-          </Button>
-        )}
+    <div className="p-3 sm:p-4 space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-semibold text-foreground">Apoderados de {studentName}</span>
+        <Button size="sm" variant="outline" className="gap-1.5 shrink-0" onClick={() => setIsLinkModalOpen(true)}>
+          <UserPlus className="w-3.5 h-3.5" />
+          Vincular
+        </Button>
       </div>
 
-      {/* Relationships List */}
       {relationships.length === 0 ? (
-        <div className="py-6 text-center text-xs text-muted-foreground border border-dashed border-border rounded-lg">
-          No hay apoderados vinculados. Haz clic en "Vincular" para agregar uno.
+        <div className="rounded-lg border border-dashed border-amber-500/40 bg-amber-500/5 px-4 py-5 text-center text-sm">
+          <p className="font-medium text-amber-800 dark:text-amber-300">Este alumno no tiene apoderados vinculados.</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Sin apoderado, nadie de la familia recibe avisos ni puede ver notas o asistencia.
+          </p>
         </div>
       ) : (
-        <div className="space-y-2">
-          {relationships.map((rel) => (
-            <div
-              key={rel.id}
-              className="flex items-start justify-between p-3 rounded-lg border border-border bg-muted/30 gap-3"
-            >
-              <div className="flex-1 min-w-0 space-y-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-sm text-foreground truncate">
-                    {rel.user?.firstName} {rel.user?.lastNamePaternal} {rel.user?.lastNameMaternal}
-                  </span>
-                  <Badge variant="secondary" className="text-xs shrink-0">
-                    {RELATIONSHIP_LABELS[rel.relationshipType] || rel.relationshipType}
-                  </Badge>
+        <>
+          {noPayer && (
+            <p className="flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-300">
+              <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+              Nadie está marcado como responsable de pago: los recordatorios de pensión no tendrán a quién llegar.
+            </p>
+          )}
+          <ul className="space-y-2">
+            {relationships.map((rel) => (
+              <li key={rel.id} className="rounded-lg border border-border bg-card p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold text-sm text-foreground">{fullName(rel)}</span>
+                      <select
+                        value={rel.relationshipType}
+                        onChange={(e) => update(rel, { relationshipType: e.target.value as RelationshipType })}
+                        disabled={isUpdating}
+                        aria-label={`Parentesco de ${fullName(rel)}`}
+                        className="h-7 rounded-md border border-input bg-background px-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-ring"
+                      >
+                        {RELATIONSHIP_OPTIONS.map((o) => (
+                          <option key={o.value} value={o.value}>
+                            {o.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                      {rel.user?.cellphone ? (
+                        <a href={`tel:${rel.user.cellphone}`} className="inline-flex items-center gap-1 hover:text-foreground">
+                          <Phone className="w-3 h-3" />
+                          {rel.user.cellphone}
+                        </a>
+                      ) : (
+                        <span className="inline-flex items-center gap-1">
+                          <Phone className="w-3 h-3" />
+                          Sin celular
+                        </span>
+                      )}
+                      {rel.user?.email && (
+                        <a href={`mailto:${rel.user.email}`} className="inline-flex min-w-0 items-center gap-1 hover:text-foreground">
+                          <Mail className="w-3 h-3 shrink-0" />
+                          <span className="truncate">{rel.user.email}</span>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => unlink(rel)}
+                    className="shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                    aria-label={`Desvincular a ${fullName(rel)}`}
+                    title="Desvincular apoderado"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
 
-                <div className="text-xs text-muted-foreground">
-                  {rel.user?.email} · {rel.user?.cellphone || 'Sin celular'}
+                {/* Marcas: se activan o desactivan con un toque */}
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {FLAGS.map(({ key, label, icon: Icon, on, help }) => {
+                    const active = rel[key];
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        aria-pressed={active}
+                        disabled={isUpdating}
+                        onClick={() => update(rel, { [key]: !active })}
+                        title={help}
+                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold transition-colors disabled:opacity-60 ${
+                          active ? on : 'border-dashed border-border text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        <Icon className="w-3 h-3" />
+                        {label}
+                      </button>
+                    );
+                  })}
                 </div>
-
-                {/* Badges de atributos */}
-                <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-                  {rel.isLegalGuardian && (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full">
-                      <Shield className="w-2.5 h-2.5" />
-                      Apoderado Legal
-                    </span>
-                  )}
-                  {rel.isFinancialResponsible && (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded-full">
-                      <CreditCard className="w-2.5 h-2.5" />
-                      Resp. Pago
-                    </span>
-                  )}
-                  {rel.livesWithStudent && (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
-                      <Home className="w-2.5 h-2.5" />
-                      Convive
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Desvincular */}
-              {canManage && (
-                <button
-                  onClick={() => deleteRelationship(rel.id)}
-                  disabled={isDeleting}
-                  className="shrink-0 p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
-                  title="Desvincular apoderado"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
 
-      {/* Modal Vincular */}
       {isLinkModalOpen && (
         <LinkParentModal
           studentId={studentId}
           studentName={studentName}
-          availableParents={availableParents}
+          linkedUserIds={relationships.map((r) => r.userId)}
           onClose={() => setIsLinkModalOpen(false)}
         />
       )}

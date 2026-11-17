@@ -72,6 +72,8 @@ export interface Student {
   updatedAt: string;
   enrollments?: StudentEnrollment[];
   familyRelations?: StudentFamilyRelation[];
+  /** Solo en la lista: cuántos apoderados tiene vinculados */
+  _count?: { familyRelations: number };
 }
 
 export interface StudentFilterParams {

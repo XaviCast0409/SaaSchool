@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
 import type { Student, StudentFilterParams, StudentsPaginatedResponse, SiagieCatalogs } from '../types';
 
@@ -69,7 +69,11 @@ export const useSiagieCatalogs = () => {
 };
 
 /** Hook para obtener estudiantes (con paginación y filtros opcionales) */
-export const useStudents = (filters: StudentFilterParams = {}, enabledOverride?: boolean) => {
+export const useStudents = (
+  filters: StudentFilterParams = {},
+  enabledOverride?: boolean,
+  options: { keepPrevious?: boolean } = {},
+) => {
   const isEnabled = enabledOverride !== undefined ? enabledOverride : true;
 
   return useQuery({
@@ -89,6 +93,8 @@ export const useStudents = (filters: StudentFilterParams = {}, enabledOverride?:
       return response.data;
     },
     enabled: isEnabled,
+    // Listas paginadas: al buscar, filtrar o cambiar de página se mantiene la anterior (sin parpadeo) hasta que llega la nueva
+    placeholderData: options.keepPrevious ? keepPreviousData : undefined,
   });
 };
 

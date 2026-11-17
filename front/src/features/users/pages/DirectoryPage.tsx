@@ -117,6 +117,8 @@ export const DirectoryPage: React.FC = () => {
           Reemplazar
         </Button>
       )}
+      {/* Solo los docentes se contratan por año; Dirección y Secretaría figuran siempre */}
+      {u.role === 'TEACHER' && (
       <Button
         variant="ghost"
         size="sm"
@@ -128,6 +130,7 @@ export const DirectoryPage: React.FC = () => {
         {hired ? <UserMinus className="w-3.5 h-3.5 mr-1" /> : <UserCheck2 className="w-3.5 h-3.5 mr-1" />}
         {hired ? `Quitar de ${viewedYear.year}` : `Contratar ${viewedYear.year}`}
       </Button>
+      )}
       </>
     );
   };
@@ -240,7 +243,7 @@ export const DirectoryPage: React.FC = () => {
         <>
           {!isLoading && yearScope === 'year' && staffUsers.length === 0 && viewedYear && (
             <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-              Aún no hay personal registrado para {viewedYear.year}.{' '}
+              {activeTab === 'TEACHER' || activeTab === 'ALL_STAFF' ? `Aún no hay docentes contratados para ${viewedYear.year}.` : 'No hay personal activo en este cargo.'}{' '}
               {isAdmin && currentYear && viewedYear.id !== currentYear.id
                 ? `Usa "Renovar personal de ${currentYear.year}" o, en "Todo el personal", "Contratar ${viewedYear.year}" en cada persona.`
                 : ''}

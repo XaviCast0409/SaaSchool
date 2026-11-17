@@ -1,6 +1,6 @@
 import type { DirectoryUser } from '../types';
 
-export type RelationshipType = 'MOTHER' | 'FATHER' | 'GRANDPARENT' | 'UNCLE_AUNT' | 'OTHER';
+export type RelationshipType = 'MOTHER' | 'FATHER' | 'TUTOR_LEGAL' | 'GRANDPARENT' | 'UNCLE_AUNT' | 'OTHER';
 
 export interface FamilyRelationship {
   id: string;

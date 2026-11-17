@@ -2,6 +2,7 @@ import { prisma, type SafeUser } from '../../config/prisma';
 import type { User, Prisma, Role } from '@prisma/client';
 import type { CreateUserDto, UpdateUserDto, UserFilterDto } from './user.schema';
 import type { PaginatedResult } from '../../core/interfaces/global.interfaces';
+import { multiWordSearch } from '../../utils/search.util';
 
 const USER_PUBLIC_SELECT = {
   id: true,
@@ -29,7 +30,7 @@ export class UserRepository {
     schoolId: string,
     filters: Partial<UserFilterDto> & { actorRole?: Role; actorUserId?: string } = {},
   ): Promise<PaginatedResult<PublicUser>> {
-    const { page = 1, limit = 500, role, roles, staffOnly, search, yearScope, staffYearId, actorRole, actorUserId } = filters;
+    const { page = 1, limit = 500, role, roles, staffOnly, search, yearScope, unlinked, staffYearId, actorRole, actorUserId } = filters;
     const skip = (page - 1) * limit;
 
     let roleFilter: Prisma.UserWhereInput['role'] = undefined;
@@ -61,22 +62,32 @@ export class UserRepository {
       actorRole === 'TEACHER' && actorUserId ? await this.teacherVisibilityFilter(schoolId, actorUserId, staffYearId) : undefined;
 
     // Cada filtro va en su propio AND: así la búsqueda no puede pisar la visibilidad del docente
-    const searchFields: Prisma.UserWhereInput[] = search
-      ? [
-          { firstName: { contains: search, mode: 'insensitive' } },
-          { lastNamePaternal: { contains: search, mode: 'insensitive' } },
-          { lastNameMaternal: { contains: search, mode: 'insensitive' } },
-          { email: { contains: search, mode: 'insensitive' } },
-          // Un docente no puede buscar personas por DNI
-          ...(actorRole === 'TEACHER' ? [] : [{ documentId: { contains: search, mode: 'insensitive' as const } }]),
-        ]
-      : [];
+    // Varias palabras: "garcía ana" o "lópez 4512" (cada palabra en cualquier campo)
+    const searchTerms = multiWordSearch<Prisma.UserWhereInput>(search, {
+      insensitive: [
+        'firstName',
+        'lastNamePaternal',
+        'lastNameMaternal',
+        'email',
+        // Un docente no puede buscar personas por DNI
+        ...(actorRole === 'TEACHER' ? [] : (['documentId'] as const)),
+      ],
+    });
+    // Apoderados: con sus hijos vinculados (solo para dirección y secretaría)
+    const listsFamilies = role === 'PARENT' && actorRole !== 'TEACHER';
     const where: Prisma.UserWhereInput = {
       schoolId,
       ...(roleFilter ? { role: roleFilter } : {}),
-      // Personal contratado en el año elegido
-      ...(yearScope === 'year' && staffYearId ? { staffYears: { some: { academicYearId: staffYearId } } } : {}),
-      AND: [...(teacherVisibility ? [teacherVisibility] : []), ...(searchFields.length ? [{ OR: searchFields }] : [])],
+      ...(listsFamilies && unlinked ? { familyRelations: { none: {} } } : {}),
+      AND: [
+        ...(teacherVisibility ? [teacherVisibility] : []),
+        // Personal del año elegido: los docentes se contratan por año (carga docente);
+        // Dirección y Secretaría activas figuran siempre, para que no "desaparezcan" al cambiar de año
+        ...(yearScope === 'year' && staffYearId
+          ? [{ OR: [{ role: { in: ['SCHOOL_ADMIN', 'ADMINISTRATIVE'] as Role[] } }, { staffYears: { some: { academicYearId: staffYearId } } }] }]
+          : []),
+        ...searchTerms,
+      ],
     };
 
     const [rawRows, total] = await Promise.all([
@@ -87,8 +98,22 @@ export class UserRepository {
         select: {
           ...USER_PUBLIC_SELECT,
           ...(staffYearId ? { staffYears: { where: { academicYearId: staffYearId }, select: { position: true } } } : {}),
+          ...(listsFamilies
+            ? {
+                familyRelations: {
+                  select: {
+                    id: true,
+                    relationshipType: true,
+                    isLegalGuardian: true,
+                    isFinancialResponsible: true,
+                    student: { select: { id: true, firstNames: true, lastNamePaternal: true, lastNameMaternal: true } },
+                  },
+                  orderBy: { student: { lastNamePaternal: 'asc' } },
+                },
+              }
+            : {}),
         },
-        orderBy: [{ lastNamePaternal: 'asc' }, { firstName: 'asc' }],
+        orderBy: [{ lastNamePaternal: 'asc' }, { lastNameMaternal: 'asc' }, { firstName: 'asc' }],
       }),
       prisma.user.count({ where }),
     ]);

@@ -5,6 +5,7 @@ import { AppError } from '../../core/errors/app-error';
 import { prisma } from '../../config/prisma';
 import type { AcademicYearRepository } from './academic-year.repository';
 import type { CreateAcademicYearDto, UpdateAcademicYearDto } from './academic-year.schema';
+import { hireStaffWithoutYear } from '../users/staff-year.util';
 
 type Tx = Prisma.TransactionClient;
 
@@ -69,6 +70,8 @@ export class AcademicYearService {
       // El año que pasa a vigente deja de estar "en matrícula"
       await tx.academicYear.update({ where: { id: academicYearId }, data: { isActive: true, enrollmentOpen: false } });
       await syncEnrollmentActiveFlags(tx, schoolId, academicYearId);
+      // Personal que nunca se asignó a un año (p. ej. la directora creada con el colegio) queda en este
+      await hireStaffWithoutYear(tx, schoolId, academicYearId);
       // Vacantes y tutores preparados para este año pasan a las aulas
       return classroomYearService.syncOnActivation(tx, schoolId, academicYearId);
     });
