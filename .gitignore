@@ -20,3 +20,7 @@ back/storage-local/
 # Respaldos
 back/backups/
 *.dump
+
+.agents/TASK.md
+.agents/RESPONSE.md
+.agents/
