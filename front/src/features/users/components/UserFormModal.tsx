@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useSelectedAcademicYear } from '@/components/AcademicYearSwitcher';
 import { useAuthStore } from '@/store/useAuthStore';
+import type { DirectoryUser } from '../types';
 import {
   TemporaryCredentialsDialog,
   type TemporaryCredential,
@@ -16,6 +17,8 @@ import {
 interface UserFormModalProps {
   defaultRole?: 'TEACHER' | 'PARENT' | 'SCHOOL_ADMIN' | 'ADMINISTRATIVE';
   onClose: () => void;
+  /** Avisa la cuenta recién creada (p. ej. para vincularla en seguida a un alumno) */
+  onCreated?: (user: DirectoryUser) => void;
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -25,7 +28,7 @@ const ROLE_LABELS: Record<string, string> = {
   PARENT: 'Apoderado / Padre de Familia',
 };
 
-export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PARENT', onClose }) => {
+export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PARENT', onClose, onCreated }) => {
   const { mutate: createUser, isPending, error } = useCreateUser();
   const [tempCredentials, setTempCredentials] = useState<TemporaryCredential[] | null>(null);
   const currentUser = useAuthStore((s) => s.user);
@@ -58,6 +61,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PAR
   const onSubmit = (data: CreateUserFormData) => {
     createUser({ ...data, ...(isStaff && yearIds.length ? { academicYearIds: yearIds } : {}) }, {
       onSuccess: (createdUser) => {
+        onCreated?.(createdUser);
         if (createdUser.temporaryPassword) {
           setTempCredentials([
             {

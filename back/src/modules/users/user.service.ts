@@ -6,6 +6,8 @@ import type { UserRepository, PublicUser } from './user.repository';
 import type { CreateUserDto, UpdateUserDto, UserFilterDto } from './user.schema';
 import type { Role } from '@prisma/client';
 import type { PaginatedResult } from '../../core/interfaces/global.interfaces';
+import { hireStaffWithoutYear, STAFF_ROLES } from './staff-year.util';
+import { prisma } from '../../config/prisma';
 
 export interface UserActorContext {
   role: Role;
@@ -125,6 +127,11 @@ export class UserService {
     const user = await this.userRepository.update(userId, schoolId, updateUserDto);
     if (updateUserDto.role !== undefined) {
       invalidatePrincipalCache('user', userId);
+      // Pasa a ser personal sin ningún año: queda en el año vigente para que aparezca en "Personal del colegio"
+      if ((STAFF_ROLES as readonly string[]).includes(updateUserDto.role)) {
+        const activeYear = await prisma.academicYear.findFirst({ where: { schoolId, isActive: true }, select: { id: true } });
+        if (activeYear) await hireStaffWithoutYear(prisma, schoolId, activeYear.id, [userId]);
+      }
     }
     return user;
   }

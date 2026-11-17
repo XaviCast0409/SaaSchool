@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useUrlFilters } from '@/lib/useUrlFilters';
-import { Users, UserPlus, QrCode, FileSpreadsheet, KeyRound, Upload, Repeat2, FileUp } from 'lucide-react';
-import { useAuthStore } from '@/store/useAuthStore';
+import { UserPlus, QrCode, FileSpreadsheet, KeyRound, Upload, Repeat2, FileUp, ChevronDown } from 'lucide-react';
 import { useStudents } from '../api/useStudents';
 import { StudentTable } from '../components/StudentTable';
+import { FamiliesPanel } from '../components/FamiliesPanel';
 import { EnrollStudentModal } from '../components/EnrollStudentModal';
 import { SectionQrCardsModal } from '../components/SectionQrCardsModal';
 import { NominaSiagieModal } from '../components/NominaSiagieModal';
@@ -12,187 +12,180 @@ import { StudentImportModal } from '../components/StudentImportModal';
 import { NominaImportModal } from '@/features/siagie/components/NominaImportModal';
 import { useGetActiveSchool } from '@/features/schools/api/useSchool';
 import { Button } from '@/components/ui/button';
+import { Tabs } from '@/components/ui/tabs';
 import { useSelectedAcademicYear } from '@/components/AcademicYearSwitcher';
 import { RolloverModal } from '../components/RolloverModal';
 import { QuickEnrollModal, type QuickEnrollStudent } from '../components/QuickEnrollModal';
 import { useAcademicYears, pickEnrollmentTargetYear } from '@/features/academic-years/api/useAcademicYears';
 import { useQueryAction } from '@/lib/useQueryAction';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
+type Level = 'INITIAL' | 'PRIMARY' | 'SECONDARY';
+type View = 'students' | 'families';
+
+/** Alumnos y familias: matrícula, fichas, carnets y apoderados. Solo Dirección y Secretaría (RoleGuard). */
 export const StudentsPage: React.FC = () => {
-  const { user } = useAuthStore();
-  const canManageStudents =
-    user?.role === 'SCHOOL_ADMIN' ||
-    user?.role === 'SUPER_ADMIN' ||
-    user?.role === 'ADMINISTRATIVE';
-
-  // Estados de modales (un acceso rápido del Inicio puede abrir uno con ?abrir=)
+  // Un acceso rápido del Inicio puede abrir un modal con ?abrir=
   const openAction = useQueryAction();
-  const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(() => canManageStudents && openAction === 'matricula');
-  const [isSectionQrModalOpen, setIsSectionQrModalOpen] = useState(() => canManageStudents && openAction === 'carnets');
+  const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(() => openAction === 'matricula');
+  const [isSectionQrModalOpen, setIsSectionQrModalOpen] = useState(() => openAction === 'carnets');
   const [isNominaModalOpen, setIsNominaModalOpen] = useState(false);
   const [isBulkCredentialsModalOpen, setIsBulkCredentialsModalOpen] = useState(false);
   const [isNominaImportOpen, setIsNominaImportOpen] = useState(false);
   const [isStudentImportOpen, setIsStudentImportOpen] = useState(false);
-  const { data: school } = useGetActiveSchool();
   const [isRolloverOpen, setIsRolloverOpen] = useState(false);
   const [quickEnrollStudent, setQuickEnrollStudent] = useState<QuickEnrollStudent | null>(null);
+  const { data: school } = useGetActiveSchool();
   const { data: years = [] } = useAcademicYears();
   const targetYear = pickEnrollmentTargetYear(years);
 
-  // Estados de paginación y filtros jerárquicos
   // En la URL: sobreviven a recargar y al botón Atrás, y el buscador global (Ctrl+K) abre la lista ya filtrada
-  const [urlFilters, setUrlFilters] = useUrlFilters({ page: 1, limit: 10, q: '', classroomId: '', level: '', scope: 'year' });
-  const { page, limit, q: search } = urlFilters;
-  const classroomId = urlFilters.classroomId || undefined;
-  const educationLevel = (['INITIAL', 'PRIMARY', 'SECONDARY'] as const).find((level) => level === urlFilters.level);
-  const scope: 'year' | 'all' = urlFilters.scope === 'all' ? 'all' : 'year';
-  const setPage = (value: number) => setUrlFilters({ page: value });
-  const setLimit = (value: number) => setUrlFilters({ limit: value });
-  const setSearch = (value: string) => setUrlFilters({ q: value });
-  const setClassroomId = (value: string | undefined) => setUrlFilters({ classroomId: value ?? '' });
-  const setEducationLevel = (value: 'INITIAL' | 'PRIMARY' | 'SECONDARY' | undefined) => setUrlFilters({ level: value ?? '' });
-  const setScope = (value: 'year' | 'all') => setUrlFilters({ scope: value });
+  const [url, setUrl] = useUrlFilters({
+    view: 'students',
+    page: 1,
+    limit: 10,
+    q: '',
+    classroomId: '',
+    level: '',
+    scope: 'year',
+    // Familias
+    fq: '',
+    fpage: 1,
+    flimit: 20,
+    unlinked: false as boolean,
+  });
+  const view: View = url.view === 'families' ? 'families' : 'students';
+  const classroomId = url.classroomId || undefined;
+  const educationLevel = (['INITIAL', 'PRIMARY', 'SECONDARY'] as const).find((level) => level === url.level);
+  const scope: 'year' | 'all' = url.scope === 'all' ? 'all' : 'year';
 
   const { selected: viewedYear } = useSelectedAcademicYear();
-  const { data: response, isLoading, isError, refetch } = useStudents({
-    scope,
-    page,
-    limit,
-    search,
-    classroomId,
-    educationLevel,
-  });
+  const { data: response, isLoading, isFetching, isError, refetch } = useStudents(
+    { scope, page: url.page, limit: url.limit, search: url.q, classroomId, educationLevel },
+    view === 'students',
+    { keepPrevious: true },
+  );
 
   const students = response?.data || [];
   const meta = response?.meta;
 
+  const emptyActions = (
+    <div className="flex flex-wrap justify-center gap-2">
+      <Button size="sm" className="gap-1.5" onClick={() => setIsEnrollModalOpen(true)}>
+        <UserPlus className="w-4 h-4" /> Matricular estudiante
+      </Button>
+      <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setIsStudentImportOpen(true)}>
+        <FileUp className="w-4 h-4" /> Carga masiva (Excel)
+      </Button>
+    </div>
+  );
+
   return (
-    <div className="space-y-6 pb-8">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <Users className="w-6 h-6 text-primary" />
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              {scope === 'all' ? 'Directorio de Estudiantes' : `Estudiantes matriculados${viewedYear ? ` ${viewedYear.year}` : ''}`}
-            </h1>
-          </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            Gestión completa por Aula, Grado, Sección y datos demográficos MINEDU.
+    <div className="space-y-5 pb-8">
+      {/* Cabecera: una acción principal y el resto agrupado */}
+      <div className="flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Alumnos y familias</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Matrícula, fichas SIAGIE, carnets y apoderados{viewedYear ? ` · año ${viewedYear.year}` : ''}.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start md:self-auto flex-wrap">
-          {canManageStudents && (
-            <Button
-              variant="outline"
-              onClick={() => setIsBulkCredentialsModalOpen(true)}
-              className="gap-2 shadow-sm border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
-              title="Generar credenciales de acceso masivas por aula"
-            >
-              <KeyRound className="w-4 h-4" />
-              <span>Credenciales de acceso</span>
-            </Button>
-          )}
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-1.5">
+                Más acciones
+                <ChevronDown className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-72">
+              <DropdownMenuLabel>Cargar alumnos</DropdownMenuLabel>
+              <DropdownMenuItem icon={FileUp} hint="Alumnos, matrículas y apoderados desde la plantilla" onSelect={() => setIsStudentImportOpen(true)}>
+                Carga masiva (Excel)
+              </DropdownMenuItem>
+              <DropdownMenuItem icon={Upload} hint="Crea o actualiza desde el listado del SIAGIE" onSelect={() => setIsNominaImportOpen(true)}>
+                Importar nómina SIAGIE
+              </DropdownMenuItem>
+              {targetYear && (
+                <DropdownMenuItem icon={Repeat2} hint={`Pasar a los alumnos del año vigente al ${targetYear.year}`} onSelect={() => setIsRolloverOpen(true)}>
+                  Re-matrícula {targetYear.year}
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Documentos por aula</DropdownMenuLabel>
+              <DropdownMenuItem icon={FileSpreadsheet} hint="Nómina oficial de matrícula (.xlsx)" onSelect={() => setIsNominaModalOpen(true)}>
+                Descargar nómina SIAGIE
+              </DropdownMenuItem>
+              <DropdownMenuItem icon={QrCode} hint="Carnets con QR para imprimir en A4" onSelect={() => setIsSectionQrModalOpen(true)}>
+                Carnets QR por sección
+              </DropdownMenuItem>
+              <DropdownMenuItem icon={KeyRound} hint="Usuarios y claves de alumnos y familias" onSelect={() => setIsBulkCredentialsModalOpen(true)}>
+                Credenciales de acceso
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-          {canManageStudents && (
-            <Button
-              variant="outline"
-              onClick={() => setIsStudentImportOpen(true)}
-              className="gap-2 shadow-sm"
-              title="Cargar alumnos, matrículas y apoderados desde la plantilla Excel"
-            >
-              <FileUp className="w-4 h-4" />
-              <span>Carga masiva (Excel)</span>
-            </Button>
-          )}
-
-          {canManageStudents && (
-            <Button
-              variant="outline"
-              onClick={() => setIsNominaImportOpen(true)}
-              className="gap-2 shadow-sm"
-              title="Crear o actualizar alumnos y matrículas desde el listado de estudiantes del SIAGIE"
-            >
-              <Upload className="w-4 h-4" />
-              <span>Importar nómina SIAGIE</span>
-            </Button>
-          )}
-
-          {canManageStudents && (
-            <Button
-              variant="outline"
-              onClick={() => setIsNominaModalOpen(true)}
-              className="gap-2 shadow-sm border-emerald-600/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
-              title="Descargar Nómina Oficial de Matrícula del Salón en Excel (SIAGIE)"
-            >
-              <FileSpreadsheet className="w-4 h-4" />
-              <span>Nómina SIAGIE (.xlsx)</span>
-            </Button>
-          )}
-
-          {canManageStudents && (
-            <Button
-              variant="outline"
-              onClick={() => setIsSectionQrModalOpen(true)}
-              className="gap-2 shadow-sm border-primary/30 text-primary hover:bg-primary/10"
-              title="Generar e imprimir carnets con QR por grado y sección en hoja A4"
-            >
-              <QrCode className="w-4 h-4" />
-              <span>Carnets QR por Sección (PDF)</span>
-            </Button>
-          )}
-
-          {canManageStudents && targetYear && (
-            <Button
-              variant="outline"
-              onClick={() => setIsRolloverOpen(true)}
-              className="gap-2 shadow-sm border-indigo-500/30 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/10"
-              title={`Pasar a los alumnos del año vigente al año ${targetYear.year}`}
-            >
-              <Repeat2 className="w-4 h-4" />
-              <span>Re-matrícula {targetYear.year}</span>
-            </Button>
-          )}
-
-          {canManageStudents && (
-            <Button
-              onClick={() => setIsEnrollModalOpen(true)}
-              className="gap-2 shadow-sm"
-            >
-              <UserPlus className="w-4 h-4" />
-              <span>Matricular Estudiante</span>
-            </Button>
-          )}
+          <Button onClick={() => setIsEnrollModalOpen(true)} className="gap-2">
+            <UserPlus className="w-4 h-4" />
+            <span className="hidden sm:inline">Matricular estudiante</span>
+            <span className="sm:hidden">Matricular</span>
+          </Button>
         </div>
       </div>
 
-      {/* Matriculados del año que se está viendo o todos los alumnos del colegio */}
-      <div className="inline-flex rounded-lg border border-border p-0.5 text-sm">
-        {(
-          [
-            ['year', `Matriculados ${viewedYear?.year ?? ''}`],
-            ['all', 'Todos los alumnos'],
-          ] as const
-        ).map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => {
-              setScope(key);
-              setPage(1);
-            }}
-            className={`rounded-md px-3 py-1.5 font-semibold ${scope === key ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-          >
-            {label}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Tabs<View>
+          value={view}
+          onChange={(v) => setUrl({ view: v })}
+          items={[
+            { value: 'students', label: 'Alumnos' },
+            { value: 'families', label: 'Familias' },
+          ]}
+        />
+
+        {/* Matriculados del año que se está viendo o todos los alumnos del colegio */}
+        {view === 'students' && (
+          <div className="inline-flex rounded-lg border border-border p-0.5 text-sm" role="group" aria-label="Qué alumnos ver">
+            {(
+              [
+                ['year', `Matriculados ${viewedYear?.year ?? ''}`.trim()],
+                ['all', 'Todos los alumnos'],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={scope === key}
+                onClick={() => setUrl({ scope: key, page: 1 })}
+                className={`rounded-md px-3 py-1.5 font-semibold ${scope === key ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Content */}
-      {isError ? (
+      {view === 'families' ? (
+        <FamiliesPanel
+          search={url.fq}
+          page={url.fpage}
+          limit={url.flimit}
+          unlinked={url.unlinked}
+          onChange={(patch) => setUrl(patch)}
+          onOpenStudent={(name) => setUrl({ view: 'students', q: name, scope: 'all', page: 1, classroomId: '', level: '' })}
+        />
+      ) : isError ? (
         <div className="p-6 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive text-center space-y-3">
-          <p className="font-semibold">Error al cargar la lista de estudiantes.</p>
+          <p className="font-semibold">No se pudo cargar la lista de estudiantes.</p>
           <Button variant="outline" size="sm" onClick={() => refetch()}>
             Reintentar
           </Button>
@@ -201,29 +194,19 @@ export const StudentsPage: React.FC = () => {
         <StudentTable
           students={students}
           isLoading={isLoading}
+          isFetching={isFetching}
           meta={meta}
-          page={page}
-          limit={limit}
-          search={search}
+          page={url.page}
+          limit={url.limit}
+          search={url.q}
           classroomId={classroomId}
           educationLevel={educationLevel}
-          onPageChange={(p) => setPage(p)}
-          onLimitChange={(l) => {
-            setLimit(l);
-            setPage(1);
-          }}
-          onSearchChange={(s) => {
-            setSearch(s);
-            setPage(1);
-          }}
-          onClassroomChange={(cId) => {
-            setClassroomId(cId);
-            setPage(1);
-          }}
-          onEducationLevelChange={(eL) => {
-            setEducationLevel(eL);
-            setPage(1);
-          }}
+          onPageChange={(p) => setUrl({ page: p })}
+          onLimitChange={(l) => setUrl({ limit: l, page: 1 })}
+          onSearchChange={(s) => setUrl({ q: s, page: 1 })}
+          onClassroomChange={(cId) => setUrl({ classroomId: cId ?? '', page: 1 })}
+          onEducationLevelChange={(eL?: Level) => setUrl({ level: eL ?? '', page: 1 })}
+          onResetFilters={() => setUrl({ q: '', classroomId: '', level: '', page: 1 })}
           onQuickEnroll={(s) =>
             setQuickEnrollStudent({
               id: s.id,
@@ -231,15 +214,15 @@ export const StudentsPage: React.FC = () => {
               documentId: s.documentId,
             })
           }
-          quickEnrollLabel={targetYear ? `Matricular ${targetYear.year}` : 'Matricular'}
+          quickEnrollLabel={targetYear ? `Matricular en ${targetYear.year}` : 'Matricular'}
           onExportNomina={(cId) => {
-            if (cId) setClassroomId(cId);
+            if (cId) setUrl({ classroomId: cId });
             setIsNominaModalOpen(true);
           }}
+          emptyAction={emptyActions}
         />
       )}
 
-      {/* Modal de Asistente de Matrícula */}
       <EnrollStudentModal
         isOpen={isEnrollModalOpen}
         onClose={() => setIsEnrollModalOpen(false)}
@@ -249,36 +232,20 @@ export const StudentsPage: React.FC = () => {
         }}
       />
 
-      {/* Re-matrícula por aula y matrícula rápida de alumnos existentes */}
       <RolloverModal isOpen={isRolloverOpen} onClose={() => setIsRolloverOpen(false)} />
       <QuickEnrollModal student={quickEnrollStudent} onClose={() => setQuickEnrollStudent(null)} />
 
-      {/* Modal de Carnets QR por Sección en A4 */}
       {isSectionQrModalOpen && (
-        <SectionQrCardsModal
-          initialClassroomId={classroomId}
-          schoolName={school?.name}
-          onClose={() => setIsSectionQrModalOpen(false)}
-        />
+        <SectionQrCardsModal initialClassroomId={classroomId} schoolName={school?.name} onClose={() => setIsSectionQrModalOpen(false)} />
       )}
 
-      {/* Modal de Descarga de Nómina SIAGIE en Excel */}
       {isNominaModalOpen && (
-        <NominaSiagieModal
-          isOpen={isNominaModalOpen}
-          initialClassroomId={classroomId}
-          onClose={() => setIsNominaModalOpen(false)}
-        />
+        <NominaSiagieModal isOpen initialClassroomId={classroomId} onClose={() => setIsNominaModalOpen(false)} />
       )}
 
       <NominaImportModal open={isNominaImportOpen} onClose={() => setIsNominaImportOpen(false)} />
       <StudentImportModal open={isStudentImportOpen} onClose={() => setIsStudentImportOpen(false)} />
-
-      {/* Modal de Credenciales de Acceso Masivas */}
-      <BulkCredentialsModal
-        isOpen={isBulkCredentialsModalOpen}
-        onClose={() => setIsBulkCredentialsModalOpen(false)}
-      />
+      <BulkCredentialsModal isOpen={isBulkCredentialsModalOpen} onClose={() => setIsBulkCredentialsModalOpen(false)} />
     </div>
   );
 };

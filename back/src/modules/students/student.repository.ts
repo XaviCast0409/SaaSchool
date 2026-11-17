@@ -8,6 +8,7 @@ import type { PaginatedResult } from '../../core/interfaces/global.interfaces';
 import { AppError } from '../../core/errors/app-error';
 import { enrollmentsOfYear } from '../../utils/academic-year-scope';
 import { feeScheduleService, type ScheduleResult } from '../payments/fee-schedule.service';
+import { multiWordSearch } from '../../utils/search.util';
 
 export class StudentRepository {
   async findAllBySchool(
@@ -84,43 +85,22 @@ export class StudentRepository {
       ...(scope !== 'all' && !academicYearId && !hasClassroomFilter && teacherClassroomIds === undefined
         ? { NOT: { enrollments: { some: { academicYear: { isActive: true }, enrollmentState: { not: 'REGISTERED' } } } } }
         : {}),
-      ...(search
-        ? {
-            OR: [
-              { firstNames: { contains: search, mode: 'insensitive' } },
-              { lastNamePaternal: { contains: search, mode: 'insensitive' } },
-              { lastNameMaternal: { contains: search, mode: 'insensitive' } },
-              { documentId: { contains: search } },
-              { studentCode: { contains: search } },
-            ],
-          }
-        : {}),
+      // Varias palabras: "garcía ana" o "lópez 7123" (cada palabra en cualquier campo)
+      AND: multiWordSearch<Prisma.StudentWhereInput>(search, {
+        insensitive: ['firstNames', 'lastNamePaternal', 'lastNameMaternal'],
+        exact: ['documentId', 'studentCode'],
+      }),
     };
 
-    const [rawStudents, total] = await Promise.all([
+    const [data, total] = await Promise.all([
       prisma.student.findMany({
         where,
         skip,
         take: limit,
-        orderBy: [{ lastNamePaternal: 'asc' }, { firstNames: 'asc' }],
+        orderBy: [{ lastNamePaternal: 'asc' }, { lastNameMaternal: 'asc' }, { firstNames: 'asc' }],
         include: {
-          familyRelations: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  firstName: true,
-                  lastNamePaternal: true,
-                  lastNameMaternal: true,
-                  documentType: true,
-                  documentId: true,
-                  email: true,
-                  cellphone: true,
-                  educationLevel: true,
-                },
-              },
-            },
-          },
+          // La lista solo necesita saber si tiene apoderados (el detalle se pide al abrir el panel)
+          _count: { select: { familyRelations: true } },
           enrollments: {
             // También la matrícula retirada o trasladada del año, para mostrarla y poder reincorporar
             where: academicYearId ? { academicYearId } : { academicYear: { isActive: true } },
@@ -141,24 +121,6 @@ export class StudentRepository {
       }),
       prisma.student.count({ where }),
     ]);
-
-    const data =
-      actorRole === 'TEACHER'
-        ? rawStudents.map((s) => ({
-            ...s,
-            familyRelations: s.familyRelations.map((fr) => ({
-              ...fr,
-              user: fr.user
-                ? {
-                    ...fr.user,
-                    documentId: '',
-                    cellphone: '',
-                    email: '',
-                  }
-                : fr.user,
-            })),
-          }))
-        : rawStudents;
 
     return {
       data,

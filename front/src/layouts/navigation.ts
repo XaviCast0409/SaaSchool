@@ -126,8 +126,8 @@ const schoolNavSections: NavSection[] = [
   {
     title: 'Alumnos y familias',
     items: [
-      { label: 'Alumnos y matrícula', path: '/students', icon: GraduationCap, roles: OFFICE, minPlan: 'BASIC', keywords: 'siagie estudiantes nómina carnets' },
-      { label: 'Directorio y familias', path: '/directory', icon: Users, roles: DIRECTION, minPlan: 'BASIC', keywords: 'personal docentes apoderados usuarios' },
+      { label: 'Alumnos y matrícula', path: '/students', icon: GraduationCap, roles: OFFICE, minPlan: 'BASIC', keywords: 'siagie estudiantes nómina carnets familias apoderados padres' },
+      { label: 'Personal del colegio', path: '/directory', icon: Users, roles: DIRECTION, minPlan: 'BASIC', keywords: 'directorio docentes secretaría usuarios contratación' },
       { label: 'Secretaría', path: '/secretariat', icon: Inbox, roles: OFFICE, minPlan: 'BASIC', keywords: 'trámites admisión reclamaciones' },
     ],
   },

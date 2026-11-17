@@ -1,7 +1,14 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
 import type { FamilyRelationship } from '../types';
 import type { LinkParentFormData } from '../schemas/link-parent.schema';
+
+/** Listas que muestran vínculos: alumnos (cuántos apoderados) y familias (qué hijos) */
+const invalidateFamilyLists = (queryClient: QueryClient) => {
+  queryClient.invalidateQueries({ queryKey: ['family-relationships'] });
+  queryClient.invalidateQueries({ queryKey: ['students'] });
+  queryClient.invalidateQueries({ queryKey: ['users', 'families'] });
+};
 
 interface FamilyResponse {
   status: string;
@@ -60,7 +67,7 @@ export const useLinkParent = () => {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['student-parents', variables.studentId] });
       queryClient.invalidateQueries({ queryKey: ['parent-students', variables.userId] });
-      queryClient.invalidateQueries({ queryKey: ['family-relationships'] });
+      invalidateFamilyLists(queryClient);
     },
   });
 };
@@ -77,7 +84,25 @@ export const useDeleteRelationship = (studentId?: string) => {
       if (studentId) {
         queryClient.invalidateQueries({ queryKey: ['student-parents', studentId] });
       }
-      queryClient.invalidateQueries({ queryKey: ['family-relationships'] });
+      queryClient.invalidateQueries({ queryKey: ['parent-students'] });
+      invalidateFamilyLists(queryClient);
+    },
+  });
+};
+
+/** Cambiar parentesco o marcas (apoderado legal, responsable de pago, convive) sin desvincular */
+export const useUpdateRelationship = (studentId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...patch }: { id: string } & Partial<Pick<FamilyRelationship, 'relationshipType' | 'isLegalGuardian' | 'isFinancialResponsible' | 'livesWithStudent'>>) => {
+      const response = await api.patch<SingleFamilyResponse>(`/family-relationships/${id}`, patch);
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['student-parents', studentId] });
+      queryClient.invalidateQueries({ queryKey: ['parent-students'] });
+      invalidateFamilyLists(queryClient);
     },
   });
 };

@@ -73,6 +73,10 @@ export const userFilterSchema = z.object({
   search: z.string().optional().or(emptyToUndefined),
   /** 'year': solo el personal contratado en el año elegido en la cabecera; 'all': todo el personal */
   yearScope: z.enum(['year', 'all']).optional().or(emptyToUndefined),
+  /** Apoderados: solo los que aún no tienen ningún hijo vinculado */
+  unlinked: z
+    .union([z.boolean(), z.string().transform((val) => val === 'true')])
+    .optional(),
 });
 
 export type CreateUserDto = z.infer<typeof createUserSchema>;
