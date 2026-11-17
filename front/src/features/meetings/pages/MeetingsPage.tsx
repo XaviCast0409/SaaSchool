@@ -340,7 +340,7 @@ const StaffView: React.FC = () => {
                           </div>
                           <div className="min-w-0 flex-1 space-y-1">
                             <div className="flex flex-wrap items-center gap-1.5">
-                              <span className="text-sm font-bold text-foreground">{range(s)}</span>
+                              <span className="whitespace-nowrap text-sm font-bold text-foreground">{range(s)}</span>
                               <span
                                 className={cn(
                                   'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold',
@@ -382,7 +382,8 @@ const StaffView: React.FC = () => {
                             onClick={() => onCancel(s)}
                             disabled={cancel.isPending}
                             aria-label={isBooked ? 'Cancelar entrevista' : 'Quitar horario'}
-                            className="h-8 shrink-0 gap-1 rounded-lg border-destructive/30 px-2.5 text-xs font-bold text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            // En celular, botón cuadrado de 40 px (se toca bien y no tapa la hora); el texto, desde tablet
+                            className="h-10 w-10 shrink-0 justify-center gap-1 rounded-lg border-destructive/30 px-0 text-xs font-bold sm:h-8 sm:w-auto sm:px-2.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
                           >
                             {isBooked ? <XCircle className="h-3.5 w-3.5" /> : <Trash2 className="h-3.5 w-3.5" />}
                             <span className="hidden sm:inline">{isBooked ? 'Cancelar' : 'Quitar'}</span>
@@ -524,7 +525,8 @@ const ParentView: React.FC = () => {
                         size="sm"
                         variant="outline"
                         aria-label="Cancelar entrevista"
-                        className="h-8 shrink-0 gap-1 rounded-lg border-destructive/30 px-2.5 text-xs font-bold text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        // En celular, botón con texto y de 40 px de alto: se toca sin errar
+                        className="h-10 shrink-0 gap-1 rounded-lg border-destructive/30 px-3 text-xs font-bold sm:h-8 sm:px-2.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
                         onClick={async () =>
                           (await confirmDialog({
                             title: '¿Cancelar esta entrevista?',
@@ -540,7 +542,7 @@ const ParentView: React.FC = () => {
                         }
                       >
                         <XCircle className="h-3.5 w-3.5" aria-hidden />
-                        <span className="hidden sm:inline">Cancelar</span>
+                        <span>Cancelar</span>
                       </Button>
                     ) : (
                       <p className="max-w-[9rem] shrink-0 text-right text-xs text-muted-foreground">
@@ -599,7 +601,7 @@ const ParentView: React.FC = () => {
                             type="button"
                             title={MODE_LABEL[s.mode]}
                             onClick={() => setPicked({ id: s.id, label: `${staff.name} · ${day} · ${range(s)} · ${MODE_LABEL[s.mode]}` })}
-                            className="flex items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-border bg-background px-3 py-2 text-xs font-bold text-foreground shadow-sm transition-colors hover:border-primary hover:bg-primary/5 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                            className="flex min-h-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-border bg-background px-3 py-2 text-sm font-bold sm:min-h-0 sm:text-xs text-foreground shadow-sm transition-colors hover:border-primary hover:bg-primary/5 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary"
                           >
                             <ModeIcon mode={s.mode} className="h-3.5 w-3.5 text-muted-foreground" /> {formatPeruTime(s.startsAt)}
                           </button>

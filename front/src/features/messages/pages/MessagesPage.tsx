@@ -718,7 +718,8 @@ export const MessagesPage: React.FC = () => {
           : 'Aún no tienes conversaciones. Pulsa Nuevo para empezar.';
 
   return (
-    <div className="-m-4 flex h-[calc(100dvh-4rem)] flex-col md:m-0 md:h-[calc(100dvh-8rem)]">
+    // En celular se descuenta también la barra inferior (3.5rem + área segura): antes tapaba el campo para escribir
+    <div className="-m-4 flex h-[calc(100dvh-7.5rem-env(safe-area-inset-bottom))] flex-col md:m-0 md:h-[calc(100dvh-8rem)]">
       <div className="flex min-h-0 flex-1 overflow-hidden border-border bg-card md:rounded-xl md:border">
         <aside className={cn('flex w-full flex-col border-r border-border md:w-80 lg:w-96', selectedId && 'hidden md:flex')}>
           <div className="space-y-2.5 border-b border-border px-3 py-3">
