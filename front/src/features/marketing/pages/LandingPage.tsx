@@ -38,7 +38,15 @@ const Header: React.FC = () => {
     <header className={`kx-header fixed top-0 inset-x-0 z-50 ${solid ? 'is-scrolled' : ''}`}>
       <div className="max-w-7xl mx-auto px-5 sm:px-8 h-[72px] flex items-center gap-8">
         <a href="#inicio" className="shrink-0" aria-label="KIPUX, ir al inicio">
-          <img src={solid ? logoLight : logoDark} alt="KIPUX · Revolución educativa" className="h-9 sm:h-10 w-auto" />
+          <img
+            src={solid ? logoLight : logoDark}
+            alt="KIPUX · Revolución educativa"
+            width={900}
+            height={solid ? 261 : 263}
+            decoding="async"
+            fetchPriority="high"
+            className="h-9 sm:h-10 w-auto"
+          />
         </a>
         <nav className="hidden lg:flex items-center gap-1 text-sm font-semibold">
           {NAV_LINKS.map((link) => (
@@ -79,7 +87,15 @@ const Footer: React.FC = () => (
   <footer className="kx-section-dark border-t border-white/10">
     <div className="max-w-7xl mx-auto px-5 sm:px-8 py-14 grid md:grid-cols-[1.4fr_1fr_1fr] gap-10">
       <div>
-        <img src={logoDark} alt="KIPUX · Revolución educativa" className="h-11 w-auto" />
+        <img
+          src={logoDark}
+          alt="KIPUX · Revolución educativa"
+          width={900}
+          height={263}
+          decoding="async"
+          loading="lazy"
+          className="h-11 w-auto"
+        />
         <p className="mt-5 kx-on-dark max-w-sm leading-relaxed">Gestión escolar para colegios del Perú: matrícula, asistencia, notas, pensiones y familias en un solo lugar.</p>
       </div>
       <div>
@@ -149,17 +165,54 @@ const ReadingProgress: React.FC = () => {
   return <div className="kx-progress-bar" style={{ width: `${progress * 100}%` }} />;
 };
 
+const LANDING_TITLE = 'KIPUX | Gestión escolar para colegios del Perú';
+const LANDING_DESCRIPTION =
+  'Plataforma de gestión escolar: matrícula, notas CNEB/SIAGIE, asistencia con QR, pagos y comunicación con las familias.';
+const LANDING_CANONICAL = 'https://kipuxedu.com/';
+
 const LandingContent: React.FC = () => {
   useRevealOnScroll();
 
   useEffect(() => {
     const previousTitle = document.title;
-    document.title = 'KIPUX | Gestión escolar para colegios del Perú';
+    document.title = LANDING_TITLE;
+
+    let descMeta = document.querySelector<HTMLMetaElement>('meta[name="description"]');
+    const hadDesc = Boolean(descMeta);
+    const previousDesc = descMeta?.content ?? '';
+    if (!descMeta) {
+      descMeta = document.createElement('meta');
+      descMeta.name = 'description';
+      document.head.appendChild(descMeta);
+    }
+    descMeta.content = LANDING_DESCRIPTION;
+
+    let canonicalLink = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    const hadCanonical = Boolean(canonicalLink);
+    const previousCanonical = canonicalLink?.href ?? '';
+    if (!canonicalLink) {
+      canonicalLink = document.createElement('link');
+      canonicalLink.rel = 'canonical';
+      document.head.appendChild(canonicalLink);
+    }
+    canonicalLink.href = LANDING_CANONICAL;
+
     const html = document.documentElement;
     const previousBehavior = html.style.scrollBehavior;
     html.style.scrollBehavior = 'smooth';
+
     return () => {
       document.title = previousTitle;
+      if (hadDesc && descMeta) {
+        descMeta.content = previousDesc;
+      } else if (!hadDesc && descMeta) {
+        descMeta.remove();
+      }
+      if (hadCanonical && canonicalLink) {
+        canonicalLink.href = previousCanonical;
+      } else if (!hadCanonical && canonicalLink) {
+        canonicalLink.remove();
+      }
       html.style.scrollBehavior = previousBehavior;
     };
   }, []);

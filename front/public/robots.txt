@@ -1,0 +1,63 @@
+# Motores de búsqueda y crawlers de Inteligencia Artificial
+User-agent: *
+User-agent: GPTBot
+User-agent: ClaudeBot
+User-agent: Claude-Web
+User-agent: PerplexityBot
+User-agent: Google-Extended
+User-agent: OAI-SearchBot
+User-agent: Bingbot
+
+# Rutas públicas indexables
+Allow: /
+Allow: /privacidad
+Allow: /terminos
+
+# Bloquear rutas privadas, autenticadas y portales internos
+Disallow: /dashboard
+Disallow: /announcements
+Disallow: /directory
+Disallow: /academic-years
+Disallow: /classrooms
+Disallow: /curricular-areas
+Disallow: /teacher-assignments
+Disallow: /academic
+Disallow: /academic/
+Disallow: /my-courses
+Disallow: /gradebook/
+Disallow: /students
+Disallow: /payments
+Disallow: /payments/
+Disallow: /grades
+Disallow: /virtual-classroom
+Disallow: /virtual-classroom-supervision
+Disallow: /attendance
+Disallow: /course-attendance
+Disallow: /attendance-justifications
+Disallow: /attendance-alerts
+Disallow: /academic-reports
+Disallow: /incidents
+Disallow: /evaluation-criteria
+Disallow: /teacher-resources
+Disallow: /secretariat
+Disallow: /procedures
+Disallow: /insights
+Disallow: /gate
+Disallow: /schedule
+Disallow: /calendar
+Disallow: /messages
+Disallow: /meetings
+Disallow: /automations
+Disallow: /notification-preferences
+Disallow: /audit-logs
+Disallow: /super-admin
+Disallow: /super-admin/
+Disallow: /login
+Disallow: /login/
+Disallow: /c/
+Disallow: /olvide-contrasena
+Disallow: /restablecer
+Disallow: /admision/
+Disallow: /reclamaciones/
+
+Sitemap: https://kipuxedu.com/sitemap.xml

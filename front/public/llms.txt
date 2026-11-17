@@ -1,0 +1,41 @@
+# KIPUX
+> Plataforma de gestión escolar para colegios del Perú: matrícula, notas CNEB/SIAGIE, asistencia con QR, pagos y comunicación con las familias.
+
+## Qué es
+KIPUX es una plataforma de gestión escolar en la nube hecha en Perú para colegios de Inicial, Primaria y Secundaria. Funciona en el navegador de cualquier computadora, tablet o celular sin necesidad de instalar programas ni comprar equipos especiales. Centraliza en una sola plataforma la matrícula de alumnos, asistencia con carné y código QR, registro de calificaciones por competencias alineadas al Currículo Nacional (CNEB) listas para el SIAGIE, cobranza de pensiones y comunicación directa con las familias.
+
+## Funcionalidades
+- **Asistencia:** Carné con código QR para cada alumno. Registro en puerta mediante kiosco con cámara o lector de códigos de barra/QR. Marcado automático de tardanzas según el horario del colegio, envío inmediato de avisos al celular del apoderado, control de personas autorizadas para recojo de alumnos y registro de justificaciones.
+- **Notas y evaluación:** Registro de notas por competencias con la malla oficial del CNEB cargada (Inicial, Primaria, Secundaria). Escalas de calificación literal (AD, A, B, C) o vigesimal, cálculo automático de promedios, cierre de actas por Dirección, guardado automático de datos y emisión de libretas de información oficiales listas para imprimir.
+- **Pensiones y cobranza:** Cronograma anual de pagos con asignación de becas y descuentos, emisión de recibos numerados, recordatorios de pago por WhatsApp en un solo clic, arqueo y cierre diario de caja por efectivo, transferencia o tarjeta, y reportes de cobranza.
+- **Familias y apoderados:** Portal familiar accesible desde el celular para visualizar a todos los hijos en un solo lugar. Semáforo de rendimiento y asistencia, avisos de tareas escolares, comunicados oficiales con confirmación de lectura y agenda de entrevistas con docentes.
+- **Matrícula y secretaría:** Ficha integral de matrícula (alumno, aula y apoderado). Importación de nóminas del SIAGIE y exportación en formato oficial sin redigitar, emisión de constancias, gestión de admisión y Libro de Reclamaciones virtual.
+- **Reportes y alerta temprana:** Detección oportuna de alumnos en riesgo académico o de ausentismo cruzando faltas, notas, tareas e incidencias. Cálculo de orden de mérito, tercio y quinto superior, consolidados en Excel y automatizaciones periódicas.
+
+## Para quién
+- **Dirección:** Indicadores del colegio, cobranza, cumplimiento docente y alumnos en riesgo.
+- **Secretaría:** Matrícula, admisión, trámites, constancias, caja y padrones oficiales.
+- **Docentes:** Asistencia, notas, aula virtual, rúbricas y banco de recursos.
+- **Padres:** Asistencia, notas, pagos y mensajes de todos sus hijos en el celular.
+- **Alumnos:** Sus cursos, tareas y foros, con su propia cuenta y sin ver pagos.
+
+## Planes
+- **Básico:** S/ 300 / mes (Hasta 150 alumnos). Para ordenar la operación diaria: matrícula, secretaría y SIAGIE; asistencia con QR y portería; pensiones, caja y cobranza; portal familiar y comunicados; mensajería, entrevistas e incidencias.
+- **Pro:** S/ 350 / mes (Hasta 500 alumnos). La gestión académica completa: todo lo del plan Básico, más registro de notas por competencias, reportes académicos oficiales, alerta temprana y tutoría, y supervisión del aula virtual.
+- **Enterprise:** S/ 450 / mes (Alumnos ilimitados - Próximamente). Para colegios grandes o con varias sedes.
+- Todos los planes tienen un precio mensual fijo en Soles (PEN) por colegio, sin cobro por usuario. Docentes, padres y alumnos ingresan sin costo extra.
+
+## Contacto
+- **WhatsApp:** +51 949 771 996
+- **Demostración:** Videollamada de 20 minutos personalizada para cada colegio, solicitada a través de https://kipuxedu.com/#demo
+
+## Enlaces
+- Sitio web principal: https://kipuxedu.com/
+- Funciones: https://kipuxedu.com/#funciones
+- Cómo funciona: https://kipuxedu.com/#como-funciona
+- Precios: https://kipuxedu.com/#precios
+- Preguntas frecuentes: https://kipuxedu.com/#preguntas
+- Ingreso a la plataforma: https://kipuxedu.com/login
+- Política de privacidad: https://kipuxedu.com/privacidad
+- Términos y condiciones: https://kipuxedu.com/terminos
+

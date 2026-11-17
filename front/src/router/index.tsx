@@ -226,6 +226,23 @@ const RoleGuard: React.FC<{
 };
 
 export const AppRouter: React.FC = () => {
+  React.useEffect(() => {
+    if (currentSchoolSlug) {
+      let robotsMeta = document.querySelector<HTMLMetaElement>('meta[name="robots"]');
+      if (!robotsMeta) {
+        robotsMeta = document.createElement('meta');
+        robotsMeta.setAttribute('name', 'robots');
+        document.head.appendChild(robotsMeta);
+      }
+      robotsMeta.setAttribute('content', 'noindex,nofollow');
+
+      const canonical = document.querySelector('link[rel="canonical"]');
+      if (canonical) {
+        canonical.remove();
+      }
+    }
+  }, []);
+
   return (
     <BrowserRouter>
       <Suspense fallback={<PageLoader />}>
