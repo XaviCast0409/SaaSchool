@@ -1,9 +1,13 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { visualizer } from 'rollup-plugin-visualizer';
 
-export default defineConfig({
-  plugins: [react()],
+export default defineConfig(({ mode }) => ({
+  plugins: [
+    react(),
+    ...(mode === 'analyze' ? [visualizer({ filename: 'stats.html', gzipSize: true, brotliSize: true })] : []),
+  ],
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') },
   },
@@ -34,4 +38,4 @@ export default defineConfig({
       '/api': { target: 'http://localhost:3000', changeOrigin: true },
     },
   },
-});
+}));

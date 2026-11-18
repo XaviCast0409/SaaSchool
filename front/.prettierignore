@@ -1,0 +1,6 @@
+dist
+coverage
+node_modules
+public/sw.js
+pnpm-lock.yaml
+stats.html
