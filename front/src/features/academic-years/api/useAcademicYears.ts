@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { academicYearsKeys } from './keys';
 
 export interface PeriodDateConfig {
   periodNumber: number;
@@ -42,7 +43,7 @@ interface ApiResponse<T> {
 export const useAcademicYears = (enabled = true) => {
   return useQuery({
     enabled,
-    queryKey: ['academic-years'],
+    queryKey: academicYearsKeys.all,
     queryFn: async () => {
       const response = await api.get<ApiResponse<AcademicYear[]>>('/academic-years');
       return response.data.data;
@@ -98,7 +99,7 @@ export const useUpdateAcademicYear = () => {
     // Cambiar de año activo afecta a todas las pantallas: se descarta toda la caché
     onSuccess: (_data, variables) => {
       if (variables.payload.isActive !== undefined) queryClient.invalidateQueries();
-      else queryClient.invalidateQueries({ queryKey: ['academic-years'] });
+      else queryClient.invalidateQueries({ queryKey: academicYearsKeys.all });
     },
   });
 };
@@ -110,7 +111,7 @@ export const useDeleteAcademicYear = () => {
       await api.delete(`/academic-years/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['academic-years'] });
+      queryClient.invalidateQueries({ queryKey: academicYearsKeys.all });
     },
   });
 };
@@ -127,7 +128,7 @@ export interface ActivationImpact {
 /** Qué pasa al activar un año (matrículas que dejan de estar vigentes) */
 export const useActivationImpact = (academicYearId: string | null) =>
   useQuery({
-    queryKey: ['academic-years', 'activation-impact', academicYearId],
+    queryKey: academicYearsKeys.activationImpact(academicYearId),
     queryFn: async () =>
       (await api.get<ApiResponse<ActivationImpact>>(`/academic-years/${academicYearId}/activation-impact`)).data.data,
     enabled: !!academicYearId,
@@ -139,7 +140,7 @@ export const useSetEnrollmentOpen = () => {
   return useMutation({
     mutationFn: async ({ id, open }: { id: string; open: boolean }) =>
       (await api.patch<ApiResponse<AcademicYear>>(`/academic-years/${id}/enrollment-open`, { open })).data.data,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['academic-years'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: academicYearsKeys.all }),
   });
 };
 

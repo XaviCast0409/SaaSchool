@@ -1,13 +1,16 @@
 import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { studentsKeys } from '@/features/students/api/keys';
+import { usersKeys } from '@/features/users/api/keys';
+import { familyRelationshipsKeys } from './keys';
 import type { FamilyRelationship } from '../types';
 import type { LinkParentFormData } from '../schemas/link-parent.schema';
 
 /** Listas que muestran vínculos: alumnos (cuántos apoderados) y familias (qué hijos) */
 const invalidateFamilyLists = (queryClient: QueryClient) => {
-  queryClient.invalidateQueries({ queryKey: ['family-relationships'] });
-  queryClient.invalidateQueries({ queryKey: ['students'] });
-  queryClient.invalidateQueries({ queryKey: ['users', 'families'] });
+  queryClient.invalidateQueries({ queryKey: familyRelationshipsKeys.all });
+  queryClient.invalidateQueries({ queryKey: studentsKeys.all });
+  queryClient.invalidateQueries({ queryKey: usersKeys.familiesAll });
 };
 
 interface FamilyResponse {
@@ -23,7 +26,7 @@ interface SingleFamilyResponse {
 /** Apoderados de un alumno específico */
 export const useStudentParents = (studentId: string) => {
   return useQuery({
-    queryKey: ['student-parents', studentId],
+    queryKey: familyRelationshipsKeys.studentParents(studentId),
     queryFn: async () => {
       const response = await api.get<FamilyResponse>(`/students/${studentId}/parents`);
       return response.data.data;
@@ -35,7 +38,7 @@ export const useStudentParents = (studentId: string) => {
 /** Hijos/alumnos de un apoderado específico */
 export const useParentStudents = (userId: string) => {
   return useQuery({
-    queryKey: ['parent-students', userId],
+    queryKey: familyRelationshipsKeys.parentStudents(userId),
     queryFn: async () => {
       const response = await api.get<FamilyResponse>(`/users/${userId}/students`);
       return response.data.data;
@@ -47,7 +50,7 @@ export const useParentStudents = (userId: string) => {
 /** Listado completo de relaciones del colegio */
 export const useFamilyRelationships = () => {
   return useQuery({
-    queryKey: ['family-relationships'],
+    queryKey: familyRelationshipsKeys.all,
     queryFn: async () => {
       const response = await api.get<FamilyResponse>('/family-relationships');
       return response.data.data;
@@ -65,8 +68,8 @@ export const useLinkParent = () => {
       return response.data.data;
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['student-parents', variables.studentId] });
-      queryClient.invalidateQueries({ queryKey: ['parent-students', variables.userId] });
+      queryClient.invalidateQueries({ queryKey: familyRelationshipsKeys.studentParents(variables.studentId) });
+      queryClient.invalidateQueries({ queryKey: familyRelationshipsKeys.parentStudents(variables.userId) });
       invalidateFamilyLists(queryClient);
     },
   });
@@ -82,9 +85,9 @@ export const useDeleteRelationship = (studentId?: string) => {
     },
     onSuccess: () => {
       if (studentId) {
-        queryClient.invalidateQueries({ queryKey: ['student-parents', studentId] });
+        queryClient.invalidateQueries({ queryKey: familyRelationshipsKeys.studentParents(studentId) });
       }
-      queryClient.invalidateQueries({ queryKey: ['parent-students'] });
+      queryClient.invalidateQueries({ queryKey: familyRelationshipsKeys.parentStudentsAll });
       invalidateFamilyLists(queryClient);
     },
   });
@@ -105,8 +108,8 @@ export const useUpdateRelationship = (studentId: string) => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['student-parents', studentId] });
-      queryClient.invalidateQueries({ queryKey: ['parent-students'] });
+      queryClient.invalidateQueries({ queryKey: familyRelationshipsKeys.studentParents(studentId) });
+      queryClient.invalidateQueries({ queryKey: familyRelationshipsKeys.parentStudentsAll });
       invalidateFamilyLists(queryClient);
     },
   });

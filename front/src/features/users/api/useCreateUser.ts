@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { usersKeys } from './keys';
 import type { DirectoryUser } from '../types';
 import type { CreateUserFormData } from '../schemas/user.schema';
 
@@ -22,7 +23,7 @@ export const useCreateUser = () => {
     },
     onSuccess: () => {
       // Invalida todas las queries de users para refrescar todas las listas
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: usersKeys.all });
     },
   });
 };

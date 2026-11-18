@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
 import { useAuthStore } from '@/store/useAuthStore';
 import { resizeImage } from '@/lib/imageResize';
+import { usersKeys } from './keys';
 
 const postImage = async <T>(url: string, file: File): Promise<T> => {
   const form = new FormData();
@@ -72,5 +73,5 @@ function afterAvatarChange(
 ) {
   const me = useAuthStore.getState().user;
   if (!userId || userId === me?.id) useAuthStore.getState().updateUser({ avatarUrl });
-  qc.invalidateQueries({ queryKey: ['users'] });
+  qc.invalidateQueries({ queryKey: usersKeys.all });
 }

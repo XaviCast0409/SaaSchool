@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
 import type { DirectoryUser, UserRole } from '../types';
+import { usersKeys } from './keys';
 
 interface UsersResponse {
   status: string;
@@ -36,7 +37,7 @@ export const useUsers = (roleOrParams?: UserRole | UserQueryParams) => {
   const queryParams: UserQueryParams = typeof roleOrParams === 'string' ? { role: roleOrParams } : roleOrParams || {};
 
   return useQuery({
-    queryKey: ['users', queryParams],
+    queryKey: usersKeys.list(queryParams as Record<string, unknown>),
     queryFn: async () => {
       const searchParams = new URLSearchParams();
       if (queryParams.role) searchParams.append('role', queryParams.role);
@@ -67,7 +68,7 @@ export const useCreateUser = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: usersKeys.all });
     },
   });
 };
@@ -84,7 +85,7 @@ export const useResetUserPassword = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: usersKeys.all });
     },
   });
 };
@@ -105,8 +106,8 @@ export const useSetStaffYear = () => {
       position?: string | null;
     }) => (await api.put(`/users/${userId}/years/${academicYearId}`, { hired, position })).data.data,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      queryClient.invalidateQueries({ queryKey: ['staff-load'] });
+      queryClient.invalidateQueries({ queryKey: usersKeys.all });
+      queryClient.invalidateQueries({ queryKey: usersKeys.staffLoad });
     },
   });
 };
@@ -118,8 +119,8 @@ export const useCopyStaffYear = () => {
     mutationFn: async (body: { fromAcademicYearId: string; toAcademicYearId: string; userIds?: string[] }) =>
       (await api.post<{ data: { hired: number; skipped: number } }>('/users/staff-years/copy', body)).data.data,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      queryClient.invalidateQueries({ queryKey: ['staff-load'] });
+      queryClient.invalidateQueries({ queryKey: usersKeys.all });
+      queryClient.invalidateQueries({ queryKey: usersKeys.staffLoad });
     },
   });
 };

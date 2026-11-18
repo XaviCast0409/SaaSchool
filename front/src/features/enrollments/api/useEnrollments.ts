@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { enrollmentsKeys } from './keys';
+import { studentsKeys } from '@/features/students/api/keys';
 import { Enrollment } from '../types';
 
 interface EnrollmentsResponse {
@@ -17,7 +19,7 @@ export interface CreateEnrollmentPayload {
 
 export const useEnrollments = () => {
   return useQuery({
-    queryKey: ['enrollments'],
+    queryKey: enrollmentsKeys.all,
     queryFn: async () => {
       const response = await api.get<EnrollmentsResponse>('/enrollments');
       return response.data.data;
@@ -34,8 +36,8 @@ export const useCreateEnrollment = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['enrollments'] });
-      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: enrollmentsKeys.all });
+      queryClient.invalidateQueries({ queryKey: studentsKeys.all });
     },
   });
 };

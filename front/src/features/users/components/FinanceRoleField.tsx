@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
 import { useAuthStore } from '@/store/useAuthStore';
 import type { DirectoryUser, FinanceRole } from '../types';
+import { usersKeys } from '../api/keys';
 
 const OPTIONS: Array<{ value: FinanceRole | ''; label: string; hint: string }> = [
   { value: '', label: 'Cajero (por defecto)', hint: 'Cobra y abre/cierra su caja. No puede anular ni editar cuotas.' },
@@ -34,7 +35,7 @@ export const FinanceRoleField: React.FC<{ user: DirectoryUser }> = ({ user }) =>
     mutationFn: async (financeRole: FinanceRole | null) =>
       (await api.patch(`/users/${user.id}/finance-role`, { financeRole })).data.data,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['users'] });
+      qc.invalidateQueries({ queryKey: usersKeys.all });
       toast.success('Rol en caja y tesorería actualizado.');
     },
     onError: (e: unknown) => {

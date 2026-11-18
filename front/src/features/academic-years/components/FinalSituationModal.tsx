@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { api } from '@/lib/axios';
+import { enrollmentsKeys } from '@/features/enrollments/api/keys';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 
@@ -49,7 +50,7 @@ export const FinalSituationModal: React.FC<{ year: { id: string; year: number } 
   const save = useMutation({
     mutationFn: (yearId: string) => run(yearId, { dryRun: false, force }),
     onSuccess: (r) => {
-      qc.invalidateQueries({ queryKey: ['rollover-candidates'] });
+      qc.invalidateQueries({ queryKey: enrollmentsKeys.rolloverCandidatesAll });
       toast.success(
         `Situación final de ${r.saved} estudiantes guardada${r.skippedClassrooms ? ` (${r.skippedClassrooms} aulas omitidas por notas incompletas)` : ''}.`,
       );

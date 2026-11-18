@@ -1,5 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { studentsKeys } from './keys';
+import { classroomsKeys } from '@/features/classrooms/api/keys';
+import { enrollmentsKeys } from '@/features/enrollments/api/keys';
+import { academicKeys } from '@/features/academic/api/keys';
+import { usersKeys } from '@/features/users/api/keys';
 import type { StudentImportPlan, StudentImportResult } from '../importTypes';
 
 interface Envelope<T> {
@@ -76,7 +81,14 @@ export const useStudentImportCommit = () => {
         )
       ).data.data,
     onSuccess: () => {
-      ['students', 'classrooms', 'enrollments', 'academic', 'users', 'payments'].forEach((key) =>
+      [
+        studentsKeys.all[0],
+        classroomsKeys.all[0],
+        enrollmentsKeys.all[0],
+        academicKeys.all[0],
+        usersKeys.all[0],
+        'payments',
+      ].forEach((key) =>
         queryClient.invalidateQueries({ queryKey: [key] }),
       );
     },

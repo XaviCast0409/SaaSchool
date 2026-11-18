@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { usersKeys } from './keys';
+import { classroomsKeys } from '@/features/classrooms/api/keys';
 
 /** Reemplazo de docente a mitad de año (cursos, tutoría y contenidos en un paso, con historial). */
 
@@ -52,13 +54,19 @@ export interface TeacherReplacementRow {
 }
 
 const invalidate = (qc: ReturnType<typeof useQueryClient>) => {
-  for (const key of ['users', 'staff-load', 'teacher-replacements', 'classrooms', 'teaching-load'])
+  for (const key of [
+    usersKeys.all[0],
+    usersKeys.staffLoad[0],
+    usersKeys.teacherReplacementsAll[0],
+    classroomsKeys.all[0],
+    'teaching-load',
+  ])
     qc.invalidateQueries({ queryKey: [key] });
 };
 
 export const useReplacementPreview = (teacherId: string | null) =>
   useQuery({
-    queryKey: ['teacher-replacements', 'preview', teacherId],
+    queryKey: usersKeys.teacherReplacementsPreview(teacherId),
     queryFn: async () =>
       (await api.get<{ data: ReplacementPreview }>(`/academic/teacher-replacements/preview/${teacherId}`)).data.data,
     enabled: !!teacherId,
@@ -66,7 +74,7 @@ export const useReplacementPreview = (teacherId: string | null) =>
 
 export const useTeacherReplacements = () =>
   useQuery({
-    queryKey: ['teacher-replacements', 'list'],
+    queryKey: usersKeys.teacherReplacementsList(),
     queryFn: async () => (await api.get<{ data: TeacherReplacementRow[] }>('/academic/teacher-replacements')).data.data,
   });
 

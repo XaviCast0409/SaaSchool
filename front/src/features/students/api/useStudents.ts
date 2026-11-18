@@ -1,5 +1,8 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { studentsKeys } from './keys';
+import { enrollmentsKeys } from '@/features/enrollments/api/keys';
+import { paymentsKeys } from '@/features/payments/api/keys';
 import type { Student, StudentFilterParams, StudentsPaginatedResponse, SiagieCatalogs } from '../types';
 
 export interface CreateStudentPayload {
@@ -59,7 +62,7 @@ export interface RegisterFichaMatriculaPayload {
 /** Hook para obtener catálogos maestros SIAGIE */
 export const useSiagieCatalogs = () => {
   return useQuery({
-    queryKey: ['siagie-catalogs'],
+    queryKey: studentsKeys.siagieCatalogs(),
     queryFn: async () => {
       const response = await api.get<{ status: string; data: SiagieCatalogs }>('/students/catalogs');
       return response.data.data;
@@ -77,7 +80,7 @@ export const useStudents = (
   const isEnabled = enabledOverride !== undefined ? enabledOverride : true;
 
   return useQuery({
-    queryKey: ['students', filters],
+    queryKey: studentsKeys.list(filters),
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filters.page) params.append('page', String(filters.page));
@@ -101,7 +104,7 @@ export const useStudents = (
 /** Hook para obtener un estudiante con su historial de matrícula y apoderados */
 export const useStudent = (id?: string) => {
   return useQuery({
-    queryKey: ['student', id],
+    queryKey: studentsKeys.detail(id),
     queryFn: async () => {
       if (!id) throw new Error('ID requerido');
       const response = await api.get<{ status: string; data: Student }>(`/students/${id}`);
@@ -120,7 +123,7 @@ export const useCreateStudent = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: studentsKeys.all });
     },
   });
 };
@@ -143,10 +146,10 @@ export const useRegisterFichaMatricula = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['students'] });
-      queryClient.invalidateQueries({ queryKey: ['enrollments'] });
-      queryClient.invalidateQueries({ queryKey: ['payments-obligations'] });
-      queryClient.invalidateQueries({ queryKey: ['financial-summary'] });
+      queryClient.invalidateQueries({ queryKey: studentsKeys.all });
+      queryClient.invalidateQueries({ queryKey: enrollmentsKeys.all });
+      queryClient.invalidateQueries({ queryKey: paymentsKeys.obligations.all });
+      queryClient.invalidateQueries({ queryKey: paymentsKeys.summary.all });
     },
   });
 };
@@ -160,8 +163,8 @@ export const useUpdateStudent = () => {
       return response.data.data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['students'] });
-      queryClient.invalidateQueries({ queryKey: ['student', variables.id] });
+      queryClient.invalidateQueries({ queryKey: studentsKeys.all });
+      queryClient.invalidateQueries({ queryKey: studentsKeys.detail(variables.id) });
     },
   });
 };
@@ -235,7 +238,7 @@ export interface NominaMatriculaResponse {
 
 export const useNominaMatricula = (classroomId?: string, enabled = true) => {
   return useQuery({
-    queryKey: ['nomina-matricula', classroomId],
+    queryKey: studentsKeys.nominaMatricula(classroomId),
     queryFn: async () => {
       if (!classroomId) throw new Error('ID de aula requerido');
       const response = await api.get<{ status: string; data: NominaMatriculaResponse }>(
@@ -251,7 +254,7 @@ export const useNominaMatricula = (classroomId?: string, enabled = true) => {
 /** Hook para obtener los hijos del apoderado autenticado (Multi-Hijo) */
 export const useGetMyChildren = (enabled = true) => {
   return useQuery({
-    queryKey: ['my-children'],
+    queryKey: studentsKeys.myChildren(),
     queryFn: async () => {
       const { data } = await api.get<{ status: string; data: import('@/features/parent/types').ParentChildInfo[] }>(
         '/students/my-children',
@@ -296,7 +299,7 @@ export interface CertificateData {
 
 export const useEnrollmentCertificate = (studentId?: string, enabled = true) => {
   return useQuery({
-    queryKey: ['certificate-enrollment', studentId],
+    queryKey: studentsKeys.certificateEnrollment(studentId),
     queryFn: async () => {
       if (!studentId) throw new Error('ID requerido');
       const response = await api.get<{ status: string; data: CertificateData }>(
@@ -311,7 +314,7 @@ export const useEnrollmentCertificate = (studentId?: string, enabled = true) => 
 
 export const useNoDebtCertificate = (studentId?: string, enabled = true) => {
   return useQuery({
-    queryKey: ['certificate-no-debt', studentId],
+    queryKey: studentsKeys.certificateNoDebt(studentId),
     queryFn: async () => {
       if (!studentId) throw new Error('ID requerido');
       const response = await api.get<{ status: string; data: CertificateData }>(
@@ -336,7 +339,7 @@ export const useResetStudentPassword = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: studentsKeys.all });
     },
   });
 };

@@ -1,5 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { studentsKeys } from '@/features/students/api/keys';
+import { classroomsKeys } from '@/features/classrooms/api/keys';
+import { enrollmentsKeys } from '@/features/enrollments/api/keys';
+import { academicKeys } from '@/features/academic/api/keys';
 import type { FillResponse, NominaCommitResult, NominaPlan, TemplateImportResult, TemplateInspection } from './types';
 
 interface Envelope<T> {
@@ -29,10 +33,10 @@ export const useNominaCommit = () => {
     mutationFn: (v: { files: File[]; updateExisting: boolean }) =>
       post<NominaCommitResult>('/siagie/nomina/commit', formOf(v.files, { updateExisting: v.updateExisting })),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['students'] });
-      qc.invalidateQueries({ queryKey: ['classrooms'] });
-      qc.invalidateQueries({ queryKey: ['enrollments'] });
-      qc.invalidateQueries({ queryKey: ['academic'] });
+      qc.invalidateQueries({ queryKey: studentsKeys.all });
+      qc.invalidateQueries({ queryKey: classroomsKeys.all });
+      qc.invalidateQueries({ queryKey: enrollmentsKeys.all });
+      qc.invalidateQueries({ queryKey: academicKeys.all });
     },
   });
 };
@@ -46,7 +50,7 @@ export const useImportTemplateGrades = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (files: File[]) => post<TemplateImportResult[]>('/siagie/templates/import', formOf(files)),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['academic'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: academicKeys.all }),
   });
 };
 

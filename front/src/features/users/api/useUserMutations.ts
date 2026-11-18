@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { usersKeys } from './keys';
 import type { DirectoryUser } from '../types';
 import type { UpdateUserFormData } from '../schemas/user.schema';
 
@@ -17,7 +18,7 @@ export const useUpdateUser = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: usersKeys.all });
     },
   });
 };
@@ -31,7 +32,7 @@ export const useDeactivateUser = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: usersKeys.all });
     },
   });
 };
@@ -45,7 +46,7 @@ export const useReactivateUser = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: usersKeys.all });
     },
   });
 };

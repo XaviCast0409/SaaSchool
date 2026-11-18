@@ -6,6 +6,7 @@ import { api } from '@/lib/axios';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { useCopyStaffYear } from '../api/useUsers';
+import { usersKeys } from '../api/keys';
 import type { DirectoryUser } from '../types';
 
 const ROLE: Record<string, string> = {
@@ -32,11 +33,11 @@ export const RenewStaffModal: React.FC<{
       })
       .then((r) => r.data.data);
   const { data: source = [], isLoading } = useQuery({
-    queryKey: ['users', 'renew', fromYear.id],
+    queryKey: usersKeys.renew(fromYear.id),
     queryFn: () => fetchYear(fromYear.id),
   });
   const { data: target = [] } = useQuery({
-    queryKey: ['users', 'renew', toYear.id],
+    queryKey: usersKeys.renew(toYear.id),
     queryFn: () => fetchYear(toYear.id),
   });
   const already = useMemo(() => new Set(target.map((u) => u.id)), [target]);

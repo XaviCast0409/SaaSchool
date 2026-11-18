@@ -1,5 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { enrollmentsKeys } from './keys';
+import { studentsKeys } from '@/features/students/api/keys';
+import { classroomsKeys } from '@/features/classrooms/api/keys';
+import { paymentsKeys } from '@/features/payments/api/keys';
 
 /** Re-matrícula: pasar alumnos de un año al siguiente sin volver a llenar la ficha. */
 
@@ -86,7 +90,7 @@ export const useRolloverCandidates = (
   enabled = true,
 ) =>
   useQuery({
-    queryKey: ['rollover-candidates', params],
+    queryKey: enrollmentsKeys.rolloverCandidates(params),
     queryFn: async () =>
       (await api.get<{ data: RolloverCandidates }>('/enrollments/rollover/candidates', { params })).data.data,
     enabled:
@@ -103,12 +107,12 @@ export const useRollover = () => {
       (await api.post<{ data: RolloverResult }>('/enrollments/rollover', body)).data.data,
     onSuccess: () => {
       for (const key of [
-        'rollover-candidates',
-        'students',
-        'enrollments',
-        'classrooms',
-        'payments-obligations',
-        'financial-summary',
+        enrollmentsKeys.rolloverCandidatesAll[0],
+        studentsKeys.all[0],
+        enrollmentsKeys.all[0],
+        classroomsKeys.all[0],
+        paymentsKeys.obligations.all[0],
+        paymentsKeys.summary.all[0],
       ]) {
         qc.invalidateQueries({ queryKey: [key] });
       }

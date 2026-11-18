@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { classroomsKeys } from './keys';
+import { enrollmentsKeys } from '@/features/enrollments/api/keys';
 import { Classroom } from '../types';
 
 export interface CreateClassroomPayload {
@@ -24,7 +26,7 @@ interface SingleClassroomResponse {
 /** Aulas del año que se está viendo. Con `includeClosed`, también las secciones no abiertas ese año. */
 export const useClassrooms = (enabled = true, includeClosed = false) => {
   return useQuery({
-    queryKey: ['classrooms', { includeClosed }],
+    queryKey: classroomsKeys.list({ includeClosed }),
     enabled,
     queryFn: async () => {
       const response = await api.get<ClassroomsResponse>('/classrooms', {
@@ -49,8 +51,8 @@ export const useSetClassroomYear = () => {
       body: { open: boolean; capacity?: number; tutorTeacherId?: string | null };
     }) => (await api.put(`/classrooms/${id}/years/${academicYearId}`, body)).data.data,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['classrooms'] });
-      queryClient.invalidateQueries({ queryKey: ['rollover-candidates'] });
+      queryClient.invalidateQueries({ queryKey: classroomsKeys.all });
+      queryClient.invalidateQueries({ queryKey: enrollmentsKeys.rolloverCandidatesAll });
     },
   });
 };
@@ -60,7 +62,7 @@ export const useCopyClassroomYear = () => {
   return useMutation({
     mutationFn: async (body: { fromAcademicYearId: string; toAcademicYearId: string; includeTutors: boolean }) =>
       (await api.post<{ data: { copied: number; skipped: number } }>('/classrooms/copy-year', body)).data.data,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['classrooms'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: classroomsKeys.all }),
   });
 };
 
@@ -73,7 +75,7 @@ export const useCreateClassroom = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['classrooms'] });
+      queryClient.invalidateQueries({ queryKey: classroomsKeys.all });
     },
   });
 };
@@ -87,7 +89,7 @@ export const useUpdateClassroom = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['classrooms'] });
+      queryClient.invalidateQueries({ queryKey: classroomsKeys.all });
     },
   });
 };
@@ -100,7 +102,7 @@ export const useDeleteClassroom = () => {
       await api.delete(`/classrooms/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['classrooms'] });
+      queryClient.invalidateQueries({ queryKey: classroomsKeys.all });
     },
   });
 };
@@ -124,7 +126,7 @@ export const useBulkCreateClassrooms = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['classrooms'] });
+      queryClient.invalidateQueries({ queryKey: classroomsKeys.all });
     },
   });
 };
@@ -132,7 +134,7 @@ export const useBulkCreateClassrooms = () => {
 /** Secciones abiertas en un año concreto (p. ej. el año destino al matricular), sin depender del año que se está viendo. */
 export const useClassroomsForYear = (academicYearId?: string) =>
   useQuery({
-    queryKey: ['classrooms', 'year', academicYearId],
+    queryKey: classroomsKeys.byYear(academicYearId),
     enabled: !!academicYearId,
     queryFn: async () =>
       (await api.get<ClassroomsResponse>('/classrooms', { headers: { 'x-academic-year-id': academicYearId! } })).data

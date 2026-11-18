@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { formatPeruShortDate } from '@/lib/dateUtils';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useEndReplacement, useTeacherReplacements } from '../api/useTeacherReplacement';
+import { usersKeys } from '../api/keys';
 
 interface StaffLoad {
   year: number;
@@ -39,7 +40,7 @@ const room = (c: { educationLevel: string; grade: number; section: string }) =>
 export const StaffLoadPanel: React.FC = () => {
   const [filter, setFilter] = useState<'all' | 'with' | 'without'>('all');
   const { data, isLoading } = useQuery({
-    queryKey: ['staff-load'],
+    queryKey: usersKeys.staffLoad,
     queryFn: async () => (await api.get<{ data: StaffLoad }>('/users/staff-load')).data.data,
   });
   if (isLoading || !data) {

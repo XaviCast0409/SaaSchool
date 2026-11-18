@@ -1,5 +1,6 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { usersKeys } from './keys';
 import type { DirectoryUser } from '../types';
 import type { RelationshipType } from '../family-relationships/types';
 
@@ -33,7 +34,7 @@ interface FamiliesResponse {
  */
 export const useFamilies = ({ search = '', page = 1, limit = 20, unlinked = false }: FamiliesParams, enabled = true) =>
   useQuery({
-    queryKey: ['users', 'families', { search, page, limit, unlinked }],
+    queryKey: usersKeys.families({ search, page, limit, unlinked }),
     queryFn: async () => {
       const params = new URLSearchParams({ role: 'PARENT', page: String(page), limit: String(limit) });
       if (search) params.set('search', search);
