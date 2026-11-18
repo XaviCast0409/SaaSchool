@@ -1,0 +1,144 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { api } from '@/lib/axios';
+import { attendanceKeys, invalidateAttendanceViews } from './keys';
+import type {
+  AttendanceRecord,
+  AttendanceMonthlySummary,
+  AttendanceFilterParams,
+  AttendanceSummaryQueryParams,
+  AttendanceStatus,
+  AttendancePaginatedResult,
+  AttendanceExportRow,
+  ScanAttendanceResult,
+} from '../types';
+
+interface SummaryResponse { status: string; data: AttendanceMonthlySummary; }
+interface SingleAttendanceResponse { status: string; data: AttendanceRecord; }
+interface ExportResponse { status: string; data: AttendanceExportRow[]; }
+
+/** Hook para obtener asistencias paginadas */
+export const useAttendance = (filters: AttendanceFilterParams = {}, enabledOverride?: boolean) => {
+  const queryParams = new URLSearchParams();
+  if (filters.date) queryParams.append('date', filters.date);
+  if (filters.classroomId) queryParams.append('classroomId', filters.classroomId);
+  if (filters.status && filters.status !== 'ALL') queryParams.append('status', filters.status);
+  if (filters.search) queryParams.append('search', filters.search);
+  if (filters.page) queryParams.append('page', String(filters.page));
+  if (filters.limit) queryParams.append('limit', String(filters.limit));
+
+  const queryString = queryParams.toString();
+  const url = `/attendance${queryString ? `?${queryString}` : ''}`;
+  const isEnabled = enabledOverride !== undefined ? enabledOverride : true;
+
+  return useQuery({
+    queryKey: attendanceKeys.list(filters),
+    queryFn: async () => {
+      const response = await api.get<AttendancePaginatedResult>(url);
+      return response.data;
+    },
+    enabled: isEnabled,
+  });
+};
+
+/** Hook para obtener el resumen/reporte de asistencia mensual */
+export const useAttendanceSummary = (params: AttendanceSummaryQueryParams = {}) => {
+  const queryParams = new URLSearchParams();
+  if (params.month) queryParams.append('month', params.month);
+  if (params.classroomId) queryParams.append('classroomId', params.classroomId);
+
+  const queryString = queryParams.toString();
+  const url = `/attendance/summary${queryString ? `?${queryString}` : ''}`;
+
+  return useQuery({
+    queryKey: attendanceKeys.summary(params),
+    queryFn: async () => {
+      const response = await api.get<SummaryResponse>(url);
+      return response.data.data;
+    },
+    enabled: Boolean(params.classroomId),
+  });
+};
+
+/** Hook para obtener los datos del Acta Mensual exportable */
+export const useAttendanceExportData = (params: { month: string; classroomId?: string }) => {
+  const queryParams = new URLSearchParams({ month: params.month });
+  if (params.classroomId) queryParams.append('classroomId', params.classroomId);
+
+  return useQuery({
+    queryKey: attendanceKeys.exportData(params),
+    queryFn: async () => {
+      const response = await api.get<ExportResponse>(`/attendance/export?${queryParams.toString()}`);
+      return response.data.data;
+    },
+    enabled: false,
+  });
+};
+
+/** Hook para obtener el historial de asistencia por matrícula (Portal de Padres) */
+export const useAttendanceByEnrollment = (enrollmentId?: string, enabled = true) => {
+  return useQuery({
+    queryKey: attendanceKeys.byEnrollment(enrollmentId),
+    queryFn: async (): Promise<AttendanceRecord[]> => {
+      if (!enrollmentId) return [];
+      const response = await api.get<{ status: string; data: AttendanceRecord[] }>(
+        `/attendance/enrollment/${enrollmentId}`,
+      );
+      return response.data.data;
+    },
+    enabled: Boolean(enrollmentId) && enabled,
+    staleTime: 1000 * 60 * 2,
+  });
+};
+
+/** Mutation hook para corregir/actualizar un registro de asistencia ya existente */
+export const useUpdateAttendance = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, status, notes }: { id: string; status: AttendanceStatus; notes?: string }) => {
+      const response = await api.patch<SingleAttendanceResponse>(`/attendance/${id}`, { status, notes });
+      return response.data.data;
+    },
+    onSuccess: () => {
+      invalidateAttendanceViews(queryClient);
+    },
+  });
+};
+
+/** Mutation hook para registro masivo de asistencia por aula */
+export const useBulkAttendance = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: {
+      date: string;
+      records: Array<{ enrollmentId: string; status: AttendanceStatus; notes?: string }>;
+    }) => {
+      const response = await api.post<{ status: string; data: { count: number } }>('/attendance/bulk', payload);
+      return response.data.data;
+    },
+    onSuccess: () => {
+      invalidateAttendanceViews(queryClient);
+    },
+  });
+};
+
+/** Mutation hook para escaneo rápido de asistencia por QR o código de barras */
+export const useScanAttendance = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: {
+      code: string;
+      toleranceTime?: string;
+      statusOverride?: AttendanceStatus;
+      scannedAt?: string;
+    }) => {
+      const response = await api.post<{ status: string; data: ScanAttendanceResult }>('/attendance/scan', payload);
+      return response.data.data;
+    },
+    onSuccess: () => {
+      invalidateAttendanceViews(queryClient, { includeDetail: false });
+    },
+  });
+};
