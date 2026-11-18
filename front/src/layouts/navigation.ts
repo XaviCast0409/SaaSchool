@@ -1,4 +1,5 @@
 import type React from 'react';
+import { DIRECTION, OFFICE, STAFF } from '@/lib/roles';
 import {
   Wallet,
   Percent,
@@ -37,22 +38,17 @@ export type Plan = 'BASIC' | 'PRO' | 'ENTERPRISE';
 
 export const PLAN_HIERARCHY: Record<string, number> = { BASIC: 1, PRO: 2, ENTERPRISE: 3 };
 
-const STAFF = ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER'];
-const OFFICE = ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'];
-const DIRECTION = ['SUPER_ADMIN', 'SCHOOL_ADMIN'];
-
-/** Pestaña de una sección que agrupa varias pantallas (p. ej. Asistencia) */
 export interface NavTab {
   label: string;
   path: string;
-  roles: string[];
+  roles: readonly string[];
 }
 
 export interface NavItem {
   label: string;
   path: string;
   icon: React.ComponentType<{ className?: string }>;
-  roles: string[];
+  roles: readonly string[];
   minPlan: Plan;
   /** Pantallas que cuelgan de esta entrada y se muestran como pestañas */
   tabs?: NavTab[];

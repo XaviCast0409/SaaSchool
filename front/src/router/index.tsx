@@ -14,6 +14,7 @@ import { PageLoader } from '@/components/ui/PageLoader';
 import { NoAccessPage, NotFoundPage } from '@/components/ui/StatusPages';
 import { SectionTabsLayout } from '@/layouts/SectionTabsLayout';
 import { currentSchoolSlug } from '@/lib/schoolDomain';
+import { DIRECTION, OFFICE, STAFF, ALL_ROLES, type Role } from '@/lib/roles';
 
 const DashboardPage = lazy(() =>
   import('@/features/dashboard/pages/DashboardPage').then((m) => ({ default: m.DashboardPage })),
@@ -198,7 +199,7 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 /** Guardia por Rol: si el usuario entra por URL a una sección que su rol no incluye, se le avisa */
 const RoleGuard: React.FC<{
-  allowedRoles: string[];
+  allowedRoles: readonly Role[];
   disallowStudents?: boolean;
   children: React.ReactNode;
 }> = ({ allowedRoles, disallowStudents = false, children }) => {
@@ -214,7 +215,7 @@ const RoleGuard: React.FC<{
   }
 
   // Sin permiso: se explica en lugar de redirigir en silencio al inicio
-  if (!allowedRoles.includes(user.role) || (disallowStudents && user.role === 'STUDENT')) {
+  if (!allowedRoles.includes(user.role as Role) || (disallowStudents && user.role === 'STUDENT')) {
     return <NoAccessPage />;
   }
 
@@ -311,9 +312,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/announcements"
               element={
-                <RoleGuard
-                  allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT']}
-                >
+                <RoleGuard allowedRoles={ALL_ROLES}>
                   <AnnouncementsPage />
                 </RoleGuard>
               }
@@ -321,7 +320,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/directory"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
+                <RoleGuard allowedRoles={DIRECTION}>
                   <DirectoryPage />
                 </RoleGuard>
               }
@@ -329,7 +328,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/academic-years"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
+                <RoleGuard allowedRoles={DIRECTION}>
                   <AcademicYearsPage />
                 </RoleGuard>
               }
@@ -337,7 +336,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/classrooms"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
+                <RoleGuard allowedRoles={DIRECTION}>
                   <ClassroomsPage />
                 </RoleGuard>
               }
@@ -347,7 +346,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/academic"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
+                <RoleGuard allowedRoles={DIRECTION}>
                   <AcademicHomePage />
                 </RoleGuard>
               }
@@ -355,7 +354,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/academic/study-plan"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
+                <RoleGuard allowedRoles={DIRECTION}>
                   <StudyPlanPage />
                 </RoleGuard>
               }
@@ -363,7 +362,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/academic/teaching-load"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
+                <RoleGuard allowedRoles={DIRECTION}>
                   <TeachingLoadPage />
                 </RoleGuard>
               }
@@ -371,7 +370,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/academic/progress"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
+                <RoleGuard allowedRoles={DIRECTION}>
                   <PlanGuard minPlan="PRO">
                     <PeriodProgressPage />
                   </PlanGuard>
@@ -381,7 +380,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/academic/report-cards/print"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER']}>
+                <RoleGuard allowedRoles={STAFF}>
                   <PlanGuard minPlan="PRO">
                     <ReportCardsPrintPage />
                   </PlanGuard>
@@ -391,7 +390,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/academic/tutor-report"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER']}>
+                <RoleGuard allowedRoles={STAFF}>
                   <PlanGuard minPlan="PRO">
                     <TutorReportPage />
                   </PlanGuard>
@@ -419,7 +418,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/gradebook/:assignmentId"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER']}>
+                <RoleGuard allowedRoles={STAFF}>
                   <PlanGuard minPlan="PRO">
                     <GradebookPage />
                   </PlanGuard>
@@ -429,7 +428,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/students"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE']}>
+                <RoleGuard allowedRoles={OFFICE}>
                   <StudentsPage />
                 </RoleGuard>
               }
@@ -445,7 +444,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/payments/cash"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE']}>
+                <RoleGuard allowedRoles={OFFICE}>
                   <CashPage />
                 </RoleGuard>
               }
@@ -453,7 +452,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/payments/fee-schedules"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE']}>
+                <RoleGuard allowedRoles={OFFICE}>
                   <FeeSchedulesPage />
                 </RoleGuard>
               }
@@ -461,7 +460,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/payments/benefits"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE']}>
+                <RoleGuard allowedRoles={OFFICE}>
                   <BenefitsPage />
                 </RoleGuard>
               }
@@ -469,7 +468,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/payments/reports"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE']}>
+                <RoleGuard allowedRoles={OFFICE}>
                   <FinanceReportsPage />
                 </RoleGuard>
               }
@@ -493,7 +492,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/virtual-classroom-supervision"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE']}>
+                <RoleGuard allowedRoles={OFFICE}>
                   <PlanGuard minPlan="PRO">
                     <VirtualClassroomSupervisionPage />
                   </PlanGuard>
@@ -505,9 +504,7 @@ export const AppRouter: React.FC = () => {
               <Route
                 path="/attendance"
                 element={
-                  <RoleGuard
-                    allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT']}
-                  >
+                  <RoleGuard allowedRoles={ALL_ROLES}>
                     <AttendancePage />
                   </RoleGuard>
                 }
@@ -523,7 +520,7 @@ export const AppRouter: React.FC = () => {
               <Route
                 path="/attendance-justifications"
                 element={
-                  <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER']}>
+                  <RoleGuard allowedRoles={STAFF}>
                     <AttendanceJustificationsPage />
                   </RoleGuard>
                 }
@@ -531,7 +528,7 @@ export const AppRouter: React.FC = () => {
               <Route
                 path="/attendance-alerts"
                 element={
-                  <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER']}>
+                  <RoleGuard allowedRoles={STAFF}>
                     <AttendanceAlertsPage />
                   </RoleGuard>
                 }
@@ -542,7 +539,7 @@ export const AppRouter: React.FC = () => {
               <Route
                 path="/academic/reports"
                 element={
-                  <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE']}>
+                  <RoleGuard allowedRoles={OFFICE}>
                     <PlanGuard minPlan="PRO">
                       <AcademicReportsPage />
                     </PlanGuard>
@@ -552,7 +549,7 @@ export const AppRouter: React.FC = () => {
               <Route
                 path="/academic-reports"
                 element={
-                  <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER']}>
+                  <RoleGuard allowedRoles={STAFF}>
                     <PlanGuard minPlan="PRO">
                       <LegacyAcademicReportsPage />
                     </PlanGuard>
@@ -563,9 +560,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/incidents"
               element={
-                <RoleGuard
-                  allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT']}
-                >
+                <RoleGuard allowedRoles={ALL_ROLES}>
                   <IncidentsPage />
                 </RoleGuard>
               }
@@ -573,7 +568,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/evaluation-criteria"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
+                <RoleGuard allowedRoles={DIRECTION}>
                   <PlanGuard minPlan="PRO">
                     <EvaluationCriteriaPage />
                   </PlanGuard>
@@ -583,7 +578,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/teacher-resources"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER']}>
+                <RoleGuard allowedRoles={STAFF}>
                   <TeacherResourcesPage />
                 </RoleGuard>
               }
@@ -591,7 +586,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/secretariat"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE']}>
+                <RoleGuard allowedRoles={OFFICE}>
                   <SecretariatPage />
                 </RoleGuard>
               }
@@ -607,7 +602,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/insights"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER']}>
+                <RoleGuard allowedRoles={STAFF}>
                   <PlanGuard minPlan="PRO">
                     <InsightsPage />
                   </PlanGuard>
@@ -617,7 +612,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/gate"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE']}>
+                <RoleGuard allowedRoles={OFFICE}>
                   <GatePage />
                 </RoleGuard>
               }
@@ -625,9 +620,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/schedule"
               element={
-                <RoleGuard
-                  allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT']}
-                >
+                <RoleGuard allowedRoles={ALL_ROLES}>
                   <SchedulePage />
                 </RoleGuard>
               }
@@ -635,9 +628,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/calendar"
               element={
-                <RoleGuard
-                  allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT']}
-                >
+                <RoleGuard allowedRoles={ALL_ROLES}>
                   <CalendarPage />
                 </RoleGuard>
               }
@@ -664,7 +655,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/automations"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
+                <RoleGuard allowedRoles={DIRECTION}>
                   <AutomationsPage />
                 </RoleGuard>
               }
@@ -672,9 +663,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/notification-preferences"
               element={
-                <RoleGuard
-                  allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT']}
-                >
+                <RoleGuard allowedRoles={ALL_ROLES}>
                   <NotificationPreferencesPage />
                 </RoleGuard>
               }
@@ -682,7 +671,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/audit-logs"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN']}>
+                <RoleGuard allowedRoles={DIRECTION}>
                   <AuditLogsPage />
                 </RoleGuard>
               }
