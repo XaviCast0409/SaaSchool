@@ -1,12 +1,7 @@
 import { confirmDialog } from '@/components/ui/confirm';
 import React, { useState } from 'react';
 import { usePeriods } from '@/features/academic-years/api/useAcademicYears';
-import {
-  GraduationCap,
-  BarChart3,
-  FolderOpen,
-  Calendar,
-} from 'lucide-react';
+import { GraduationCap, BarChart3, FolderOpen, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   useSupervisionStats,
@@ -55,7 +50,12 @@ export const VirtualClassroomSupervisionView: React.FC = () => {
   };
 
   const handleDeleteContent = async (id: string) => {
-    const confirm = await confirmDialog({ title: '¿Eliminar esta publicación?', description: 'Los alumnos y el docente ya no podrán verla ni descargar el archivo.', confirmText: 'Eliminar', variant: 'danger' });
+    const confirm = await confirmDialog({
+      title: '¿Eliminar esta publicación?',
+      description: 'Los alumnos y el docente ya no podrán verla ni descargar el archivo.',
+      confirmText: 'Eliminar',
+      variant: 'danger',
+    });
     if (!confirm) return;
 
     try {
@@ -79,9 +79,7 @@ export const VirtualClassroomSupervisionView: React.FC = () => {
             <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
               <GraduationCap className="w-5 h-5" />
             </div>
-            <h1 className="text-2xl font-black tracking-tight text-foreground">
-              Supervisión de Aula Virtual
-            </h1>
+            <h1 className="text-2xl font-black tracking-tight text-foreground">Supervisión de Aula Virtual</h1>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             Auditoría pedagógica, analítica de adopción docente y repositorio escolar de materiales digitales.
@@ -99,7 +97,9 @@ export const VirtualClassroomSupervisionView: React.FC = () => {
           >
             <option value="">Todo el Año Lectivo</option>
             {yearPeriods.map((p) => (
-              <option key={p} value={String(p)}>{p}° {periodLabel}</option>
+              <option key={p} value={String(p)}>
+                {p}° {periodLabel}
+              </option>
             ))}
           </select>
         </div>
@@ -142,9 +142,7 @@ export const VirtualClassroomSupervisionView: React.FC = () => {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-base font-bold text-foreground">
-                  Monitoreo de Cumplimiento por Docente
-                </h2>
+                <h2 className="text-base font-bold text-foreground">Monitoreo de Cumplimiento por Docente</h2>
                 <p className="text-xs text-muted-foreground">
                   Semáforo de avance según cursos asignados y material cargado en plataforma.
                 </p>
@@ -160,11 +158,7 @@ export const VirtualClassroomSupervisionView: React.FC = () => {
         </div>
       ) : (
         <div className="space-y-4">
-          <SupervisionFilterBar
-            filters={feedFilters}
-            onChange={setFeedFilters}
-            teachers={teacherOptions}
-          />
+          <SupervisionFilterBar filters={feedFilters} onChange={setFeedFilters} teachers={teacherOptions} />
 
           <SupervisedFeedList
             items={feedData?.items || []}

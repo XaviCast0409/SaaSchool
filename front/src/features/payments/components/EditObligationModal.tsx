@@ -24,11 +24,7 @@ interface EditObligationModalProps {
   obligation: PaymentObligation | null;
 }
 
-export const EditObligationModal: React.FC<EditObligationModalProps> = ({
-  isOpen,
-  onClose,
-  obligation,
-}) => {
+export const EditObligationModal: React.FC<EditObligationModalProps> = ({ isOpen, onClose, obligation }) => {
   const updateMutation = useUpdateObligation();
 
   const [amountDue, setAmountDue] = useState<string>('');
@@ -40,9 +36,7 @@ export const EditObligationModal: React.FC<EditObligationModalProps> = ({
   useEffect(() => {
     if (obligation) {
       setAmountDue(String(obligation.amountDue));
-      const formattedDate = obligation.dueDate
-        ? new Date(obligation.dueDate).toISOString().split('T')[0]
-        : '';
+      const formattedDate = obligation.dueDate ? new Date(obligation.dueDate).toISOString().split('T')[0] : '';
       setDueDate(formattedDate);
       setTitle(obligation.title);
       setConcept(obligation.concept);
@@ -110,7 +104,11 @@ export const EditObligationModal: React.FC<EditObligationModalProps> = ({
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200"
+    >
       <div className="bg-card w-full max-w-lg rounded-2xl border border-border shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-border bg-muted/40">
@@ -137,11 +135,15 @@ export const EditObligationModal: React.FC<EditObligationModalProps> = ({
         <form onSubmit={handleSubmit} className="p-5 space-y-4 text-xs">
           {/* Concepto / Título */}
           <div className="space-y-1.5">
-            <label htmlFor="editobligationmodal-field-1" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+            <label
+              htmlFor="editobligationmodal-field-1"
+              className="text-xs font-semibold text-foreground flex items-center gap-1.5"
+            >
               <Tag className="w-3.5 h-3.5 text-primary" />
               <span>Título de la cuota</span>
             </label>
-            <Input id="editobligationmodal-field-1"
+            <Input
+              id="editobligationmodal-field-1"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="text-xs h-9 rounded-xl"
@@ -150,13 +152,18 @@ export const EditObligationModal: React.FC<EditObligationModalProps> = ({
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="editobligationmodal-field-2" className="text-xs font-semibold text-foreground">Concepto</label>
-            <select id="editobligationmodal-field-2"
+            <label htmlFor="editobligationmodal-field-2" className="text-xs font-semibold text-foreground">
+              Concepto
+            </label>
+            <select
+              id="editobligationmodal-field-2"
               value={concept}
               onChange={(e) => setConcept(e.target.value)}
               className="w-full text-xs h-9 rounded-xl border border-input bg-background px-3 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             >
-              {!CONCEPT_OPTIONS.some((o) => o.value === obligation.concept) && <option value={obligation.concept}>{obligation.concept}</option>}
+              {!CONCEPT_OPTIONS.some((o) => o.value === obligation.concept) && (
+                <option value={obligation.concept}>{obligation.concept}</option>
+              )}
               {CONCEPT_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
                   {o.label}
@@ -165,7 +172,8 @@ export const EditObligationModal: React.FC<EditObligationModalProps> = ({
             </select>
             {concept !== obligation.concept && (
               <p className="text-xs text-amber-700 dark:text-amber-400">
-                Se reclasifica en reportes y becas. Escribe el motivo abajo; si era una pensión del cronograma, ese mes no se vuelve a generar.
+                Se reclasifica en reportes y becas. Escribe el motivo abajo; si era una pensión del cronograma, ese mes
+                no se vuelve a generar.
               </p>
             )}
           </div>
@@ -173,11 +181,15 @@ export const EditObligationModal: React.FC<EditObligationModalProps> = ({
           {/* Monto y Fecha */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label htmlFor="editobligationmodal-field-3" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <label
+                htmlFor="editobligationmodal-field-3"
+                className="text-xs font-semibold text-foreground flex items-center gap-1.5"
+              >
                 <DollarSign className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span>Monto a Cobrar (S/)</span>
               </label>
-              <Input id="editobligationmodal-field-3"
+              <Input
+                id="editobligationmodal-field-3"
                 type="number"
                 step="0.01"
                 min="0"
@@ -189,11 +201,15 @@ export const EditObligationModal: React.FC<EditObligationModalProps> = ({
             </div>
 
             <div className="space-y-1.5">
-              <label htmlFor="editobligationmodal-field-4" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <label
+                htmlFor="editobligationmodal-field-4"
+                className="text-xs font-semibold text-foreground flex items-center gap-1.5"
+              >
                 <Calendar className="w-3.5 h-3.5 text-primary" />
                 <span>Fecha de Vencimiento</span>
               </label>
-              <Input id="editobligationmodal-field-4"
+              <Input
+                id="editobligationmodal-field-4"
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
@@ -204,17 +220,23 @@ export const EditObligationModal: React.FC<EditObligationModalProps> = ({
           </div>
 
           <p className="rounded-lg border border-border bg-muted/30 p-2.5 text-xs text-muted-foreground">
-            Aquí solo se corrige el monto base de una cuota sin cobros ni ajustes. Para descuentos, notas de crédito o moras usa
-            <strong> Cobros → Agregar ajuste</strong>; para becas de todo el año, <strong>Becas y moras</strong>. Así queda constancia numerada.
+            Aquí solo se corrige el monto base de una cuota sin cobros ni ajustes. Para descuentos, notas de crédito o
+            moras usa
+            <strong> Cobros → Agregar ajuste</strong>; para becas de todo el año, <strong>Becas y moras</strong>. Así
+            queda constancia numerada.
           </p>
 
           {/* Motivo / Notas */}
           <div className="space-y-1.5">
-            <label htmlFor="editobligationmodal-field-5" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+            <label
+              htmlFor="editobligationmodal-field-5"
+              className="text-xs font-semibold text-foreground flex items-center gap-1.5"
+            >
               <FileText className="w-3.5 h-3.5 text-muted-foreground" />
               <span>Motivo del cambio (obligatorio si cambias el monto o el concepto)</span>
             </label>
-            <textarea id="editobligationmodal-field-5"
+            <textarea
+              id="editobligationmodal-field-5"
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -254,4 +276,3 @@ export const EditObligationModal: React.FC<EditObligationModalProps> = ({
     </div>
   );
 };
-

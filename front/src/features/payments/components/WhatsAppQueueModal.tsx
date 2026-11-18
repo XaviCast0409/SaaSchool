@@ -38,9 +38,16 @@ function writeStorage(key: string, value: string) {
  * Modo cola de WhatsApp: recorre las pensiones vencidas una por una. Cada clic abre WhatsApp con el
  * mensaje listo; al volver, la siguiente familia ya está preparada. Gratis (enlaces wa.me).
  */
-export const WhatsAppQueueModal: React.FC<{ open: boolean; onClose: () => void; classroomId?: string }> = ({ open, onClose, classroomId }) => {
+export const WhatsAppQueueModal: React.FC<{ open: boolean; onClose: () => void; classroomId?: string }> = ({
+  open,
+  onClose,
+  classroomId,
+}) => {
   const { data: school } = useGetActiveSchool();
-  const { data, isLoading } = usePayments({ overdue: true, limit: 100, page: 1, classroomId: classroomId || undefined }, open);
+  const { data, isLoading } = usePayments(
+    { overdue: true, limit: 100, page: 1, classroomId: classroomId || undefined },
+    open,
+  );
   const [template, setTemplate] = useState(() => readStorage(TEMPLATE_KEY) ?? DEFAULT_WA_TEMPLATE);
   const [done, setDone] = useState<Set<string>>(() => new Set());
   const [skipped, setSkipped] = useState<Set<string>>(() => new Set());
@@ -51,7 +58,7 @@ export const WhatsAppQueueModal: React.FC<{ open: boolean; onClose: () => void; 
     if (!open) return;
     try {
       const saved = JSON.parse(readStorage(DONE_KEY) ?? '{}') as { date?: string; ids?: string[] };
-      setDone(new Set(saved.date === today ? saved.ids ?? [] : []));
+      setDone(new Set(saved.date === today ? (saved.ids ?? []) : []));
     } catch {
       setDone(new Set());
     }
@@ -99,7 +106,9 @@ export const WhatsAppQueueModal: React.FC<{ open: boolean; onClose: () => void; 
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-label="Cargando" />
         </div>
       ) : items.length === 0 ? (
-        <p className="py-6 text-center text-sm text-muted-foreground">No hay pensiones vencidas con saldo pendiente. 🎉</p>
+        <p className="py-6 text-center text-sm text-muted-foreground">
+          No hay pensiones vencidas con saldo pendiente. 🎉
+        </p>
       ) : (
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2 text-xs">
@@ -125,14 +134,16 @@ export const WhatsAppQueueModal: React.FC<{ open: boolean; onClose: () => void; 
                 </span>
               </p>
               <p className="text-xs text-muted-foreground">
-                {current.title} · venció el {formatPeruShortDate(current.dueDate)} · saldo S/ {remainingOf(current).toFixed(2)}
+                {current.title} · venció el {formatPeruShortDate(current.dueDate)} · saldo S/{' '}
+                {remainingOf(current).toFixed(2)}
               </p>
               <p className="mt-3 whitespace-pre-wrap rounded-lg bg-emerald-500/5 p-3 text-sm text-foreground">
                 {fillTemplate(template, current, schoolName)}
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button onClick={sendCurrent} className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700">
-                  <MessageCircle className="h-4 w-4" aria-hidden /> Abrir WhatsApp <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                  <MessageCircle className="h-4 w-4" aria-hidden /> Abrir WhatsApp{' '}
+                  <ExternalLink className="h-3.5 w-3.5" aria-hidden />
                 </Button>
                 <Button variant="ghost" className="gap-2" onClick={() => setSkipped((s) => new Set(s).add(current.id))}>
                   <SkipForward className="h-4 w-4" aria-hidden /> Omitir
@@ -153,18 +164,33 @@ export const WhatsAppQueueModal: React.FC<{ open: boolean; onClose: () => void; 
 
           <details className="rounded-xl border border-border p-3">
             <summary className="cursor-pointer text-xs font-semibold text-muted-foreground">Editar el mensaje</summary>
-            <Textarea className="mt-2" rows={4} value={template} onChange={(e) => saveTemplate(e.target.value)} aria-label="Plantilla del mensaje" />
+            <Textarea
+              className="mt-2"
+              rows={4}
+              value={template}
+              onChange={(e) => saveTemplate(e.target.value)}
+              aria-label="Plantilla del mensaje"
+            />
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               {TEMPLATE_VARIABLES.map((v) => (
-                <code key={v} className="rounded bg-muted px-1.5 py-0.5 text-xs">{v}</code>
+                <code key={v} className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                  {v}
+                </code>
               ))}
-              <Button size="sm" variant="ghost" className={cn('ml-auto h-7 text-xs', template === DEFAULT_WA_TEMPLATE && 'hidden')} onClick={() => saveTemplate(DEFAULT_WA_TEMPLATE)}>
+              <Button
+                size="sm"
+                variant="ghost"
+                className={cn('ml-auto h-7 text-xs', template === DEFAULT_WA_TEMPLATE && 'hidden')}
+                onClick={() => saveTemplate(DEFAULT_WA_TEMPLATE)}
+              >
                 Restaurar mensaje
               </Button>
             </div>
           </details>
           {data && data.meta.total > 100 && (
-            <p className="text-xs text-muted-foreground">Se muestran las primeras 100 pensiones vencidas. Filtra por aula para ver el resto.</p>
+            <p className="text-xs text-muted-foreground">
+              Se muestran las primeras 100 pensiones vencidas. Filtra por aula para ver el resto.
+            </p>
           )}
         </div>
       )}

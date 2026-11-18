@@ -1,14 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { usePeriods } from '@/features/academic-years/api/useAcademicYears';
-import {
-  ChevronDown,
-  ChevronRight,
-  FileSpreadsheet,
-  FileText,
-  Loader2,
-  SlidersHorizontal,
-  Info,
-} from 'lucide-react';
+import { ChevronDown, ChevronRight, FileSpreadsheet, FileText, Loader2, SlidersHorizontal, Info } from 'lucide-react';
 import { ReportCode, EducationLevel, ReportClassroomItem } from '../types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -70,7 +62,8 @@ export const ALL_REPORTS_CATALOG: ReportItemDefinition[] = [
     category: 'Registro',
     subCategory: 'Notas',
     defaultOrientation: 'Horizontal',
-    description: 'Matriz oficial cruzada de calificaciones por asignaturas, promedios, orden de mérito, tercios y récord de asistencia para actas bimestrales.',
+    description:
+      'Matriz oficial cruzada de calificaciones por asignaturas, promedios, orden de mérito, tercios y récord de asistencia para actas bimestrales.',
     isImplemented: true,
   },
   {
@@ -79,7 +72,8 @@ export const ALL_REPORTS_CATALOG: ReportItemDefinition[] = [
     category: 'Registro',
     subCategory: 'Notas',
     defaultOrientation: 'Horizontal',
-    description: 'Plantilla cuadriculada en blanco para uso físico del docente en aula con lista de alumnos oficial y columnas de criterios de evaluación.',
+    description:
+      'Plantilla cuadriculada en blanco para uso físico del docente en aula con lista de alumnos oficial y columnas de criterios de evaluación.',
     isImplemented: true,
   },
   {
@@ -88,7 +82,8 @@ export const ALL_REPORTS_CATALOG: ReportItemDefinition[] = [
     category: 'Registro',
     subCategory: 'Notas',
     defaultOrientation: 'Vertical',
-    description: 'Escalafón jerárquico de rendimiento académico del salón, clasificación de tercios (Superior, Medio, Inferior) y estadísticas de aprobados e invictos.',
+    description:
+      'Escalafón jerárquico de rendimiento académico del salón, clasificación de tercios (Superior, Medio, Inferior) y estadísticas de aprobados e invictos.',
     isImplemented: true,
   },
   {
@@ -97,7 +92,8 @@ export const ALL_REPORTS_CATALOG: ReportItemDefinition[] = [
     category: 'Registro',
     subCategory: 'Notas',
     defaultOrientation: 'Vertical',
-    description: 'Ranking unificado consolidando todas las secciones del grado con cálculo de Tercios y Quintos superiores para certificaciones oficiales.',
+    description:
+      'Ranking unificado consolidando todas las secciones del grado con cálculo de Tercios y Quintos superiores para certificaciones oficiales.',
     isImplemented: true,
   },
   // Menú: Registro -> Conducta (1)
@@ -107,7 +103,8 @@ export const ALL_REPORTS_CATALOG: ReportItemDefinition[] = [
     category: 'Registro',
     subCategory: 'Conducta',
     defaultOrientation: 'Vertical',
-    description: 'Apreciaciones cualitativas, deméritos y observaciones de comportamiento registradas por el tutor de aula.',
+    description:
+      'Apreciaciones cualitativas, deméritos y observaciones de comportamiento registradas por el tutor de aula.',
     isImplemented: true,
   },
   // Menú: Reportes -> Generación de Reportes (1)
@@ -117,7 +114,8 @@ export const ALL_REPORTS_CATALOG: ReportItemDefinition[] = [
     category: 'Reportes',
     subCategory: 'Generación de Reportes',
     defaultOrientation: 'Vertical',
-    description: 'Padrón oficial de matrícula del salón con códigos SIAGIE, documentos de identidad, género y datos de apoderados.',
+    description:
+      'Padrón oficial de matrícula del salón con códigos SIAGIE, documentos de identidad, género y datos de apoderados.',
     isImplemented: true,
   },
 ];
@@ -182,9 +180,9 @@ export const AcademicReportsHub: React.FC<AcademicReportsHubProps> = ({
 
   // Estados de acordeón para las carpetas
   const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({
-    'Mantenimiento': false,
-    'Registro': false,
-    'Reportes': false,
+    Mantenimiento: false,
+    Registro: false,
+    Reportes: false,
   });
 
   const toggleCategory = (cat: string) => {
@@ -194,8 +192,7 @@ export const AcademicReportsHub: React.FC<AcademicReportsHubProps> = ({
   // Reporte actualmente seleccionado
   const activeReport = useMemo(() => {
     return (
-      ALL_REPORTS_CATALOG.find((r) => r.code === selectedReportCode) ||
-      ALL_REPORTS_CATALOG[4] // 0021 por defecto
+      ALL_REPORTS_CATALOG.find((r) => r.code === selectedReportCode) || ALL_REPORTS_CATALOG[4] // 0021 por defecto
     );
   }, [selectedReportCode]);
 
@@ -292,7 +289,9 @@ export const AcademicReportsHub: React.FC<AcademicReportsHubProps> = ({
                       ) : (
                         <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
                       )}
-                      <span>Menú: {category} ({totalInCategory})</span>
+                      <span>
+                        Menú: {category} ({totalInCategory})
+                      </span>
                     </div>
                   </button>
 
@@ -303,7 +302,9 @@ export const AcademicReportsHub: React.FC<AcademicReportsHubProps> = ({
                         <div key={subCategory} className="pl-4 pr-1 py-1">
                           <div className="flex items-center gap-1.5 py-1 text-xs font-bold text-muted-foreground uppercase tracking-tight">
                             <ChevronDown className="w-3 h-3" />
-                            <span>Menú: {subCategory} ({items.length})</span>
+                            <span>
+                              Menú: {subCategory} ({items.length})
+                            </span>
                           </div>
 
                           <div className="space-y-0.5 ml-3 border-l border-border pl-1">
@@ -322,19 +323,15 @@ export const AcademicReportsHub: React.FC<AcademicReportsHubProps> = ({
                                     isSelected
                                       ? 'bg-primary text-primary-foreground font-bold shadow-sm'
                                       : report.isImplemented
-                                      ? 'hover:bg-muted/70 text-foreground cursor-pointer'
-                                      : 'opacity-40 text-muted-foreground cursor-not-allowed'
+                                        ? 'hover:bg-muted/70 text-foreground cursor-pointer'
+                                        : 'opacity-40 text-muted-foreground cursor-not-allowed'
                                   }`}
                                 >
-                                  <div className="col-span-3 font-mono text-center text-xs">
-                                    {report.code}
-                                  </div>
+                                  <div className="col-span-3 font-mono text-center text-xs">{report.code}</div>
                                   <div className="col-span-9 truncate text-xs">
                                     {report.name}
                                     {!report.isImplemented && (
-                                      <span className="ml-2 text-xs font-mono text-muted-foreground">
-                                        (Próx.)
-                                      </span>
+                                      <span className="ml-2 text-xs font-mono text-muted-foreground">(Próx.)</span>
                                     )}
                                   </div>
                                 </button>
@@ -363,16 +360,12 @@ export const AcademicReportsHub: React.FC<AcademicReportsHubProps> = ({
             </div>
             <div className="p-3.5 rounded-xl bg-muted/40 border border-border space-y-1.5">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-black text-foreground uppercase tracking-tight">
-                  {activeReport.name}
-                </h3>
+                <h3 className="text-sm font-black text-foreground uppercase tracking-tight">{activeReport.name}</h3>
                 <Badge variant="outline" className="font-mono text-xs font-bold border-primary/30 text-primary">
                   {activeReport.code}
                 </Badge>
               </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                {activeReport.description}
-              </p>
+              <p className="text-xs text-muted-foreground leading-relaxed">{activeReport.description}</p>
             </div>
           </div>
 
@@ -576,7 +569,9 @@ export const AcademicReportsHub: React.FC<AcademicReportsHubProps> = ({
                       className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-foreground focus:ring-1 focus:ring-primary outline-none"
                     >
                       {yearPeriods.map((p) => (
-                        <option key={p} value={p}>{p}° {periodLabel}</option>
+                        <option key={p} value={p}>
+                          {p}° {periodLabel}
+                        </option>
                       ))}
                     </select>
                   </div>

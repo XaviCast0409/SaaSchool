@@ -1,6 +1,17 @@
 import { useUrlFilters } from '@/lib/useUrlFilters';
 import React, { useState } from 'react';
-import { Users, GraduationCap, Shield, UserPlus, Building2, CalendarRange, UserMinus, UserCheck2, Repeat2, ArrowLeftRight } from 'lucide-react';
+import {
+  Users,
+  GraduationCap,
+  Shield,
+  UserPlus,
+  Building2,
+  CalendarRange,
+  UserMinus,
+  UserCheck2,
+  Repeat2,
+  ArrowLeftRight,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { useSelectedAcademicYear } from '@/components/AcademicYearSwitcher';
 import { useSetStaffYear } from '../api/useUsers';
@@ -82,7 +93,7 @@ export const DirectoryPage: React.FC = () => {
 
   // Filtrar estrictamente: solo Profesores (TEACHER), Administrativos (ADMINISTRATIVE) y Directores (SCHOOL_ADMIN).
   const staffUsers = rawUsers.filter(
-    (u) => u.role === 'TEACHER' || u.role === 'ADMINISTRATIVE' || u.role === 'SCHOOL_ADMIN'
+    (u) => u.role === 'TEACHER' || u.role === 'ADMINISTRATIVE' || u.role === 'SCHOOL_ADMIN',
   );
 
   const isAdmin = user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN';
@@ -94,7 +105,9 @@ export const DirectoryPage: React.FC = () => {
       { userId: u.id, academicYearId: viewedYear.id, hired },
       {
         onSuccess: () =>
-          toast.success(`${u.firstName} ${u.lastNamePaternal} ${hired ? 'quedó contratado(a)' : 'ya no figura en el personal'} de ${viewedYear.year}.`),
+          toast.success(
+            `${u.firstName} ${u.lastNamePaternal} ${hired ? 'quedó contratado(a)' : 'ya no figura en el personal'} de ${viewedYear.year}.`,
+          ),
         onError: (err: any) => toast.error(err?.response?.data?.message || 'No se pudo actualizar.'),
       },
     );
@@ -105,32 +118,32 @@ export const DirectoryPage: React.FC = () => {
     const hired = !!u.staffYears && u.staffYears.length > 0;
     return (
       <>
-      {u.role === 'TEACHER' && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setReplacing(u)}
-          className="h-7 px-2 text-xs text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 font-bold"
-          title="Pasar sus cursos y tutoría a otro docente (renuncia, licencia)"
-        >
-          <ArrowLeftRight className="w-3.5 h-3.5 mr-1" />
-          Reemplazar
-        </Button>
-      )}
-      {/* Solo los docentes se contratan por año; Dirección y Secretaría figuran siempre */}
-      {u.role === 'TEACHER' && (
-      <Button
-        variant="ghost"
-        size="sm"
-        disabled={setStaffYear.isPending}
-        onClick={() => toggleHired(u)}
-        className={`h-7 px-2 text-xs ${hired ? 'text-muted-foreground hover:bg-muted' : 'text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/10 font-bold'}`}
-        title={hired ? `Quitar del personal de ${viewedYear.year}` : `Contratar para ${viewedYear.year}`}
-      >
-        {hired ? <UserMinus className="w-3.5 h-3.5 mr-1" /> : <UserCheck2 className="w-3.5 h-3.5 mr-1" />}
-        {hired ? `Quitar de ${viewedYear.year}` : `Contratar ${viewedYear.year}`}
-      </Button>
-      )}
+        {u.role === 'TEACHER' && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setReplacing(u)}
+            className="h-7 px-2 text-xs text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 font-bold"
+            title="Pasar sus cursos y tutoría a otro docente (renuncia, licencia)"
+          >
+            <ArrowLeftRight className="w-3.5 h-3.5 mr-1" />
+            Reemplazar
+          </Button>
+        )}
+        {/* Solo los docentes se contratan por año; Dirección y Secretaría figuran siempre */}
+        {u.role === 'TEACHER' && (
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={setStaffYear.isPending}
+            onClick={() => toggleHired(u)}
+            className={`h-7 px-2 text-xs ${hired ? 'text-muted-foreground hover:bg-muted' : 'text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/10 font-bold'}`}
+            title={hired ? `Quitar del personal de ${viewedYear.year}` : `Contratar para ${viewedYear.year}`}
+          >
+            {hired ? <UserMinus className="w-3.5 h-3.5 mr-1" /> : <UserCheck2 className="w-3.5 h-3.5 mr-1" />}
+            {hired ? `Quitar de ${viewedYear.year}` : `Contratar ${viewedYear.year}`}
+          </Button>
+        )}
       </>
     );
   };
@@ -139,11 +152,7 @@ export const DirectoryPage: React.FC = () => {
   const TabIcon = currentTab.icon;
 
   const defaultRoleForCreate: 'TEACHER' | 'ADMINISTRATIVE' | 'SCHOOL_ADMIN' =
-    activeTab === 'SCHOOL_ADMIN'
-      ? 'SCHOOL_ADMIN'
-      : activeTab === 'ADMINISTRATIVE'
-      ? 'ADMINISTRATIVE'
-      : 'TEACHER';
+    activeTab === 'SCHOOL_ADMIN' ? 'SCHOOL_ADMIN' : activeTab === 'ADMINISTRATIVE' ? 'ADMINISTRATIVE' : 'TEACHER';
 
   return (
     <div className="space-y-6 pb-8">
@@ -153,7 +162,9 @@ export const DirectoryPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <Users className="w-6 h-6 text-primary" />
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              {yearScope === 'year' && viewedYear ? `Personal ${viewedYear.year}` : 'Directorio Institucional de Personal'}
+              {yearScope === 'year' && viewedYear
+                ? `Personal ${viewedYear.year}`
+                : 'Directorio Institucional de Personal'}
             </h1>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
@@ -162,10 +173,7 @@ export const DirectoryPage: React.FC = () => {
         </div>
 
         {isAdmin && (
-          <Button
-            className="gap-2 self-start md:self-auto shadow-sm"
-            onClick={() => setIsCreateModalOpen(true)}
-          >
+          <Button className="gap-2 self-start md:self-auto shadow-sm" onClick={() => setIsCreateModalOpen(true)}>
             <UserPlus className="w-4 h-4" />
             <span>Registrar Personal</span>
           </Button>
@@ -243,13 +251,20 @@ export const DirectoryPage: React.FC = () => {
         <>
           {!isLoading && yearScope === 'year' && staffUsers.length === 0 && viewedYear && (
             <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-              {activeTab === 'TEACHER' || activeTab === 'ALL_STAFF' ? `Aún no hay docentes contratados para ${viewedYear.year}.` : 'No hay personal activo en este cargo.'}{' '}
+              {activeTab === 'TEACHER' || activeTab === 'ALL_STAFF'
+                ? `Aún no hay docentes contratados para ${viewedYear.year}.`
+                : 'No hay personal activo en este cargo.'}{' '}
               {isAdmin && currentYear && viewedYear.id !== currentYear.id
                 ? `Usa "Renovar personal de ${currentYear.year}" o, en "Todo el personal", "Contratar ${viewedYear.year}" en cada persona.`
                 : ''}
             </div>
           )}
-          <UserTable users={staffUsers} isLoading={isLoading} showStudentLinks={false} renderExtraActions={renderYearAction} />
+          <UserTable
+            users={staffUsers}
+            isLoading={isLoading}
+            showStudentLinks={false}
+            renderExtraActions={renderYearAction}
+          />
         </>
       )}
 
@@ -260,10 +275,7 @@ export const DirectoryPage: React.FC = () => {
 
       {/* Modal Crear Personal */}
       {isCreateModalOpen && (
-        <UserFormModal
-          defaultRole={defaultRoleForCreate}
-          onClose={() => setIsCreateModalOpen(false)}
-        />
+        <UserFormModal defaultRole={defaultRoleForCreate} onClose={() => setIsCreateModalOpen(false)} />
       )}
     </div>
   );

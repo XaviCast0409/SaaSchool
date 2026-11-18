@@ -244,7 +244,6 @@ export interface DraftRegisterReportData {
   reportCode: string;
 }
 
-
 // ============================================================================
 // 0030: Comentarios a la Conducta
 // ============================================================================
@@ -441,4 +440,3 @@ export interface StudentBirthdaysReportData {
   totalStudents: number;
   reportCode: string;
 }
-

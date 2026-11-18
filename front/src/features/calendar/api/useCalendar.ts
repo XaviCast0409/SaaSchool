@@ -60,7 +60,8 @@ export const useCalendarFeedUrl = (enabled: boolean) =>
   useQuery({
     queryKey: [...KEY, 'feed'],
     enabled,
-    queryFn: async () => (await api.get<{ data: { httpsUrl: string; webcalUrl: string } }>('/calendar/feed-url')).data.data,
+    queryFn: async () =>
+      (await api.get<{ data: { httpsUrl: string; webcalUrl: string } }>('/calendar/feed-url')).data.data,
   });
 
 export const useSaveEvent = () => {
@@ -86,7 +87,8 @@ export const useImportOfficialDates = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { holidays: boolean; civic: boolean }) =>
-      (await api.post<{ data: { holidaysCreated: number; civicCreated: number } }>('/calendar/import-official', input)).data.data,
+      (await api.post<{ data: { holidaysCreated: number; civicCreated: number } }>('/calendar/import-official', input))
+        .data.data,
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 };

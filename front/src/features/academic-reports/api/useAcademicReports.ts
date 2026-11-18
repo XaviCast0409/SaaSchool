@@ -64,11 +64,7 @@ export const useDraftRegisterReport = (
   });
 };
 
-export const useMeritClassroomReport = (
-  classroomId: string,
-  periodNumber: number,
-  options?: { enabled?: boolean },
-) => {
+export const useMeritClassroomReport = (classroomId: string, periodNumber: number, options?: { enabled?: boolean }) => {
   return useQuery<MeritClassroomReportData>({
     queryKey: ['academic-reports', '0048', classroomId, periodNumber],
     queryFn: async () => {
@@ -119,10 +115,7 @@ export const useConductCommentsReport = (
   });
 };
 
-export const useClassroomRosterReport = (
-  classroomId: string,
-  options?: { enabled?: boolean },
-) => {
+export const useClassroomRosterReport = (classroomId: string, options?: { enabled?: boolean }) => {
   return useQuery<ClassroomRosterReportData>({
     queryKey: ['academic-reports', '0011', classroomId],
     queryFn: async () => {
@@ -136,11 +129,7 @@ export const useClassroomRosterReport = (
   });
 };
 
-export const useFamiliesByStateReport = (
-  state?: string,
-  academicYearId?: string,
-  options?: { enabled?: boolean },
-) => {
+export const useFamiliesByStateReport = (state?: string, academicYearId?: string, options?: { enabled?: boolean }) => {
   return useQuery<FamiliesByStateReportData>({
     queryKey: ['academic-reports', '0001', state, academicYearId],
     queryFn: async () => {
@@ -209,4 +198,3 @@ export const useStudentBirthdaysReport = (
     staleTime: 1000 * 60 * 5,
   });
 };
-

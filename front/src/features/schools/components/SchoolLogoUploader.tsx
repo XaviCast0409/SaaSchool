@@ -7,7 +7,10 @@ import { ACCEPTED_IMAGE_TYPES, isAcceptedImage } from '@/lib/imageResize';
 const MAX_SOURCE_BYTES = 15 * 1024 * 1024;
 
 /** Logo del colegio: se sube como imagen y aparece en el panel, las libretas y las páginas públicas. */
-export const SchoolLogoUploader: React.FC<{ logoUrl?: string | null; schoolName: string }> = ({ logoUrl, schoolName }) => {
+export const SchoolLogoUploader: React.FC<{ logoUrl?: string | null; schoolName: string }> = ({
+  logoUrl,
+  schoolName,
+}) => {
   const fileRef = useRef<HTMLInputElement>(null);
   const upload = useUploadSchoolLogo();
   const remove = useRemoveSchoolLogo();
@@ -78,7 +81,11 @@ export const SchoolLogoUploader: React.FC<{ logoUrl?: string | null; schoolName:
           disabled={busy}
           className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-secondary disabled:opacity-60"
         >
-          {upload.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImagePlus className="w-3.5 h-3.5" aria-hidden />}
+          {upload.isPending ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <ImagePlus className="w-3.5 h-3.5" aria-hidden />
+          )}
           {logoUrl ? 'Cambiar logo' : 'Subir logo'}
         </button>
         {logoUrl && (
@@ -93,8 +100,8 @@ export const SchoolLogoUploader: React.FC<{ logoUrl?: string | null; schoolName:
         )}
       </div>
       <p className="text-xs text-muted-foreground text-center">
-        JPG, PNG o WEBP (mejor PNG con fondo transparente). Se guarda al instante y aparece en el menú, las libretas, los
-        reportes impresos y la página de ingreso del colegio.
+        JPG, PNG o WEBP (mejor PNG con fondo transparente). Se guarda al instante y aparece en el menú, las libretas,
+        los reportes impresos y la página de ingreso del colegio.
       </p>
     </div>
   );

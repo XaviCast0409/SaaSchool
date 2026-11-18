@@ -8,8 +8,16 @@ import type { DirectoryUser, FinanceRole } from '../types';
 const OPTIONS: Array<{ value: FinanceRole | ''; label: string; hint: string }> = [
   { value: '', label: 'Cajero (por defecto)', hint: 'Cobra y abre/cierra su caja. No puede anular ni editar cuotas.' },
   { value: 'CASHIER', label: 'Cajero', hint: 'Cobra y abre/cierra su caja. No puede anular ni editar cuotas.' },
-  { value: 'TREASURER', label: 'Tesorero', hint: 'Además anula recibos, edita cuotas, valida vouchers y revisa cierres.' },
-  { value: 'ACCOUNTANT', label: 'Contador (solo lectura)', hint: 'Ve cobros, cierres y egresos de todos, sin poder modificar nada.' },
+  {
+    value: 'TREASURER',
+    label: 'Tesorero',
+    hint: 'Además anula recibos, edita cuotas, valida vouchers y revisa cierres.',
+  },
+  {
+    value: 'ACCOUNTANT',
+    label: 'Contador (solo lectura)',
+    hint: 'Ve cobros, cierres y egresos de todos, sin poder modificar nada.',
+  },
 ];
 
 /**
@@ -31,7 +39,9 @@ export const FinanceRoleField: React.FC<{ user: DirectoryUser }> = ({ user }) =>
     },
     onError: (e: unknown) => {
       setValue(user.financeRole ?? '');
-      toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message || 'No se pudo cambiar el rol.');
+      toast.error(
+        (e as { response?: { data?: { message?: string } } })?.response?.data?.message || 'No se pudo cambiar el rol.',
+      );
     },
   });
 

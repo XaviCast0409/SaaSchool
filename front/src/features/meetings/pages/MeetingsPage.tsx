@@ -49,11 +49,18 @@ import {
 } from '../api/useMeetings';
 
 const ModeIcon: React.FC<{ mode: MeetingMode; className?: string }> = ({ mode, className }) =>
-  mode === 'VIRTUAL' ? <Video className={className} aria-hidden /> : mode === 'PHONE' ? <Phone className={className} aria-hidden /> : <MapPin className={className} aria-hidden />;
+  mode === 'VIRTUAL' ? (
+    <Video className={className} aria-hidden />
+  ) : mode === 'PHONE' ? (
+    <Phone className={className} aria-hidden />
+  ) : (
+    <MapPin className={className} aria-hidden />
+  );
 
 const upperFirst = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 const dayLabel = (iso: string) => upperFirst(formatPeruDate(iso, { weekday: 'long', day: 'numeric', month: 'long' }));
-const range = (s: { startsAt: string; endsAt: string }) => `${formatPeruTime(s.startsAt)} – ${formatPeruTime(s.endsAt)}`;
+const range = (s: { startsAt: string; endsAt: string }) =>
+  `${formatPeruTime(s.startsAt)} – ${formatPeruTime(s.endsAt)}`;
 
 function groupByDay<T extends { startsAt: string }>(items: T[]) {
   const map = new Map<string, T[]>();
@@ -68,10 +75,17 @@ function groupByDay<T extends { startsAt: string }>(items: T[]) {
 
 const panel = 'rounded-2xl bg-card border border-border shadow-sm overflow-hidden';
 
-const PanelHeader: React.FC<{ icon: React.ReactNode; title: string; description?: string; right?: React.ReactNode }> = ({ icon, title, description, right }) => (
+const PanelHeader: React.FC<{
+  icon: React.ReactNode;
+  title: string;
+  description?: string;
+  right?: React.ReactNode;
+}> = ({ icon, title, description, right }) => (
   <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/30 px-4 py-3 sm:px-5">
     <div className="flex min-w-0 items-center gap-2.5">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">{icon}</div>
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        {icon}
+      </div>
       <div className="min-w-0">
         <h2 className="text-sm font-black tracking-tight text-foreground">{title}</h2>
         {description && <p className="text-xs text-muted-foreground">{description}</p>}
@@ -87,7 +101,15 @@ interface UnderlineTab<T extends string> {
   count?: number;
 }
 
-function UnderlineTabs<T extends string>({ tabs, value, onChange }: { tabs: UnderlineTab<T>[]; value: T; onChange: (v: T) => void }) {
+function UnderlineTabs<T extends string>({
+  tabs,
+  value,
+  onChange,
+}: {
+  tabs: UnderlineTab<T>[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
   return (
     <div className="flex items-center gap-1 border-b border-border" role="tablist">
       {tabs.map((tab) => {
@@ -101,7 +123,9 @@ function UnderlineTabs<T extends string>({ tabs, value, onChange }: { tabs: Unde
             onClick={() => onChange(tab.key)}
             className={cn(
               '-mb-px flex shrink-0 items-center gap-1.5 border-b-2 px-4 py-2.5 text-xs font-bold transition-colors',
-              isActive ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground',
+              isActive
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground',
             )}
           >
             {tab.label}
@@ -122,7 +146,11 @@ function UnderlineTabs<T extends string>({ tabs, value, onChange }: { tabs: Unde
   );
 }
 
-const EmptyBlock: React.FC<{ icon: React.ReactNode; title: string; children?: React.ReactNode }> = ({ icon, title, children }) => (
+const EmptyBlock: React.FC<{ icon: React.ReactNode; title: string; children?: React.ReactNode }> = ({
+  icon,
+  title,
+  children,
+}) => (
   <div className="space-y-2 p-10 text-center text-muted-foreground">
     <div className="mx-auto flex w-fit opacity-30 [&>svg]:h-10 [&>svg]:w-10">{icon}</div>
     <p className="text-sm font-bold text-foreground">{title}</p>
@@ -136,7 +164,12 @@ const ModeBadge: React.FC<{ mode: MeetingMode }> = ({ mode }) => (
   </span>
 );
 
-const StatTile: React.FC<{ label: string; value: number; icon: React.ReactNode; tone: string }> = ({ label, value, icon, tone }) => (
+const StatTile: React.FC<{ label: string; value: number; icon: React.ReactNode; tone: string }> = ({
+  label,
+  value,
+  icon,
+  tone,
+}) => (
   <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 shadow-sm sm:p-4">
     <div className={cn('hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl sm:flex', tone)}>{icon}</div>
     <div className="min-w-0">
@@ -150,11 +183,14 @@ const StatTile: React.FC<{ label: string; value: number; icon: React.ReactNode; 
 const DateChip: React.FC<{ iso: string }> = ({ iso }) => (
   <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-primary/10 text-primary">
     <span className="text-lg font-black leading-none">{formatPeruDate(iso, { day: 'numeric' })}</span>
-    <span className="mt-0.5 text-xs font-bold uppercase tracking-wider">{formatPeruDate(iso, { month: 'short' }).replace('.', '')}</span>
+    <span className="mt-0.5 text-xs font-bold uppercase tracking-wider">
+      {formatPeruDate(iso, { month: 'short' }).replace('.', '')}
+    </span>
   </div>
 );
 
-const fieldLabel = 'block min-w-0 space-y-1 [&>span]:block [&>span]:truncate text-xs font-bold uppercase tracking-wider text-muted-foreground';
+const fieldLabel =
+  'block min-w-0 space-y-1 [&>span]:block [&>span]:truncate text-xs font-bold uppercase tracking-wider text-muted-foreground';
 const fieldControl = 'h-10 rounded-xl text-sm normal-case tracking-normal font-normal';
 const selectControl =
   'h-10 w-full rounded-xl border border-border bg-background px-3 text-sm font-normal normal-case tracking-normal text-foreground focus:outline-none focus:ring-2 focus:ring-primary';
@@ -163,7 +199,15 @@ const selectControl =
 
 const PublishSlotsCard: React.FC = () => {
   const create = useCreateSlots();
-  const [form, setForm] = useState({ date: getPeruToday(), from: '14:00', to: '16:00', durationMinutes: 20, mode: 'IN_PERSON' as MeetingMode, location: '', repeatWeeks: 1 });
+  const [form, setForm] = useState({
+    date: getPeruToday(),
+    from: '14:00',
+    to: '16:00',
+    durationMinutes: 20,
+    mode: 'IN_PERSON' as MeetingMode,
+    location: '',
+    repeatWeeks: 1,
+  });
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     create.mutate(
@@ -171,7 +215,9 @@ const PublishSlotsCard: React.FC = () => {
       {
         onSuccess: (r) => {
           const weeks = form.repeatWeeks > 1 ? ` en ${form.repeatWeeks} semanas` : '';
-          const base = r.skipped ? `${r.created} horario(s) publicados${weeks}; ${r.skipped} se omitieron por cruce.` : `${r.created} horario(s) publicados${weeks}.`;
+          const base = r.skipped
+            ? `${r.created} horario(s) publicados${weeks}; ${r.skipped} se omitieron por cruce.`
+            : `${r.created} horario(s) publicados${weeks}.`;
           // Familias que habían pedido horario: ya recibieron el aviso
           toast.success(r.notified ? `${base} Avisamos a ${r.notified} familia(s) que te pidieron entrevista.` : base);
         },
@@ -189,48 +235,100 @@ const PublishSlotsCard: React.FC = () => {
       <form onSubmit={submit} className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 sm:p-5 xl:grid-cols-6">
         <label className={cn(fieldLabel, 'col-span-2 sm:col-span-1')}>
           <span>Día</span>
-          <Input type="date" className={fieldControl} min={getPeruToday()} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required />
+          <Input
+            type="date"
+            className={fieldControl}
+            min={getPeruToday()}
+            value={form.date}
+            onChange={(e) => setForm({ ...form, date: e.target.value })}
+            required
+          />
         </label>
         <label className={fieldLabel}>
           <span>Desde</span>
-          <Input type="time" className={fieldControl} value={form.from} onChange={(e) => setForm({ ...form, from: e.target.value })} required />
+          <Input
+            type="time"
+            className={fieldControl}
+            value={form.from}
+            onChange={(e) => setForm({ ...form, from: e.target.value })}
+            required
+          />
         </label>
         <label className={fieldLabel}>
           <span>Hasta</span>
-          <Input type="time" className={fieldControl} value={form.to} onChange={(e) => setForm({ ...form, to: e.target.value })} required />
+          <Input
+            type="time"
+            className={fieldControl}
+            value={form.to}
+            onChange={(e) => setForm({ ...form, to: e.target.value })}
+            required
+          />
         </label>
         <label className={fieldLabel}>
           <span>Cada</span>
-          <select className={selectControl} value={form.durationMinutes} onChange={(e) => setForm({ ...form, durationMinutes: Number(e.target.value) })}>
+          <select
+            className={selectControl}
+            value={form.durationMinutes}
+            onChange={(e) => setForm({ ...form, durationMinutes: Number(e.target.value) })}
+          >
             {[15, 20, 30, 45, 60].map((m) => (
-              <option key={m} value={m}>{m} min</option>
+              <option key={m} value={m}>
+                {m} min
+              </option>
             ))}
           </select>
         </label>
         <label className={fieldLabel}>
           <span>Modalidad</span>
-          <select className={selectControl} value={form.mode} onChange={(e) => setForm({ ...form, mode: e.target.value as MeetingMode })}>
+          <select
+            className={selectControl}
+            value={form.mode}
+            onChange={(e) => setForm({ ...form, mode: e.target.value as MeetingMode })}
+          >
             {(Object.keys(MODE_LABEL) as MeetingMode[]).map((m) => (
-              <option key={m} value={m}>{MODE_LABEL[m]}</option>
+              <option key={m} value={m}>
+                {MODE_LABEL[m]}
+              </option>
             ))}
           </select>
         </label>
         <label className={fieldLabel}>
           <span>Repetir</span>
-          <select className={selectControl} value={form.repeatWeeks} onChange={(e) => setForm({ ...form, repeatWeeks: Number(e.target.value) })}>
+          <select
+            className={selectControl}
+            value={form.repeatWeeks}
+            onChange={(e) => setForm({ ...form, repeatWeeks: Number(e.target.value) })}
+          >
             <option value={1}>Solo ese día</option>
             {[2, 4, 6, 8].map((w) => (
-              <option key={w} value={w}>{w} semanas</option>
+              <option key={w} value={w}>
+                {w} semanas
+              </option>
             ))}
           </select>
         </label>
         <label className={cn(fieldLabel, 'col-span-2 sm:col-span-3 xl:col-span-6')}>
           <span>Lugar o enlace</span>
-          <Input className={fieldControl} placeholder="Aula 3B / enlace Meet" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} maxLength={200} />
+          <Input
+            className={fieldControl}
+            placeholder="Aula 3B / enlace Meet"
+            value={form.location}
+            onChange={(e) => setForm({ ...form, location: e.target.value })}
+            maxLength={200}
+          />
         </label>
         <div className="col-span-2 flex justify-end border-t border-border pt-3 sm:col-span-3 lg:col-span-6">
-          <Button type="submit" disabled={create.isPending} className="w-full gap-2 rounded-xl text-xs font-bold sm:w-auto">
-            {create.isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <CalendarPlus className="h-4 w-4" aria-hidden />} Publicar horarios
+          <Button
+            type="submit"
+            disabled={create.isPending}
+            className="w-full gap-2 rounded-xl text-xs font-bold sm:w-auto"
+          >
+            {create.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+            ) : (
+              <CalendarPlus className="h-4 w-4" aria-hidden />
+            )}{' '}
+            Publicar horarios
           </Button>
         </div>
       </form>
@@ -318,8 +416,19 @@ const StaffView: React.FC = () => {
       setCancelling(s);
       return;
     }
-    if (!(await confirmDialog({ title: '¿Quitar este horario libre?', confirmText: 'Quitar horario', cancelText: 'Volver', variant: 'danger' }))) return;
-    cancel.mutate({ id: s.id }, { onSuccess: () => toast.success('Horario quitado.'), onError: (e) => toast.error(apiErrorMessage(e)) });
+    if (
+      !(await confirmDialog({
+        title: '¿Quitar este horario libre?',
+        confirmText: 'Quitar horario',
+        cancelText: 'Volver',
+        variant: 'danger',
+      }))
+    )
+      return;
+    cancel.mutate(
+      { id: s.id },
+      { onSuccess: () => toast.success('Horario quitado.'), onError: (e) => toast.error(apiErrorMessage(e)) },
+    );
   };
 
   const confirmCancelBooked = () => {
@@ -339,14 +448,30 @@ const StaffView: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
-        <StatTile label="Próximos" value={upcoming.length} icon={<CalendarDays className="h-4 w-4" />} tone="bg-primary/10 text-primary" />
-        <StatTile label="Reservados" value={booked} icon={<CalendarCheck2 className="h-4 w-4" />} tone="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" />
-        <StatTile label="Libres" value={free} icon={<Clock className="h-4 w-4" />} tone="bg-amber-500/15 text-amber-600 dark:text-amber-400" />
+        <StatTile
+          label="Próximos"
+          value={upcoming.length}
+          icon={<CalendarDays className="h-4 w-4" />}
+          tone="bg-primary/10 text-primary"
+        />
+        <StatTile
+          label="Reservados"
+          value={booked}
+          icon={<CalendarCheck2 className="h-4 w-4" />}
+          tone="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+        />
+        <StatTile
+          label="Libres"
+          value={free}
+          icon={<Clock className="h-4 w-4" />}
+          tone="bg-amber-500/15 text-amber-600 dark:text-amber-400"
+        />
       </div>
 
       {isDirection && (
         <p className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-          Las familias reservan entrevistas solo con los docentes que enseñan a sus hijos. Si dictas cursos o eres tutor(a) de un aula, publica aquí tus horarios.
+          Las familias reservan entrevistas solo con los docentes que enseñan a sus hijos. Si dictas cursos o eres
+          tutor(a) de un aula, publica aquí tus horarios.
         </p>
       )}
 
@@ -375,7 +500,13 @@ const StaffView: React.FC = () => {
           ) : visible.length === 0 ? (
             <EmptyBlock
               icon={<CalendarClock />}
-              title={filter === 'PAST' ? 'Sin entrevistas en los últimos 7 días' : upcoming.length === 0 ? 'Aún no publicas horarios' : 'No hay horarios en esta sección'}
+              title={
+                filter === 'PAST'
+                  ? 'Sin entrevistas en los últimos 7 días'
+                  : upcoming.length === 0
+                    ? 'Aún no publicas horarios'
+                    : 'No hay horarios en esta sección'
+              }
             >
               {filter === 'PAST'
                 ? 'Aquí verás las entrevistas que ya ocurrieron.'
@@ -394,11 +525,16 @@ const StaffView: React.FC = () => {
                     {slots.map((s) => {
                       const isBooked = s.status === 'BOOKED';
                       return (
-                        <li key={s.id} className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-muted/20 sm:px-5">
+                        <li
+                          key={s.id}
+                          className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-muted/20 sm:px-5"
+                        >
                           <div
                             className={cn(
                               'mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl',
-                              isBooked ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-muted text-muted-foreground',
+                              isBooked
+                                ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                : 'bg-muted text-muted-foreground',
                             )}
                           >
                             <ModeIcon mode={s.mode} className="h-4 w-4" />
@@ -409,7 +545,9 @@ const StaffView: React.FC = () => {
                               <span
                                 className={cn(
                                   'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold',
-                                  isBooked ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
+                                  isBooked
+                                    ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                    : 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
                                 )}
                               >
                                 {isBooked ? 'Reservado' : 'Libre'}
@@ -441,18 +579,18 @@ const StaffView: React.FC = () => {
                             )}
                           </div>
                           {filter !== 'PAST' && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => onCancel(s)}
-                            disabled={cancel.isPending}
-                            aria-label={isBooked ? 'Cancelar entrevista' : 'Quitar horario'}
-                            // En celular, botón cuadrado de 40 px (se toca bien y no tapa la hora); el texto, desde tablet
-                            className="h-10 w-10 shrink-0 justify-center gap-1 rounded-lg border-destructive/30 px-0 text-xs font-bold sm:h-8 sm:w-auto sm:px-2.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                          >
-                            {isBooked ? <XCircle className="h-3.5 w-3.5" /> : <Trash2 className="h-3.5 w-3.5" />}
-                            <span className="hidden sm:inline">{isBooked ? 'Cancelar' : 'Quitar'}</span>
-                          </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => onCancel(s)}
+                              disabled={cancel.isPending}
+                              aria-label={isBooked ? 'Cancelar entrevista' : 'Quitar horario'}
+                              // En celular, botón cuadrado de 40 px (se toca bien y no tapa la hora); el texto, desde tablet
+                              className="h-10 w-10 shrink-0 justify-center gap-1 rounded-lg border-destructive/30 px-0 text-xs font-bold sm:h-8 sm:w-auto sm:px-2.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            >
+                              {isBooked ? <XCircle className="h-3.5 w-3.5" /> : <Trash2 className="h-3.5 w-3.5" />}
+                              <span className="hidden sm:inline">{isBooked ? 'Cancelar' : 'Quitar'}</span>
+                            </Button>
                           )}
                         </li>
                       );
@@ -477,7 +615,9 @@ const StaffView: React.FC = () => {
         size="sm"
         footer={
           <>
-            <Button variant="outline" onClick={() => setCancelling(null)}>Volver</Button>
+            <Button variant="outline" onClick={() => setCancelling(null)}>
+              Volver
+            </Button>
             <Button variant="destructive" onClick={confirmCancelBooked} disabled={cancel.isPending}>
               {cancel.isPending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />} Cancelar entrevista
             </Button>
@@ -505,7 +645,10 @@ type ParentTab = 'BOOK' | 'MINE';
 const ParentView: React.FC = () => {
   const { data: children = [], isLoading: loadingChildren } = useGetMyChildren();
   const { selectedChildId, setSelectedChildId } = useParentStore();
-  const childId = useMemo(() => (children.some((c) => c.id === selectedChildId) ? selectedChildId : children[0]?.id ?? null), [children, selectedChildId]);
+  const childId = useMemo(
+    () => (children.some((c) => c.id === selectedChildId) ? selectedChildId : (children[0]?.id ?? null)),
+    [children, selectedChildId],
+  );
   useEffect(() => {
     if (childId && childId !== selectedChildId) setSelectedChildId(childId);
   }, [childId, selectedChildId, setSelectedChildId]);
@@ -590,7 +733,10 @@ const ParentView: React.FC = () => {
             ) : (
               <ul className="divide-y divide-border/60">
                 {bookings!.map((b) => (
-                  <li key={b.id} className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-muted/20 sm:px-5">
+                  <li
+                    key={b.id}
+                    className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-muted/20 sm:px-5"
+                  >
                     <DateChip iso={b.startsAt} />
                     <div className="min-w-0 flex-1 space-y-1">
                       <p className="text-sm font-bold text-foreground">{dayLabel(b.startsAt)}</p>
@@ -664,7 +810,8 @@ const ParentView: React.FC = () => {
           <div className="space-y-4">
             {withSlots.length === 0 && (
               <p className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-                Por ahora ningún docente de tu hijo(a) tiene horarios libres. Pídele uno y te avisaremos en cuanto lo publique.
+                Por ahora ningún docente de tu hijo(a) tiene horarios libres. Pídele uno y te avisaremos en cuanto lo
+                publique.
               </p>
             )}
             {withSlots.map((staff) => (
@@ -700,10 +847,16 @@ const ParentView: React.FC = () => {
                             key={s.id}
                             type="button"
                             title={MODE_LABEL[s.mode]}
-                            onClick={() => setPicked({ id: s.id, label: `${staff.name} · ${day} · ${range(s)} · ${MODE_LABEL[s.mode]}` })}
+                            onClick={() =>
+                              setPicked({
+                                id: s.id,
+                                label: `${staff.name} · ${day} · ${range(s)} · ${MODE_LABEL[s.mode]}`,
+                              })
+                            }
                             className="flex min-h-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-border bg-background px-3 py-2 text-sm font-bold sm:min-h-0 sm:text-xs text-foreground shadow-sm transition-colors hover:border-primary hover:bg-primary/5 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary"
                           >
-                            <ModeIcon mode={s.mode} className="h-3.5 w-3.5 text-muted-foreground" /> {formatPeruTime(s.startsAt)}
+                            <ModeIcon mode={s.mode} className="h-3.5 w-3.5 text-muted-foreground" />{' '}
+                            {formatPeruTime(s.startsAt)}
                           </button>
                         ))}
                       </div>
@@ -759,7 +912,8 @@ const ParentView: React.FC = () => {
                               className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-emerald-500/10 px-3 text-xs font-bold text-emerald-700 dark:text-emerald-300 sm:h-8"
                               title="Te avisaremos cuando publique horarios"
                             >
-                              <CheckCircle2 className="h-3.5 w-3.5" aria-hidden /> Pedido el {formatPeruDate(staff.requestedAt!, { day: 'numeric', month: 'short' })}
+                              <CheckCircle2 className="h-3.5 w-3.5" aria-hidden /> Pedido el{' '}
+                              {formatPeruDate(staff.requestedAt!, { day: 'numeric', month: 'short' })}
                             </span>
                           ) : (
                             <Button
@@ -791,7 +945,12 @@ const ParentView: React.FC = () => {
         description={picked?.label}
         footer={
           <div className="flex justify-end gap-2">
-            <Button variant="outline" size="sm" className="rounded-xl text-xs font-bold" onClick={() => setPicked(null)}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl text-xs font-bold"
+              onClick={() => setPicked(null)}
+            >
               Volver
             </Button>
             <Button
@@ -800,7 +959,12 @@ const ParentView: React.FC = () => {
               disabled={reason.trim().length < 3 || book.isPending}
               className="gap-1.5 rounded-xl bg-emerald-600 text-xs font-bold text-white hover:bg-emerald-700"
             >
-              {book.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />} Reservar
+              {book.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+              ) : (
+                <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
+              )}{' '}
+              Reservar
             </Button>
           </div>
         }
@@ -824,14 +988,33 @@ const ParentView: React.FC = () => {
         open={Boolean(requesting)}
         onClose={() => setRequesting(null)}
         title="Pedir horario de entrevista"
-        description={requesting ? `Le avisaremos a ${requesting.name} que quieres conversar. Cuando publique horarios, te llegará un aviso para reservar.` : undefined}
+        description={
+          requesting
+            ? `Le avisaremos a ${requesting.name} que quieres conversar. Cuando publique horarios, te llegará un aviso para reservar.`
+            : undefined
+        }
         footer={
           <div className="flex justify-end gap-2">
-            <Button variant="outline" size="sm" className="rounded-xl text-xs font-bold" onClick={() => setRequesting(null)}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl text-xs font-bold"
+              onClick={() => setRequesting(null)}
+            >
               Volver
             </Button>
-            <Button size="sm" onClick={confirmRequest} disabled={requestMeeting.isPending} className="gap-1.5 rounded-xl text-xs font-bold">
-              {requestMeeting.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <CalendarPlus className="h-3.5 w-3.5" aria-hidden />} Pedir horario
+            <Button
+              size="sm"
+              onClick={confirmRequest}
+              disabled={requestMeeting.isPending}
+              className="gap-1.5 rounded-xl text-xs font-bold"
+            >
+              {requestMeeting.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+              ) : (
+                <CalendarPlus className="h-3.5 w-3.5" aria-hidden />
+              )}{' '}
+              Pedir horario
             </Button>
           </div>
         }
@@ -864,7 +1047,8 @@ const DirectionOverview: React.FC = () => {
     <div className="space-y-5">
       {withoutSlots.length > 0 && (
         <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
-          {withoutSlots.length} docente(s) no tienen horarios publicados en los próximos 30 días: las familias solo pueden pedirles horario.
+          {withoutSlots.length} docente(s) no tienen horarios publicados en los próximos 30 días: las familias solo
+          pueden pedirles horario.
         </p>
       )}
       <section className="overflow-x-auto rounded-xl border border-border">
@@ -879,15 +1063,29 @@ const DirectionOverview: React.FC = () => {
           </thead>
           <tbody>
             {rows.length === 0 ? (
-              <tr><td colSpan={4} className="px-3 py-6 text-center text-xs text-muted-foreground">Aún no hay docentes registrados.</td></tr>
-            ) : rows.map((r) => (
-              <tr key={r.staffId} className="border-t border-border">
-                <td className="px-3 py-2">{r.name}</td>
-                <td className={`px-3 py-2 text-center ${r.published === 0 ? 'text-amber-600 dark:text-amber-400 font-semibold' : ''}`}>{r.published}</td>
-                <td className="px-3 py-2 text-center">{r.booked}</td>
-                <td className={`px-3 py-2 text-center ${r.pendingRequests > 0 ? 'text-destructive font-semibold' : ''}`}>{r.pendingRequests}</td>
+              <tr>
+                <td colSpan={4} className="px-3 py-6 text-center text-xs text-muted-foreground">
+                  Aún no hay docentes registrados.
+                </td>
               </tr>
-            ))}
+            ) : (
+              rows.map((r) => (
+                <tr key={r.staffId} className="border-t border-border">
+                  <td className="px-3 py-2">{r.name}</td>
+                  <td
+                    className={`px-3 py-2 text-center ${r.published === 0 ? 'text-amber-600 dark:text-amber-400 font-semibold' : ''}`}
+                  >
+                    {r.published}
+                  </td>
+                  <td className="px-3 py-2 text-center">{r.booked}</td>
+                  <td
+                    className={`px-3 py-2 text-center ${r.pendingRequests > 0 ? 'text-destructive font-semibold' : ''}`}
+                  >
+                    {r.pendingRequests}
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </section>
@@ -900,8 +1098,13 @@ const DirectionOverview: React.FC = () => {
             {(data?.upcoming ?? []).map((s) => (
               <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-xs">
                 <span className="font-semibold text-foreground">{formatPeruDateTime(s.startsAt)}</span>
-                <span>{s.staff.firstName} {s.staff.lastNamePaternal}</span>
-                <span className="text-muted-foreground">{s.parent ? `${s.parent.firstName} ${s.parent.lastNamePaternal}` : '—'}{s.student ? ` · ${s.student.name}` : ''}</span>
+                <span>
+                  {s.staff.firstName} {s.staff.lastNamePaternal}
+                </span>
+                <span className="text-muted-foreground">
+                  {s.parent ? `${s.parent.firstName} ${s.parent.lastNamePaternal}` : '—'}
+                  {s.student ? ` · ${s.student.name}` : ''}
+                </span>
                 <span className="text-muted-foreground">{MODE_LABEL[s.mode]}</span>
               </li>
             ))}
@@ -936,7 +1139,12 @@ export const MeetingsPage: React.FC = () => {
       </div>
       {isDirection && (
         <div className="flex gap-1 border-b border-border" role="tablist">
-          {([['overview', 'Supervisión del colegio'], ['mine', 'Mis horarios']] as const).map(([id, label]) => (
+          {(
+            [
+              ['overview', 'Supervisión del colegio'],
+              ['mine', 'Mis horarios'],
+            ] as const
+          ).map(([id, label]) => (
             <button
               key={id}
               type="button"

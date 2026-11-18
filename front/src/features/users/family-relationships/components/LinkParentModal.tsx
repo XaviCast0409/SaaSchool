@@ -21,13 +21,21 @@ interface LinkParentModalProps {
   onClose: () => void;
 }
 
-type Picked = Pick<DirectoryUser, 'id' | 'firstName' | 'lastNamePaternal' | 'lastNameMaternal' | 'documentId' | 'email'>;
+type Picked = Pick<
+  DirectoryUser,
+  'id' | 'firstName' | 'lastNamePaternal' | 'lastNameMaternal' | 'documentId' | 'email'
+>;
 
 /**
  * Vincular un apoderado a un alumno: se busca la cuenta por nombre, DNI o correo
  * (en el servidor, no una lista de todos) o se registra una nueva sin salir de aquí.
  */
-export const LinkParentModal: React.FC<LinkParentModalProps> = ({ studentId, studentName, linkedUserIds = [], onClose }) => {
+export const LinkParentModal: React.FC<LinkParentModalProps> = ({
+  studentId,
+  studentName,
+  linkedUserIds = [],
+  onClose,
+}) => {
   const { mutate: linkParent, isPending } = useLinkParent();
   const [term, setTerm] = useState('');
   const search = useDebouncedValue(term.trim(), 300);
@@ -58,11 +66,7 @@ export const LinkParentModal: React.FC<LinkParentModalProps> = ({ studentId, stu
 
   if (creating) {
     return (
-      <UserFormModal
-        defaultRole="PARENT"
-        onCreated={(user) => setPicked(user)}
-        onClose={() => setCreating(false)}
-      />
+      <UserFormModal defaultRole="PARENT" onCreated={(user) => setPicked(user)} onClose={() => setCreating(false)} />
     );
   }
 
@@ -95,7 +99,9 @@ export const LinkParentModal: React.FC<LinkParentModalProps> = ({ studentId, stu
             <div className="flex items-center justify-between gap-2 rounded-lg border border-primary/40 bg-primary/5 px-3 py-2">
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold">{formatFullName(picked, 'LAST_FIRST')}</p>
-                <p className="truncate text-xs text-muted-foreground">{picked.documentId || picked.email || 'Sin documento'}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {picked.documentId || picked.email || 'Sin documento'}
+                </p>
               </div>
               <Button type="button" variant="ghost" size="sm" onClick={() => setPicked(null)}>
                 Cambiar
@@ -115,10 +121,15 @@ export const LinkParentModal: React.FC<LinkParentModalProps> = ({ studentId, stu
                   className="pl-9 pr-9"
                   autoComplete="off"
                 />
-                {isFetching && <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />}
+                {isFetching && (
+                  <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                )}
               </div>
               {searching && (
-                <ul className="max-h-56 overflow-y-auto rounded-lg border border-border divide-y divide-border" role="listbox">
+                <ul
+                  className="max-h-56 overflow-y-auto rounded-lg border border-border divide-y divide-border"
+                  role="listbox"
+                >
                   {results.map((u) => {
                     const linked = linkedUserIds.includes(u.id);
                     const children = u.familyRelations?.map((r) => r.student.firstNames).join(', ');
@@ -131,7 +142,9 @@ export const LinkParentModal: React.FC<LinkParentModalProps> = ({ studentId, stu
                           className="flex w-full items-start justify-between gap-2 px-3 py-2 text-left hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           <span className="min-w-0">
-                            <span className="block truncate text-sm font-medium">{formatFullName(u, 'LAST_FIRST')}</span>
+                            <span className="block truncate text-sm font-medium">
+                              {formatFullName(u, 'LAST_FIRST')}
+                            </span>
                             <span className="block truncate text-xs text-muted-foreground">
                               {u.documentId || u.email}
                               {children ? ` · Hijos: ${children}` : ''}
@@ -147,7 +160,9 @@ export const LinkParentModal: React.FC<LinkParentModalProps> = ({ studentId, stu
                     );
                   })}
                   {!isFetching && results.length === 0 && (
-                    <li className="px-3 py-3 text-sm text-muted-foreground">Ningún apoderado coincide con «{search}».</li>
+                    <li className="px-3 py-3 text-sm text-muted-foreground">
+                      Ningún apoderado coincide con «{search}».
+                    </li>
                   )}
                 </ul>
               )}
@@ -188,8 +203,16 @@ export const LinkParentModal: React.FC<LinkParentModalProps> = ({ studentId, stu
         <fieldset className="space-y-2">
           <legend className="sr-only">Marcas del apoderado</legend>
           {[
-            { key: 'isLegalGuardian' as const, label: 'Apoderado legal', hint: 'Figura como apoderado oficial (SIAGIE)' },
-            { key: 'isFinancialResponsible' as const, label: 'Responsable de pago', hint: 'Recibe los recordatorios de pensión' },
+            {
+              key: 'isLegalGuardian' as const,
+              label: 'Apoderado legal',
+              hint: 'Figura como apoderado oficial (SIAGIE)',
+            },
+            {
+              key: 'isFinancialResponsible' as const,
+              label: 'Responsable de pago',
+              hint: 'Recibe los recordatorios de pensión',
+            },
             { key: 'livesWithStudent' as const, label: 'Vive con el alumno', hint: undefined },
           ].map(({ key, label, hint }) => (
             <label key={key} className="flex cursor-pointer items-start gap-2.5">

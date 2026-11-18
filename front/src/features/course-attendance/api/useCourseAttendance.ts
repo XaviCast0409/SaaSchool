@@ -2,11 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
 
 export type CourseAttendanceStatus =
-  | 'PRESENT'
-  | 'LATE_UNJUSTIFIED'
-  | 'LATE_JUSTIFIED'
-  | 'ABSENT_UNJUSTIFIED'
-  | 'ABSENT_JUSTIFIED';
+  'PRESENT' | 'LATE_UNJUSTIFIED' | 'LATE_JUSTIFIED' | 'ABSENT_UNJUSTIFIED' | 'ABSENT_JUSTIFIED';
 
 export interface CourseAttendanceStudent {
   enrollmentId: string;
@@ -73,12 +69,9 @@ export const useCourseAttendanceSession = (params: {
   return useQuery({
     queryKey: ['course-attendance', 'session', courseAssignmentId, date, periodLabel],
     queryFn: async () => {
-      const response = await api.get<ApiResponse<CourseAttendanceSessionResponse>>(
-        '/course-attendance/session',
-        {
-          params: { courseAssignmentId, date, periodLabel },
-        },
-      );
+      const response = await api.get<ApiResponse<CourseAttendanceSessionResponse>>('/course-attendance/session', {
+        params: { courseAssignmentId, date, periodLabel },
+      });
       return response.data.data;
     },
     enabled: Boolean(courseAssignmentId && date),
@@ -94,13 +87,7 @@ export const useSaveCourseAttendanceSession = () => {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: [
-          'course-attendance',
-          'session',
-          variables.courseAssignmentId,
-          variables.date,
-          variables.periodLabel,
-        ],
+        queryKey: ['course-attendance', 'session', variables.courseAssignmentId, variables.date, variables.periodLabel],
       });
       queryClient.invalidateQueries({
         queryKey: ['course-attendance', 'summary', variables.courseAssignmentId],
@@ -109,20 +96,14 @@ export const useSaveCourseAttendanceSession = () => {
   });
 };
 
-export const useCourseAttendanceSummary = (params: {
-  courseAssignmentId?: string;
-  month?: string;
-}) => {
+export const useCourseAttendanceSummary = (params: { courseAssignmentId?: string; month?: string }) => {
   const { courseAssignmentId, month } = params;
   return useQuery({
     queryKey: ['course-attendance', 'summary', courseAssignmentId, month],
     queryFn: async () => {
-      const response = await api.get<ApiResponse<CourseAttendanceSummaryResponse>>(
-        '/course-attendance/summary',
-        {
-          params: { courseAssignmentId, month },
-        },
-      );
+      const response = await api.get<ApiResponse<CourseAttendanceSummaryResponse>>('/course-attendance/summary', {
+        params: { courseAssignmentId, month },
+      });
       return response.data.data;
     },
     enabled: Boolean(courseAssignmentId && month),

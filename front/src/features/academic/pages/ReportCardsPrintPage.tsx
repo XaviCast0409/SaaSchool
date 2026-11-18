@@ -15,7 +15,9 @@ export const ReportCardsPrintPage: React.FC = () => {
   const { data: classrooms = [] } = useClassrooms();
   const { data, isLoading, error } = useClassroomReportCards(classroomId);
   const [period, setPeriod] = useState<number | null>(null);
-  useEffect(() => { if (data?.length && period === null) setPeriod(defaultReportPeriod(data[0])); }, [data, period]);
+  useEffect(() => {
+    if (data?.length && period === null) setPeriod(defaultReportPeriod(data[0]));
+  }, [data, period]);
 
   const { print, isPrinting } = usePrint({
     pageSize: 'A4 portrait',
@@ -27,7 +29,9 @@ export const ReportCardsPrintPage: React.FC = () => {
       <div className="mx-auto max-w-md space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm mt-8">
         <div className="space-y-1">
           <h2 className="text-base font-bold text-foreground">Libretas de notas</h2>
-          <p className="text-xs text-muted-foreground">Selecciona el aula para generar e imprimir las libretas escolares.</p>
+          <p className="text-xs text-muted-foreground">
+            Selecciona el aula para generar e imprimir las libretas escolares.
+          </p>
         </div>
         <div>
           <label className="text-xs font-semibold block mb-1">Aula y Sección</label>
@@ -64,13 +68,22 @@ export const ReportCardsPrintPage: React.FC = () => {
     <div>
       <div className="mb-4 flex items-center justify-between">
         <div className="flex flex-wrap items-center gap-3">
-          {data[0] && data[0].visiblePeriods.length > 0 && <ReportPeriodSelect card={data[0]} value={period} onChange={setPeriod} />}
-          <p className="text-sm text-muted-foreground">{data.length} libretas · usa "Guardar como PDF" en el diálogo de impresión.</p>
+          {data[0] && data[0].visiblePeriods.length > 0 && (
+            <ReportPeriodSelect card={data[0]} value={period} onChange={setPeriod} />
+          )}
+          <p className="text-sm text-muted-foreground">
+            {data.length} libretas · usa "Guardar como PDF" en el diálogo de impresión.
+          </p>
         </div>
-        <Button onClick={print} disabled={isPrinting}><Printer className="mr-1 h-4 w-4" />Imprimir / Guardar PDF</Button>
+        <Button onClick={print} disabled={isPrinting}>
+          <Printer className="mr-1 h-4 w-4" />
+          Imprimir / Guardar PDF
+        </Button>
       </div>
       <div className="space-y-6">
-        {data.map((card) => <ReportCardSheet key={card.student.fullName} card={card} periodNumber={period} />)}
+        {data.map((card) => (
+          <ReportCardSheet key={card.student.fullName} card={card} periodNumber={period} />
+        ))}
       </div>
 
       {isPrinting && (
@@ -89,4 +102,3 @@ export const ReportCardsPrintPage: React.FC = () => {
     </div>
   );
 };
-

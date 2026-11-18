@@ -1,13 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Bell,
-  CheckCheck,
-  Inbox,
-  Loader2,
-  Smartphone,
-  BellRing,
-} from 'lucide-react';
+import { Bell, CheckCheck, Inbox, Loader2, Smartphone, BellRing } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -47,18 +40,12 @@ export const NotificationBell: React.FC = () => {
   const notifications = data?.data || [];
 
   const pushSupported = isPushSupported();
-  const isPushGranted =
-    pushSupported &&
-    typeof Notification !== 'undefined' &&
-    Notification.permission === 'granted';
+  const isPushGranted = pushSupported && typeof Notification !== 'undefined' && Notification.permission === 'granted';
 
   // Cerrar al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
@@ -141,10 +128,7 @@ export const NotificationBell: React.FC = () => {
             <div className="flex items-center gap-2">
               <h3 className="font-bold text-sm text-foreground">Notificaciones</h3>
               {unreadCount > 0 && (
-                <Badge
-                  variant="default"
-                  className="text-xs px-1.5 py-0 font-bold bg-primary text-primary-foreground"
-                >
+                <Badge variant="default" className="text-xs px-1.5 py-0 font-bold bg-primary text-primary-foreground">
                   {unreadCount} nuevas
                 </Badge>
               )}
@@ -194,11 +178,7 @@ export const NotificationBell: React.FC = () => {
                   disabled={isPushSubscribing}
                   className="h-6 text-xs px-2 gap-1 rounded-md font-bold bg-primary text-primary-foreground"
                 >
-                  {isPushSubscribing ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <BellRing className="w-3 h-3" />
-                  )}
+                  {isPushSubscribing ? <Loader2 className="w-3 h-3 animate-spin" /> : <BellRing className="w-3 h-3" />}
                   <span>Activar</span>
                 </Button>
               )}
@@ -210,9 +190,7 @@ export const NotificationBell: React.FC = () => {
             <button
               onClick={() => setFilterUnreadOnly(false)}
               className={`text-xs font-semibold px-2 py-0.5 rounded-md transition-colors ${
-                !filterUnreadOnly
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-muted-foreground hover:text-foreground'
+                !filterUnreadOnly ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               Todas
@@ -220,9 +198,7 @@ export const NotificationBell: React.FC = () => {
             <button
               onClick={() => setFilterUnreadOnly(true)}
               className={`text-xs font-semibold px-2 py-0.5 rounded-md transition-colors ${
-                filterUnreadOnly
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-muted-foreground hover:text-foreground'
+                filterUnreadOnly ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               No leídas {unreadCount > 0 ? `(${unreadCount})` : ''}
@@ -243,9 +219,7 @@ export const NotificationBell: React.FC = () => {
                   <Inbox className="w-5 h-5" />
                 </div>
                 <p className="text-xs font-semibold text-foreground">
-                  {filterUnreadOnly
-                    ? 'No tienes notificaciones sin leer'
-                    : 'Sin notificaciones pendientes'}
+                  {filterUnreadOnly ? 'No tienes notificaciones sin leer' : 'Sin notificaciones pendientes'}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Aquí verás avisos de cobranzas, comunicados y alertas del colegio.
@@ -253,20 +227,14 @@ export const NotificationBell: React.FC = () => {
               </div>
             ) : (
               notifications.map((notif) => (
-                <NotificationItem
-                  key={notif.id}
-                  notification={notif}
-                  onRead={handleNotificationClick}
-                />
+                <NotificationItem key={notif.id} notification={notif} onRead={handleNotificationClick} />
               ))
             )}
           </div>
 
           {/* Footer */}
           <div className="p-2 border-t border-border bg-secondary/20 text-center">
-            <span className="text-xs text-muted-foreground">
-              Notificaciones en tiempo real y segundo plano • KIPUX
-            </span>
+            <span className="text-xs text-muted-foreground">Notificaciones en tiempo real y segundo plano • KIPUX</span>
           </div>
         </div>
       )}

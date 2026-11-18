@@ -54,7 +54,10 @@ const PlanStatusBadge: React.FC<{ status?: PlanStatus }> = ({ status }) => {
   if (access === 'ACTIVE') {
     if (daysUntilExpiry === null || daysUntilExpiry > 15) return null;
     return (
-      <Badge variant="outline" className="text-xs whitespace-nowrap border-amber-500/40 text-amber-700 dark:text-amber-300">
+      <Badge
+        variant="outline"
+        className="text-xs whitespace-nowrap border-amber-500/40 text-amber-700 dark:text-amber-300"
+      >
         {daysUntilExpiry === 0 ? 'Vence hoy' : `Vence en ${daysUntilExpiry} d`}
       </Badge>
     );
@@ -160,10 +163,14 @@ export const SuperAdminPage: React.FC = () => {
     const reasons: AttentionReason[] = [];
     const st = s.planStatus;
     if (st?.access === 'BLOCKED') reasons.push({ tone: 'danger', label: `Sin acceso · ${st.daysOverdue} d vencido` });
-    else if (st?.access === 'READ_ONLY') reasons.push({ tone: 'danger', label: `Solo lectura · ${st.daysOverdue} d vencido` });
+    else if (st?.access === 'READ_ONLY')
+      reasons.push({ tone: 'danger', label: `Solo lectura · ${st.daysOverdue} d vencido` });
     else if (st?.access === 'GRACE') reasons.push({ tone: 'warn', label: `En gracia · ${st.daysOverdue} d vencido` });
     else if (st?.daysUntilExpiry != null && st.daysUntilExpiry <= EXPIRY_WARN_DAYS)
-      reasons.push({ tone: 'warn', label: st.daysUntilExpiry === 0 ? 'Vence hoy' : `Vence en ${st.daysUntilExpiry} d` });
+      reasons.push({
+        tone: 'warn',
+        label: st.daysUntilExpiry === 0 ? 'Vence hoy' : `Vence en ${st.daysUntilExpiry} d`,
+      });
 
     const pct = quotaPercent(s);
     if (pct !== null && pct >= QUOTA_WARN_PERCENT) {
@@ -174,7 +181,10 @@ export const SuperAdminPage: React.FC = () => {
     const isNew = !!s.createdAt && Date.now() - new Date(s.createdAt).getTime() < INACTIVE_DAYS * DAY_MS;
     const lastSeen = s.activity?.lastSeenAt;
     if (!isNew && (!lastSeen || Date.now() - new Date(lastSeen).getTime() > INACTIVE_DAYS * DAY_MS)) {
-      reasons.push({ tone: 'info', label: lastSeen ? `Sin uso desde ${formatPeruShortDate(lastSeen)}` : 'Sin uso registrado' });
+      reasons.push({
+        tone: 'info',
+        label: lastSeen ? `Sin uso desde ${formatPeruShortDate(lastSeen)}` : 'Sin uso registrado',
+      });
     }
     return reasons;
   };
@@ -189,7 +199,14 @@ export const SuperAdminPage: React.FC = () => {
 
   const handleToggleStatus = async (school: SchoolWithStats) => {
     if (school.isActive) {
-      if (await confirmDialog({ title: `¿Suspender a "${school.name}"?`, description: 'El colegio perderá el acceso a la plataforma hasta que lo reactives.', confirmText: 'Suspender acceso', variant: 'danger' })) {
+      if (
+        await confirmDialog({
+          title: `¿Suspender a "${school.name}"?`,
+          description: 'El colegio perderá el acceso a la plataforma hasta que lo reactives.',
+          confirmText: 'Suspender acceso',
+          variant: 'danger',
+        })
+      ) {
         deactivateSchool(school.id, {
           onSuccess: () => toast.success(`🚫 Colegio "${school.name}" suspendido por cobranza.`),
           onError: () => toast.error('Error al suspender el colegio.'),
@@ -213,12 +230,11 @@ export const SuperAdminPage: React.FC = () => {
             <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
               <ShieldCheck className="w-5 h-5" />
             </div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
-              Panel de Control SuperAdmin SaaS
-            </h1>
+            <h1 className="text-2xl font-extrabold tracking-tight text-foreground">Panel de Control SuperAdmin SaaS</h1>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Torre de control centralizada para gestionar instituciones clientes, planes contratados y facturación mensual.
+            Torre de control centralizada para gestionar instituciones clientes, planes contratados y facturación
+            mensual.
           </p>
         </div>
 
@@ -243,7 +259,8 @@ export const SuperAdminPage: React.FC = () => {
               <Skeleton className="h-8 w-20" />
             ) : (
               <div className="text-2xl font-extrabold text-foreground">
-                {activeSchools} <span className="text-xs font-semibold text-muted-foreground">/ {totalSchools} activos</span>
+                {activeSchools}{' '}
+                <span className="text-xs font-semibold text-muted-foreground">/ {totalSchools} activos</span>
               </div>
             )}
             <p className="text-xs text-muted-foreground mt-1">Instituciones conectadas</p>
@@ -257,7 +274,7 @@ export const SuperAdminPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-               <Skeleton className="h-8 w-24" />
+              <Skeleton className="h-8 w-24" />
             ) : (
               <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
                 S/ {estimatedMRR.toFixed(2)}
@@ -282,9 +299,7 @@ export const SuperAdminPage: React.FC = () => {
             {isLoading ? (
               <Skeleton className="h-8 w-20" />
             ) : (
-              <div className="text-2xl font-extrabold text-foreground">
-                {totalStudentsInPlatform}
-              </div>
+              <div className="text-2xl font-extrabold text-foreground">{totalStudentsInPlatform}</div>
             )}
             <p className="text-xs text-muted-foreground mt-1">Matrículas activas consolidadas</p>
           </CardContent>
@@ -299,7 +314,9 @@ export const SuperAdminPage: React.FC = () => {
             {isBillingLoading ? (
               <Skeleton className="h-8 w-24" />
             ) : (
-              <div className="text-2xl font-extrabold text-foreground">S/ {formatSoles(billing?.collectedThisMonth ?? 0)}</div>
+              <div className="text-2xl font-extrabold text-foreground">
+                S/ {formatSoles(billing?.collectedThisMonth ?? 0)}
+              </div>
             )}
             <p className="text-xs text-muted-foreground mt-1">
               {billing
@@ -325,7 +342,10 @@ export const SuperAdminPage: React.FC = () => {
           <CardContent className="p-0">
             <ul className="divide-y divide-border">
               {attentionSchools.map(({ school, reasons }) => (
-                <li key={school.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-6 py-3">
+                <li
+                  key={school.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-6 py-3"
+                >
                   <div className="min-w-0 space-y-1">
                     <Link
                       to={`/super-admin/schools/${school.id}`}
@@ -346,11 +366,21 @@ export const SuperAdminPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex gap-1.5 shrink-0">
-                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setSelectedSchoolForPayments(school)}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs gap-1"
+                      onClick={() => setSelectedSchoolForPayments(school)}
+                    >
                       <Wallet className="w-3.5 h-3.5 text-primary" />
                       Registrar pago
                     </Button>
-                    <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => setSelectedSchoolForPlan(school)}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-xs gap-1"
+                      onClick={() => setSelectedSchoolForPlan(school)}
+                    >
                       <Sparkles className="w-3.5 h-3.5 text-primary" />
                       Plan
                     </Button>
@@ -431,7 +461,10 @@ export const SuperAdminPage: React.FC = () => {
                               ) : (
                                 <Building2 className="w-4 h-4 text-primary" />
                               )}
-                              <Link to={`/super-admin/schools/${item.id}`} className="hover:text-primary hover:underline">
+                              <Link
+                                to={`/super-admin/schools/${item.id}`}
+                                className="hover:text-primary hover:underline"
+                              >
                                 {item.name}
                               </Link>
                             </div>
@@ -443,7 +476,9 @@ export const SuperAdminPage: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           <Badge
-                            variant={item.plan === 'PRO' ? 'default' : item.plan === 'ENTERPRISE' ? 'success' : 'secondary'}
+                            variant={
+                              item.plan === 'PRO' ? 'default' : item.plan === 'ENTERPRISE' ? 'success' : 'secondary'
+                            }
                             className="font-bold text-xs whitespace-nowrap"
                           >
                             {item.plan} (S/ {formatSoles(feeOf(item))}/mes)
@@ -459,7 +494,7 @@ export const SuperAdminPage: React.FC = () => {
                             <div className="text-xs font-medium text-foreground">
                               <strong>{item._count?.students || 0}</strong>
                               <span className="text-muted-foreground text-xs">
-                                /{quota === null ? '∞' : quota ?? '—'} alumnos
+                                /{quota === null ? '∞' : (quota ?? '—')} alumnos
                               </span>
                             </div>
                             {pct !== null && (
@@ -477,15 +512,15 @@ export const SuperAdminPage: React.FC = () => {
                                 />
                               </div>
                             )}
-                            <div className="text-xs text-muted-foreground">
-                              {item._count?.users || 0} usuarios
-                            </div>
+                            <div className="text-xs text-muted-foreground">{item._count?.users || 0} usuarios</div>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="space-y-0.5 whitespace-nowrap">
                             <div className="text-xs text-foreground">
-                              {timeAgo(item.activity?.lastSeenAt) ?? <span className="text-muted-foreground">Sin actividad</span>}
+                              {timeAgo(item.activity?.lastSeenAt) ?? (
+                                <span className="text-muted-foreground">Sin actividad</span>
+                              )}
                             </div>
                             <div className="text-xs text-muted-foreground">
                               {item.activity?.active7d ?? 0} activos (7 d) · {item.activity?.active30d ?? 0} (30 d)
@@ -495,16 +530,22 @@ export const SuperAdminPage: React.FC = () => {
                         <TableCell>
                           {item.planExpiresAt ? (
                             <div className="flex flex-col items-start gap-1">
-                              <span className={`text-xs ${isExpired ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
+                              <span
+                                className={`text-xs ${isExpired ? 'text-destructive font-bold' : 'text-muted-foreground'}`}
+                              >
                                 {formatPeruShortDate(item.planExpiresAt)}
                               </span>
                               <PlanStatusBadge status={item.planStatus} />
                             </div>
                           ) : (
-                            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">Mensual Indefinido</span>
+                            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+                              Mensual Indefinido
+                            </span>
                           )}
                           <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap">
-                            {item.lastPaymentOn ? `Último pago ${formatPeruShortDate(item.lastPaymentOn)}` : 'Sin pagos registrados'}
+                            {item.lastPaymentOn
+                              ? `Último pago ${formatPeruShortDate(item.lastPaymentOn)}`
+                              : 'Sin pagos registrados'}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -583,7 +624,11 @@ export const SuperAdminPage: React.FC = () => {
                               onClick={() => handleToggleStatus(item)}
                               disabled={isDeactivating || isReactivating}
                             >
-                              {item.isActive ? <Power className="w-3.5 h-3.5" /> : <RotateCcw className="w-3.5 h-3.5" />}
+                              {item.isActive ? (
+                                <Power className="w-3.5 h-3.5" />
+                              ) : (
+                                <RotateCcw className="w-3.5 h-3.5" />
+                              )}
                               <span>{item.isActive ? 'Suspender' : 'Reactivar'}</span>
                             </Button>
                           </div>
@@ -605,10 +650,7 @@ export const SuperAdminPage: React.FC = () => {
       </div>
 
       {/* Modals */}
-      <CreateSchoolModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-      />
+      <CreateSchoolModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
 
       <EditSchoolPlanModal
         key={selectedSchoolForPlan?.id ?? 'none'}

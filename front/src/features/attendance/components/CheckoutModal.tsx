@@ -31,7 +31,11 @@ interface RosterStudent {
 }
 
 /** Sin tildes ni mayúsculas, para que «quispe» encuentre a «QUISPE HUAMÁN». */
-const fold = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const fold = (text: string) =>
+  text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
 
 interface CheckoutModalProps {
   open: boolean;
@@ -46,11 +50,7 @@ const PickupPhotoAvatar: React.FC<{
 
   if (resolvedUrl) {
     return (
-      <img
-        src={resolvedUrl}
-        alt={name}
-        className="w-10 h-10 rounded-full object-cover border border-border shrink-0"
-      />
+      <img src={resolvedUrl} alt={name} className="w-10 h-10 rounded-full object-cover border border-border shrink-0" />
     );
   }
 
@@ -65,7 +65,8 @@ const PickupPhotoAvatar: React.FC<{
 /** Pitido corto de confirmación (sin archivos de audio). Si el navegador no lo permite, no pasa nada. */
 const playConfirmBeep = () => {
   try {
-    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const AudioCtx =
+      window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     const ctx = new AudioCtx();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
@@ -88,7 +89,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
   const [useCamera, setUseCamera] = useState(false);
 
   // Selección de persona
-  const [selectedPickupType, setSelectedPickupType] = useState<'GUARDIAN' | 'AUTHORIZED' | 'SELF' | 'OTHER' | null>(null);
+  const [selectedPickupType, setSelectedPickupType] = useState<'GUARDIAN' | 'AUTHORIZED' | 'SELF' | 'OTHER' | null>(
+    null,
+  );
   // Persona eventual (con autorización escrita del apoderado): solo la oficina puede registrarla
   const [otherName, setOtherName] = useState('');
   const [otherDocument, setOtherDocument] = useState('');
@@ -97,7 +100,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [earlyLeaveReason, setEarlyLeaveReason] = useState('');
   // Confirmación grande tras registrar: el portero ve de un vistazo que quedó hecho
-  const [lastCheckout, setLastCheckout] = useState<{ student: string; detail: string; familyNotified: boolean } | null>(null);
+  const [lastCheckout, setLastCheckout] = useState<{ student: string; detail: string; familyNotified: boolean } | null>(
+    null,
+  );
 
   const { data: previewData, isLoading: isLoadingPreview, error: previewError } = useCheckoutPreview(scannedCode);
 
@@ -162,7 +167,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
       pickupType: selectedPickupType,
       pickupPersonId: selectedPickupType === 'OTHER' ? undefined : selectedPersonId || undefined,
       earlyLeaveReason: earlyLeaveReason.trim() || undefined,
-      ...(selectedPickupType === 'OTHER' ? { otherPickupName: otherName.trim(), otherPickupDocument: otherDocument.trim() } : {}),
+      ...(selectedPickupType === 'OTHER'
+        ? { otherPickupName: otherName.trim(), otherPickupDocument: otherDocument.trim() }
+        : {}),
     });
 
     const pickerName =
@@ -197,7 +204,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
   const hasNoEntry = !attendance || !['PRESENT', 'LATE_JUSTIFIED', 'LATE_UNJUSTIFIED'].includes(attendance.status);
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 sm:p-4 backdrop-blur-sm animate-in fade-in">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 sm:p-4 backdrop-blur-sm animate-in fade-in"
+    >
       <div className="w-full max-w-2xl rounded-2xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border p-4 bg-muted/30">
@@ -206,18 +217,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
               <LogOut className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="font-black text-lg text-foreground leading-none">
-                Registro de Salida
-              </h2>
+              <h2 className="font-black text-lg text-foreground leading-none">Registro de Salida</h2>
               <p className="text-xs text-muted-foreground mt-1">
                 Control de retiro escolar y verificación de personas autorizadas.
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted transition-colors"
-          >
+          <button onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -225,7 +231,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
         {/* Contenido */}
         <div className="p-5 space-y-5 overflow-y-auto flex-1">
           {lastCheckout ? (
-            <div role="status" aria-live="polite" className="flex flex-col items-center gap-3 py-8 text-center animate-in zoom-in-95">
+            <div
+              role="status"
+              aria-live="polite"
+              className="flex flex-col items-center gap-3 py-8 text-center animate-in zoom-in-95"
+            >
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg">
                 <CheckCircle2 className="h-12 w-12" aria-hidden />
               </div>
@@ -248,9 +258,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
           !scannedCode ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-foreground">
-                  Identifica al estudiante por carnet QR o DNI
-                </span>
+                <span className="text-xs font-bold text-foreground">Identifica al estudiante por carnet QR o DNI</span>
                 <Button
                   variant="outline"
                   size="sm"
@@ -264,11 +272,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
 
               {useCamera && (
                 <div className="rounded-2xl overflow-hidden border border-border p-3 bg-muted/20">
-                  <CameraQrScanner
-                    isActive={true}
-                    onScan={handleScanCode}
-                    isProcessing={false}
-                  />
+                  <CameraQrScanner isActive={true} onScan={handleScanCode} isProcessing={false} />
                 </div>
               )}
 
@@ -289,7 +293,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
                 </Button>
               </form>
               {nameMatches.length > 0 && (
-                <ul className="divide-y divide-border rounded-xl border border-border" aria-label="Coincidencias por nombre">
+                <ul
+                  className="divide-y divide-border rounded-xl border border-border"
+                  aria-label="Coincidencias por nombre"
+                >
                   {nameMatches.map((r) => (
                     <li key={r.documentId}>
                       <button
@@ -330,9 +337,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
               <div className="p-4 rounded-2xl border border-border bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
-                    <span className="text-base font-black text-foreground">
-                      {student.fullName}
-                    </span>
+                    <span className="text-base font-black text-foreground">{student.fullName}</span>
                     <Badge variant="outline" className="text-xs font-bold">
                       {student.classroom}
                     </Badge>
@@ -366,8 +371,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
                   <div>
                     <span className="font-bold block text-sm">Salida ya registrada</span>
                     <span>
-                      Este estudiante ya registró su salida a las{' '}
-                      {formatPeruTime(attendance?.checkOutTime)}
+                      Este estudiante ya registró su salida a las {formatPeruTime(attendance?.checkOutTime)}
                       {attendance?.pickedUpByName ? ` (retirado por ${attendance.pickedUpByName})` : ''}.
                     </span>
                   </div>
@@ -410,16 +414,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
                             </div>
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-foreground truncate">
-                                  {g.fullName}
-                                </span>
+                                <span className="text-xs font-bold text-foreground truncate">{g.fullName}</span>
                                 <Badge className="text-xs bg-secondary text-secondary-foreground">
                                   {relationshipLabel(g.relationshipType)}
                                 </Badge>
                               </div>
-                              <span className="text-xs text-muted-foreground block">
-                                Doc: {g.documentId || '—'}
-                              </span>
+                              <span className="text-xs text-muted-foreground block">Doc: {g.documentId || '—'}</span>
                             </div>
                           </div>
                           <div
@@ -453,10 +453,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
                             <PickupPhotoAvatar photoUrl={p.photoFileUrl} name={p.fullName} />
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-foreground truncate">
-                                  {p.fullName}
-                                </span>
-                                <Badge variant="outline" className="text-xs border-emerald-500/30 text-emerald-600 bg-emerald-500/10">
+                                <span className="text-xs font-bold text-foreground truncate">{p.fullName}</span>
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs border-emerald-500/30 text-emerald-600 bg-emerald-500/10"
+                                >
                                   Autorizado ({p.relationship})
                                 </Badge>
                               </div>
@@ -489,8 +490,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
                             : 'border-dashed border-border bg-card hover:border-primary/40'
                         }`}
                       >
-                        <span className="text-xs font-bold text-foreground block">Otra persona con autorización escrita</span>
-                        <span className="text-xs text-muted-foreground block">Solo hoy. Queda registrada y se avisa a la familia.</span>
+                        <span className="text-xs font-bold text-foreground block">
+                          Otra persona con autorización escrita
+                        </span>
+                        <span className="text-xs text-muted-foreground block">
+                          Solo hoy. Queda registrada y se avisa a la familia.
+                        </span>
                         {selectedPickupType === 'OTHER' && (
                           <div className="grid gap-2 sm:grid-cols-2" onClick={(e) => e.stopPropagation()}>
                             <input
@@ -530,12 +535,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
                             <ShieldCheck className="w-5 h-5" />
                           </div>
                           <div>
-                            <span className="text-xs font-bold text-foreground block">
-                              Sale por su cuenta
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              Habilitado para nivel Secundaria
-                            </span>
+                            <span className="text-xs font-bold text-foreground block">Sale por su cuenta</span>
+                            <span className="text-xs text-muted-foreground">Habilitado para nivel Secundaria</span>
                           </div>
                         </div>
                         <div
@@ -554,13 +555,19 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
                   {/* Motivo de salida anticipada */}
                   <div>
                     <label className="text-xs font-bold text-foreground block mb-1">
-                      {selectedPickupType === 'OTHER' ? 'Autorización del apoderado (obligatorio)' : 'Motivo de salida anticipada (opcional)'}
+                      {selectedPickupType === 'OTHER'
+                        ? 'Autorización del apoderado (obligatorio)'
+                        : 'Motivo de salida anticipada (opcional)'}
                     </label>
                     <input
                       type="text"
                       value={earlyLeaveReason}
                       onChange={(e) => setEarlyLeaveReason(e.target.value)}
-                      placeholder={selectedPickupType === 'OTHER' ? 'Ej. Carta firmada por la madre; se confirmó por llamada a las 12:10' : 'Ej. Cita odontológica, retiro con autorización escrita...'}
+                      placeholder={
+                        selectedPickupType === 'OTHER'
+                          ? 'Ej. Carta firmada por la madre; se confirmó por llamada a las 12:10'
+                          : 'Ej. Cita odontológica, retiro con autorización escrita...'
+                      }
                       className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
@@ -572,29 +579,31 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
 
         {/* Footer (la confirmación trae sus propios botones) */}
         {!lastCheckout && (
-        <div className="p-4 border-t border-border flex items-center justify-end gap-2 bg-muted/20">
-          <Button variant="outline" size="sm" onClick={onClose} className="rounded-xl text-xs font-bold">
-            Cancelar
-          </Button>
-
-          {scannedCode && !alreadyCheckedOut && !hasNoEntry && (
-            <Button
-              size="sm"
-              disabled={
-                isCheckingOut ||
-                !selectedPickupType ||
-                (selectedPickupType === 'OTHER'
-                  ? otherName.trim().length < 5 || otherDocument.trim().length < 6 || earlyLeaveReason.trim().length < 5
-                  : selectedPickupType !== 'SELF' && !selectedPersonId)
-              }
-              onClick={handleSubmitCheckout}
-              className="rounded-xl text-xs font-bold gap-1.5"
-            >
-              {isCheckingOut && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              <span>Registrar salida</span>
+          <div className="p-4 border-t border-border flex items-center justify-end gap-2 bg-muted/20">
+            <Button variant="outline" size="sm" onClick={onClose} className="rounded-xl text-xs font-bold">
+              Cancelar
             </Button>
-          )}
-        </div>
+
+            {scannedCode && !alreadyCheckedOut && !hasNoEntry && (
+              <Button
+                size="sm"
+                disabled={
+                  isCheckingOut ||
+                  !selectedPickupType ||
+                  (selectedPickupType === 'OTHER'
+                    ? otherName.trim().length < 5 ||
+                      otherDocument.trim().length < 6 ||
+                      earlyLeaveReason.trim().length < 5
+                    : selectedPickupType !== 'SELF' && !selectedPersonId)
+                }
+                onClick={handleSubmitCheckout}
+                className="rounded-xl text-xs font-bold gap-1.5"
+              >
+                {isCheckingOut && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <span>Registrar salida</span>
+              </Button>
+            )}
+          </div>
         )}
       </div>
     </div>

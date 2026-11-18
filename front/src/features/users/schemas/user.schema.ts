@@ -2,11 +2,7 @@ import { z } from 'zod';
 
 export const createUserSchema = z
   .object({
-    email: z
-      .string()
-      .email('Ingresa un correo electrónico válido')
-      .optional()
-      .or(z.literal('')),
+    email: z.string().email('Ingresa un correo electrónico válido').optional().or(z.literal('')),
     // Misma regla que el backend: 8 caracteres como mínimo, con letras y números.
     password: z
       .string()

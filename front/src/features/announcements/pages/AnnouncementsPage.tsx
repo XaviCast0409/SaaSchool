@@ -84,7 +84,11 @@ export const AnnouncementsPage: React.FC = () => {
       </div>
 
       {/* 2. Pestañas: vigentes / anteriores */}
-      <div role="tablist" aria-label="Vigencia de los comunicados" className="inline-flex rounded-xl border border-border bg-card p-1 gap-1">
+      <div
+        role="tablist"
+        aria-label="Vigencia de los comunicados"
+        className="inline-flex rounded-xl border border-border bg-card p-1 gap-1"
+      >
         {[
           { value: 'current' as const, label: 'Vigentes', icon: Megaphone },
           { value: 'past' as const, label: 'Anteriores', icon: Archive },
@@ -99,7 +103,9 @@ export const AnnouncementsPage: React.FC = () => {
               setPage(1);
             }}
             className={`inline-flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-xs font-bold transition-colors ${
-              status === value ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+              status === value
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
             }`}
           >
             <Icon className="w-3.5 h-3.5" aria-hidden />
@@ -217,8 +223,8 @@ export const AnnouncementsPage: React.FC = () => {
             {search || priority
               ? 'No hay avisos que coincidan con la búsqueda o el filtro seleccionado.'
               : isPast
-              ? 'Aquí quedan los comunicados cuya fecha de vigencia ya pasó, para consultarlos cuando quieras.'
-              : 'Los avisos e informes oficiales del colegio aparecerán publicados en este muro.'}
+                ? 'Aquí quedan los comunicados cuya fecha de vigencia ya pasó, para consultarlos cuando quieras.'
+                : 'Los avisos e informes oficiales del colegio aparecerán publicados en este muro.'}
           </p>
           {(search || priority) && (
             <Button
@@ -237,10 +243,7 @@ export const AnnouncementsPage: React.FC = () => {
       )}
 
       {/* 4. Modal para Crear Comunicado */}
-      <CreateAnnouncementModal
-        isOpen={isModalOpen && Boolean(canCreate)}
-        onClose={() => setIsModalOpen(false)}
-      />
+      <CreateAnnouncementModal isOpen={isModalOpen && Boolean(canCreate)} onClose={() => setIsModalOpen(false)} />
     </div>
   );
 };

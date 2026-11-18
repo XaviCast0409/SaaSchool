@@ -15,4 +15,3 @@ export function canChangeRole(
   if (actorUserId && targetUserId && actorUserId === targetUserId) return false;
   return actorRole === 'SUPER_ADMIN' || actorRole === 'SCHOOL_ADMIN';
 }
-

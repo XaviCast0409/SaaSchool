@@ -17,7 +17,10 @@ const selectCls =
  * asistencia, horario y contenidos), su tutoría y una copia de sus rúbricas. Queda el historial de
  * quién dictó cada parte del año para actas y libretas.
  */
-export const ReplaceTeacherModal: React.FC<{ teacher: DirectoryUser; onClose: () => void }> = ({ teacher, onClose }) => {
+export const ReplaceTeacherModal: React.FC<{ teacher: DirectoryUser; onClose: () => void }> = ({
+  teacher,
+  onClose,
+}) => {
   const { data: preview, isLoading } = useReplacementPreview(teacher.id);
   const { data: teachers = [] } = useUsers({ role: 'TEACHER', yearScope: 'all' });
   const replace = useReplaceTeacher();
@@ -36,7 +39,9 @@ export const ReplaceTeacherModal: React.FC<{ teacher: DirectoryUser; onClose: ()
     () =>
       teachers
         .filter((t) => t.id !== teacher.id && t.isActive)
-        .sort((a, b) => `${a.lastNamePaternal} ${a.firstName}`.localeCompare(`${b.lastNamePaternal} ${b.firstName}`, 'es')),
+        .sort((a, b) =>
+          `${a.lastNamePaternal} ${a.firstName}`.localeCompare(`${b.lastNamePaternal} ${b.firstName}`, 'es'),
+        ),
     [teachers, teacher.id],
   );
   const pendingTotal = preview?.courses.reduce((a, c) => a + c.pendingSubmissions, 0) ?? 0;
@@ -51,7 +56,12 @@ export const ReplaceTeacherModal: React.FC<{ teacher: DirectoryUser; onClose: ()
 
   const submit = () =>
     replace.mutate(
-      { ...f, outgoingTeacherId: teacher.id, outgoingAction: f.kind === 'TEMPORARY' ? 'KEEP' : f.outgoingAction, untilDate: f.kind === 'TEMPORARY' ? f.untilDate : null },
+      {
+        ...f,
+        outgoingTeacherId: teacher.id,
+        outgoingAction: f.kind === 'TEMPORARY' ? 'KEEP' : f.outgoingAction,
+        untilDate: f.kind === 'TEMPORARY' ? f.untilDate : null,
+      },
       {
         onSuccess: (r) => {
           const incoming = candidates.find((c) => c.id === f.incomingTeacherId);
@@ -85,7 +95,9 @@ export const ReplaceTeacherModal: React.FC<{ teacher: DirectoryUser; onClose: ()
       <div className="grid gap-5 lg:grid-cols-2 text-xs">
         {/* Qué se transfiere */}
         <div className="space-y-3">
-          <h3 className="text-sm font-bold text-foreground">Lo que recibe el nuevo docente {preview ? `(${preview.year.year})` : ''}</h3>
+          <h3 className="text-sm font-bold text-foreground">
+            Lo que recibe el nuevo docente {preview ? `(${preview.year.year})` : ''}
+          </h3>
           {isLoading || !preview ? (
             <div className="p-6 flex items-center gap-2 text-muted-foreground">
               <Loader2 className="w-4 h-4 animate-spin text-primary" /> Revisando sus cursos...
@@ -103,8 +115,14 @@ export const ReplaceTeacherModal: React.FC<{ teacher: DirectoryUser; onClose: ()
                       {c.course} · {c.classroom}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {c.grades} notas · {c.contents} contenidos · {c.attendanceSessions} sesiones de asistencia · {c.scheduleBlocks} horas en horario
-                      {c.pendingSubmissions > 0 && <span className="text-amber-700 dark:text-amber-400 font-semibold"> · {c.pendingSubmissions} entregas por calificar</span>}
+                      {c.grades} notas · {c.contents} contenidos · {c.attendanceSessions} sesiones de asistencia ·{' '}
+                      {c.scheduleBlocks} horas en horario
+                      {c.pendingSubmissions > 0 && (
+                        <span className="text-amber-700 dark:text-amber-400 font-semibold">
+                          {' '}
+                          · {c.pendingSubmissions} entregas por calificar
+                        </span>
+                      )}
                     </div>
                   </li>
                 ))}
@@ -116,7 +134,8 @@ export const ReplaceTeacherModal: React.FC<{ teacher: DirectoryUser; onClose: ()
               )}
               {pendingTotal > 0 && (
                 <p className="text-xs text-muted-foreground">
-                  Las {pendingTotal} entregas por calificar quedarán para el nuevo docente, que podrá revisarlas y calificarlas.
+                  Las {pendingTotal} entregas por calificar quedarán para el nuevo docente, que podrá revisarlas y
+                  calificarlas.
                 </p>
               )}
             </>
@@ -127,7 +146,11 @@ export const ReplaceTeacherModal: React.FC<{ teacher: DirectoryUser; onClose: ()
         <div className="space-y-3">
           <label className="block space-y-1">
             <span className="font-semibold">Docente entrante *</span>
-            <select className={selectCls} value={f.incomingTeacherId} onChange={(e) => setF({ ...f, incomingTeacherId: e.target.value })}>
+            <select
+              className={selectCls}
+              value={f.incomingTeacherId}
+              onChange={(e) => setF({ ...f, incomingTeacherId: e.target.value })}
+            >
               <option value="">-- Elige al docente --</option>
               {candidates.map((t) => (
                 <option key={t.id} value={t.id}>
@@ -135,7 +158,9 @@ export const ReplaceTeacherModal: React.FC<{ teacher: DirectoryUser; onClose: ()
                 </option>
               ))}
             </select>
-            <span className="block text-xs text-muted-foreground">Si es nuevo en el colegio, regístralo primero con "Registrar Personal".</span>
+            <span className="block text-xs text-muted-foreground">
+              Si es nuevo en el colegio, regístralo primero con "Registrar Personal".
+            </span>
           </label>
 
           <div className="flex gap-2">
@@ -160,14 +185,25 @@ export const ReplaceTeacherModal: React.FC<{ teacher: DirectoryUser; onClose: ()
           <div className="grid grid-cols-2 gap-2 items-end">
             <label className="space-y-1">
               <span className="font-semibold">Desde *</span>
-              <Input type="date" className="text-xs rounded-xl" value={f.effectiveDate} onChange={(e) => setF({ ...f, effectiveDate: e.target.value })} />
+              <Input
+                type="date"
+                className="text-xs rounded-xl"
+                value={f.effectiveDate}
+                onChange={(e) => setF({ ...f, effectiveDate: e.target.value })}
+              />
             </label>
             {f.kind === 'TEMPORARY' && (
               <label className="space-y-1">
                 <span className="font-semibold flex items-center gap-1">
                   <ArrowRight className="w-3 h-3" /> Hasta *
                 </span>
-                <Input type="date" className="text-xs rounded-xl" value={f.untilDate ?? ''} min={f.effectiveDate} onChange={(e) => setF({ ...f, untilDate: e.target.value || null })} />
+                <Input
+                  type="date"
+                  className="text-xs rounded-xl"
+                  value={f.untilDate ?? ''}
+                  min={f.effectiveDate}
+                  onChange={(e) => setF({ ...f, untilDate: e.target.value || null })}
+                />
               </label>
             )}
           </div>
@@ -178,7 +214,11 @@ export const ReplaceTeacherModal: React.FC<{ teacher: DirectoryUser; onClose: ()
               rows={2}
               value={f.reason}
               onChange={(e) => setF({ ...f, reason: e.target.value })}
-              placeholder={f.kind === 'TEMPORARY' ? 'Ej: Licencia por maternidad hasta el 30/09' : 'Ej: Renuncia voluntaria presentada el 20/07'}
+              placeholder={
+                f.kind === 'TEMPORARY'
+                  ? 'Ej: Licencia por maternidad hasta el 30/09'
+                  : 'Ej: Renuncia voluntaria presentada el 20/07'
+              }
               className="w-full rounded-xl border border-input bg-background p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring resize-none"
             />
           </label>
@@ -188,13 +228,27 @@ export const ReplaceTeacherModal: React.FC<{ teacher: DirectoryUser; onClose: ()
               <legend className="px-1 font-semibold">¿Qué pasa con {outgoingName}?</legend>
               {(
                 [
-                  ['DEACTIVATE', 'Desactivar su cuenta', 'Deja de poder entrar al sistema. Sus notas y registros se conservan.'],
-                  ['REMOVE_FROM_YEAR', 'Quitarlo del personal del año', 'Sigue con acceso (p. ej. si pasa a otra función).'],
+                  [
+                    'DEACTIVATE',
+                    'Desactivar su cuenta',
+                    'Deja de poder entrar al sistema. Sus notas y registros se conservan.',
+                  ],
+                  [
+                    'REMOVE_FROM_YEAR',
+                    'Quitarlo del personal del año',
+                    'Sigue con acceso (p. ej. si pasa a otra función).',
+                  ],
                   ['KEEP', 'Mantenerlo en el personal', 'Solo se le quitan estos cursos.'],
                 ] as const
               ).map(([k, label, hint]) => (
                 <label key={k} className="flex items-start gap-2 cursor-pointer">
-                  <input type="radio" name="outgoingAction" checked={f.outgoingAction === k} onChange={() => setF({ ...f, outgoingAction: k })} className="mt-0.5" />
+                  <input
+                    type="radio"
+                    name="outgoingAction"
+                    checked={f.outgoingAction === k}
+                    onChange={() => setF({ ...f, outgoingAction: k })}
+                    className="mt-0.5"
+                  />
                   <span>
                     <span className="font-semibold text-foreground">{label}</span>
                     <span className="block text-xs text-muted-foreground">{hint}</span>
@@ -204,14 +258,19 @@ export const ReplaceTeacherModal: React.FC<{ teacher: DirectoryUser; onClose: ()
             </fieldset>
           ) : (
             <p className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-3 text-indigo-900 dark:text-indigo-200">
-              {outgoingName} sigue en el colegio. Al terminar la suplencia, usa <strong>Finalizar</strong> en "Carga del año" y sus cursos y tutoría
-              vuelven a él o ella con lo que avanzó el suplente.
+              {outgoingName} sigue en el colegio. Al terminar la suplencia, usa <strong>Finalizar</strong> en "Carga del
+              año" y sus cursos y tutoría vuelven a él o ella con lo que avanzó el suplente.
             </p>
           )}
 
           {(preview?.rubrics ?? 0) > 0 && (
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={f.copyRubrics} onChange={(e) => setF({ ...f, copyRubrics: e.target.checked })} className="w-4 h-4 rounded" />
+              <input
+                type="checkbox"
+                checked={f.copyRubrics}
+                onChange={(e) => setF({ ...f, copyRubrics: e.target.checked })}
+                className="w-4 h-4 rounded"
+              />
               Copiar sus {preview?.rubrics} rúbricas al nuevo docente
             </label>
           )}

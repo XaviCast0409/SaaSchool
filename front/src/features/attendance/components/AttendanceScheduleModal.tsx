@@ -1,20 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import {
-  X,
-  Clock,
-  Save,
-  CheckCircle2,
-  Sliders,
-  Sparkles,
-} from 'lucide-react';
+import { X, Clock, Save, CheckCircle2, Sliders, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import {
-  useAttendanceScheduleConfigs,
-  useUpsertAttendanceScheduleConfig,
-} from '../api/useAttendance';
+import { useAttendanceScheduleConfigs, useUpsertAttendanceScheduleConfig } from '../api/useAttendance';
 import { AttendanceScheduleScope } from '../types';
 
 interface AttendanceScheduleModalProps {
@@ -22,7 +12,11 @@ interface AttendanceScheduleModalProps {
 }
 
 const SCOPE_OPTIONS: Array<{ value: AttendanceScheduleScope; label: string; desc: string }> = [
-  { value: 'GENERAL', label: 'Todo el Colegio (General)', desc: 'Aplica a todas las aulas y niveles que no tengan regla propia.' },
+  {
+    value: 'GENERAL',
+    label: 'Todo el Colegio (General)',
+    desc: 'Aplica a todas las aulas y niveles que no tengan regla propia.',
+  },
   { value: 'INITIAL', label: 'Nivel Inicial', desc: 'Horario especial para Inicial / Kínder (ej: 08:30 AM).' },
   { value: 'PRIMARY', label: 'Nivel Primaria', desc: 'Horario para 1° a 6° de Primaria.' },
   { value: 'SECONDARY', label: 'Nivel Secundaria', desc: 'Horario para 1° a 5° de Secundaria.' },
@@ -89,12 +83,16 @@ export const AttendanceScheduleModal: React.FC<AttendanceScheduleModalProps> = (
           const msg = err?.response?.data?.message || 'Error al guardar configuración.';
           toast.error(msg);
         },
-      }
+      },
     );
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 sm:p-4 backdrop-blur-sm animate-in fade-in">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 sm:p-4 backdrop-blur-sm animate-in fade-in"
+    >
       <div className="w-full max-w-2xl rounded-2xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border p-4 bg-muted/30">
@@ -146,7 +144,10 @@ export const AttendanceScheduleModal: React.FC<AttendanceScheduleModalProps> = (
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-xs text-foreground">{opt.label}</span>
                     {configs.some((c) => c.scope === opt.value) && (
-                      <span className="w-2 h-2 rounded-full bg-emerald-500" title="Configuración personalizada activa" />
+                      <span
+                        className="w-2 h-2 rounded-full bg-emerald-500"
+                        title="Configuración personalizada activa"
+                      />
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{opt.desc}</p>
@@ -218,12 +219,15 @@ export const AttendanceScheduleModal: React.FC<AttendanceScheduleModalProps> = (
                 <span className="text-emerald-600 font-semibold">PUNTUAL</span>.
               </p>
               <p>
-                • <strong>De {entryTime} a {lateToleranceTime}:</strong> El alumno que escanea su QR queda con{' '}
-                <span className="text-amber-600 font-semibold">TARDANZA</span>.
+                •{' '}
+                <strong>
+                  De {entryTime} a {lateToleranceTime}:
+                </strong>{' '}
+                El alumno que escanea su QR queda con <span className="text-amber-600 font-semibold">TARDANZA</span>.
               </p>
               <p>
-                • <strong>A partir de las {autoCloseTime}:</strong> Quienes no hayan registrado ingreso son considerados con{' '}
-                <span className="text-destructive font-semibold">FALTA INJUSTIFICADA</span>.
+                • <strong>A partir de las {autoCloseTime}:</strong> Quienes no hayan registrado ingreso son considerados
+                con <span className="text-destructive font-semibold">FALTA INJUSTIFICADA</span>.
               </p>
             </div>
           </div>
@@ -231,11 +235,10 @@ export const AttendanceScheduleModal: React.FC<AttendanceScheduleModalProps> = (
           {/* Interruptor de Auto-Cierre */}
           <div className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-card">
             <div className="space-y-0.5 pr-4">
-              <span className="font-bold text-xs text-foreground block">
-                Cierre Automático Diario de Faltas
-              </span>
+              <span className="font-bold text-xs text-foreground block">Cierre Automático Diario de Faltas</span>
               <p className="text-xs text-muted-foreground">
-                Si está activado, a las {autoCloseTime} (lunes a viernes) el sistema asignará falta automáticamente a los no registrados.
+                Si está activado, a las {autoCloseTime} (lunes a viernes) el sistema asignará falta automáticamente a
+                los no registrados.
               </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer shrink-0">

@@ -23,11 +23,7 @@ interface PlanFormValues {
 const PLAN_ORDER: SubscriptionPlan[] = ['BASIC', 'PRO', 'ENTERPRISE'];
 const formatSoles = (n: number) => n.toLocaleString('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
-export const EditSchoolPlanModal: React.FC<EditSchoolPlanModalProps> = ({
-  school,
-  isOpen,
-  onClose,
-}) => {
+export const EditSchoolPlanModal: React.FC<EditSchoolPlanModalProps> = ({ school, isOpen, onClose }) => {
   const { mutate: updatePlan, isPending } = useUpdateSchoolPlan();
   const { data: catalog } = usePlanCatalog();
 
@@ -60,30 +56,27 @@ export const EditSchoolPlanModal: React.FC<EditSchoolPlanModalProps> = ({
         onError: (err: any) => {
           toast.error(err?.response?.data?.message || 'Error al cambiar el plan del colegio.');
         },
-      }
+      },
     );
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200"
+    >
       <div className="w-full max-w-md rounded-2xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border p-4 bg-card shrink-0">
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary" />
             <div>
-              <h2 className="font-bold text-base text-foreground leading-none">
-                Gestión de Suscripción
-              </h2>
-              <p className="text-xs text-muted-foreground mt-1 truncate max-w-[260px]">
-                {school.name}
-              </p>
+              <h2 className="font-bold text-base text-foreground leading-none">Gestión de Suscripción</h2>
+              <p className="text-xs text-muted-foreground mt-1 truncate max-w-[260px]">{school.name}</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted transition-colors"
-          >
+          <button onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -91,9 +84,7 @@ export const EditSchoolPlanModal: React.FC<EditSchoolPlanModalProps> = ({
         {/* Form Body */}
         <form onSubmit={handleSubmit(onSubmit)} className="p-5 space-y-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold uppercase tracking-wide text-foreground">
-              Plan Contratado
-            </label>
+            <label className="text-xs font-bold uppercase tracking-wide text-foreground">Plan Contratado</label>
             <select
               {...register('plan')}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-xs font-bold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer shadow-sm"
@@ -140,7 +131,8 @@ export const EditSchoolPlanModal: React.FC<EditSchoolPlanModalProps> = ({
               Deja la fecha vacía si el plan es de cobro mensual indefinido.
               {catalog && (
                 <>
-                  {' '}Al vencer: {catalog.graceDays} días de gracia, luego solo lectura y desde el día{' '}
+                  {' '}
+                  Al vencer: {catalog.graceDays} días de gracia, luego solo lectura y desde el día{' '}
                   {catalog.readOnlyUntilDay + 1} sin acceso.
                 </>
               )}

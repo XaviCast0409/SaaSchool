@@ -25,12 +25,16 @@ export function Tabs<T extends string>({ value, onChange, items, className }: Ta
           onClick={() => onChange(item.value)}
           className={cn(
             'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-            value === item.value ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+            value === item.value
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground',
           )}
         >
           {item.label}
           {item.count !== undefined && item.count > 0 && (
-            <span className="ml-1.5 rounded-full bg-amber-500/15 px-1.5 text-xs text-amber-700 dark:text-amber-300">{item.count}</span>
+            <span className="ml-1.5 rounded-full bg-amber-500/15 px-1.5 text-xs text-amber-700 dark:text-amber-300">
+              {item.count}
+            </span>
           )}
         </button>
       ))}

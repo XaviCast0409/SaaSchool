@@ -73,7 +73,9 @@ export const DashboardLayout: React.FC = () => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const canMessage = Boolean(user && user.role !== 'STUDENT' && !(user.role === 'SUPER_ADMIN' && !impersonatedSchool));
   const { data: unreadMessages = 0 } = useUnreadMessages(canMessage);
-  const isTreasury = Boolean(user && ['SCHOOL_ADMIN', 'ADMINISTRATIVE'].includes(user.role)) || Boolean(user?.role === 'SUPER_ADMIN' && impersonatedSchool);
+  const isTreasury =
+    Boolean(user && ['SCHOOL_ADMIN', 'ADMINISTRATIVE'].includes(user.role)) ||
+    Boolean(user?.role === 'SUPER_ADMIN' && impersonatedSchool);
   // El contador de vouchers por validar solo aplica a quien puede validarlos o verlos (no al cajero)
   const { data: financeAccess } = useFinanceAccess(isTreasury);
   const canSeeVouchers = isTreasury && Boolean(financeAccess?.can.manage || financeAccess?.can.view);
@@ -123,10 +125,11 @@ export const DashboardLayout: React.FC = () => {
   const currentPlanLevel = PLAN_HIERARCHY[currentPlan] || 1;
   const userRole = user?.role || 'PARENT';
 
-  const isStudent = userRole === 'STUDENT' || Boolean(
-    user?.email &&
-      (user.email.toLowerCase().includes('alumno') || user.email.toLowerCase().includes('estudiante')),
-  );
+  const isStudent =
+    userRole === 'STUDENT' ||
+    Boolean(
+      user?.email && (user.email.toLowerCase().includes('alumno') || user.email.toLowerCase().includes('estudiante')),
+    );
 
   const audience: NavAudience =
     isSuperAdmin && !isImpersonating ? 'platform' : isStudent ? 'student' : userRole === 'PARENT' ? 'parent' : 'school';
@@ -202,7 +205,7 @@ export const DashboardLayout: React.FC = () => {
           ) : schoolLogoUrl ? (
             <img
               src={schoolLogoUrl}
-              alt={isImpersonating ? impersonatedSchool.name : (school?.name || 'Logo institucional')}
+              alt={isImpersonating ? impersonatedSchool.name : school?.name || 'Logo institucional'}
               className="w-7 h-7 object-contain rounded-md shrink-0"
             />
           ) : (
@@ -245,7 +248,9 @@ export const DashboardLayout: React.FC = () => {
       {/* Sidebar Navigation: fijo en escritorio, panel deslizable en celulares */}
       <aside
         className={`border-r border-border bg-card flex-col justify-between shrink-0 print:hidden md:sticky md:top-0 md:z-auto md:flex md:h-screen md:w-64 md:max-w-none md:shadow-none ${
-          isMobileOpen ? 'fixed inset-y-0 left-0 z-50 flex w-[86%] max-w-xs shadow-2xl animate-in slide-in-from-left duration-200' : 'hidden'
+          isMobileOpen
+            ? 'fixed inset-y-0 left-0 z-50 flex w-[86%] max-w-xs shadow-2xl animate-in slide-in-from-left duration-200'
+            : 'hidden'
         }`}
       >
         <div className="p-4 space-y-5 flex-1 overflow-y-auto">
@@ -264,27 +269,27 @@ export const DashboardLayout: React.FC = () => {
               <span className="text-xs text-muted-foreground font-medium">Torre de Control SaaS</span>
             </div>
           ) : (
-          <div className="hidden md:flex items-center gap-3 px-1 py-1">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
-              {schoolLogoUrl ? (
-                <img
-                  src={schoolLogoUrl}
-                  alt={isImpersonating ? impersonatedSchool.name : school?.name}
-                  className="w-full h-full object-contain p-1"
-                />
-              ) : (
-                <KipuxLogo variant="mark" className="h-7" />
-              )}
+            <div className="hidden md:flex items-center gap-3 px-1 py-1">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
+                {schoolLogoUrl ? (
+                  <img
+                    src={schoolLogoUrl}
+                    alt={isImpersonating ? impersonatedSchool.name : school?.name}
+                    className="w-full h-full object-contain p-1"
+                  />
+                ) : (
+                  <KipuxLogo variant="mark" className="h-7" />
+                )}
+              </div>
+              <div className="overflow-hidden">
+                <h1 className="font-bold text-sm leading-tight truncate text-foreground">
+                  {isImpersonating ? impersonatedSchool.name : school?.name || 'KIPUX'}
+                </h1>
+                <span className="text-xs text-muted-foreground font-medium block truncate">
+                  {isImpersonating ? 'Modo Soporte Técnico' : 'Plataforma escolar KIPUX'}
+                </span>
+              </div>
             </div>
-            <div className="overflow-hidden">
-              <h1 className="font-bold text-sm leading-tight truncate text-foreground">
-                {isImpersonating ? impersonatedSchool.name : school?.name || 'KIPUX'}
-              </h1>
-              <span className="text-xs text-muted-foreground font-medium block truncate">
-                {isImpersonating ? 'Modo Soporte Técnico' : 'Plataforma escolar KIPUX'}
-              </span>
-            </div>
-          </div>
           )}
 
           {/* User & School Context Pill */}
@@ -309,7 +314,10 @@ export const DashboardLayout: React.FC = () => {
                     {user?.firstName} {user?.lastNamePaternal}
                   </span>
                 </div>
-                <Badge variant={user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN' ? 'default' : 'secondary'} className="shrink-0 text-xs px-1.5 py-0 font-semibold">
+                <Badge
+                  variant={user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN' ? 'default' : 'secondary'}
+                  className="shrink-0 text-xs px-1.5 py-0 font-semibold"
+                >
                   {displayRole}
                 </Badge>
               </div>
@@ -322,7 +330,9 @@ export const DashboardLayout: React.FC = () => {
                 ) : (
                   <>
                     <SchoolIcon className="w-3.5 h-3.5 text-primary shrink-0" />
-                    <span className="truncate font-medium">{isImpersonating ? impersonatedSchool.name : school?.name || 'Colegio'}</span>
+                    <span className="truncate font-medium">
+                      {isImpersonating ? impersonatedSchool.name : school?.name || 'Colegio'}
+                    </span>
                   </>
                 )}
               </div>
@@ -377,8 +387,8 @@ export const DashboardLayout: React.FC = () => {
                               isActive
                                 ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/25'
                                 : item.locked
-                                ? 'text-muted-foreground/70 hover:bg-secondary/70 hover:text-foreground'
-                                : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground'
+                                  ? 'text-muted-foreground/70 hover:bg-secondary/70 hover:text-foreground'
+                                  : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground'
                             }`}
                           >
                             <Icon className="w-4 h-4 shrink-0" />
@@ -395,10 +405,14 @@ export const DashboardLayout: React.FC = () => {
                                   isActive
                                     ? 'bg-primary-foreground text-primary'
                                     : item.path === '/payments'
-                                    ? 'bg-amber-500 text-white'
-                                    : 'bg-primary text-primary-foreground'
+                                      ? 'bg-amber-500 text-white'
+                                      : 'bg-primary text-primary-foreground'
                                 }`}
-                                aria-label={item.path === '/payments' ? `${badge} pagos por validar` : `${badge} mensajes sin leer`}
+                                aria-label={
+                                  item.path === '/payments'
+                                    ? `${badge} pagos por validar`
+                                    : `${badge} mensajes sin leer`
+                                }
                               >
                                 {badge > 99 ? '99+' : badge}
                               </span>
@@ -500,7 +514,9 @@ export const DashboardLayout: React.FC = () => {
               className="flex h-9 w-44 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm text-muted-foreground hover:border-primary/40 hover:text-foreground lg:w-60 xl:w-72"
             >
               <Search className="h-4 w-4 shrink-0" />
-              <span className="flex-1 truncate text-left">{canSearchStudents ? 'Buscar pantalla o alumno…' : 'Buscar…'}</span>
+              <span className="flex-1 truncate text-left">
+                {canSearchStudents ? 'Buscar pantalla o alumno…' : 'Buscar…'}
+              </span>
               <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-medium">
                 {isMac ? '⌘K' : 'Ctrl K'}
               </kbd>
@@ -514,11 +530,15 @@ export const DashboardLayout: React.FC = () => {
         <BannerStack>
           {/* Modo soporte */}
           {isSuperAdmin && isImpersonating && (
-            <div data-priority="high" className="bg-amber-500/15 border-b border-amber-500/30 px-4 py-2.5 text-xs flex flex-wrap items-center justify-between gap-3 text-amber-900 dark:text-amber-200">
+            <div
+              data-priority="high"
+              className="bg-amber-500/15 border-b border-amber-500/30 px-4 py-2.5 text-xs flex flex-wrap items-center justify-between gap-3 text-amber-900 dark:text-amber-200"
+            >
               <div className="flex items-center gap-2">
                 <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                 <span>
-                  <strong>Modo Soporte Técnico:</strong> Visualizando la operativa de <strong>{impersonatedSchool.name}</strong>
+                  <strong>Modo Soporte Técnico:</strong> Visualizando la operativa de{' '}
+                  <strong>{impersonatedSchool.name}</strong>
                 </span>
                 <Badge variant="outline" className="text-xs bg-amber-500/10 border-amber-500/30 font-bold">
                   Plan {impersonatedSchool.plan}
@@ -551,7 +571,9 @@ export const DashboardLayout: React.FC = () => {
           <MobilePushBanner />
         </BannerStack>
 
-        <main className={`flex-1 overflow-y-auto p-4 md:p-8 space-y-6 print:p-0 print:overflow-visible ${hasBottomNav ? 'pb-24 md:pb-8' : ''}`}>
+        <main
+          className={`flex-1 overflow-y-auto p-4 md:p-8 space-y-6 print:p-0 print:overflow-visible ${hasBottomNav ? 'pb-24 md:pb-8' : ''}`}
+        >
           {/* Un fallo de una pantalla no tumba el menú; al cambiar de ruta se reintenta */}
           <ErrorBoundary resetKey={location.pathname}>
             <Suspense fallback={<PageLoader />}>
@@ -573,12 +595,7 @@ export const DashboardLayout: React.FC = () => {
       />
 
       {/* Modal de Ajustes del Colegio */}
-      {canManageSchool && (
-        <SchoolSettingsModal
-          isOpen={isSettingsOpen}
-          onClose={() => setIsSettingsOpen(false)}
-        />
-      )}
+      {canManageSchool && <SchoolSettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />}
 
       {canHavePhoto && <MyProfilePhotoModal open={isPhotoOpen} onClose={() => setIsPhotoOpen(false)} />}
 

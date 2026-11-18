@@ -19,7 +19,13 @@ interface UbigeoPickerProps {
  * Buscador de ubigeo INEI: se escribe el distrito (o provincia, o el código) y se elige de la lista.
  * Guarda el código de 6 dígitos que pide el SIAGIE y muestra a qué lugar corresponde.
  */
-export const UbigeoPicker: React.FC<UbigeoPickerProps> = ({ id, value, onChange, placeholder = 'Escribe el distrito o el código', invalid }) => {
+export const UbigeoPicker: React.FC<UbigeoPickerProps> = ({
+  id,
+  value,
+  onChange,
+  placeholder = 'Escribe el distrito o el código',
+  invalid,
+}) => {
   const listId = useId();
   const [catalog, setCatalog] = useState<readonly UbigeoRow[] | null>(null);
   const [query, setQuery] = useState('');
@@ -30,7 +36,10 @@ export const UbigeoPicker: React.FC<UbigeoPickerProps> = ({ id, value, onChange,
     if (value && !catalog) void loadCatalog().then(setCatalog);
   }, [value, catalog]);
 
-  const selected = useMemo(() => (value && catalog ? catalog.find((u) => u[0] === value) ?? null : null), [value, catalog]);
+  const selected = useMemo(
+    () => (value && catalog ? (catalog.find((u) => u[0] === value) ?? null) : null),
+    [value, catalog],
+  );
 
   const matches = useMemo(() => {
     if (!catalog) return [];
@@ -82,24 +91,43 @@ export const UbigeoPicker: React.FC<UbigeoPickerProps> = ({ id, value, onChange,
         }}
         onKeyDown={(e) => {
           if (!matches.length) return;
-          if (e.key === 'ArrowDown') { e.preventDefault(); setActive((a) => Math.min(a + 1, matches.length - 1)); }
-          if (e.key === 'ArrowUp') { e.preventDefault(); setActive((a) => Math.max(a - 1, 0)); }
-          if (e.key === 'Enter') { e.preventDefault(); choose(matches[active]); }
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setActive((a) => Math.min(a + 1, matches.length - 1));
+          }
+          if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setActive((a) => Math.max(a - 1, 0));
+          }
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            choose(matches[active]);
+          }
         }}
         className="flex h-9 w-full rounded-xl border border-input bg-background px-3 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
       />
       {open && matches.length > 0 && (
-        <ul id={listId} role="listbox" className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-border bg-popover shadow-lg">
+        <ul
+          id={listId}
+          role="listbox"
+          className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-border bg-popover shadow-lg"
+        >
           {matches.map((u, i) => (
             <li
               key={u[0]}
               role="option"
               aria-selected={i === active}
-              onMouseDown={(e) => { e.preventDefault(); choose(u); }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                choose(u);
+              }}
               className={`cursor-pointer px-3 py-1.5 text-xs ${i === active ? 'bg-muted' : ''}`}
             >
               <span className="font-semibold text-foreground">{u[3]}</span>
-              <span className="text-muted-foreground"> · {u[2]}, {u[1]} · {u[0]}</span>
+              <span className="text-muted-foreground">
+                {' '}
+                · {u[2]}, {u[1]} · {u[0]}
+              </span>
             </li>
           ))}
         </ul>
@@ -111,7 +139,9 @@ export const UbigeoPicker: React.FC<UbigeoPickerProps> = ({ id, value, onChange,
             ? 'Código no encontrado en el catálogo del INEI.'
             : 'Escribe el nombre del distrito y elígelo de la lista.'}
         {value && (
-          <button type="button" className="ml-2 text-primary hover:underline" onClick={() => onChange('')}>Quitar</button>
+          <button type="button" className="ml-2 text-primary hover:underline" onClick={() => onChange('')}>
+            Quitar
+          </button>
         )}
       </p>
     </div>

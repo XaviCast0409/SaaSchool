@@ -11,7 +11,7 @@ export const changePasswordSchema = z
       .string()
       .regex(
         /^(?=.*[A-Za-z])(?=.*\d).{8,}$/,
-        'La contraseña debe tener al menos 8 caracteres e incluir letras y números.'
+        'La contraseña debe tener al menos 8 caracteres e incluir letras y números.',
       ),
     confirmPassword: z.string().min(1, 'Confirma tu nueva contraseña'),
   })

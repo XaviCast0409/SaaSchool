@@ -27,7 +27,7 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // Interceptor para manejar tokens o sesiones invalidadas (401) o colegios suspendidos (403) automáticamente
@@ -38,10 +38,7 @@ api.interceptors.response.use(
     const message = error.response?.data?.message || '';
 
     // Colegio suspendido: 403 con mensaje de suspensión
-    const isSuspension =
-      status === 403 &&
-      typeof message === 'string' &&
-      message.toLowerCase().includes('suspendido');
+    const isSuspension = status === 403 && typeof message === 'string' && message.toLowerCase().includes('suspendido');
 
     if (isSuspension) {
       useAuthStore.getState().logout();
@@ -62,5 +59,5 @@ api.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );

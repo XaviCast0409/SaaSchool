@@ -40,7 +40,13 @@ export const getFileMetadata = (fileName?: string | null, fileType?: string | nu
   }
 
   // Hojas de Cálculo (Excel)
-  if (name.endsWith('.xlsx') || name.endsWith('.xls') || name.endsWith('.csv') || type.includes('sheet') || type.includes('excel')) {
+  if (
+    name.endsWith('.xlsx') ||
+    name.endsWith('.xls') ||
+    name.endsWith('.csv') ||
+    type.includes('sheet') ||
+    type.includes('excel')
+  ) {
     return {
       icon: FileSpreadsheet,
       label: 'Planilla Excel',
@@ -106,7 +112,12 @@ export const getDueDateStatus = (dueDateString?: string | null): DueDateStatus |
   const diffTime = due.getTime() - now.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-  const formattedDate = formatPeruDate(dueDateString, { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+  const formattedDate = formatPeruDate(dueDateString, {
+    weekday: 'short',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
 
   if (diffDays < 0) {
     return {

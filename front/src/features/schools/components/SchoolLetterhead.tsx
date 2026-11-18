@@ -26,16 +26,23 @@ export const useSchoolBranding = (): SchoolBranding | null => {
 };
 
 /** Logo del colegio; sin logo muestra un ícono neutro para no dejar el hueco vacío. */
-export const SchoolLogo: React.FC<{ logoUrl?: string | null; name?: string; className?: string; fallback?: boolean }> = ({
-  logoUrl,
-  name,
-  className,
-  fallback = true,
-}) => {
-  if (logoUrl) return <img src={logoUrl} alt={name ? `Logo de ${name}` : ''} className={cn('object-contain', className)} />;
+export const SchoolLogo: React.FC<{
+  logoUrl?: string | null;
+  name?: string;
+  className?: string;
+  fallback?: boolean;
+}> = ({ logoUrl, name, className, fallback = true }) => {
+  if (logoUrl)
+    return <img src={logoUrl} alt={name ? `Logo de ${name}` : ''} className={cn('object-contain', className)} />;
   if (!fallback) return null;
   return (
-    <span className={cn('inline-flex items-center justify-center rounded border border-border text-muted-foreground', className)} aria-hidden>
+    <span
+      className={cn(
+        'inline-flex items-center justify-center rounded border border-border text-muted-foreground',
+        className,
+      )}
+      aria-hidden
+    >
       <SchoolIcon className="h-1/2 w-1/2" />
     </span>
   );
@@ -58,7 +65,14 @@ interface LetterheadProps {
  * Membrete institucional para los documentos internos: logo, nombre, código modular, RUC y
  * dirección del colegio. Usa los colores del tema, igual que el resto de documentos.
  */
-export const SchoolLetterhead: React.FC<LetterheadProps> = ({ school: schoolProp, title, subtitle, aside, variant = 'row', className }) => {
+export const SchoolLetterhead: React.FC<LetterheadProps> = ({
+  school: schoolProp,
+  title,
+  subtitle,
+  aside,
+  variant = 'row',
+  className,
+}) => {
   const active = useSchoolBranding();
   const school = schoolProp ?? active;
   const name = school?.name || 'Institución Educativa';

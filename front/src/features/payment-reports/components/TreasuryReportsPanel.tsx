@@ -23,11 +23,21 @@ import {
 
 const Voucher: React.FC<{ url: string | null }> = ({ url }) => {
   const { data: resolved, isLoading } = useResolvedFileUrl(url);
-  if (!url) return <div className="flex h-40 items-center justify-center rounded-lg bg-muted text-xs text-muted-foreground">Sin voucher</div>;
+  if (!url)
+    return (
+      <div className="flex h-40 items-center justify-center rounded-lg bg-muted text-xs text-muted-foreground">
+        Sin voucher
+      </div>
+    );
   if (isLoading || !resolved) return <Skeleton className="h-40 w-full" />;
   return (
     <a href={resolved} target="_blank" rel="noreferrer" className="group relative block">
-      <img src={resolved} alt="Voucher de pago" className="max-h-72 w-full rounded-lg border border-border bg-white object-contain" onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} />
+      <img
+        src={resolved}
+        alt="Voucher de pago"
+        className="max-h-72 w-full rounded-lg border border-border bg-white object-contain"
+        onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')}
+      />
       <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded bg-background/90 px-1.5 py-0.5 text-xs text-foreground opacity-0 group-hover:opacity-100">
         Abrir <ExternalLink className="h-3 w-3" aria-hidden />
       </span>
@@ -58,10 +68,20 @@ const InstructionsEditor: React.FC<{ open: boolean; onClose: () => void }> = ({ 
       description="Aparecen cuando una familia va a reportar su pago."
       footer={
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+          <Button variant="ghost" onClick={onClose}>
+            Cancelar
+          </Button>
           <Button
             disabled={save.isPending}
-            onClick={() => save.mutate({ paymentQrFileUrl: qr, paymentInstructions: text }, { onSuccess: () => (toast.success('Datos de cobro guardados'), onClose()), onError: (e) => toast.error(apiErrorMessage(e)) })}
+            onClick={() =>
+              save.mutate(
+                { paymentQrFileUrl: qr, paymentInstructions: text },
+                {
+                  onSuccess: () => (toast.success('Datos de cobro guardados'), onClose()),
+                  onError: (e) => toast.error(apiErrorMessage(e)),
+                },
+              )
+            }
           >
             Guardar
           </Button>
@@ -70,21 +90,64 @@ const InstructionsEditor: React.FC<{ open: boolean; onClose: () => void }> = ({ 
     >
       <div className="space-y-3">
         <div className="flex items-center gap-3">
-          {qrPreview ? <img src={qrPreview} alt="QR de pago" className="h-24 w-24 rounded-lg border border-border bg-white object-contain p-1" /> : <div className="flex h-24 w-24 items-center justify-center rounded-lg bg-muted text-xs text-muted-foreground">Sin QR</div>}
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) upload.mutate({ file: f, purpose: 'SCHOOL_ASSET' }, { onSuccess: (r) => setQr(r.url), onError: (err) => toast.error(apiErrorMessage(err)) });
-          }} />
+          {qrPreview ? (
+            <img
+              src={qrPreview}
+              alt="QR de pago"
+              className="h-24 w-24 rounded-lg border border-border bg-white object-contain p-1"
+            />
+          ) : (
+            <div className="flex h-24 w-24 items-center justify-center rounded-lg bg-muted text-xs text-muted-foreground">
+              Sin QR
+            </div>
+          )}
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f)
+                upload.mutate(
+                  { file: f, purpose: 'SCHOOL_ASSET' },
+                  { onSuccess: (r) => setQr(r.url), onError: (err) => toast.error(apiErrorMessage(err)) },
+                );
+            }}
+          />
           <div className="flex flex-col gap-1.5">
-            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => fileRef.current?.click()} disabled={upload.isPending}>
-              {upload.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" aria-hidden />} Subir QR de Yape/Plin
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+              onClick={() => fileRef.current?.click()}
+              disabled={upload.isPending}
+            >
+              {upload.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <ImagePlus className="h-3.5 w-3.5" aria-hidden />
+              )}{' '}
+              Subir QR de Yape/Plin
             </Button>
-            {qr && <Button size="sm" variant="ghost" onClick={() => setQr(null)}>Quitar QR</Button>}
+            {qr && (
+              <Button size="sm" variant="ghost" onClick={() => setQr(null)}>
+                Quitar QR
+              </Button>
+            )}
           </div>
         </div>
         <label className="block text-xs text-muted-foreground">
           Instrucciones
-          <Textarea rows={6} maxLength={2000} value={text} onChange={(e) => setText(e.target.value)} placeholder={'Yape/Plin: 987 654 321 (Colegio Innova SAC)\nBCP soles: 191-1234567-0-12 · CCI 002-191-001234567012-55\nIndica en el concepto el nombre del alumno.'} />
+          <Textarea
+            rows={6}
+            maxLength={2000}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder={
+              'Yape/Plin: 987 654 321 (Colegio Innova SAC)\nBCP soles: 191-1234567-0-12 · CCI 002-191-001234567012-55\nIndica en el concepto el nombre del alumno.'
+            }
+          />
         </label>
       </div>
     </Modal>
@@ -116,7 +179,11 @@ export const TreasuryReportsPanel: React.FC<{ readOnly?: boolean }> = ({ readOnl
       { id: selected.id, action, reason },
       {
         onSuccess: (r) => {
-          toast.success(action === 'approve' ? `Pago validado${r?.receiptNumber ? ` · Recibo ${r.receiptNumber}` : ''}. Se avisó a la familia.` : 'Reporte rechazado. Se avisó a la familia.');
+          toast.success(
+            action === 'approve'
+              ? `Pago validado${r?.receiptNumber ? ` · Recibo ${r.receiptNumber}` : ''}. Se avisó a la familia.`
+              : 'Reporte rechazado. Se avisó a la familia.',
+          );
           close();
         },
         onError: (e) => toast.error(apiErrorMessage(e)),
@@ -127,11 +194,23 @@ export const TreasuryReportsPanel: React.FC<{ readOnly?: boolean }> = ({ readOnl
   return (
     <Card className="overflow-hidden">
       <div className="flex flex-wrap items-center gap-2 px-4 py-3">
-        <button type="button" onClick={() => setOpen(!open)} className="flex flex-1 items-center gap-2 text-left" aria-expanded={open}>
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="flex flex-1 items-center gap-2 text-left"
+          aria-expanded={open}
+        >
           <Inbox className="h-4 w-4 text-primary" aria-hidden />
           <span className="text-sm font-semibold text-foreground">Pagos reportados por las familias</span>
-          {pendingCount > 0 && <span className="rounded-full bg-amber-500 px-2 py-0.5 text-xs font-bold text-white">{pendingCount} por validar</span>}
-          <ChevronDown className={cn('ml-auto h-4 w-4 text-muted-foreground transition-transform', open && 'rotate-180')} aria-hidden />
+          {pendingCount > 0 && (
+            <span className="rounded-full bg-amber-500 px-2 py-0.5 text-xs font-bold text-white">
+              {pendingCount} por validar
+            </span>
+          )}
+          <ChevronDown
+            className={cn('ml-auto h-4 w-4 text-muted-foreground transition-transform', open && 'rotate-180')}
+            aria-hidden
+          />
         </button>
         {!readOnly && (
           <Button size="sm" variant="ghost" className="h-8 gap-1.5 text-xs" onClick={() => setSettingsOpen(true)}>
@@ -143,7 +222,15 @@ export const TreasuryReportsPanel: React.FC<{ readOnly?: boolean }> = ({ readOnl
         <div className="border-t border-border p-4">
           <div className="mb-3 inline-flex rounded-lg border border-border p-0.5 text-xs">
             {(['PENDING', 'APPROVED', 'REJECTED'] as ReportStatus[]).map((s) => (
-              <button key={s} type="button" onClick={() => setStatus(s)} className={cn('rounded-md px-3 py-1 font-semibold', status === s ? 'bg-primary text-primary-foreground' : 'text-muted-foreground')}>
+              <button
+                key={s}
+                type="button"
+                onClick={() => setStatus(s)}
+                className={cn(
+                  'rounded-md px-3 py-1 font-semibold',
+                  status === s ? 'bg-primary text-primary-foreground' : 'text-muted-foreground',
+                )}
+              >
                 {s === 'PENDING' ? 'Por validar' : s === 'APPROVED' ? 'Validados' : 'Rechazados'}
               </button>
             ))}
@@ -151,7 +238,9 @@ export const TreasuryReportsPanel: React.FC<{ readOnly?: boolean }> = ({ readOnl
           {isLoading ? (
             <Skeleton className="h-24 w-full" />
           ) : reports.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{status === 'PENDING' ? 'No hay pagos por validar. 🎉' : 'Sin registros.'}</p>
+            <p className="text-sm text-muted-foreground">
+              {status === 'PENDING' ? 'No hay pagos por validar. 🎉' : 'Sin registros.'}
+            </p>
           ) : (
             <ul className="divide-y divide-border">
               {reports.map((r) => (
@@ -161,7 +250,8 @@ export const TreasuryReportsPanel: React.FC<{ readOnly?: boolean }> = ({ readOnl
                       {r.student} <span className="text-xs font-normal text-muted-foreground">· {r.classroom}</span>
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {r.obligation.title} · <strong className="text-foreground">S/ {r.amount.toFixed(2)}</strong> por {METHOD_LABEL[r.method]} · op. {r.operationNumber} · {formatPeruShortDate(r.paidOn.slice(0, 10))}
+                      {r.obligation.title} · <strong className="text-foreground">S/ {r.amount.toFixed(2)}</strong> por{' '}
+                      {METHOD_LABEL[r.method]} · op. {r.operationNumber} · {formatPeruShortDate(r.paidOn.slice(0, 10))}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       Reportó {r.reportedBy} · {formatPeruDateTime(r.createdAt)}
@@ -170,7 +260,12 @@ export const TreasuryReportsPanel: React.FC<{ readOnly?: boolean }> = ({ readOnl
                       {r.rejectionReason ? ` · motivo: ${r.rejectionReason}` : ''}
                     </p>
                   </div>
-                  <Button size="sm" variant={r.status === 'PENDING' ? 'default' : 'outline'} className="h-8 text-xs" onClick={() => setSelected(r)}>
+                  <Button
+                    size="sm"
+                    variant={r.status === 'PENDING' ? 'default' : 'outline'}
+                    className="h-8 text-xs"
+                    onClick={() => setSelected(r)}
+                  >
                     {r.status === 'PENDING' ? 'Revisar' : 'Ver'}
                   </Button>
                 </li>
@@ -184,22 +279,43 @@ export const TreasuryReportsPanel: React.FC<{ readOnly?: boolean }> = ({ readOnl
         open={Boolean(selected)}
         onClose={close}
         title={selected ? `${selected.student} · S/ ${selected.amount.toFixed(2)}` : ''}
-        description={selected ? `${selected.obligation.title} · saldo actual S/ ${selected.obligation.balance.toFixed(2)}` : undefined}
+        description={
+          selected
+            ? `${selected.obligation.title} · saldo actual S/ ${selected.obligation.balance.toFixed(2)}`
+            : undefined
+        }
         size="lg"
         footer={
           selected?.status === 'PENDING' && !readOnly ? (
             rejecting ? (
               <div className="flex justify-end gap-2">
-                <Button variant="ghost" onClick={() => setRejecting(false)}>Volver</Button>
-                <Button variant="destructive" disabled={reason.trim().length < 5 || review.isPending} onClick={() => act('reject')}>Rechazar y avisar</Button>
+                <Button variant="ghost" onClick={() => setRejecting(false)}>
+                  Volver
+                </Button>
+                <Button
+                  variant="destructive"
+                  disabled={reason.trim().length < 5 || review.isPending}
+                  onClick={() => act('reject')}
+                >
+                  Rechazar y avisar
+                </Button>
               </div>
             ) : (
               <div className="flex justify-end gap-2">
                 <Button variant="outline" className="gap-1.5" onClick={() => setRejecting(true)}>
                   <X className="h-4 w-4" aria-hidden /> Rechazar
                 </Button>
-                <Button className="gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700" disabled={review.isPending} onClick={() => act('approve')}>
-                  {review.isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />} Validar y emitir recibo
+                <Button
+                  className="gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700"
+                  disabled={review.isPending}
+                  onClick={() => act('approve')}
+                >
+                  {review.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                  ) : (
+                    <Check className="h-4 w-4" aria-hidden />
+                  )}{' '}
+                  Validar y emitir recibo
                 </Button>
               </div>
             )
@@ -215,7 +331,10 @@ export const TreasuryReportsPanel: React.FC<{ readOnly?: boolean }> = ({ readOnl
                 ['N.° de operación', selected.operationNumber],
                 ['Fecha de pago', formatPeruShortDate(selected.paidOn.slice(0, 10))],
                 ['Monto', `S/ ${selected.amount.toFixed(2)}`],
-                ['Reportó', `${selected.reportedBy}${selected.reportedByPhone ? ` · ${selected.reportedByPhone}` : ''}`],
+                [
+                  'Reportó',
+                  `${selected.reportedBy}${selected.reportedByPhone ? ` · ${selected.reportedByPhone}` : ''}`,
+                ],
                 ['Comentario', selected.note || '—'],
               ].map(([k, v]) => (
                 <div key={k}>
@@ -223,12 +342,21 @@ export const TreasuryReportsPanel: React.FC<{ readOnly?: boolean }> = ({ readOnl
                   <dd className="font-medium text-foreground">{v}</dd>
                 </div>
               ))}
-              <p className="pt-2 text-xs text-muted-foreground">Verifica en tu app de Yape, Plin o del banco que el abono llegó con este número de operación antes de validar.</p>
+              <p className="pt-2 text-xs text-muted-foreground">
+                Verifica en tu app de Yape, Plin o del banco que el abono llegó con este número de operación antes de
+                validar.
+              </p>
             </dl>
             {rejecting && (
               <label className="text-xs text-muted-foreground sm:col-span-2">
                 Motivo (lo verá la familia)
-                <Textarea rows={2} maxLength={300} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ej.: no encontramos el abono con ese número de operación." />
+                <Textarea
+                  rows={2}
+                  maxLength={300}
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="Ej.: no encontramos el abono con ese número de operación."
+                />
               </label>
             )}
           </div>

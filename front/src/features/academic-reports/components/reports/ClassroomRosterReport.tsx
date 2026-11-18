@@ -64,16 +64,15 @@ export const ClassroomRosterReport: React.FC<ClassroomRosterReportProps> = ({ da
       />
 
       <div className="bg-card border border-border p-4 sm:p-6 rounded-2xl shadow-sm max-w-4xl mx-auto print:border-none print:shadow-none print:p-0">
-        <ReportHeader
-          school={school}
-          title={title}
-          subtitle={subtitle}
-          tutorTeacher={classroom.tutorTeacher}
-        />
+        <ReportHeader school={school} title={title} subtitle={subtitle} tutorTeacher={classroom.tutorTeacher} />
 
         <div className="flex items-center justify-between text-xs font-semibold mb-3 border-b border-border pb-2 text-foreground">
-          <div><span className="text-muted-foreground font-bold">Salón:</span> {classroom.grade}° Grado {classroom.section}</div>
-          <div><span className="text-muted-foreground font-bold">Total Matriculados:</span> {totalStudents} alumnos</div>
+          <div>
+            <span className="text-muted-foreground font-bold">Salón:</span> {classroom.grade}° Grado {classroom.section}
+          </div>
+          <div>
+            <span className="text-muted-foreground font-bold">Total Matriculados:</span> {totalStudents} alumnos
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -95,16 +94,28 @@ export const ClassroomRosterReport: React.FC<ClassroomRosterReportProps> = ({ da
               {students.map((student) => (
                 <tr key={student.enrollmentId} className="hover:bg-muted/30 transition-colors">
                   <td className="border border-foreground/50 p-1.5 text-center font-mono">{student.index}</td>
-                  <td className="border border-foreground/50 p-1.5 text-center font-mono text-xs text-muted-foreground">{student.studentCode}</td>
-                  <td className="border border-foreground/50 p-1.5 text-center font-mono font-medium">{student.documentId}</td>
+                  <td className="border border-foreground/50 p-1.5 text-center font-mono text-xs text-muted-foreground">
+                    {student.studentCode}
+                  </td>
+                  <td className="border border-foreground/50 p-1.5 text-center font-mono font-medium">
+                    {student.documentId}
+                  </td>
                   <td className="border border-foreground/50 p-1.5 font-medium uppercase">{student.fullName}</td>
-                  <td className="border border-foreground/50 p-1.5 text-center font-bold text-muted-foreground">{student.gender}</td>
-                  <td className="border border-foreground/50 p-1.5 text-center font-mono text-xs text-muted-foreground">{student.birthDate}</td>
+                  <td className="border border-foreground/50 p-1.5 text-center font-bold text-muted-foreground">
+                    {student.gender}
+                  </td>
+                  <td className="border border-foreground/50 p-1.5 text-center font-mono text-xs text-muted-foreground">
+                    {student.birthDate}
+                  </td>
                   <td className="border border-foreground/50 p-1.5 text-center font-semibold text-xs uppercase">
                     {student.enrollmentState === 'REGISTERED' ? 'Matriculado' : student.enrollmentState}
                   </td>
-                  <td className="border border-foreground/50 p-1.5 uppercase text-muted-foreground">{student.guardianName}</td>
-                  <td className="border border-foreground/50 p-1.5 text-center font-mono text-muted-foreground">{student.guardianPhone}</td>
+                  <td className="border border-foreground/50 p-1.5 uppercase text-muted-foreground">
+                    {student.guardianName}
+                  </td>
+                  <td className="border border-foreground/50 p-1.5 text-center font-mono text-muted-foreground">
+                    {student.guardianPhone}
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -12,11 +12,7 @@ interface ResetAdminPasswordModalProps {
   onClose: () => void;
 }
 
-export const ResetAdminPasswordModal: React.FC<ResetAdminPasswordModalProps> = ({
-  school,
-  isOpen,
-  onClose,
-}) => {
+export const ResetAdminPasswordModal: React.FC<ResetAdminPasswordModalProps> = ({ school, isOpen, onClose }) => {
   const [customPassword, setCustomPassword] = useState('');
   const [copied, setCopied] = useState(false);
   const [result, setResult] = useState<{
@@ -42,11 +38,9 @@ export const ResetAdminPasswordModal: React.FC<ResetAdminPasswordModalProps> = (
           toast.success('Clave de Administrador actualizada correctamente.');
         },
         onError: (err: any) => {
-          toast.error(
-            err?.response?.data?.message || 'Error al restablecer la contraseña del administrador.'
-          );
+          toast.error(err?.response?.data?.message || 'Error al restablecer la contraseña del administrador.');
         },
-      }
+      },
     );
   };
 
@@ -67,7 +61,11 @@ export const ResetAdminPasswordModal: React.FC<ResetAdminPasswordModalProps> = (
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200"
+    >
       <div className="w-full max-w-md rounded-2xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border p-4 bg-card shrink-0">
@@ -76,12 +74,8 @@ export const ResetAdminPasswordModal: React.FC<ResetAdminPasswordModalProps> = (
               <Key className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="font-bold text-base text-foreground leading-none">
-                Restablecer Clave de Director
-              </h2>
-              <p className="text-xs text-muted-foreground mt-1 truncate max-w-[260px]">
-                {school.name}
-              </p>
+              <h2 className="font-bold text-base text-foreground leading-none">Restablecer Clave de Director</h2>
+              <p className="text-xs text-muted-foreground mt-1 truncate max-w-[260px]">{school.name}</p>
             </div>
           </div>
           <button
@@ -102,7 +96,8 @@ export const ResetAdminPasswordModal: React.FC<ResetAdminPasswordModalProps> = (
                   <span>Soporte Técnico de Acceso</span>
                 </div>
                 <p className="text-xs leading-relaxed">
-                  Esta acción actualizará la contraseña del usuario con rol <strong>Director / Administrador</strong> de este colegio para que pueda ingresar inmediatamente.
+                  Esta acción actualizará la contraseña del usuario con rol <strong>Director / Administrador</strong> de
+                  este colegio para que pueda ingresar inmediatamente.
                 </p>
               </div>
 
@@ -118,7 +113,8 @@ export const ResetAdminPasswordModal: React.FC<ResetAdminPasswordModalProps> = (
                   className="h-9 text-xs font-mono"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Si lo dejas vacío, el sistema generará una clave segura como: <code className="bg-muted px-1 rounded">Colegio4821!</code>
+                  Si lo dejas vacío, el sistema generará una clave segura como:{' '}
+                  <code className="bg-muted px-1 rounded">Colegio4821!</code>
                 </p>
               </div>
 
@@ -155,7 +151,8 @@ export const ResetAdminPasswordModal: React.FC<ResetAdminPasswordModalProps> = (
               </div>
 
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Copia las credenciales y envíalas al director por correo electrónico para que pueda recuperar el control de su colegio.
+                Copia las credenciales y envíalas al director por correo electrónico para que pueda recuperar el control
+                de su colegio.
               </p>
 
               <div className="flex items-center justify-between gap-2 pt-3 border-t border-border">

@@ -23,7 +23,14 @@ export interface NominaPlanRow {
 
 export interface NominaPlan {
   academicYear: { id: string; year: number };
-  files: Array<{ fileName: string; level: Level | null; modularCode: string | null; year: number | null; rows: number; issues: string[] }>;
+  files: Array<{
+    fileName: string;
+    level: Level | null;
+    modularCode: string | null;
+    year: number | null;
+    rows: number;
+    issues: string[];
+  }>;
   rows: NominaPlanRow[];
   newClassrooms: string[];
   summary: {

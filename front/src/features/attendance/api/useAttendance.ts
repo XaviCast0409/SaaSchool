@@ -106,7 +106,7 @@ export const useStudentAttendanceDetail = (enrollmentId?: string, month?: string
     queryFn: async () => {
       if (!enrollmentId) return null;
       const response = await api.get<StudentDetailResponse>(
-        `/attendance/student/${enrollmentId}/summary?${queryParams.toString()}`
+        `/attendance/student/${enrollmentId}/summary?${queryParams.toString()}`,
       );
       return response.data.data;
     },
@@ -153,15 +153,7 @@ export const useUpdateAttendance = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      id,
-      status,
-      notes,
-    }: {
-      id: string;
-      status: AttendanceStatus;
-      notes?: string;
-    }) => {
+    mutationFn: async ({ id, status, notes }: { id: string; status: AttendanceStatus; notes?: string }) => {
       const response = await api.patch<SingleAttendanceResponse>(`/attendance/${id}`, {
         status,
         notes,
@@ -191,10 +183,7 @@ export const useBulkAttendance = () => {
         notes?: string;
       }>;
     }) => {
-      const response = await api.post<{ status: string; data: { count: number } }>(
-        '/attendance/bulk',
-        payload
-      );
+      const response = await api.post<{ status: string; data: { count: number } }>('/attendance/bulk', payload);
       return response.data.data;
     },
     onSuccess: () => {
@@ -218,10 +207,7 @@ export const useScanAttendance = () => {
       statusOverride?: AttendanceStatus;
       scannedAt?: string;
     }) => {
-      const response = await api.post<{ status: string; data: ScanAttendanceResult }>(
-        '/attendance/scan',
-        payload
-      );
+      const response = await api.post<{ status: string; data: ScanAttendanceResult }>('/attendance/scan', payload);
       return response.data.data;
     },
     onSuccess: () => {
@@ -240,7 +226,7 @@ export const useAttendanceSheet = (params: { classroomId?: string; date: string 
     queryFn: async () => {
       if (!params.classroomId) return null;
       const response = await api.get<SheetResponse>(
-        `/attendance/sheet?classroomId=${params.classroomId}&date=${params.date}`
+        `/attendance/sheet?classroomId=${params.classroomId}&date=${params.date}`,
       );
       return response.data.data;
     },
@@ -254,10 +240,7 @@ export const useSaveAttendanceSheet = () => {
 
   return useMutation({
     mutationFn: async (payload: SaveAttendanceSheetPayload) => {
-      const response = await api.put<{ status: string; data: { count: number } }>(
-        '/attendance/sheet',
-        payload
-      );
+      const response = await api.put<{ status: string; data: { count: number } }>('/attendance/sheet', payload);
       return response.data.data;
     },
     onSuccess: (_, variables) => {
@@ -279,7 +262,7 @@ export const useAttendanceByEnrollment = (enrollmentId?: string, enabled = true)
     queryFn: async (): Promise<AttendanceRecord[]> => {
       if (!enrollmentId) return [];
       const response = await api.get<{ status: string; data: AttendanceRecord[] }>(
-        `/attendance/enrollment/${enrollmentId}`
+        `/attendance/enrollment/${enrollmentId}`,
       );
       return response.data.data;
     },
@@ -293,9 +276,7 @@ export const useAttendanceScheduleConfigs = () => {
   return useQuery({
     queryKey: ['attendance-schedule-configs'],
     queryFn: async (): Promise<AttendanceScheduleConfig[]> => {
-      const response = await api.get<{ status: string; data: AttendanceScheduleConfig[] }>(
-        '/attendance/config'
-      );
+      const response = await api.get<{ status: string; data: AttendanceScheduleConfig[] }>('/attendance/config');
       return response.data.data;
     },
     staleTime: 1000 * 60 * 5,
@@ -308,10 +289,7 @@ export const useUpsertAttendanceScheduleConfig = () => {
 
   return useMutation({
     mutationFn: async (payload: UpsertAttendanceScheduleConfigPayload) => {
-      const response = await api.put<{ status: string; data: AttendanceScheduleConfig }>(
-        '/attendance/config',
-        payload
-      );
+      const response = await api.put<{ status: string; data: AttendanceScheduleConfig }>('/attendance/config', payload);
       return response.data.data;
     },
     onSuccess: () => {
@@ -326,10 +304,7 @@ export const useCloseAttendance = () => {
 
   return useMutation({
     mutationFn: async (payload: CloseClassroomAttendancePayload = {}) => {
-      const response = await api.post<{ status: string; data: CloseAttendanceResult }>(
-        '/attendance/close',
-        payload
-      );
+      const response = await api.post<{ status: string; data: CloseAttendanceResult }>('/attendance/close', payload);
       return response.data.data;
     },
     onSuccess: () => {
@@ -356,7 +331,7 @@ export const useHolidays = (year?: number) => {
     queryKey: ['school-holidays', currentYear],
     queryFn: async (): Promise<SchoolHolidayItem[]> => {
       const response = await api.get<{ status: string; data: SchoolHolidayItem[] }>(
-        `/attendance/holidays?year=${currentYear}`
+        `/attendance/holidays?year=${currentYear}`,
       );
       return response.data.data;
     },
@@ -368,10 +343,7 @@ export const useCreateHoliday = () => {
 
   return useMutation({
     mutationFn: async (payload: { date: string; name: string }) => {
-      const response = await api.post<{ status: string; data: SchoolHolidayItem }>(
-        '/attendance/holidays',
-        payload
-      );
+      const response = await api.post<{ status: string; data: SchoolHolidayItem }>('/attendance/holidays', payload);
       return response.data.data;
     },
     onSuccess: () => {
@@ -385,9 +357,7 @@ export const useDeleteHoliday = () => {
 
   return useMutation({
     mutationFn: async (holidayId: string) => {
-      const response = await api.delete<{ status: string; message: string }>(
-        `/attendance/holidays/${holidayId}`
-      );
+      const response = await api.delete<{ status: string; message: string }>(`/attendance/holidays/${holidayId}`);
       return response.data;
     },
     onSuccess: () => {
@@ -395,4 +365,3 @@ export const useDeleteHoliday = () => {
     },
   });
 };
-

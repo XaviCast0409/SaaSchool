@@ -83,7 +83,16 @@ const FeeScheduleModal: React.FC<{
             lastMonth: editing.lastMonth,
             dueDay: String(editing.dueDay),
           }
-        : { educationLevel: initialLevel, grade: '', enrollmentFee: '', admissionFee: '0', monthlyFee: '', firstMonth: 3, lastMonth: 12, dueDay: '31' },
+        : {
+            educationLevel: initialLevel,
+            grade: '',
+            enrollmentFee: '',
+            admissionFee: '0',
+            monthlyFee: '',
+            firstMonth: 3,
+            lastMonth: 12,
+            dueDay: '31',
+          },
     );
   }, [open, editing, initialLevel]);
 
@@ -100,7 +109,8 @@ const FeeScheduleModal: React.FC<{
     errors.push('Ingresa la pensión mensual.');
   }
   if (f.firstMonth > f.lastMonth) errors.push('El primer mes no puede ser posterior al último.');
-  if (!Number.isInteger(nums.dueDay) || nums.dueDay < 1 || nums.dueDay > 31) errors.push('El día de vencimiento va de 1 a 31.');
+  if (!Number.isInteger(nums.dueDay) || nums.dueDay < 1 || nums.dueDay > 31)
+    errors.push('El día de vencimiento va de 1 a 31.');
   const summary = feeSummary({ ...nums, firstMonth: f.firstMonth, lastMonth: f.lastMonth });
   const grades = gradesByLevel[f.educationLevel] ?? [];
 
@@ -159,8 +169,11 @@ const FeeScheduleModal: React.FC<{
       <div className="space-y-4 text-xs">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label htmlFor="feeschedulespage-field-1" className="font-semibold block mb-1">Nivel *</label>
-            <select id="feeschedulespage-field-1"
+            <label htmlFor="feeschedulespage-field-1" className="font-semibold block mb-1">
+              Nivel *
+            </label>
+            <select
+              id="feeschedulespage-field-1"
               className={selectCls}
               value={f.educationLevel}
               disabled={!!editing}
@@ -174,8 +187,16 @@ const FeeScheduleModal: React.FC<{
             </select>
           </div>
           <div>
-            <label htmlFor="feeschedulespage-field-2" className="font-semibold block mb-1">Aplica a</label>
-            <select id="feeschedulespage-field-2" className={selectCls} value={f.grade} disabled={!!editing} onChange={(e) => setF({ ...f, grade: e.target.value })}>
+            <label htmlFor="feeschedulespage-field-2" className="font-semibold block mb-1">
+              Aplica a
+            </label>
+            <select
+              id="feeschedulespage-field-2"
+              className={selectCls}
+              value={f.grade}
+              disabled={!!editing}
+              onChange={(e) => setF({ ...f, grade: e.target.value })}
+            >
               <option value="">Todo el nivel</option>
               {grades.map((g) => (
                 <option key={g} value={g}>
@@ -183,30 +204,72 @@ const FeeScheduleModal: React.FC<{
                 </option>
               ))}
             </select>
-            <p className="text-xs text-muted-foreground mt-1">El tarifario de un grado tiene prioridad sobre el del nivel.</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              El tarifario de un grado tiene prioridad sobre el del nivel.
+            </p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label htmlFor="feeschedulespage-field-3" className="font-semibold block mb-1">Matrícula (S/)</label>
-            <Input id="feeschedulespage-field-3" type="number" min="0" step="0.01" className="text-xs rounded-xl font-mono" value={f.enrollmentFee} onChange={(e) => setF({ ...f, enrollmentFee: e.target.value })} placeholder="0.00" />
+            <label htmlFor="feeschedulespage-field-3" className="font-semibold block mb-1">
+              Matrícula (S/)
+            </label>
+            <Input
+              id="feeschedulespage-field-3"
+              type="number"
+              min="0"
+              step="0.01"
+              className="text-xs rounded-xl font-mono"
+              value={f.enrollmentFee}
+              onChange={(e) => setF({ ...f, enrollmentFee: e.target.value })}
+              placeholder="0.00"
+            />
           </div>
           <div>
-            <label htmlFor="feeschedulespage-field-4" className="font-semibold block mb-1">Pensión mensual (S/) *</label>
-            <Input id="feeschedulespage-field-4" type="number" min="0" step="0.01" className="text-xs rounded-xl font-mono" value={f.monthlyFee} onChange={(e) => setF({ ...f, monthlyFee: e.target.value })} placeholder="0.00" />
+            <label htmlFor="feeschedulespage-field-4" className="font-semibold block mb-1">
+              Pensión mensual (S/) *
+            </label>
+            <Input
+              id="feeschedulespage-field-4"
+              type="number"
+              min="0"
+              step="0.01"
+              className="text-xs rounded-xl font-mono"
+              value={f.monthlyFee}
+              onChange={(e) => setF({ ...f, monthlyFee: e.target.value })}
+              placeholder="0.00"
+            />
           </div>
           <div>
-            <label htmlFor="feeschedulespage-field-5" className="font-semibold block mb-1">Cuota de ingreso (S/)</label>
-            <Input id="feeschedulespage-field-5" type="number" min="0" step="0.01" className="text-xs rounded-xl font-mono" value={f.admissionFee} onChange={(e) => setF({ ...f, admissionFee: e.target.value })} placeholder="0.00" />
+            <label htmlFor="feeschedulespage-field-5" className="font-semibold block mb-1">
+              Cuota de ingreso (S/)
+            </label>
+            <Input
+              id="feeschedulespage-field-5"
+              type="number"
+              min="0"
+              step="0.01"
+              className="text-xs rounded-xl font-mono"
+              value={f.admissionFee}
+              onChange={(e) => setF({ ...f, admissionFee: e.target.value })}
+              placeholder="0.00"
+            />
             <p className="text-xs text-muted-foreground mt-1">Solo para alumnos ingresantes.</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label htmlFor="feeschedulespage-field-6" className="font-semibold block mb-1">Pensión desde</label>
-            <select id="feeschedulespage-field-6" className={selectCls} value={f.firstMonth} onChange={(e) => setF({ ...f, firstMonth: Number(e.target.value) })}>
+            <label htmlFor="feeschedulespage-field-6" className="font-semibold block mb-1">
+              Pensión desde
+            </label>
+            <select
+              id="feeschedulespage-field-6"
+              className={selectCls}
+              value={f.firstMonth}
+              onChange={(e) => setF({ ...f, firstMonth: Number(e.target.value) })}
+            >
               {MONTH_LONG.map((m, i) => (
                 <option key={m} value={i + 1}>
                   {m}
@@ -215,8 +278,15 @@ const FeeScheduleModal: React.FC<{
             </select>
           </div>
           <div>
-            <label htmlFor="feeschedulespage-field-7" className="font-semibold block mb-1">Hasta</label>
-            <select id="feeschedulespage-field-7" className={selectCls} value={f.lastMonth} onChange={(e) => setF({ ...f, lastMonth: Number(e.target.value) })}>
+            <label htmlFor="feeschedulespage-field-7" className="font-semibold block mb-1">
+              Hasta
+            </label>
+            <select
+              id="feeschedulespage-field-7"
+              className={selectCls}
+              value={f.lastMonth}
+              onChange={(e) => setF({ ...f, lastMonth: Number(e.target.value) })}
+            >
               {MONTH_LONG.map((m, i) => (
                 <option key={m} value={i + 1}>
                   {m}
@@ -225,8 +295,18 @@ const FeeScheduleModal: React.FC<{
             </select>
           </div>
           <div>
-            <label htmlFor="feeschedulespage-field-8" className="font-semibold block mb-1">Vence el día</label>
-            <Input id="feeschedulespage-field-8" type="number" min="1" max="31" className="text-xs rounded-xl font-mono" value={f.dueDay} onChange={(e) => setF({ ...f, dueDay: e.target.value })} />
+            <label htmlFor="feeschedulespage-field-8" className="font-semibold block mb-1">
+              Vence el día
+            </label>
+            <Input
+              id="feeschedulespage-field-8"
+              type="number"
+              min="1"
+              max="31"
+              className="text-xs rounded-xl font-mono"
+              value={f.dueDay}
+              onChange={(e) => setF({ ...f, dueDay: e.target.value })}
+            />
             <p className="text-xs text-muted-foreground mt-1">31 = último día de cada mes.</p>
           </div>
         </div>
@@ -234,21 +314,31 @@ const FeeScheduleModal: React.FC<{
         {/* Resumen en vivo */}
         <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 flex flex-wrap items-center gap-x-6 gap-y-1">
           <span>
-            <strong className="text-foreground">{summary.months}</strong> pensiones ({MONTH_SHORT[f.firstMonth - 1]}–{MONTH_SHORT[f.lastMonth - 1]})
+            <strong className="text-foreground">{summary.months}</strong> pensiones ({MONTH_SHORT[f.firstMonth - 1]}–
+            {MONTH_SHORT[f.lastMonth - 1]})
           </span>
           <span>
             Total anual por alumno: <strong className="text-foreground font-mono">{soles(summary.annual)}</strong>
           </span>
-          {nums.admissionFee > 0 && <span className="text-muted-foreground">+ {soles(nums.admissionFee)} si es ingresante</span>}
+          {nums.admissionFee > 0 && (
+            <span className="text-muted-foreground">+ {soles(nums.admissionFee)} si es ingresante</span>
+          )}
         </div>
         {editing && (
           <label className="flex items-start gap-2 rounded-xl border border-border p-3 cursor-pointer">
-            <input type="checkbox" checked={applyToPending} onChange={(e) => setApplyToPending(e.target.checked)} className="w-4 h-4 mt-0.5 rounded" />
+            <input
+              type="checkbox"
+              checked={applyToPending}
+              onChange={(e) => setApplyToPending(e.target.checked)}
+              className="w-4 h-4 mt-0.5 rounded"
+            />
             <span>
               <strong className="text-foreground">Actualizar también las cuotas pendientes ya generadas</strong>
               <span className="block text-muted-foreground">
-                Cambia el monto (y el día de vencimiento de las pensiones) de las cuotas sin cobros, descuentos, becas ni moras de este nivel
-                {editing.grade !== null ? ' y grado' : ''}. Las pagadas, con ajustes o con pensión personalizada no se tocan. No agrega ni quita meses.
+                Cambia el monto (y el día de vencimiento de las pensiones) de las cuotas sin cobros, descuentos, becas
+                ni moras de este nivel
+                {editing.grade !== null ? ' y grado' : ''}. Las pagadas, con ajustes o con pensión personalizada no se
+                tocan. No agrega ni quita meses.
               </span>
             </span>
           </label>
@@ -265,7 +355,12 @@ const FeeScheduleModal: React.FC<{
 // ──────────────────────────────────────────────────────────────────
 // Copiar de otro año
 // ──────────────────────────────────────────────────────────────────
-const CopyModal: React.FC<{ open: boolean; onClose: () => void; toYearId: string; years: { id: string; label: string }[] }> = ({ open, onClose, toYearId, years }) => {
+const CopyModal: React.FC<{
+  open: boolean;
+  onClose: () => void;
+  toYearId: string;
+  years: { id: string; label: string }[];
+}> = ({ open, onClose, toYearId, years }) => {
   const copy = useCopyFeeSchedules();
   const options = years.filter((y) => y.id !== toYearId);
   const [from, setFrom] = useState('');
@@ -294,7 +389,9 @@ const CopyModal: React.FC<{ open: boolean; onClose: () => void; toYearId: string
                 { fromAcademicYearId: from, toAcademicYearId: toYearId },
                 {
                   onSuccess: (r) => {
-                    toast.success(r.copied ? `Se copiaron ${r.copied} tarifarios.` : 'No había tarifarios nuevos que copiar.');
+                    toast.success(
+                      r.copied ? `Se copiaron ${r.copied} tarifarios.` : 'No había tarifarios nuevos que copiar.',
+                    );
                     onClose();
                   },
                   onError: (e) => toast.error(apiError(e, 'No se pudo copiar el tarifario.')),
@@ -345,7 +442,10 @@ export const FeeSchedulesPage: React.FC = () => {
     generateMissing.mutate(
       { academicYearId: yearId, dryRun: true },
       {
-        onSuccess: (r) => (r.cuotas === 0 ? toast.info(`Todas las matrículas de ${r.year} ya tienen su cronograma completo.`) : setMissingPreview(r)),
+        onSuccess: (r) =>
+          r.cuotas === 0
+            ? toast.info(`Todas las matrículas de ${r.year} ya tienen su cronograma completo.`)
+            : setMissingPreview(r),
         onError: (e) => toast.error(apiError(e, 'No se pudo calcular.')),
       },
     );
@@ -384,7 +484,10 @@ export const FeeSchedulesPage: React.FC = () => {
     return used.length > 0 ? used : LEVELS;
   }, [gradesByLevel, schedules]);
 
-  const yearOptions = years.map((y) => ({ id: y.id, label: `${y.name || `Año Escolar ${y.year}`}${y.isActive ? ' (vigente)' : ''}` }));
+  const yearOptions = years.map((y) => ({
+    id: y.id,
+    label: `${y.name || `Año Escolar ${y.year}`}${y.isActive ? ' (vigente)' : ''}`,
+  }));
 
   if (accessLoading) {
     return (
@@ -395,7 +498,11 @@ export const FeeSchedulesPage: React.FC = () => {
     );
   }
   if (!access?.can.view && !canManage) {
-    return <p className="p-6 text-sm text-muted-foreground">Solo tesorería, el contador y Dirección pueden ver el tarifario.</p>;
+    return (
+      <p className="p-6 text-sm text-muted-foreground">
+        Solo tesorería, el contador y Dirección pueden ver el tarifario.
+      </p>
+    );
   }
 
   return (
@@ -403,7 +510,10 @@ export const FeeSchedulesPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
-          <Link to="/payments" className="mb-1 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+          <Link
+            to="/payments"
+            className="mb-1 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+          >
             <ArrowLeft className="h-3 w-3" /> Pagos y cobranzas
           </Link>
           <div className="flex items-center gap-2">
@@ -444,10 +554,21 @@ export const FeeSchedulesPage: React.FC = () => {
               >
                 <ListPlus className="w-3.5 h-3.5" /> Generar cuotas faltantes
               </Button>
-              <Button variant="outline" size="sm" className="rounded-xl text-xs font-bold gap-1.5" onClick={() => setCopyOpen(true)} disabled={!yearId}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-xl text-xs font-bold gap-1.5"
+                onClick={() => setCopyOpen(true)}
+                disabled={!yearId}
+              >
                 <Copy className="w-3.5 h-3.5" /> Copiar de otro año
               </Button>
-              <Button size="sm" className="rounded-xl text-xs font-bold gap-1.5" onClick={() => setModal({ editing: null, level: levels[0] })} disabled={!yearId}>
+              <Button
+                size="sm"
+                className="rounded-xl text-xs font-bold gap-1.5"
+                onClick={() => setModal({ editing: null, level: levels[0] })}
+                disabled={!yearId}
+              >
                 <Plus className="w-3.5 h-3.5" /> Nuevo tarifario
               </Button>
             </>
@@ -486,14 +607,21 @@ export const FeeSchedulesPage: React.FC = () => {
                     ) : null}
                   </div>
                   {canManage && (
-                    <Button variant="ghost" size="sm" className="h-7 text-xs font-bold text-primary gap-1" onClick={() => setModal({ editing: null, level })}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs font-bold text-primary gap-1"
+                      onClick={() => setModal({ editing: null, level })}
+                    >
                       <Plus className="w-3 h-3" /> Agregar
                     </Button>
                   )}
                 </div>
                 {rows.length === 0 ? (
                   <p className="px-4 py-6 text-xs text-muted-foreground text-center">
-                    {canManage ? 'Agrega el tarifario de este nivel para generar cuotas al matricular.' : 'Aún no se configuró.'}
+                    {canManage
+                      ? 'Agrega el tarifario de este nivel para generar cuotas al matricular.'
+                      : 'Aún no se configuró.'}
                   </p>
                 ) : (
                   <div className="overflow-x-auto">
@@ -516,8 +644,12 @@ export const FeeSchedulesPage: React.FC = () => {
                           return (
                             <tr key={r.id} className="hover:bg-muted/20 transition-colors">
                               <td className="px-4 py-3 font-bold text-foreground whitespace-nowrap">{scopeLabel(r)}</td>
-                              <td className="px-4 py-3 text-right font-mono whitespace-nowrap">{soles(r.enrollmentFee)}</td>
-                              <td className="px-4 py-3 text-right font-mono font-bold text-foreground whitespace-nowrap">{soles(r.monthlyFee)}</td>
+                              <td className="px-4 py-3 text-right font-mono whitespace-nowrap">
+                                {soles(r.enrollmentFee)}
+                              </td>
+                              <td className="px-4 py-3 text-right font-mono font-bold text-foreground whitespace-nowrap">
+                                {soles(r.monthlyFee)}
+                              </td>
                               <td className="px-4 py-3 text-right font-mono whitespace-nowrap text-muted-foreground">
                                 {r.admissionFee > 0 ? soles(r.admissionFee) : '—'}
                               </td>
@@ -529,11 +661,19 @@ export const FeeSchedulesPage: React.FC = () => {
                               <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                                 {r.dueDay === 31 ? 'Último día del mes' : `Día ${r.dueDay}`}
                               </td>
-                              <td className="px-4 py-3 text-right font-mono font-bold text-foreground whitespace-nowrap">{soles(sum.annual)}</td>
+                              <td className="px-4 py-3 text-right font-mono font-bold text-foreground whitespace-nowrap">
+                                {soles(sum.annual)}
+                              </td>
                               {canManage && (
                                 <td className="px-4 py-3 text-right whitespace-nowrap">
                                   <div className="flex items-center justify-end gap-1">
-                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" aria-label="Editar" onClick={() => setModal({ editing: r, level })}>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 w-7 p-0"
+                                      aria-label="Editar"
+                                      onClick={() => setModal({ editing: r, level })}
+                                    >
                                       <Pencil className="w-3.5 h-3.5" />
                                     </Button>
                                     <Button
@@ -562,8 +702,9 @@ export const FeeSchedulesPage: React.FC = () => {
       )}
 
       <p className="text-xs text-muted-foreground">
-        Si un alumno se matricula a mitad de año, solo se generan las pensiones desde su mes de ingreso. Las becas vigentes se aplican
-        automáticamente y, al retirar o trasladar a un alumno, se anulan sus cuotas futuras sin cobros.
+        Si un alumno se matricula a mitad de año, solo se generan las pensiones desde su mes de ingreso. Las becas
+        vigentes se aplican automáticamente y, al retirar o trasladar a un alumno, se anulan sus cuotas futuras sin
+        cobros.
       </p>
 
       {modal && yearId && (

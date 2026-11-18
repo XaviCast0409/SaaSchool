@@ -1,15 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useSchoolBranding } from '@/features/schools/components/SchoolLetterhead';
-import {
-  X,
-  Printer,
-  School,
-  QrCode,
-  Users,
-  Scissors,
-  Sparkles,
-  ChevronDown,
-} from 'lucide-react';
+import { X, Printer, School, QrCode, Users, Scissors, Sparkles, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
@@ -48,14 +39,18 @@ export const SectionQrCardsDocument: React.FC<SectionQrCardsDocumentProps> = ({
         <div
           key={`page-${pageIndex}`}
           className={`a4-print-page ${isPrint ? (pageIndex < pages.length - 1 ? 'break-after-page' : '') : 'bg-white p-3 rounded-xl border border-slate-300 shadow-sm'}`}
-          style={isPrint ? {
-            width: '194mm',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 94mm)',
-            gridTemplateRows: 'repeat(4, 63mm)',
-            gap: '5mm',
-            boxSizing: 'border-box',
-          } : undefined}
+          style={
+            isPrint
+              ? {
+                  width: '194mm',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 94mm)',
+                  gridTemplateRows: 'repeat(4, 63mm)',
+                  gap: '5mm',
+                  boxSizing: 'border-box',
+                }
+              : undefined
+          }
         >
           {pageStudents.map((student, studentIndex) => {
             const globalIndex = pageIndex * 8 + studentIndex + 1;
@@ -67,12 +62,16 @@ export const SectionQrCardsDocument: React.FC<SectionQrCardsDocumentProps> = ({
               <div
                 key={student.id}
                 className="qr-card-item rounded-xl border-2 border-dashed border-slate-400 bg-white text-slate-900 p-2.5 flex flex-col justify-between shadow-sm avoid-break"
-                style={isPrint ? {
-                  width: '94mm',
-                  height: '63mm',
-                  boxSizing: 'border-box',
-                  border: '1.5px dashed #334155',
-                } : undefined}
+                style={
+                  isPrint
+                    ? {
+                        width: '94mm',
+                        height: '63mm',
+                        boxSizing: 'border-box',
+                        border: '1.5px dashed #334155',
+                      }
+                    : undefined
+                }
               >
                 {/* Cabecera del carnet */}
                 <div className="border-b border-slate-300 pb-1.5 flex items-center justify-between">
@@ -93,16 +92,12 @@ export const SectionQrCardsDocument: React.FC<SectionQrCardsDocumentProps> = ({
                 <div className="flex items-center justify-between gap-2 py-1">
                   {/* Datos */}
                   <div className="flex-1 space-y-0.5">
-                    <span className="text-[8px] font-bold text-slate-400 uppercase">
-                      Estudiante #{globalIndex}
-                    </span>
+                    <span className="text-[8px] font-bold text-slate-400 uppercase">Estudiante #{globalIndex}</span>
                     <div className="font-black text-[11px] text-slate-900 uppercase leading-snug line-clamp-2">
                       {student.lastNamePaternal} {student.lastNameMaternal || ''}, {student.firstNames}
                     </div>
                     <div className="pt-0.5">
-                      <span className="text-[8px] font-semibold text-slate-500 block">
-                        DNI / DOC. IDENTIDAD
-                      </span>
+                      <span className="text-[8px] font-semibold text-slate-500 block">DNI / DOC. IDENTIDAD</span>
                       <span className="font-mono font-black text-xs text-slate-900 tracking-wider">
                         {student.documentId || student.studentCode || '—'}
                       </span>
@@ -112,15 +107,9 @@ export const SectionQrCardsDocument: React.FC<SectionQrCardsDocumentProps> = ({
                   {/* QR Image */}
                   <div className="p-1 rounded-lg border border-slate-300 bg-white shrink-0">
                     {qrUrl ? (
-                      <img
-                        src={qrUrl}
-                        alt={`QR ${student.firstNames}`}
-                        className="w-16 h-16 object-contain"
-                      />
+                      <img src={qrUrl} alt={`QR ${student.firstNames}`} className="w-16 h-16 object-contain" />
                     ) : (
-                      <div className="w-16 h-16 flex items-center justify-center text-[8px] text-slate-400">
-                        QR
-                      </div>
+                      <div className="w-16 h-16 flex items-center justify-center text-[8px] text-slate-400">QR</div>
                     )}
                   </div>
                 </div>
@@ -147,7 +136,7 @@ export const SectionQrCardsModal: React.FC<SectionQrCardsModalProps> = ({
   const branding = useSchoolBranding();
   const { data: classrooms = [] } = useClassrooms();
   const [selectedClassroomId, setSelectedClassroomId] = useState<string>(
-    initialClassroomId || (classrooms.length > 0 ? classrooms[0].id : '')
+    initialClassroomId || (classrooms.length > 0 ? classrooms[0].id : ''),
   );
 
   // Si no había selección inicial y cargan las aulas, auto-seleccionar la primera
@@ -169,7 +158,7 @@ export const SectionQrCardsModal: React.FC<SectionQrCardsModalProps> = ({
       limit: 100,
       page: 1,
     },
-    Boolean(selectedClassroomId)
+    Boolean(selectedClassroomId),
   );
 
   const rawStudents = studentsResponse?.data || [];
@@ -228,7 +217,11 @@ export const SectionQrCardsModal: React.FC<SectionQrCardsModalProps> = ({
   }, [rawStudents]);
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2 sm:p-4 backdrop-blur-sm animate-in fade-in">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2 sm:p-4 backdrop-blur-sm animate-in fade-in"
+    >
       <div className="w-full max-w-5xl rounded-2xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col max-h-[94vh]">
         {/* Header no imprimible */}
         <div className="flex items-center justify-between border-b border-border p-4 bg-muted/30">

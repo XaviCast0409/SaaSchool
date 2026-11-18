@@ -17,7 +17,13 @@ export const AcademicHomePage: React.FC = () => {
   const copyLoad = useCopyTeachingLoad();
   const [fromYearId, setFromYearId] = useState('');
 
-  if (isLoading || !data) return <div className="space-y-3 p-2"><Skeleton className="h-8 w-64" /><Skeleton className="h-64 w-full" /></div>;
+  if (isLoading || !data)
+    return (
+      <div className="space-y-3 p-2">
+        <Skeleton className="h-8 w-64" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
 
   const steps = [
     {
@@ -43,11 +49,16 @@ export const AcademicHomePage: React.FC = () => {
     {
       title: 'Carga docente',
       // Sin plan de estudios no hay cursos que asignar: «0 sin docente» no significa que esté listo.
-      ok: data.coursesWithoutTeacher === 0 && data.classrooms > 0 && data.gradesInUse > 0 && data.invalidPlans.length === 0
-        && data.teachers > data.teachersWithoutLoad,
-      detail: data.gradesInUse === 0 || data.invalidPlans.length > 0
-        ? 'Primero completa el plan de estudios: de ahí salen los cursos que se asignan'
-        : `${data.coursesWithoutTeacher} cursos sin docente · ${data.teachersWithoutLoad} docentes sin cursos`,
+      ok:
+        data.coursesWithoutTeacher === 0 &&
+        data.classrooms > 0 &&
+        data.gradesInUse > 0 &&
+        data.invalidPlans.length === 0 &&
+        data.teachers > data.teachersWithoutLoad,
+      detail:
+        data.gradesInUse === 0 || data.invalidPlans.length > 0
+          ? 'Primero completa el plan de estudios: de ahí salen los cursos que se asignan'
+          : `${data.coursesWithoutTeacher} cursos sin docente · ${data.teachersWithoutLoad} docentes sin cursos`,
       to: '/academic/teaching-load',
     },
     {
@@ -66,13 +77,21 @@ export const AcademicHomePage: React.FC = () => {
       <Card className="divide-y divide-border">
         {steps.map((s, i) => (
           <div key={s.title} className="flex items-center gap-4 px-5 py-4">
-            {s.ok ? <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" /> : <Circle className="h-5 w-5 text-muted-foreground shrink-0" />}
+            {s.ok ? (
+              <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
+            ) : (
+              <Circle className="h-5 w-5 text-muted-foreground shrink-0" />
+            )}
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">{i + 1}. {s.title}</p>
+              <p className="text-sm font-medium">
+                {i + 1}. {s.title}
+              </p>
               <p className="text-sm text-muted-foreground">{s.detail}</p>
             </div>
             <Button asChild variant={s.ok || s.neutral ? 'ghost' : 'outline'} size="sm">
-              <Link to={s.to}>{s.ok ? 'Ver' : 'Completar'} <ArrowRight className="ml-1 h-3.5 w-3.5" /></Link>
+              <Link to={s.to}>
+                {s.ok ? 'Ver' : 'Completar'} <ArrowRight className="ml-1 h-3.5 w-3.5" />
+              </Link>
             </Button>
           </div>
         ))}
@@ -81,18 +100,36 @@ export const AcademicHomePage: React.FC = () => {
       {otherYears.length > 0 && (
         <Card className="mt-6 p-5">
           <p className="text-sm font-medium">Copiar desde otro año</p>
-          <p className="text-sm text-muted-foreground">Trae el plan de estudios y la carga docente de un año anterior. No reemplaza lo que ya existe.</p>
+          <p className="text-sm text-muted-foreground">
+            Trae el plan de estudios y la carga docente de un año anterior. No reemplaza lo que ya existe.
+          </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Select value={fromYearId} onChange={(e) => setFromYearId(e.target.value)}>
               <option value="">Elige un año…</option>
-              {otherYears.map((y) => <option key={y.id} value={y.id}>{y.year}</option>)}
+              {otherYears.map((y) => (
+                <option key={y.id} value={y.id}>
+                  {y.year}
+                </option>
+              ))}
             </Select>
-            <Button variant="outline" size="sm" disabled={!fromYearId || copyPlan.isPending}
-              onClick={() => copyPlan.mutate({ fromAcademicYearId: fromYearId, toAcademicYearId: data.academicYear.id })}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!fromYearId || copyPlan.isPending}
+              onClick={() =>
+                copyPlan.mutate({ fromAcademicYearId: fromYearId, toAcademicYearId: data.academicYear.id })
+              }
+            >
               Copiar plan de estudios
             </Button>
-            <Button variant="outline" size="sm" disabled={!fromYearId || copyLoad.isPending}
-              onClick={() => copyLoad.mutate({ fromAcademicYearId: fromYearId, toAcademicYearId: data.academicYear.id })}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!fromYearId || copyLoad.isPending}
+              onClick={() =>
+                copyLoad.mutate({ fromAcademicYearId: fromYearId, toAcademicYearId: data.academicYear.id })
+              }
+            >
               Copiar carga docente
             </Button>
           </div>
@@ -101,4 +138,3 @@ export const AcademicHomePage: React.FC = () => {
     </div>
   );
 };
-

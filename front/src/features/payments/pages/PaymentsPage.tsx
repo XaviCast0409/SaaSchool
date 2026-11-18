@@ -24,7 +24,14 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/useAuthStore';
 import {
@@ -57,7 +64,10 @@ import { EditObligationModal } from '../components/EditObligationModal';
 import { DailyCashCloseModal } from '../components/DailyCashCloseModal';
 import { CreateIndividualObligationModal } from '../components/CreateIndividualObligationModal';
 import { WhatsAppQueueModal } from '../components/WhatsAppQueueModal';
-import { ReportPaymentModal, type ReportableObligation } from '@/features/payment-reports/components/ReportPaymentModal';
+import {
+  ReportPaymentModal,
+  type ReportableObligation,
+} from '@/features/payment-reports/components/ReportPaymentModal';
 import { ParentPaymentReportsCard } from '@/features/payment-reports/components/ParentPaymentReportsCard';
 import { TreasuryReportsPanel } from '@/features/payment-reports/components/TreasuryReportsPanel';
 import { DEFAULT_WA_TEMPLATE, buildWhatsAppLink, remainingOf } from '../utils/whatsapp';
@@ -92,7 +102,9 @@ export const PaymentsPage: React.FC = () => {
   const setSearchTerm = (value: string) => setUrlFilters({ q: value });
 
   // Modals state
-  const [selectedObligationForTransaction, setSelectedObligationForTransaction] = useState<PaymentObligation | null>(null);
+  const [selectedObligationForTransaction, setSelectedObligationForTransaction] = useState<PaymentObligation | null>(
+    null,
+  );
   const [selectedObligationForReminder, setSelectedObligationForReminder] = useState<PaymentObligation | null>(null);
   const [selectedObligationForEdit, setSelectedObligationForEdit] = useState<PaymentObligation | null>(null);
   const [selectedTransactionIdForReceipt, setSelectedTransactionIdForReceipt] = useState<string | null>(null);
@@ -113,10 +125,7 @@ export const PaymentsPage: React.FC = () => {
   const { data: classrooms = [] } = useClassrooms(!isParent);
   const { data: financialSummary, isLoading: isLoadingSummary } = useFinancialSummary(isDirector);
 
-  const {
-    data: adminObligationsResponse,
-    isLoading: isLoadingAdminObligations,
-  } = usePayments(
+  const { data: adminObligationsResponse, isLoading: isLoadingAdminObligations } = usePayments(
     {
       page,
       limit,
@@ -124,13 +133,10 @@ export const PaymentsPage: React.FC = () => {
       classroomId: selectedClassroomId || undefined,
       search: searchTerm || undefined,
     },
-    canManagePayments
+    canManagePayments,
   );
 
-  const {
-    data: parentObligations = [],
-    isLoading: isLoadingParentObligations,
-  } = useParentPayments(isParent);
+  const { data: parentObligations = [], isLoading: isLoadingParentObligations } = useParentPayments(isParent);
 
   const { mutate: sendBulkReminders, isPending: isSendingBulk } = useSendBulkReminders();
   const { mutate: cancelObligation, isPending: isCancelling } = useCancelObligation();
@@ -173,7 +179,13 @@ export const PaymentsPage: React.FC = () => {
   }, [obligations, isParent]);
 
   const handleBulkReminders = async () => {
-    if (await confirmDialog({ title: '¿Enviar recordatorios masivos?', description: 'Se enviará un correo electrónico a todos los apoderados con deudas vencidas.', confirmText: 'Enviar recordatorios' })) {
+    if (
+      await confirmDialog({
+        title: '¿Enviar recordatorios masivos?',
+        description: 'Se enviará un correo electrónico a todos los apoderados con deudas vencidas.',
+        confirmText: 'Enviar recordatorios',
+      })
+    ) {
       sendBulkReminders('EMAIL');
     }
   };
@@ -189,16 +201,16 @@ export const PaymentsPage: React.FC = () => {
               {isParent
                 ? 'Mis Pensiones y Pagos'
                 : isAdministrative
-                ? 'Caja y Cobranzas'
-                : 'Control Financiero y Pensiones'}
+                  ? 'Caja y Cobranzas'
+                  : 'Control Financiero y Pensiones'}
             </h1>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             {isParent
               ? 'Consulta el estado de deudas de tus hijos y emite comprobantes de pago.'
               : isAdministrative
-              ? 'Módulo de caja y cobranzas: consulta de deudores, registro de pagos y emisión de boletas.'
-              : 'Cronograma de pagos, balance de recaudación y recordatorios por morosidad.'}
+                ? 'Módulo de caja y cobranzas: consulta de deudores, registro de pagos y emisión de boletas.'
+                : 'Cronograma de pagos, balance de recaudación y recordatorios por morosidad.'}
           </p>
         </div>
 
@@ -227,17 +239,30 @@ export const PaymentsPage: React.FC = () => {
               <DropdownMenuContent className="w-64" align="end">
                 <DropdownMenuLabel>Cobranza</DropdownMenuLabel>
                 {canManage && (
-                  <DropdownMenuItem icon={Send} hint="Avisa a las familias con cuotas vencidas" onSelect={handleBulkReminders} disabled={isSendingBulk}>
+                  <DropdownMenuItem
+                    icon={Send}
+                    hint="Avisa a las familias con cuotas vencidas"
+                    onSelect={handleBulkReminders}
+                    disabled={isSendingBulk}
+                  >
                     {isSendingBulk ? 'Enviando…' : 'Recordatorios a morosos'}
                   </DropdownMenuItem>
                 )}
                 {canCollect && (
-                  <DropdownMenuItem icon={MessageCircle} hint="Mensajes de WhatsApp listos para enviar" onSelect={() => setIsWhatsAppQueueOpen(true)}>
+                  <DropdownMenuItem
+                    icon={MessageCircle}
+                    hint="Mensajes de WhatsApp listos para enviar"
+                    onSelect={() => setIsWhatsAppQueueOpen(true)}
+                  >
                     WhatsApp en cola
                   </DropdownMenuItem>
                 )}
                 {canView && (
-                  <DropdownMenuItem icon={Receipt} hint="Cobros de todas las cajas de hoy" onSelect={() => setIsDailyCashCloseOpen(true)}>
+                  <DropdownMenuItem
+                    icon={Receipt}
+                    hint="Cobros de todas las cajas de hoy"
+                    onSelect={() => setIsDailyCashCloseOpen(true)}
+                  >
                     Resumen del día
                   </DropdownMenuItem>
                 )}
@@ -344,7 +369,9 @@ export const PaymentsPage: React.FC = () => {
                   {financialSummary?.overdueStudents ?? financialSummary?.overdueCount ?? 0}
                 </div>
               )}
-              <p className="text-xs text-muted-foreground mt-1">{financialSummary?.overdueCount ?? 0} cuota(s) vencida(s)</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {financialSummary?.overdueCount ?? 0} cuota(s) vencida(s)
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -420,7 +447,8 @@ export const PaymentsPage: React.FC = () => {
                   displayObligations.map((item) => {
                     const student = item.enrollment?.student;
                     const classroom = item.enrollment?.classroom;
-                    const isOverdue = (item.status === 'PENDING' || item.status === 'PARTIAL') && new Date(item.dueDate) < new Date();
+                    const isOverdue =
+                      (item.status === 'PENDING' || item.status === 'PARTIAL') && new Date(item.dueDate) < new Date();
                     const studentName = student ? formatFullName(student, 'LAST_FIRST') : 'Alumno s/n';
 
                     return (
@@ -450,7 +478,9 @@ export const PaymentsPage: React.FC = () => {
                           <div>
                             <div className="font-medium text-foreground text-xs">{item.title}</div>
                             <div className="text-xs text-muted-foreground">{item.concept}</div>
-                            <div className={`mt-1 ${isOverdue ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
+                            <div
+                              className={`mt-1 ${isOverdue ? 'text-destructive font-bold' : 'text-muted-foreground'}`}
+                            >
                               Vence: {formatPeruShortDate(item.dueDate)}
                             </div>
                           </div>
@@ -477,7 +507,9 @@ export const PaymentsPage: React.FC = () => {
                                   id: item.id,
                                   title: item.title,
                                   balance: remainingOf(item),
-                                  studentName: student ? `${student.firstNames} ${student.lastNamePaternal}` : undefined,
+                                  studentName: student
+                                    ? `${student.firstNames} ${student.lastNamePaternal}`
+                                    : undefined,
                                 })
                               }
                             >
@@ -490,7 +522,9 @@ export const PaymentsPage: React.FC = () => {
                               size="sm"
                               variant="outline"
                               className="h-8 text-xs gap-1 w-full"
-                              onClick={() => setSelectedTransactionIdForReceipt(item.transactions[item.transactions.length - 1].id)}
+                              onClick={() =>
+                                setSelectedTransactionIdForReceipt(item.transactions[item.transactions.length - 1].id)
+                              }
                             >
                               <FileText className="w-3.5 h-3.5 text-primary" />
                               <span>Boleta</span>
@@ -509,216 +543,231 @@ export const PaymentsPage: React.FC = () => {
             )}
 
             {/* Desktop Table (and full view for non-parents) */}
-            <div className={`rounded-xl border border-border bg-card shadow-sm overflow-hidden ${isParent ? 'hidden md:block' : ''}`}>
-            <Table>
-              <TableHeader className="bg-muted/40">
-                <TableRow>
-                  <TableHead className="text-xs font-bold uppercase tracking-wider">Estudiante / Aula</TableHead>
-                  <TableHead className="text-xs font-bold uppercase tracking-wider">Concepto</TableHead>
-                  <TableHead className="text-xs font-bold uppercase tracking-wider">Monto Soles</TableHead>
-                  <TableHead className="text-xs font-bold uppercase tracking-wider">Vencimiento</TableHead>
-                  <TableHead className="text-xs font-bold uppercase tracking-wider">Estado</TableHead>
-                  <TableHead className="text-xs font-bold uppercase tracking-wider text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {displayObligations.length ? (
-                  displayObligations.map((item) => {
-                    const student = item.enrollment?.student;
-                    const classroom = item.enrollment?.classroom;
-                    const isOverdue = item.status === 'PENDING' && new Date(item.dueDate) < new Date();
+            <div
+              className={`rounded-xl border border-border bg-card shadow-sm overflow-hidden ${isParent ? 'hidden md:block' : ''}`}
+            >
+              <Table>
+                <TableHeader className="bg-muted/40">
+                  <TableRow>
+                    <TableHead className="text-xs font-bold uppercase tracking-wider">Estudiante / Aula</TableHead>
+                    <TableHead className="text-xs font-bold uppercase tracking-wider">Concepto</TableHead>
+                    <TableHead className="text-xs font-bold uppercase tracking-wider">Monto Soles</TableHead>
+                    <TableHead className="text-xs font-bold uppercase tracking-wider">Vencimiento</TableHead>
+                    <TableHead className="text-xs font-bold uppercase tracking-wider">Estado</TableHead>
+                    <TableHead className="text-xs font-bold uppercase tracking-wider text-right">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {displayObligations.length ? (
+                    displayObligations.map((item) => {
+                      const student = item.enrollment?.student;
+                      const classroom = item.enrollment?.classroom;
+                      const isOverdue = item.status === 'PENDING' && new Date(item.dueDate) < new Date();
 
-                    return (
-                      <TableRow key={item.id} className="hover:bg-muted/30 transition-colors">
-                        <TableCell>
-                          <div>
-                            <div className="font-semibold text-foreground text-sm">
-                              {student ? formatFullName(student, 'LAST_FIRST') : 'Alumno s/n'}
+                      return (
+                        <TableRow key={item.id} className="hover:bg-muted/30 transition-colors">
+                          <TableCell>
+                            <div>
+                              <div className="font-semibold text-foreground text-sm">
+                                {student ? formatFullName(student, 'LAST_FIRST') : 'Alumno s/n'}
+                              </div>
+                              <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                {student?.documentId && <span className="font-mono">DNI: {student.documentId}</span>}
+                                {classroom && (
+                                  <span className="px-1.5 py-0.5 rounded text-xs font-semibold bg-secondary text-secondary-foreground">
+                                    {classroom.grade}° "{classroom.section}"
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                            <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                              {student?.documentId && <span className="font-mono">DNI: {student.documentId}</span>}
-                              {classroom && (
-                                <span className="px-1.5 py-0.5 rounded text-xs font-semibold bg-secondary text-secondary-foreground">
-                                  {classroom.grade}° "{classroom.section}"
-                                </span>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium text-foreground text-xs">{item.title}</div>
+                              <div className="text-xs text-muted-foreground">{item.concept}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-extrabold text-foreground text-sm">
+                              S/ {item.amountDue.toFixed(2)}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span
+                              className={`text-xs ${isOverdue ? 'text-destructive font-bold' : 'text-muted-foreground'}`}
+                            >
+                              {formatPeruShortDate(item.dueDate)}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {item.status === 'PAID' && <Badge variant="success">Pagado</Badge>}
+                            {item.status === 'PENDING' && !isOverdue && <Badge variant="warning">Pendiente</Badge>}
+                            {item.status === 'PENDING' && isOverdue && (
+                              <Badge variant="destructive">Vencido / Mora</Badge>
+                            )}
+                            {item.status === 'PARTIAL' && <Badge variant="secondary">Pago Parcial</Badge>}
+                            {item.status === 'CANCELLED' && <Badge variant="outline">Anulado</Badge>}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {/* Registrar Cobro Manual */}
+                              {canCollect && item.status !== 'PAID' && item.status !== 'CANCELLED' && (
+                                <Button
+                                  size="sm"
+                                  className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
+                                  onClick={() => setSelectedObligationForTransaction(item)}
+                                >
+                                  <DollarSign className="w-3.5 h-3.5" />
+                                  <span>Cobrar</span>
+                                </Button>
+                              )}
+
+                              {/* Editar Cuota / Descuento */}
+                              {canManage && item.status !== 'PAID' && item.status !== 'CANCELLED' && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs gap-1 border-border hover:bg-muted text-foreground"
+                                  onClick={() => setSelectedObligationForEdit(item)}
+                                  title="Editar cuota o aplicar descuento/beca"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5 text-primary" />
+                                  <span className="hidden sm:inline">Editar</span>
+                                </Button>
+                              )}
+
+                              {/* Reportar pago con voucher (apoderado) */}
+                              {isParent &&
+                                item.status !== 'PAID' &&
+                                item.status !== 'CANCELLED' &&
+                                remainingOf(item) > 0 && (
+                                  <Button
+                                    size="sm"
+                                    className="h-7 text-xs gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                                    onClick={() =>
+                                      setReportFor({
+                                        id: item.id,
+                                        title: item.title,
+                                        balance: remainingOf(item),
+                                        studentName: item.enrollment?.student
+                                          ? `${item.enrollment.student.firstNames} ${item.enrollment.student.lastNamePaternal}`
+                                          : undefined,
+                                      })
+                                    }
+                                  >
+                                    <Send className="w-3.5 h-3.5" />
+                                    <span>Reportar pago</span>
+                                  </Button>
+                                )}
+
+                              {/* Historial de cobros (vigentes y anulados) para el personal */}
+                              {canManagePayments && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs gap-1"
+                                  onClick={() => setPaymentsOf(item.id)}
+                                  title="Ver recibos, anulados y anular cobros"
+                                >
+                                  <History className="w-3.5 h-3.5 text-primary" />
+                                  <span>Cobros</span>
+                                </Button>
+                              )}
+
+                              {/* Ver Recibo / Boleta (apoderado) */}
+                              {isParent && item.transactions && item.transactions.length > 0 && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs gap-1"
+                                  onClick={() =>
+                                    setSelectedTransactionIdForReceipt(
+                                      item.transactions[item.transactions.length - 1].id,
+                                    )
+                                  }
+                                >
+                                  <FileText className="w-3.5 h-3.5 text-primary" />
+                                  <span>Boleta</span>
+                                </Button>
+                              )}
+
+                              {/* Cobranza Preventiva por WhatsApp Web */}
+                              {canCollect && item.status !== 'PAID' && item.status !== 'CANCELLED' && (
+                                <button
+                                  onClick={() => {
+                                    const link = buildWhatsAppLink(
+                                      item,
+                                      DEFAULT_WA_TEMPLATE,
+                                      activeSchool?.name ?? '',
+                                      activeSchool?.whatsappCountryCode || '51',
+                                    );
+                                    if (!link) {
+                                      toast.warning('El apoderado no tiene un número celular válido registrado.');
+                                      return;
+                                    }
+                                    window.open(link, '_blank', 'noopener');
+                                  }}
+                                  className="p-1.5 rounded text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors"
+                                  title="Enviar recordatorio por WhatsApp Web"
+                                >
+                                  <MessageCircle className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+
+                              {/* Recordatorio Individual */}
+                              {canCollect && item.status !== 'PAID' && item.status !== 'CANCELLED' && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 text-xs text-primary hover:bg-primary/10 gap-1"
+                                  onClick={() => setSelectedObligationForReminder(item)}
+                                >
+                                  <Send className="w-3.5 h-3.5" />
+                                  <span>Recordatorio</span>
+                                </Button>
+                              )}
+
+                              {/* Anular Obligación */}
+                              {canManage && item.status === 'PENDING' && item.transactions.length === 0 && (
+                                <button
+                                  onClick={() => setToCancel(item)}
+                                  disabled={isCancelling}
+                                  className="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                  title="Anular cuota (con motivo)"
+                                >
+                                  <Ban className="w-3.5 h-3.5" />
+                                </button>
                               )}
                             </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium text-foreground text-xs">{item.title}</div>
-                            <div className="text-xs text-muted-foreground">{item.concept}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className="font-extrabold text-foreground text-sm">
-                            S/ {item.amountDue.toFixed(2)}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className={`text-xs ${isOverdue ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
-                            {formatPeruShortDate(item.dueDate)}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          {item.status === 'PAID' && <Badge variant="success">Pagado</Badge>}
-                          {item.status === 'PENDING' && !isOverdue && <Badge variant="warning">Pendiente</Badge>}
-                          {item.status === 'PENDING' && isOverdue && <Badge variant="destructive">Vencido / Mora</Badge>}
-                          {item.status === 'PARTIAL' && <Badge variant="secondary">Pago Parcial</Badge>}
-                          {item.status === 'CANCELLED' && <Badge variant="outline">Anulado</Badge>}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            {/* Registrar Cobro Manual */}
-                            {canCollect && item.status !== 'PAID' && item.status !== 'CANCELLED' && (
-                              <Button
-                                size="sm"
-                                className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
-                                onClick={() => setSelectedObligationForTransaction(item)}
-                              >
-                                <DollarSign className="w-3.5 h-3.5" />
-                                <span>Cobrar</span>
-                              </Button>
-                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
+                        No hay obligaciones de pago registradas con los filtros seleccionados.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
 
-                            {/* Editar Cuota / Descuento */}
-                            {canManage && item.status !== 'PAID' && item.status !== 'CANCELLED' && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 text-xs gap-1 border-border hover:bg-muted text-foreground"
-                                onClick={() => setSelectedObligationForEdit(item)}
-                                title="Editar cuota o aplicar descuento/beca"
-                              >
-                                <Edit3 className="w-3.5 h-3.5 text-primary" />
-                                <span className="hidden sm:inline">Editar</span>
-                              </Button>
-                            )}
-
-                            {/* Reportar pago con voucher (apoderado) */}
-                            {isParent && item.status !== 'PAID' && item.status !== 'CANCELLED' && remainingOf(item) > 0 && (
-                              <Button
-                                size="sm"
-                                className="h-7 text-xs gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
-                                onClick={() =>
-                                  setReportFor({
-                                    id: item.id,
-                                    title: item.title,
-                                    balance: remainingOf(item),
-                                    studentName: item.enrollment?.student ? `${item.enrollment.student.firstNames} ${item.enrollment.student.lastNamePaternal}` : undefined,
-                                  })
-                                }
-                              >
-                                <Send className="w-3.5 h-3.5" />
-                                <span>Reportar pago</span>
-                              </Button>
-                            )}
-
-                            {/* Historial de cobros (vigentes y anulados) para el personal */}
-                            {canManagePayments && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 text-xs gap-1"
-                                onClick={() => setPaymentsOf(item.id)}
-                                title="Ver recibos, anulados y anular cobros"
-                              >
-                                <History className="w-3.5 h-3.5 text-primary" />
-                                <span>Cobros</span>
-                              </Button>
-                            )}
-
-                            {/* Ver Recibo / Boleta (apoderado) */}
-                            {isParent && item.transactions && item.transactions.length > 0 && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 text-xs gap-1"
-                                onClick={() => setSelectedTransactionIdForReceipt(item.transactions[item.transactions.length - 1].id)}
-                              >
-                                <FileText className="w-3.5 h-3.5 text-primary" />
-                                <span>Boleta</span>
-                              </Button>
-                            )}
-
-                            {/* Cobranza Preventiva por WhatsApp Web */}
-                            {canCollect && item.status !== 'PAID' && item.status !== 'CANCELLED' && (
-                              <button
-                                onClick={() => {
-                                  const link = buildWhatsAppLink(
-                                    item,
-                                    DEFAULT_WA_TEMPLATE,
-                                    activeSchool?.name ?? '',
-                                    activeSchool?.whatsappCountryCode || '51',
-                                  );
-                                  if (!link) {
-                                    toast.warning('El apoderado no tiene un número celular válido registrado.');
-                                    return;
-                                  }
-                                  window.open(link, '_blank', 'noopener');
-                                }}
-                                className="p-1.5 rounded text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors"
-                                title="Enviar recordatorio por WhatsApp Web"
-                              >
-                                <MessageCircle className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-
-                            {/* Recordatorio Individual */}
-                            {canCollect && item.status !== 'PAID' && item.status !== 'CANCELLED' && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 text-xs text-primary hover:bg-primary/10 gap-1"
-                                onClick={() => setSelectedObligationForReminder(item)}
-                              >
-                                <Send className="w-3.5 h-3.5" />
-                                <span>Recordatorio</span>
-                              </Button>
-                            )}
-
-                            {/* Anular Obligación */}
-                            {canManage && item.status === 'PENDING' && item.transactions.length === 0 && (
-                              <button
-                                onClick={() => setToCancel(item)}
-                                disabled={isCancelling}
-                                className="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                                title="Anular cuota (con motivo)"
-                              >
-                                <Ban className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
-                      No hay obligaciones de pago registradas con los filtros seleccionados.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-
-            {/* Paginación Conectada al Backend */}
-            {!isParent && obligationsMeta && (
-              <Pagination
-                currentPage={page}
-                totalPages={obligationsMeta.totalPages}
-                totalItems={obligationsMeta.total}
-                limit={limit}
-                onPageChange={(p) => setPage(p)}
-                onLimitChange={(l) => {
-                  setLimit(l);
-                  setPage(1);
-                }}
-              />
-            )}
-          </div>
+              {/* Paginación Conectada al Backend */}
+              {!isParent && obligationsMeta && (
+                <Pagination
+                  currentPage={page}
+                  totalPages={obligationsMeta.totalPages}
+                  totalItems={obligationsMeta.total}
+                  limit={limit}
+                  onPageChange={(p) => setPage(p)}
+                  onLimitChange={(l) => {
+                    setLimit(l);
+                    setPage(1);
+                  }}
+                />
+              )}
+            </div>
           </>
         )}
       </div>
@@ -731,9 +780,7 @@ export const PaymentsPage: React.FC = () => {
         />
       )}
 
-      {isBulkModalOpen && canManage && (
-        <BulkObligationModal onClose={() => setIsBulkModalOpen(false)} />
-      )}
+      {isBulkModalOpen && canManage && <BulkObligationModal onClose={() => setIsBulkModalOpen(false)} />}
 
       <ReportPaymentModal obligation={reportFor} onClose={() => setReportFor(null)} />
 
@@ -766,13 +813,15 @@ export const PaymentsPage: React.FC = () => {
       )}
 
       {isDailyCashCloseOpen && (
-        <DailyCashCloseModal
-          isOpen={isDailyCashCloseOpen}
-          onClose={() => setIsDailyCashCloseOpen(false)}
-        />
+        <DailyCashCloseModal isOpen={isDailyCashCloseOpen} onClose={() => setIsDailyCashCloseOpen(false)} />
       )}
 
-      <Modal open={statementOpen} onClose={() => setStatementOpen(false)} title="Estado de cuenta de mi familia" size="xl">
+      <Modal
+        open={statementOpen}
+        onClose={() => setStatementOpen(false)}
+        title="Estado de cuenta de mi familia"
+        size="xl"
+      >
         {loadingStatement || !myStatement ? <Skeleton className="h-48 w-full" /> : <StatementView data={myStatement} />}
       </Modal>
 

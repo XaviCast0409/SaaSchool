@@ -35,10 +35,7 @@ interface ReceiptData {
   };
 }
 
-export const ReceiptDocument: React.FC<{ receipt: ReceiptData; isPrint?: boolean }> = ({
-  receipt,
-  isPrint,
-}) => {
+export const ReceiptDocument: React.FC<{ receipt: ReceiptData; isPrint?: boolean }> = ({ receipt, isPrint }) => {
   return (
     <div className={isPrint ? 'max-w-[120mm] mx-auto p-6 space-y-4 text-black bg-white' : 'p-6 space-y-4'}>
       {receipt.voided && (
@@ -55,7 +52,11 @@ export const ReceiptDocument: React.FC<{ receipt: ReceiptData; isPrint?: boolean
       <SchoolLetterhead
         variant="centered"
         className="border-dashed"
-        title={receipt.receiptHeader.receiptType === 'RECIBO_INTERNO' ? 'Recibo interno de pago' : receipt.receiptHeader.receiptType}
+        title={
+          receipt.receiptHeader.receiptType === 'RECIBO_INTERNO'
+            ? 'Recibo interno de pago'
+            : receipt.receiptHeader.receiptType
+        }
         subtitle={<>Fecha: {formatPeruDateTime(receipt.receiptHeader.paymentDate)}</>}
         aside={<p className="text-sm font-mono font-bold text-primary">{receipt.receiptHeader.receiptNumber}</p>}
       />
@@ -102,7 +103,9 @@ export const ReceiptDocument: React.FC<{ receipt: ReceiptData; isPrint?: boolean
         {/* Amount Total */}
         <div className="flex justify-between items-center py-2 bg-emerald-500/10 px-3 rounded-lg border border-emerald-500/20 mt-3">
           <span className="font-bold text-sm text-foreground">TOTAL PAGADO:</span>
-          <span className={`font-extrabold text-lg text-emerald-600 dark:text-emerald-400 ${receipt.voided ? 'line-through opacity-60' : ''}`}>
+          <span
+            className={`font-extrabold text-lg text-emerald-600 dark:text-emerald-400 ${receipt.voided ? 'line-through opacity-60' : ''}`}
+          >
             S/ {Number(receipt.payment.amountPaid).toFixed(2)}
           </span>
         </div>
@@ -125,20 +128,19 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ transactionId, onClo
   });
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+    >
       <div className="w-full max-w-md rounded-xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border p-4 bg-card shrink-0">
           <div className="flex items-center gap-2">
             <FileCheck2 className="w-5 h-5 text-emerald-500" />
-            <h2 className="font-bold text-base text-foreground leading-none">
-              Recibo Interno de Pago
-            </h2>
+            <h2 className="font-bold text-base text-foreground leading-none">Recibo Interno de Pago</h2>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted transition-colors"
-          >
+          <button onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -150,9 +152,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ transactionId, onClo
             <Skeleton className="h-32 w-full" />
           </div>
         ) : isError || !receipt ? (
-          <div className="p-6 text-center text-sm text-destructive font-medium">
-            Error al cargar el recibo.
-          </div>
+          <div className="p-6 text-center text-sm text-destructive font-medium">Error al cargar el recibo.</div>
         ) : (
           <ReceiptDocument receipt={receipt} />
         )}
@@ -162,12 +162,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ transactionId, onClo
           <Button variant="ghost" size="sm" onClick={onClose}>
             Cerrar
           </Button>
-          <Button
-            size="sm"
-            className="gap-2"
-            onClick={print}
-            disabled={isPrinting || isLoading || isError || !receipt}
-          >
+          <Button size="sm" className="gap-2" onClick={print} disabled={isPrinting || isLoading || isError || !receipt}>
             <Printer className="w-4 h-4" />
             <span>Imprimir Recibo</span>
           </Button>

@@ -128,7 +128,8 @@ export interface ActivationImpact {
 export const useActivationImpact = (academicYearId: string | null) =>
   useQuery({
     queryKey: ['academic-years', 'activation-impact', academicYearId],
-    queryFn: async () => (await api.get<ApiResponse<ActivationImpact>>(`/academic-years/${academicYearId}/activation-impact`)).data.data,
+    queryFn: async () =>
+      (await api.get<ApiResponse<ActivationImpact>>(`/academic-years/${academicYearId}/activation-impact`)).data.data,
     enabled: !!academicYearId,
     staleTime: 0,
   });

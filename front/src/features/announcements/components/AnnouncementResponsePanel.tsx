@@ -83,7 +83,11 @@ const ParentResponses: React.FC<{ a: Announcement; closed: boolean }> = ({ a, cl
                     onClick={() => send(t.studentId, o.value)}
                     aria-pressed={selected}
                   >
-                    {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : Icon ? <Icon className="h-3.5 w-3.5" aria-hidden /> : null}
+                    {loading ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : Icon ? (
+                      <Icon className="h-3.5 w-3.5" aria-hidden />
+                    ) : null}
                     {o.label}
                   </Button>
                 );
@@ -120,7 +124,11 @@ const ResponsesModal: React.FC<{ a: Announcement | null; onClose: () => void }> 
                 })
               }
             >
-              {remind.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <BellRing className="h-4 w-4" aria-hidden />}
+              {remind.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <BellRing className="h-4 w-4" aria-hidden />
+              )}
               Recordar a quienes faltan ({pending})
             </Button>
           </div>
@@ -128,7 +136,11 @@ const ResponsesModal: React.FC<{ a: Announcement | null; onClose: () => void }> 
       }
     >
       {isLoading || !data ? (
-        <div className="space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
+        <div className="space-y-2">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-10 w-full" />
+          ))}
+        </div>
       ) : (
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2">
@@ -140,15 +152,25 @@ const ResponsesModal: React.FC<{ a: Announcement | null; onClose: () => void }> 
                 {labelOf(k)}: <strong>{v}</strong>
               </span>
             ))}
-            {data.deadline && <span className="rounded-lg bg-muted px-3 py-1.5 text-xs text-muted-foreground">Plazo: {formatPeruDate(data.deadline)}</span>}
+            {data.deadline && (
+              <span className="rounded-lg bg-muted px-3 py-1.5 text-xs text-muted-foreground">
+                Plazo: {formatPeruDate(data.deadline)}
+              </span>
+            )}
           </div>
           <div className="max-h-[50vh] overflow-y-auto rounded-lg border border-border">
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-muted text-xs text-muted-foreground">
                 <tr>
-                  <th scope="col" className="px-3 py-2 text-left font-medium">Alumno</th>
-                  <th scope="col" className="px-3 py-2 text-left font-medium">Respuesta</th>
-                  <th scope="col" className="hidden px-3 py-2 text-left font-medium sm:table-cell">Quién y cuándo</th>
+                  <th scope="col" className="px-3 py-2 text-left font-medium">
+                    Alumno
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left font-medium">
+                    Respuesta
+                  </th>
+                  <th scope="col" className="hidden px-3 py-2 text-left font-medium sm:table-cell">
+                    Quién y cuándo
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -160,7 +182,14 @@ const ResponsesModal: React.FC<{ a: Announcement | null; onClose: () => void }> 
                     </td>
                     <td className="px-3 py-2">
                       {r.response ? (
-                        <span className={cn('text-xs font-semibold', r.response === 'NOT_AUTHORIZED' ? 'text-destructive' : 'text-emerald-700 dark:text-emerald-300')}>
+                        <span
+                          className={cn(
+                            'text-xs font-semibold',
+                            r.response === 'NOT_AUTHORIZED'
+                              ? 'text-destructive'
+                              : 'text-emerald-700 dark:text-emerald-300',
+                          )}
+                        >
                           {labelOf(r.response)}
                         </span>
                       ) : (
@@ -198,7 +227,10 @@ export const AnnouncementResponsePanel: React.FC<{ announcement: Announcement }>
         {showParent ? TYPE_TITLE[a.responseType] : STAFF_TITLE[a.responseType]}
         {a.responseDeadline && (
           <span className="font-normal text-muted-foreground">
-            · {closed ? 'plazo vencido' : `hasta el ${formatPeruDate(a.responseDeadline, { day: 'numeric', month: 'long' })}`}
+            ·{' '}
+            {closed
+              ? 'plazo vencido'
+              : `hasta el ${formatPeruDate(a.responseDeadline, { day: 'numeric', month: 'long' })}`}
           </span>
         )}
       </p>
@@ -206,7 +238,14 @@ export const AnnouncementResponsePanel: React.FC<{ announcement: Announcement }>
       {stats && (
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100} aria-label="Avance de respuestas">
+            <div
+              className="h-2 flex-1 overflow-hidden rounded-full bg-muted"
+              role="progressbar"
+              aria-valuenow={percent}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="Avance de respuestas"
+            >
               <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${percent}%` }} />
             </div>
             <span className="shrink-0 text-xs text-muted-foreground">

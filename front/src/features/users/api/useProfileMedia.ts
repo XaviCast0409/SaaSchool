@@ -3,7 +3,7 @@ import { api } from '@/lib/axios';
 import { useAuthStore } from '@/store/useAuthStore';
 import { resizeImage } from '@/lib/imageResize';
 
-const postImage = async <T,>(url: string, file: File): Promise<T> => {
+const postImage = async <T>(url: string, file: File): Promise<T> => {
   const form = new FormData();
   form.append('file', file);
   return (await api.post<{ data: T }>(url, form, { headers: { 'Content-Type': 'multipart/form-data' } })).data.data;
@@ -59,12 +59,17 @@ export const useRemoveAvatar = (userId?: string) => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async () =>
-      (await api.delete<{ data: { avatarUrl: null } }>(userId ? `/media/users/${userId}/avatar` : '/media/me/avatar')).data.data,
+      (await api.delete<{ data: { avatarUrl: null } }>(userId ? `/media/users/${userId}/avatar` : '/media/me/avatar'))
+        .data.data,
     onSuccess: () => afterAvatarChange(qc, userId, null),
   });
 };
 
-function afterAvatarChange(qc: ReturnType<typeof useQueryClient>, userId: string | undefined, avatarUrl: string | null) {
+function afterAvatarChange(
+  qc: ReturnType<typeof useQueryClient>,
+  userId: string | undefined,
+  avatarUrl: string | null,
+) {
   const me = useAuthStore.getState().user;
   if (!userId || userId === me?.id) useAuthStore.getState().updateUser({ avatarUrl });
   qc.invalidateQueries({ queryKey: ['users'] });

@@ -30,11 +30,7 @@ export const FamiliesChildrenReport: React.FC<FamiliesChildrenReportProps> = ({ 
       />
 
       <div className="bg-card border border-border p-4 sm:p-6 rounded-2xl shadow-sm max-w-5xl mx-auto print:border-none print:shadow-none print:p-0">
-        <ReportHeader
-          school={school}
-          title={title}
-          subtitle={subtitle}
-        />
+        <ReportHeader school={school} title={title} subtitle={subtitle} />
 
         <div className="flex items-center justify-between text-xs font-semibold mb-3 border-b border-border pb-2 text-foreground">
           <div>
@@ -48,7 +44,10 @@ export const FamiliesChildrenReport: React.FC<FamiliesChildrenReportProps> = ({ 
 
         <div className="space-y-4">
           {families.map((fam) => (
-            <div key={fam.familyCode} className="border border-foreground/30 rounded-lg overflow-hidden break-inside-avoid">
+            <div
+              key={fam.familyCode}
+              className="border border-foreground/30 rounded-lg overflow-hidden break-inside-avoid"
+            >
               {/* Header de la Familia */}
               <div className="bg-muted/70 px-3 py-2 border-b border-foreground/30 flex flex-wrap items-center justify-between gap-2 text-xs">
                 <div className="flex items-center gap-2">
@@ -90,9 +89,7 @@ export const FamiliesChildrenReport: React.FC<FamiliesChildrenReportProps> = ({ 
                   {fam.children.map((child) => (
                     <tr key={child.documentId} className="hover:bg-muted/20 border-b border-border/50 last:border-b-0">
                       <td className="p-1.5 text-center font-mono text-muted-foreground">{child.index}</td>
-                      <td className="p-1.5 text-center font-mono text-xs text-muted-foreground">
-                        {child.studentCode}
-                      </td>
+                      <td className="p-1.5 text-center font-mono text-xs text-muted-foreground">{child.studentCode}</td>
                       <td className="p-1.5 text-center font-mono font-medium">{child.documentId}</td>
                       <td className="p-1.5 font-medium uppercase text-foreground">{child.fullName}</td>
                       <td className="p-1.5 text-center text-muted-foreground">{child.level}</td>

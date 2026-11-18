@@ -67,7 +67,13 @@ export const StudentsPage: React.FC = () => {
   const scope: 'year' | 'all' = url.scope === 'all' ? 'all' : 'year';
 
   const { selected: viewedYear } = useSelectedAcademicYear();
-  const { data: response, isLoading, isFetching, isError, refetch } = useStudents(
+  const {
+    data: response,
+    isLoading,
+    isFetching,
+    isError,
+    refetch,
+  } = useStudents(
     { scope, page: url.page, limit: url.limit, search: url.q, classroomId, educationLevel },
     view === 'students',
     { keepPrevious: true },
@@ -108,26 +114,50 @@ export const StudentsPage: React.FC = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-72">
               <DropdownMenuLabel>Cargar alumnos</DropdownMenuLabel>
-              <DropdownMenuItem icon={FileUp} hint="Alumnos, matrículas y apoderados desde la plantilla" onSelect={() => setIsStudentImportOpen(true)}>
+              <DropdownMenuItem
+                icon={FileUp}
+                hint="Alumnos, matrículas y apoderados desde la plantilla"
+                onSelect={() => setIsStudentImportOpen(true)}
+              >
                 Carga masiva (Excel)
               </DropdownMenuItem>
-              <DropdownMenuItem icon={Upload} hint="Crea o actualiza desde el listado del SIAGIE" onSelect={() => setIsNominaImportOpen(true)}>
+              <DropdownMenuItem
+                icon={Upload}
+                hint="Crea o actualiza desde el listado del SIAGIE"
+                onSelect={() => setIsNominaImportOpen(true)}
+              >
                 Importar nómina SIAGIE
               </DropdownMenuItem>
               {targetYear && (
-                <DropdownMenuItem icon={Repeat2} hint={`Pasar a los alumnos del año vigente al ${targetYear.year}`} onSelect={() => setIsRolloverOpen(true)}>
+                <DropdownMenuItem
+                  icon={Repeat2}
+                  hint={`Pasar a los alumnos del año vigente al ${targetYear.year}`}
+                  onSelect={() => setIsRolloverOpen(true)}
+                >
                   Re-matrícula {targetYear.year}
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
               <DropdownMenuLabel>Documentos por aula</DropdownMenuLabel>
-              <DropdownMenuItem icon={FileSpreadsheet} hint="Nómina oficial de matrícula (.xlsx)" onSelect={() => setIsNominaModalOpen(true)}>
+              <DropdownMenuItem
+                icon={FileSpreadsheet}
+                hint="Nómina oficial de matrícula (.xlsx)"
+                onSelect={() => setIsNominaModalOpen(true)}
+              >
                 Descargar nómina SIAGIE
               </DropdownMenuItem>
-              <DropdownMenuItem icon={QrCode} hint="Carnets con QR para imprimir en A4" onSelect={() => setIsSectionQrModalOpen(true)}>
+              <DropdownMenuItem
+                icon={QrCode}
+                hint="Carnets con QR para imprimir en A4"
+                onSelect={() => setIsSectionQrModalOpen(true)}
+              >
                 Carnets QR por sección
               </DropdownMenuItem>
-              <DropdownMenuItem icon={KeyRound} hint="Usuarios y claves de alumnos y familias" onSelect={() => setIsBulkCredentialsModalOpen(true)}>
+              <DropdownMenuItem
+                icon={KeyRound}
+                hint="Usuarios y claves de alumnos y familias"
+                onSelect={() => setIsBulkCredentialsModalOpen(true)}
+              >
                 Credenciales de acceso
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -153,7 +183,11 @@ export const StudentsPage: React.FC = () => {
 
         {/* Matriculados del año que se está viendo o todos los alumnos del colegio */}
         {view === 'students' && (
-          <div className="inline-flex rounded-lg border border-border p-0.5 text-sm" role="group" aria-label="Qué alumnos ver">
+          <div
+            className="inline-flex rounded-lg border border-border p-0.5 text-sm"
+            role="group"
+            aria-label="Qué alumnos ver"
+          >
             {(
               [
                 ['year', `Matriculados ${viewedYear?.year ?? ''}`.trim()],
@@ -181,7 +215,9 @@ export const StudentsPage: React.FC = () => {
           limit={url.flimit}
           unlinked={url.unlinked}
           onChange={(patch) => setUrl(patch)}
-          onOpenStudent={(name) => setUrl({ view: 'students', q: name, scope: 'all', page: 1, classroomId: '', level: '' })}
+          onOpenStudent={(name) =>
+            setUrl({ view: 'students', q: name, scope: 'all', page: 1, classroomId: '', level: '' })
+          }
         />
       ) : isError ? (
         <div className="p-6 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive text-center space-y-3">
@@ -236,7 +272,11 @@ export const StudentsPage: React.FC = () => {
       <QuickEnrollModal student={quickEnrollStudent} onClose={() => setQuickEnrollStudent(null)} />
 
       {isSectionQrModalOpen && (
-        <SectionQrCardsModal initialClassroomId={classroomId} schoolName={school?.name} onClose={() => setIsSectionQrModalOpen(false)} />
+        <SectionQrCardsModal
+          initialClassroomId={classroomId}
+          schoolName={school?.name}
+          onClose={() => setIsSectionQrModalOpen(false)}
+        />
       )}
 
       {isNominaModalOpen && (

@@ -28,16 +28,19 @@ export const TemporaryCredentialsDocument: React.FC<{
   isPrint?: boolean;
 }> = ({ title, description, credentials, isPrint }) => (
   <div className={isPrint ? 'p-6 space-y-5 text-black bg-white max-w-2xl mx-auto' : 'space-y-5'}>
-    {isPrint && <SchoolLetterhead title="Credenciales de acceso" subtitle={new Date().toLocaleDateString('es-PE', { timeZone: 'America/Lima' })} />}
+    {isPrint && (
+      <SchoolLetterhead
+        title="Credenciales de acceso"
+        subtitle={new Date().toLocaleDateString('es-PE', { timeZone: 'America/Lima' })}
+      />
+    )}
     {/* Header */}
     <div className="flex items-center gap-3 border-b border-border pb-3">
       <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-500/20 shrink-0">
         <KeyRound className="w-5 h-5" />
       </div>
       <div>
-        <h3 className="text-lg font-bold tracking-tight text-foreground">
-          {title}
-        </h3>
+        <h3 className="text-lg font-bold tracking-tight text-foreground">{title}</h3>
         <p className="text-xs text-muted-foreground mt-0.5">
           {description || 'Credenciales temporales de acceso al sistema'}
         </p>
@@ -48,7 +51,8 @@ export const TemporaryCredentialsDocument: React.FC<{
     <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-3.5 flex items-start gap-3 text-amber-800 dark:text-amber-200 text-xs leading-relaxed">
       <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
       <span>
-        Estas contraseñas solo se muestran una vez. Entrégalas de forma personal; el sistema pedirá cambiarlas en el primer ingreso.
+        Estas contraseñas solo se muestran una vez. Entrégalas de forma personal; el sistema pedirá cambiarlas en el
+        primer ingreso.
       </span>
     </div>
 
@@ -65,15 +69,9 @@ export const TemporaryCredentialsDocument: React.FC<{
         <tbody className="divide-y divide-border">
           {credentials.map((cred, idx) => (
             <tr key={idx} className="hover:bg-muted/30 transition-colors">
-              <td className="py-2.5 px-3 font-medium text-foreground">
-                {cred.name}
-              </td>
-              <td className="py-2.5 px-3 text-muted-foreground font-mono">
-                {cred.login}
-              </td>
-              <td className="py-2.5 px-3 font-mono font-bold text-foreground">
-                {cred.password}
-              </td>
+              <td className="py-2.5 px-3 font-medium text-foreground">{cred.name}</td>
+              <td className="py-2.5 px-3 text-muted-foreground font-mono">{cred.login}</td>
+              <td className="py-2.5 px-3 font-mono font-bold text-foreground">{cred.password}</td>
             </tr>
           ))}
           {credentials.length === 0 && (
@@ -133,9 +131,7 @@ export const TemporaryCredentialsDialog: React.FC<Props> = ({
                     <KeyRound className="w-5 h-5" />
                   </div>
                   <div>
-                    <Dialog.Title className="text-lg font-bold tracking-tight">
-                      {title}
-                    </Dialog.Title>
+                    <Dialog.Title className="text-lg font-bold tracking-tight">{title}</Dialog.Title>
                     <Dialog.Description className="text-xs text-muted-foreground mt-0.5">
                       {description || 'Credenciales temporales de acceso al sistema'}
                     </Dialog.Description>
@@ -156,7 +152,8 @@ export const TemporaryCredentialsDialog: React.FC<Props> = ({
               <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-3.5 flex items-start gap-3 text-amber-800 dark:text-amber-200 text-xs leading-relaxed">
                 <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                 <span>
-                  Estas contraseñas solo se muestran una vez. Entrégalas de forma personal; el sistema pedirá cambiarlas en el primer ingreso.
+                  Estas contraseñas solo se muestran una vez. Entrégalas de forma personal; el sistema pedirá cambiarlas
+                  en el primer ingreso.
                 </span>
               </div>
 
@@ -175,15 +172,9 @@ export const TemporaryCredentialsDialog: React.FC<Props> = ({
                     <tbody className="divide-y divide-border">
                       {credentials.map((cred, idx) => (
                         <tr key={idx} className="hover:bg-muted/30 transition-colors">
-                          <td className="py-2.5 px-3 font-medium text-foreground">
-                            {cred.name}
-                          </td>
-                          <td className="py-2.5 px-3 text-muted-foreground">
-                            {cred.login}
-                          </td>
-                          <td className="py-2.5 px-3 font-mono font-bold text-foreground">
-                            {cred.password}
-                          </td>
+                          <td className="py-2.5 px-3 font-medium text-foreground">{cred.name}</td>
+                          <td className="py-2.5 px-3 text-muted-foreground">{cred.login}</td>
+                          <td className="py-2.5 px-3 font-mono font-bold text-foreground">{cred.password}</td>
                           <td className="py-2.5 px-3 text-right">
                             <Button
                               type="button"
@@ -231,11 +222,7 @@ export const TemporaryCredentialsDialog: React.FC<Props> = ({
                   <Printer className="w-4 h-4" />
                   <span>Imprimir</span>
                 </Button>
-                <Button
-                  type="button"
-                  className="h-9 text-xs font-semibold"
-                  onClick={onClose}
-                >
+                <Button type="button" className="h-9 text-xs font-semibold" onClick={onClose}>
                   Cerrar
                 </Button>
               </div>
@@ -246,12 +233,7 @@ export const TemporaryCredentialsDialog: React.FC<Props> = ({
 
       {isPrinting && (
         <PrintPortal>
-          <TemporaryCredentialsDocument
-            title={title}
-            description={description}
-            credentials={credentials}
-            isPrint
-          />
+          <TemporaryCredentialsDocument title={title} description={description} credentials={credentials} isPrint />
         </PrintPortal>
       )}
     </>

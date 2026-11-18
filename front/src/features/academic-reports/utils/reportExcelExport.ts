@@ -22,23 +22,23 @@ import {
 // ============================================================================
 
 const PALETTE = {
-  headerBg: 'FF1E3A8A',       // Azul Marino Institucional Oscuro
-  headerText: 'FFFFFFFF',     // Blanco
-  subHeaderBg: 'FFDBEAFE',    // Azul Hielo Suave (Ice Blue)
-  subHeaderText: 'FF1E3A8A',  // Azul Marino
-  infoBg: 'FFF8FAFC',         // Gris Pizarra Muy Suave
-  infoText: 'FF334155',       // Pizarra Oscuro
-  tableHeaderBg: 'FFF1F5F9',  // Fondo Cabecera Secundaria
+  headerBg: 'FF1E3A8A', // Azul Marino Institucional Oscuro
+  headerText: 'FFFFFFFF', // Blanco
+  subHeaderBg: 'FFDBEAFE', // Azul Hielo Suave (Ice Blue)
+  subHeaderText: 'FF1E3A8A', // Azul Marino
+  infoBg: 'FFF8FAFC', // Gris Pizarra Muy Suave
+  infoText: 'FF334155', // Pizarra Oscuro
+  tableHeaderBg: 'FFF1F5F9', // Fondo Cabecera Secundaria
   tableHeaderText: 'FF0F172A',
-  zebraBg: 'FFF8FAFC',        // Cebra fila impar
+  zebraBg: 'FFF8FAFC', // Cebra fila impar
   white: 'FFFFFFFF',
-  borderLight: 'FFCBD5E1',    // Gris Borde Cuadrícula
-  borderDark: 'FF94A3B8',     // Borde Cabeceras
-  gradeFail: 'FFDC2626',      // Rojo para notas desaprobadas (< 10.5)
-  gradePass: 'FF1E3A8A',      // Azul para notas aprobadas
-  tercioSup: 'FF15803D',      // Verde Tercio Superior
-  tercioMed: 'FFB45309',      // Ámbar Tercio Medio
-  tercioInf: 'FF64748B',      // Pizarra Tercio Inferior
+  borderLight: 'FFCBD5E1', // Gris Borde Cuadrícula
+  borderDark: 'FF94A3B8', // Borde Cabeceras
+  gradeFail: 'FFDC2626', // Rojo para notas desaprobadas (< 10.5)
+  gradePass: 'FF1E3A8A', // Azul para notas aprobadas
+  tercioSup: 'FF15803D', // Verde Tercio Superior
+  tercioMed: 'FFB45309', // Ámbar Tercio Medio
+  tercioInf: 'FF64748B', // Pizarra Tercio Inferior
 };
 
 const BORDERS = {
@@ -105,13 +105,7 @@ const saveWorkbook = async (workbook: ExcelJS.Workbook, filename: string): Promi
 /**
  * Combina un rango en la hoja garantizando que no sea degenerado o invertido
  */
-const safeMerge = (
-  ws: ExcelJS.Worksheet,
-  top: number,
-  left: number,
-  bottom: number,
-  right: number,
-) => {
+const safeMerge = (ws: ExcelJS.Worksheet, top: number, left: number, bottom: number, right: number) => {
   if (top <= bottom && left <= right && (top !== bottom || left !== right)) {
     ws.mergeCells(top, left, bottom, right);
   }
@@ -492,8 +486,8 @@ export const exportConsolidatedGradesExcel = async (data: ConsolidatedGradesRepo
   });
 
   // 7. Configuración de Columnas y Anchos Óptimos
-  ws.getColumn(1).width = 5;   // N°
-  ws.getColumn(2).width = 38;  // APELLIDOS Y NOMBRES
+  ws.getColumn(1).width = 5; // N°
+  ws.getColumn(2).width = 38; // APELLIDOS Y NOMBRES
   if (hasCourses) {
     courses.forEach((_, idx) => {
       ws.getColumn(3 + idx).width = 15;
@@ -792,15 +786,15 @@ export const exportMeritClassroomExcel = async (data: MeritClassroomReportData):
   });
 
   // Anchos de columna
-  ws.getColumn(1).width = 7;   // Puesto
-  ws.getColumn(2).width = 36;  // Apellidos
-  ws.getColumn(3).width = 10;  // Sexo
-  ws.getColumn(4).width = 12;  // Promedio
-  ws.getColumn(5).width = 10;  // Puntaje
-  ws.getColumn(6).width = 9;   // Aprob
-  ws.getColumn(7).width = 9;   // Desap
-  ws.getColumn(8).width = 8;   // SN
-  ws.getColumn(9).width = 11;  // Conducta
+  ws.getColumn(1).width = 7; // Puesto
+  ws.getColumn(2).width = 36; // Apellidos
+  ws.getColumn(3).width = 10; // Sexo
+  ws.getColumn(4).width = 12; // Promedio
+  ws.getColumn(5).width = 10; // Puntaje
+  ws.getColumn(6).width = 9; // Aprob
+  ws.getColumn(7).width = 9; // Desap
+  ws.getColumn(8).width = 8; // SN
+  ws.getColumn(9).width = 11; // Conducta
   ws.getColumn(10).width = 12; // Tercio
 
   ws.views = [{ state: 'frozen', xSplit: 2, ySplit: 8 }];
@@ -946,7 +940,10 @@ export const exportMeritGradeExcel = async (data: MeritGradeReportData): Promise
     ws.getCell(currentRow, 10).alignment = { horizontal: 'center' };
 
     ws.getCell(currentRow, 11).value = s.tercio ?? '';
-    ws.getCell(currentRow, 11).font = { bold: true, color: { argb: s.tercio === 'SUP' ? PALETTE.tercioSup : PALETTE.tercioInf } };
+    ws.getCell(currentRow, 11).font = {
+      bold: true,
+      color: { argb: s.tercio === 'SUP' ? PALETTE.tercioSup : PALETTE.tercioInf },
+    };
     ws.getCell(currentRow, 11).alignment = { horizontal: 'center' };
 
     ws.getCell(currentRow, 12).value = s.quinto ?? '';
@@ -1040,7 +1037,9 @@ export const exportMeritGradeExcel = async (data: MeritGradeReportData): Promise
     } else if (idx === 3) {
       ws.getCell(r, 5).value = 'Sin Tercio:';
       ws.getCell(r, 6).value = statistics.tercios.withoutTercio?.total ?? 0;
-      ws.getCell(r, 7).value = statistics.tercios.withoutTercio?.percent ? `${statistics.tercios.withoutTercio.percent}%` : '0%';
+      ws.getCell(r, 7).value = statistics.tercios.withoutTercio?.percent
+        ? `${statistics.tercios.withoutTercio.percent}%`
+        : '0%';
       safeMerge(ws, r, 8, r, 9);
       ws.getCell(r, 8).value = '-';
       safeMerge(ws, r, 10, r, 12);
@@ -1253,7 +1252,8 @@ export const exportConductCommentsExcel = async (data: ConductCommentsReportData
 
     ws.getCell(currentRow, 3).value = '';
 
-    ws.getCell(currentRow, 4).value = `${classroom.tutorTeacher ? classroom.tutorTeacher.split(' ')[0] : 'Docente'} | ${dateStr} ${timeStr}`;
+    ws.getCell(currentRow, 4).value =
+      `${classroom.tutorTeacher ? classroom.tutorTeacher.split(' ')[0] : 'Docente'} | ${dateStr} ${timeStr}`;
     ws.getCell(currentRow, 4).font = { size: 8, color: { argb: 'FF64748B' } };
     ws.getCell(currentRow, 4).alignment = { horizontal: 'center', vertical: 'middle' };
 
@@ -1275,7 +1275,6 @@ export const exportConductCommentsExcel = async (data: ConductCommentsReportData
 
   await saveWorkbook(wb, `0030_Conducta_${classroom.grade}_${classroom.section}_B${periodNumber}.xlsx`);
 };
-
 
 // ============================================================================
 // REPORTE 0011: PADRÓN OFICIAL DE ALUMNOS POR SALÓN
@@ -1332,7 +1331,11 @@ export const exportClassroomRosterExcel = async (data: ClassroomRosterReportData
     cell.value = h;
     cell.font = { bold: true, color: { argb: PALETTE.headerText } };
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: PALETTE.headerBg } };
-    cell.alignment = { horizontal: idx === 3 || idx === 7 ? 'left' : 'center', vertical: 'middle', indent: idx === 3 || idx === 7 ? 1 : 0 };
+    cell.alignment = {
+      horizontal: idx === 3 || idx === 7 ? 'left' : 'center',
+      vertical: 'middle',
+      indent: idx === 3 || idx === 7 ? 1 : 0,
+    };
     cell.border = BORDERS.header;
   });
 
@@ -1400,9 +1403,7 @@ export const exportClassroomRosterExcel = async (data: ClassroomRosterReportData
 // ============================================================================
 // REPORTE 0001: LISTADO DE FAMILIAS POR ESTADO
 // ============================================================================
-export const exportFamiliesByStateExcel = async (
-  data: FamiliesByStateReportData,
-): Promise<void> => {
+export const exportFamiliesByStateExcel = async (data: FamiliesByStateReportData): Promise<void> => {
   const wb = await newWorkbook();
   wb.creator = 'KIPUX';
   wb.created = new Date();
@@ -1488,12 +1489,16 @@ export const exportFamiliesByStateExcel = async (
     ws.getCell(currentRow, 5).value = fam.motherName;
     ws.getCell(currentRow, 5).alignment = { horizontal: 'left', indent: 1 };
 
-    const contactPhone = fam.fatherPhone !== '—' ? fam.fatherPhone : fam.motherPhone !== '—' ? fam.motherPhone : fam.guardianPhone;
+    const contactPhone =
+      fam.fatherPhone !== '—' ? fam.fatherPhone : fam.motherPhone !== '—' ? fam.motherPhone : fam.guardianPhone;
     ws.getCell(currentRow, 6).value = contactPhone;
     ws.getCell(currentRow, 6).alignment = { horizontal: 'center' };
 
     ws.getCell(currentRow, 7).value = fam.state;
-    ws.getCell(currentRow, 7).font = { bold: true, color: { argb: fam.state === 'REGISTERED' ? PALETTE.tercioSup : PALETTE.gradeFail } };
+    ws.getCell(currentRow, 7).font = {
+      bold: true,
+      color: { argb: fam.state === 'REGISTERED' ? PALETTE.tercioSup : PALETTE.gradeFail },
+    };
     ws.getCell(currentRow, 7).alignment = { horizontal: 'center' };
 
     ws.getCell(currentRow, 8).value = fam.childrenCount;
@@ -1532,9 +1537,7 @@ export const exportFamiliesByStateExcel = async (
 // ============================================================================
 // REPORTE 0002: LISTADO DE FAMILIAS E HIJOS
 // ============================================================================
-export const exportFamiliesChildrenExcel = async (
-  data: FamiliesChildrenReportData,
-): Promise<void> => {
+export const exportFamiliesChildrenExcel = async (data: FamiliesChildrenReportData): Promise<void> => {
   const wb = await newWorkbook();
   wb.creator = 'KIPUX';
   wb.created = new Date();
@@ -1668,9 +1671,7 @@ export const exportFamiliesChildrenExcel = async (
 // ============================================================================
 // REPORTE 0003: LISTADO DE FAMILIAS Y PARIENTES (DIRECTORIO INSTITUCIONAL)
 // ============================================================================
-export const exportFamiliesRelativesExcel = async (
-  data: FamiliesRelativesReportData,
-): Promise<void> => {
+export const exportFamiliesRelativesExcel = async (data: FamiliesRelativesReportData): Promise<void> => {
   const wb = await newWorkbook();
   wb.creator = 'KIPUX';
   wb.created = new Date();
@@ -1803,9 +1804,7 @@ export const exportFamiliesRelativesExcel = async (
 // ============================================================================
 // REPORTE 0019: LISTADO DE CUMPLEAÑOS DEL ALUMNO
 // ============================================================================
-export const exportStudentBirthdaysExcel = async (
-  data: StudentBirthdaysReportData,
-): Promise<void> => {
+export const exportStudentBirthdaysExcel = async (data: StudentBirthdaysReportData): Promise<void> => {
   const wb = await newWorkbook();
   wb.creator = 'KIPUX';
   wb.created = new Date();
@@ -1927,4 +1926,3 @@ export const exportStudentBirthdaysExcel = async (
 
   await saveWorkbook(wb, `0019_Cumpleanos_${monthName}.xlsx`);
 };
-

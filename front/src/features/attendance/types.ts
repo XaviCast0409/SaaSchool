@@ -1,9 +1,5 @@
 export type AttendanceStatus =
-  | 'PRESENT'
-  | 'ABSENT_JUSTIFIED'
-  | 'ABSENT_UNJUSTIFIED'
-  | 'LATE_JUSTIFIED'
-  | 'LATE_UNJUSTIFIED';
+  'PRESENT' | 'ABSENT_JUSTIFIED' | 'ABSENT_UNJUSTIFIED' | 'LATE_JUSTIFIED' | 'LATE_UNJUSTIFIED';
 
 export interface AttendanceRecord {
   id: string;
@@ -259,12 +255,7 @@ export interface CloseAttendanceResult {
   message: string;
 }
 
-export type JustificationReason =
-  | 'MEDICAL'
-  | 'FAMILY'
-  | 'BEREAVEMENT'
-  | 'TRANSPORT'
-  | 'OTHER';
+export type JustificationReason = 'MEDICAL' | 'FAMILY' | 'BEREAVEMENT' | 'TRANSPORT' | 'OTHER';
 
 export type JustificationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
@@ -317,10 +308,7 @@ export interface ReviewJustificationPayload {
   reviewNote?: string | null;
 }
 
-export type AttendanceAlertReason =
-  | 'CONSECUTIVE_ABSENCES'
-  | 'MONTHLY_ABSENCE_RATE'
-  | 'REPEATED_LATENESS';
+export type AttendanceAlertReason = 'CONSECUTIVE_ABSENCES' | 'MONTHLY_ABSENCE_RATE' | 'REPEATED_LATENESS';
 
 export const RISK_REASON_LABELS: Record<AttendanceAlertReason, string> = {
   CONSECUTIVE_ABSENCES: 'Faltas injustificadas consecutivas',

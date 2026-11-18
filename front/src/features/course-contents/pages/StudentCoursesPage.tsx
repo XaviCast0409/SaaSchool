@@ -1,15 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { formatEducationLevel } from '@/lib/utils';
 import { useSearchParams } from 'react-router-dom';
-import {
-  GraduationCap,
-  Search,
-  LayoutGrid,
-  List,
-  Layers,
-  AlertCircle,
-  X,
-} from 'lucide-react';
+import { GraduationCap, Search, LayoutGrid, List, Layers, AlertCircle, X } from 'lucide-react';
 import { useParentStore } from '@/store/useParentStore';
 import { useGetMyChildren } from '@/features/students/api/useStudents';
 import { useGetStudentCourses, useGetStudentTasks } from '../api/useCourseContents';
@@ -29,9 +21,7 @@ import { VirtualClassroomSupervisionView } from '../components/supervision/Virtu
 export const StudentCoursesPage: React.FC = () => {
   const { user } = useAuthStore();
   const isAdminOrStaff =
-    user?.role === 'SCHOOL_ADMIN' ||
-    user?.role === 'SUPER_ADMIN' ||
-    user?.role === 'ADMINISTRATIVE';
+    user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'ADMINISTRATIVE';
 
   // Dirección y Secretaría supervisan; familias y alumnos ven sus cursos (componentes separados: hooks sin condiciones)
   if (isAdminOrStaff) {
@@ -57,9 +47,7 @@ const FamilyCoursesView: React.FC = () => {
 
   const activeChild = children.find((c) => c.id === selectedChildId) || children[0] || null;
 
-  const { data: studentCourses, isLoading: loadingCourses } = useGetStudentCourses(
-    activeChild?.id,
-  );
+  const { data: studentCourses, isLoading: loadingCourses } = useGetStudentCourses(activeChild?.id);
   const { data: studentTasks } = useGetStudentTasks(activeChild?.id);
 
   const [selectedCourse, setSelectedCourse] = useState<StudentCourseAssignment | null>(null);
@@ -202,11 +190,7 @@ const FamilyCoursesView: React.FC = () => {
 
       {/* 2. Selector Multi-Hijo si aplica */}
       {children.length > 1 && (
-        <ChildSwitcher
-          childrenList={children}
-          selectedId={activeChild?.id || ''}
-          onSelect={setSelectedChildId}
-        />
+        <ChildSwitcher childrenList={children} selectedId={activeChild?.id || ''} onSelect={setSelectedChildId} />
       )}
 
       {/* 3. Barra de Estadísticas y Métricas Clave */}
@@ -331,13 +315,7 @@ const FamilyCoursesView: React.FC = () => {
           </Button>
         </Card>
       ) : (
-        <div
-          className={
-            viewMode === 'grid'
-              ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
-              : 'space-y-3'
-          }
-        >
+        <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-3'}>
           {filteredAssignments.map((assignment) => (
             <StudentCourseCard
               key={assignment.id}

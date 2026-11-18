@@ -8,7 +8,7 @@ function describeCameraError(err: unknown): string {
   const errString = String(
     (err as { name?: string; message?: string })?.message
       ? `${(err as { name?: string }).name ?? ''} ${(err as { message: string }).message}`
-      : err ?? ''
+      : (err ?? ''),
   );
 
   if (/NotAllowedError|Permission|denied/i.test(errString)) {
@@ -31,11 +31,7 @@ interface CameraQrScannerProps {
   isProcessing?: boolean;
 }
 
-export const CameraQrScanner: React.FC<CameraQrScannerProps> = ({
-  onScan,
-  isActive,
-  isProcessing = false,
-}) => {
+export const CameraQrScanner: React.FC<CameraQrScannerProps> = ({ onScan, isActive, isProcessing = false }) => {
   const [cameras, setCameras] = useState<CameraDevice[]>([]);
   // Cámara elegida a mano por el usuario. Vacío = dejar que el navegador elija la trasera.
   const [selectedCameraId, setSelectedCameraId] = useState<string>('');
@@ -137,7 +133,7 @@ export const CameraQrScanner: React.FC<CameraQrScannerProps> = ({
           },
           () => {
             // Ignorar errores de escaneo cuadro por cuadro
-          }
+          },
         );
       } catch (err: unknown) {
         await stopScanner();
@@ -165,9 +161,7 @@ export const CameraQrScanner: React.FC<CameraQrScannerProps> = ({
         const devices = await navigator.mediaDevices.enumerateDevices();
         if (cancelled) return;
         setCameras(
-          devices
-            .filter((d) => d.kind === 'videoinput' && d.deviceId)
-            .map((d) => ({ id: d.deviceId, label: d.label }))
+          devices.filter((d) => d.kind === 'videoinput' && d.deviceId).map((d) => ({ id: d.deviceId, label: d.label })),
         );
       } catch {
         // Sin lista de cámaras: el selector simplemente no se muestra

@@ -18,7 +18,7 @@ export const useChangePassword = () => {
     mutationFn: async (payload: ChangePasswordPayload): Promise<ChangePasswordResponse> => {
       const response = await api.post<{ status: string; data: ChangePasswordResponse }>(
         '/auth/change-password',
-        payload
+        payload,
       );
       return response.data.data;
     },

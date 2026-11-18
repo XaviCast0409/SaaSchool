@@ -16,7 +16,13 @@ import {
   useReviewCash,
   useVoidExpense,
 } from '../api/useCash';
-import { EXPENSE_CATEGORY_LABEL, EXPENSE_DOCUMENT_LABEL, personName, type CashExpense, type CashSessionStatus } from '../types';
+import {
+  EXPENSE_CATEGORY_LABEL,
+  EXPENSE_DOCUMENT_LABEL,
+  personName,
+  type CashExpense,
+  type CashSessionStatus,
+} from '../types';
 import { ExpensesList, MethodTotals, PaymentsList, soles } from './CashMovements';
 import { ReasonDialog } from './ReasonDialog';
 import { ReceiptModal } from './ReceiptModal';
@@ -24,7 +30,10 @@ import { ReceiptModal } from './ReceiptModal';
 const selectCls =
   'flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring';
 
-export const SESSION_STATUS: Record<CashSessionStatus, { label: string; variant: 'success' | 'warning' | 'secondary' }> = {
+export const SESSION_STATUS: Record<
+  CashSessionStatus,
+  { label: string; variant: 'success' | 'warning' | 'secondary' }
+> = {
   OPEN: { label: 'Abierta', variant: 'warning' },
   CLOSED: { label: 'Cerrada (por revisar)', variant: 'secondary' },
   REVIEWED: { label: 'Revisada', variant: 'success' },
@@ -51,9 +60,24 @@ export const ExpenseModal: React.FC<{ open: boolean; availableCash: number; onCl
   onClose,
 }) => {
   const create = useCreateExpense();
-  const [form, setForm] = useState({ category: 'UTILES_OFICINA', description: '', amount: '', beneficiary: '', documentType: 'BOLETA', documentNumber: '' });
+  const [form, setForm] = useState({
+    category: 'UTILES_OFICINA',
+    description: '',
+    amount: '',
+    beneficiary: '',
+    documentType: 'BOLETA',
+    documentNumber: '',
+  });
   useEffect(() => {
-    if (open) setForm({ category: 'UTILES_OFICINA', description: '', amount: '', beneficiary: '', documentType: 'BOLETA', documentNumber: '' });
+    if (open)
+      setForm({
+        category: 'UTILES_OFICINA',
+        description: '',
+        amount: '',
+        beneficiary: '',
+        documentType: 'BOLETA',
+        documentNumber: '',
+      });
   }, [open]);
   const amount = Number(form.amount);
   const tooMuch = amount > availableCash;
@@ -98,11 +122,19 @@ export const ExpenseModal: React.FC<{ open: boolean; availableCash: number; onCl
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="space-y-1 text-xs font-semibold sm:col-span-2">
           Descripción
-          <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Ej: Compra de papel bond A4" />
+          <Input
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            placeholder="Ej: Compra de papel bond A4"
+          />
         </label>
         <label className="space-y-1 text-xs font-semibold">
           Categoría
-          <select className={selectCls} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+          <select
+            className={selectCls}
+            value={form.category}
+            onChange={(e) => setForm({ ...form, category: e.target.value })}
+          >
             {Object.entries(EXPENSE_CATEGORY_LABEL).map(([k, v]) => (
               <option key={k} value={k}>
                 {v}
@@ -112,16 +144,32 @@ export const ExpenseModal: React.FC<{ open: boolean; availableCash: number; onCl
         </label>
         <label className="space-y-1 text-xs font-semibold">
           Monto (S/)
-          <Input type="number" step="0.01" min="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
-          {tooMuch && <span className="block font-normal text-destructive">Supera el efectivo disponible en tu caja.</span>}
+          <Input
+            type="number"
+            step="0.01"
+            min="0"
+            value={form.amount}
+            onChange={(e) => setForm({ ...form, amount: e.target.value })}
+          />
+          {tooMuch && (
+            <span className="block font-normal text-destructive">Supera el efectivo disponible en tu caja.</span>
+          )}
         </label>
         <label className="space-y-1 text-xs font-semibold">
           Pagado a (opcional)
-          <Input value={form.beneficiary} onChange={(e) => setForm({ ...form, beneficiary: e.target.value })} placeholder="Ej: Librería San Martín" />
+          <Input
+            value={form.beneficiary}
+            onChange={(e) => setForm({ ...form, beneficiary: e.target.value })}
+            placeholder="Ej: Librería San Martín"
+          />
         </label>
         <label className="space-y-1 text-xs font-semibold">
           Comprobante
-          <select className={selectCls} value={form.documentType} onChange={(e) => setForm({ ...form, documentType: e.target.value })}>
+          <select
+            className={selectCls}
+            value={form.documentType}
+            onChange={(e) => setForm({ ...form, documentType: e.target.value })}
+          >
             {Object.entries(EXPENSE_DOCUMENT_LABEL).map(([k, v]) => (
               <option key={k} value={k}>
                 {v}
@@ -132,7 +180,11 @@ export const ExpenseModal: React.FC<{ open: boolean; availableCash: number; onCl
         {form.documentType !== 'SIN_COMPROBANTE' && (
           <label className="space-y-1 text-xs font-semibold sm:col-span-2">
             N° de comprobante (opcional)
-            <Input value={form.documentNumber} onChange={(e) => setForm({ ...form, documentNumber: e.target.value })} placeholder="Ej: B001-000123" />
+            <Input
+              value={form.documentNumber}
+              onChange={(e) => setForm({ ...form, documentNumber: e.target.value })}
+              placeholder="Ej: B001-000123"
+            />
           </label>
         )}
       </div>
@@ -170,7 +222,11 @@ export const CloseCashModal: React.FC<{
       {
         onSuccess: (s) => {
           const d = Number(s.difference ?? 0);
-          toast.success(d === 0 ? 'Caja cerrada y cuadrada.' : `Caja cerrada con ${d > 0 ? 'sobrante' : 'faltante'} de ${soles(Math.abs(d))}. Se avisó a tesorería.`);
+          toast.success(
+            d === 0
+              ? 'Caja cerrada y cuadrada.'
+              : `Caja cerrada con ${d > 0 ? 'sobrante' : 'faltante'} de ${soles(Math.abs(d))}. Se avisó a tesorería.`,
+          );
           onClose();
         },
         onError: (e) => toast.error(apiError(e, 'No se pudo cerrar la caja.')),
@@ -190,7 +246,12 @@ export const CloseCashModal: React.FC<{
             Cancelar
           </Button>
           {revealed ? (
-            <Button size="sm" disabled={!hasValue || (diff !== 0 && note.trim().length < 5)} isLoading={close.isPending} onClick={submit}>
+            <Button
+              size="sm"
+              disabled={!hasValue || (diff !== 0 && note.trim().length < 5)}
+              isLoading={close.isPending}
+              onClick={submit}
+            >
               Cerrar caja
             </Button>
           ) : (
@@ -204,10 +265,21 @@ export const CloseCashModal: React.FC<{
       <div className="space-y-3">
         <label className="block space-y-1 text-xs font-semibold">
           Efectivo contado (S/)
-          <Input type="number" step="0.01" min="0" autoFocus disabled={revealed} value={counted} onChange={(e) => setCounted(e.target.value)} />
+          <Input
+            type="number"
+            step="0.01"
+            min="0"
+            autoFocus
+            disabled={revealed}
+            value={counted}
+            onChange={(e) => setCounted(e.target.value)}
+          />
         </label>
         {!revealed ? (
-          <p className="text-xs text-muted-foreground">Cuenta billetes y monedas antes de ver el monto esperado: así el arqueo refleja lo que realmente hay en caja.</p>
+          <p className="text-xs text-muted-foreground">
+            Cuenta billetes y monedas antes de ver el monto esperado: así el arqueo refleja lo que realmente hay en
+            caja.
+          </p>
         ) : (
           <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-3 text-sm">
             <span className="text-muted-foreground">Efectivo esperado</span>
@@ -221,20 +293,21 @@ export const CloseCashModal: React.FC<{
           </div>
         )}
         {revealed && (
-        <label className="block space-y-1 text-xs font-semibold">
-          Observación {diff !== null && diff !== 0 ? '(obligatoria si hay diferencia)' : '(opcional)'}
-          <textarea
-            rows={2}
-            maxLength={500}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-normal"
-            placeholder="Ej: Faltan S/ 2 de vuelto que se dio a un apoderado"
-          />
-        </label>
+          <label className="block space-y-1 text-xs font-semibold">
+            Observación {diff !== null && diff !== 0 ? '(obligatoria si hay diferencia)' : '(opcional)'}
+            <textarea
+              rows={2}
+              maxLength={500}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-normal"
+              placeholder="Ej: Faltan S/ 2 de vuelto que se dio a un apoderado"
+            />
+          </label>
         )}
         <p className="text-xs text-muted-foreground">
-          Después de cerrar ya no podrás cobrar en esta caja ni anular sus movimientos. Si hubo un error, el tesorero puede reabrirla.
+          Después de cerrar ya no podrás cobrar en esta caja ni anular sus movimientos. Si hubo un error, el tesorero
+          puede reabrirla.
         </p>
       </div>
     </Modal>
@@ -273,7 +346,11 @@ export const CashSessionDetailModal: React.FC<{
         onClose={onClose}
         size="xl"
         title={s ? `Caja de ${personName(s.cashier)}` : 'Caja'}
-        description={s ? `Abierta el ${formatPeruDateTime(s.openedAt)}${s.closedAt ? ` · Cerrada el ${formatPeruDateTime(s.closedAt)}` : ''}` : undefined}
+        description={
+          s
+            ? `Abierta el ${formatPeruDateTime(s.openedAt)}${s.closedAt ? ` · Cerrada el ${formatPeruDateTime(s.closedAt)}` : ''}`
+            : undefined
+        }
       >
         {isLoading || !s ? (
           <Skeleton className="h-64 w-full" />
@@ -294,7 +371,10 @@ export const CashSessionDetailModal: React.FC<{
                 ['Fondo inicial', soles(s.openingAmount)],
                 ['Cobrado (todos los medios)', blind ? 'Al cerrar' : soles(s.totals.totalCollected)],
                 ['Egresos', soles(s.totals.expensesTotal)],
-                ['Efectivo esperado', blind ? 'Al cerrar' : soles(s.status === 'OPEN' ? s.totals.expectedCash : s.expectedCash)],
+                [
+                  'Efectivo esperado',
+                  blind ? 'Al cerrar' : soles(s.status === 'OPEN' ? s.totals.expectedCash : s.expectedCash),
+                ],
                 ['Efectivo contado', s.countedCash == null ? '—' : soles(s.countedCash)],
               ].map(([label, value]) => (
                 <div key={label} className="rounded-lg border border-border p-2.5">
@@ -311,21 +391,38 @@ export const CashSessionDetailModal: React.FC<{
 
             {(s.openingNote || s.closingNote || s.reviewNote) && (
               <div className="space-y-1 rounded-lg border border-border bg-muted/30 p-3 text-xs">
-                {s.openingNote && <p><strong>Nota de apertura:</strong> {s.openingNote}</p>}
-                {s.closingNote && <p><strong>Observación del cierre:</strong> {s.closingNote}</p>}
-                {s.reviewNote && <p><strong>Observación de la revisión:</strong> {s.reviewNote}</p>}
+                {s.openingNote && (
+                  <p>
+                    <strong>Nota de apertura:</strong> {s.openingNote}
+                  </p>
+                )}
+                {s.closingNote && (
+                  <p>
+                    <strong>Observación del cierre:</strong> {s.closingNote}
+                  </p>
+                )}
+                {s.reviewNote && (
+                  <p>
+                    <strong>Observación de la revisión:</strong> {s.reviewNote}
+                  </p>
+                )}
               </div>
             )}
 
             <MethodTotals byMethod={s.totals.byMethod} countByMethod={s.totals.countByMethod} hideCashTotal={blind} />
 
             <section className="space-y-2">
-              <h3 className="text-xs font-bold uppercase text-muted-foreground">Cobros ({s.totals.paymentsCount} vigentes, {s.totals.voidedCount} anulados)</h3>
+              <h3 className="text-xs font-bold uppercase text-muted-foreground">
+                Cobros ({s.totals.paymentsCount} vigentes, {s.totals.voidedCount} anulados)
+              </h3>
               <PaymentsList transactions={s.transactions} onOpenReceipt={setReceiptId} />
             </section>
             <section className="space-y-2">
               <h3 className="text-xs font-bold uppercase text-muted-foreground">Egresos de caja chica</h3>
-              <ExpensesList expenses={s.expenses} onVoid={canManage && s.status === 'OPEN' ? setExpenseToVoid : undefined} />
+              <ExpensesList
+                expenses={s.expenses}
+                onVoid={canManage && s.status === 'OPEN' ? setExpenseToVoid : undefined}
+              />
             </section>
 
             {canManage && s.status === 'CLOSED' && (
@@ -337,7 +434,11 @@ export const CashSessionDetailModal: React.FC<{
                       rows={2}
                       value={reviewNote}
                       onChange={(e) => setReviewNote(e.target.value)}
-                      placeholder={hasDiff ? 'Obligatorio: explica la diferencia (p. ej. faltante descontado al cajero)' : 'Observación (opcional)'}
+                      placeholder={
+                        hasDiff
+                          ? 'Obligatorio: explica la diferencia (p. ej. faltante descontado al cajero)'
+                          : 'Observación (opcional)'
+                      }
                       className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                     />
                     <div className="flex flex-wrap justify-end gap-2">
@@ -364,7 +465,9 @@ export const CashSessionDetailModal: React.FC<{
                     </div>
                   </>
                 ) : (
-                  <p className="text-xs text-muted-foreground">Otra persona (tesorería o Dirección) debe revisar tu propio cierre.</p>
+                  <p className="text-xs text-muted-foreground">
+                    Otra persona (tesorería o Dirección) debe revisar tu propio cierre.
+                  </p>
                 )}
               </div>
             )}

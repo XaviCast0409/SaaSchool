@@ -76,33 +76,85 @@ export const ConsolidatedGradesReport: React.FC<ConsolidatedGradesReportProps> =
       />
 
       <div className="bg-card border border-border p-4 sm:p-6 rounded-2xl shadow-sm overflow-x-auto print:border-none print:shadow-none print:p-0">
-        <ReportHeader
-          school={school}
-          title={title}
-          subtitle={subtitle}
-          tutorTeacher={classroom.tutorTeacher}
-        />
+        <ReportHeader school={school} title={title} subtitle={subtitle} tutorTeacher={classroom.tutorTeacher} />
 
         {/* Tabla Matricial de Calificaciones */}
         <div className="overflow-x-auto">
           <table className="w-full border-collapse border border-foreground/40 text-xs leading-tight">
             <thead>
               <tr className="bg-muted/60 text-foreground font-bold">
-                <th rowSpan={2} className="border border-foreground/40 p-1 w-6 text-center">N°</th>
-                <th rowSpan={2} className="border border-foreground/40 p-1.5 min-w-[200px] text-left">APELLIDOS Y NOMBRES</th>
-                <th colSpan={courses.length} className="border border-foreground/40 p-1 text-center uppercase tracking-wider">
+                <th rowSpan={2} className="border border-foreground/40 p-1 w-6 text-center">
+                  N°
+                </th>
+                <th rowSpan={2} className="border border-foreground/40 p-1.5 min-w-[200px] text-left">
+                  APELLIDOS Y NOMBRES
+                </th>
+                <th
+                  colSpan={courses.length}
+                  className="border border-foreground/40 p-1 text-center uppercase tracking-wider"
+                >
                   ASIGNATURAS / ÁREAS CURRICULARES
                 </th>
-                <th rowSpan={2} className="border border-foreground/40 p-1 w-10 text-center [writing-mode:vertical-lr] rotate-180">CONDUCTA</th>
-                <th rowSpan={2} className="border border-foreground/40 p-1 w-12 text-center [writing-mode:vertical-lr] rotate-180">PROMEDIO</th>
-                <th rowSpan={2} className="border border-foreground/40 p-1 w-10 text-center [writing-mode:vertical-lr] rotate-180">PUNTAJE</th>
-                <th rowSpan={2} className="border border-foreground/40 p-1 w-10 text-center [writing-mode:vertical-lr] rotate-180">N° DESAPROB.</th>
-                <th rowSpan={2} className="border border-foreground/40 p-1 w-10 text-center [writing-mode:vertical-lr] rotate-180">ORDEN MÉRITO</th>
-                <th rowSpan={2} className="border border-foreground/40 p-1 w-10 text-center [writing-mode:vertical-lr] rotate-180">TERCIO</th>
-                <th rowSpan={2} className="border border-foreground/40 p-1 w-8 text-center [writing-mode:vertical-lr] rotate-180">Tardanza Injust.</th>
-                <th rowSpan={2} className="border border-foreground/40 p-1 w-8 text-center [writing-mode:vertical-lr] rotate-180">Tardanza Just.</th>
-                <th rowSpan={2} className="border border-foreground/40 p-1 w-8 text-center [writing-mode:vertical-lr] rotate-180">Falta Injust.</th>
-                <th rowSpan={2} className="border border-foreground/40 p-1 w-8 text-center [writing-mode:vertical-lr] rotate-180">Falta Just.</th>
+                <th
+                  rowSpan={2}
+                  className="border border-foreground/40 p-1 w-10 text-center [writing-mode:vertical-lr] rotate-180"
+                >
+                  CONDUCTA
+                </th>
+                <th
+                  rowSpan={2}
+                  className="border border-foreground/40 p-1 w-12 text-center [writing-mode:vertical-lr] rotate-180"
+                >
+                  PROMEDIO
+                </th>
+                <th
+                  rowSpan={2}
+                  className="border border-foreground/40 p-1 w-10 text-center [writing-mode:vertical-lr] rotate-180"
+                >
+                  PUNTAJE
+                </th>
+                <th
+                  rowSpan={2}
+                  className="border border-foreground/40 p-1 w-10 text-center [writing-mode:vertical-lr] rotate-180"
+                >
+                  N° DESAPROB.
+                </th>
+                <th
+                  rowSpan={2}
+                  className="border border-foreground/40 p-1 w-10 text-center [writing-mode:vertical-lr] rotate-180"
+                >
+                  ORDEN MÉRITO
+                </th>
+                <th
+                  rowSpan={2}
+                  className="border border-foreground/40 p-1 w-10 text-center [writing-mode:vertical-lr] rotate-180"
+                >
+                  TERCIO
+                </th>
+                <th
+                  rowSpan={2}
+                  className="border border-foreground/40 p-1 w-8 text-center [writing-mode:vertical-lr] rotate-180"
+                >
+                  Tardanza Injust.
+                </th>
+                <th
+                  rowSpan={2}
+                  className="border border-foreground/40 p-1 w-8 text-center [writing-mode:vertical-lr] rotate-180"
+                >
+                  Tardanza Just.
+                </th>
+                <th
+                  rowSpan={2}
+                  className="border border-foreground/40 p-1 w-8 text-center [writing-mode:vertical-lr] rotate-180"
+                >
+                  Falta Injust.
+                </th>
+                <th
+                  rowSpan={2}
+                  className="border border-foreground/40 p-1 w-8 text-center [writing-mode:vertical-lr] rotate-180"
+                >
+                  Falta Just.
+                </th>
               </tr>
               <tr className="bg-muted/40 text-foreground font-semibold">
                 {courses.map((course) => (
@@ -119,7 +171,9 @@ export const ConsolidatedGradesReport: React.FC<ConsolidatedGradesReportProps> =
             <tbody>
               {students.map((student) => (
                 <tr key={student.enrollmentId} className="hover:bg-muted/30 transition-colors">
-                  <td className="border border-foreground/40 p-1 text-center font-mono font-medium">{student.orderIndex}</td>
+                  <td className="border border-foreground/40 p-1 text-center font-mono font-medium">
+                    {student.orderIndex}
+                  </td>
                   <td className="border border-foreground/40 p-1.5 font-medium uppercase truncate max-w-[220px]">
                     {student.fullName}
                   </td>
@@ -173,7 +227,9 @@ export const ConsolidatedGradesReport: React.FC<ConsolidatedGradesReportProps> =
             {/* Pie de Estadísticas del Curso */}
             <tfoot className="font-bold text-xs bg-muted/30">
               <tr>
-                <td colSpan={2} className="border border-foreground/40 p-1 text-right">Promedio del curso:</td>
+                <td colSpan={2} className="border border-foreground/40 p-1 text-right">
+                  Promedio del curso:
+                </td>
                 {courses.map((c) => (
                   <td key={c.id} className="border border-foreground/40 p-1 text-center font-mono">
                     {courseStats[c.id]?.average !== null ? courseStats[c.id]?.average?.toFixed(1) : '-'}
@@ -182,13 +238,23 @@ export const ConsolidatedGradesReport: React.FC<ConsolidatedGradesReportProps> =
                 <td colSpan={5} className="border border-foreground/40 p-1 text-center font-mono">
                   {(students.reduce((acc, s) => acc + (s.average || 0), 0) / (students.length || 1)).toFixed(2)}
                 </td>
-                <td className="border border-foreground/40 p-1 text-center font-mono">{totalAttendances.lateUnjustified || 0}</td>
-                <td className="border border-foreground/40 p-1 text-center font-mono">{totalAttendances.lateJustified || 0}</td>
-                <td className="border border-foreground/40 p-1 text-center font-mono">{totalAttendances.absentUnjustified || 0}</td>
-                <td className="border border-foreground/40 p-1 text-center font-mono">{totalAttendances.absentJustified || 0}</td>
+                <td className="border border-foreground/40 p-1 text-center font-mono">
+                  {totalAttendances.lateUnjustified || 0}
+                </td>
+                <td className="border border-foreground/40 p-1 text-center font-mono">
+                  {totalAttendances.lateJustified || 0}
+                </td>
+                <td className="border border-foreground/40 p-1 text-center font-mono">
+                  {totalAttendances.absentUnjustified || 0}
+                </td>
+                <td className="border border-foreground/40 p-1 text-center font-mono">
+                  {totalAttendances.absentJustified || 0}
+                </td>
               </tr>
               <tr>
-                <td colSpan={2} className="border border-foreground/40 p-1 text-right">N° de alumnos Aprobados:</td>
+                <td colSpan={2} className="border border-foreground/40 p-1 text-right">
+                  N° de alumnos Aprobados:
+                </td>
                 {courses.map((c) => (
                   <td key={c.id} className="border border-foreground/40 p-1 text-center font-mono text-foreground">
                     {courseStats[c.id]?.approvedCount ?? '-'}
@@ -197,16 +263,23 @@ export const ConsolidatedGradesReport: React.FC<ConsolidatedGradesReportProps> =
                 <td colSpan={10} className="border border-foreground/40 p-1"></td>
               </tr>
               <tr>
-                <td colSpan={2} className="border border-foreground/40 p-1 text-right">N° de alumnos Desaprobados:</td>
+                <td colSpan={2} className="border border-foreground/40 p-1 text-right">
+                  N° de alumnos Desaprobados:
+                </td>
                 {courses.map((c) => (
-                  <td key={c.id} className="border border-foreground/40 p-1 text-center font-mono text-red-600 font-bold">
+                  <td
+                    key={c.id}
+                    className="border border-foreground/40 p-1 text-center font-mono text-red-600 font-bold"
+                  >
                     {courseStats[c.id]?.failedCount ? courseStats[c.id]?.failedCount : '-'}
                   </td>
                 ))}
                 <td colSpan={10} className="border border-foreground/40 p-1"></td>
               </tr>
               <tr>
-                <td colSpan={2} className="border border-foreground/40 p-1 text-right">% de alumnos Aprobados:</td>
+                <td colSpan={2} className="border border-foreground/40 p-1 text-right">
+                  % de alumnos Aprobados:
+                </td>
                 {courses.map((c) => (
                   <td key={c.id} className="border border-foreground/40 p-1 text-center font-mono">
                     {courseStats[c.id]?.approvedPercent ?? 0}%
@@ -215,7 +288,9 @@ export const ConsolidatedGradesReport: React.FC<ConsolidatedGradesReportProps> =
                 <td colSpan={10} className="border border-foreground/40 p-1"></td>
               </tr>
               <tr>
-                <td colSpan={2} className="border border-foreground/40 p-1 text-right">% de alumnos Desaprobados:</td>
+                <td colSpan={2} className="border border-foreground/40 p-1 text-right">
+                  % de alumnos Desaprobados:
+                </td>
                 {courses.map((c) => (
                   <td key={c.id} className="border border-foreground/40 p-1 text-center font-mono text-red-600">
                     {courseStats[c.id]?.failedPercent ? `${courseStats[c.id]?.failedPercent}%` : '-'}
@@ -224,7 +299,9 @@ export const ConsolidatedGradesReport: React.FC<ConsolidatedGradesReportProps> =
                 <td colSpan={10} className="border border-foreground/40 p-1"></td>
               </tr>
               <tr>
-                <td colSpan={2} className="border border-foreground/40 p-1 text-right">Nota Máxima:</td>
+                <td colSpan={2} className="border border-foreground/40 p-1 text-right">
+                  Nota Máxima:
+                </td>
                 {courses.map((c) => (
                   <td key={c.id} className="border border-foreground/40 p-1 text-center font-mono font-bold">
                     {courseStats[c.id]?.maxScore ?? '-'}
@@ -233,7 +310,9 @@ export const ConsolidatedGradesReport: React.FC<ConsolidatedGradesReportProps> =
                 <td colSpan={10} className="border border-foreground/40 p-1"></td>
               </tr>
               <tr>
-                <td colSpan={2} className="border border-foreground/40 p-1 text-right">Nota Mínima:</td>
+                <td colSpan={2} className="border border-foreground/40 p-1 text-right">
+                  Nota Mínima:
+                </td>
                 {courses.map((c) => (
                   <td key={c.id} className="border border-foreground/40 p-1 text-center font-mono">
                     {courseStats[c.id]?.minScore ?? '-'}

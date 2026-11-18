@@ -1,7 +1,20 @@
 import { confirmDialog } from '@/components/ui/confirm';
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { AlertTriangle, CheckCircle2, ChevronDown, Clock, Loader2, Plus, RefreshCw, Save, Sparkles, Trash2, UserX, Wand2 } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ChevronDown,
+  Clock,
+  Loader2,
+  Plus,
+  RefreshCw,
+  Save,
+  Sparkles,
+  Trash2,
+  UserX,
+  Wand2,
+} from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,25 +37,38 @@ import {
 } from '../api/useScheduleGenerator';
 import { WeeklySchedule } from './WeeklySchedule';
 
-const Step: React.FC<{ n: number; title: string; subtitle: string; open: boolean; onToggle: () => void; done?: boolean; children: React.ReactNode }> = ({
-  n,
-  title,
-  subtitle,
-  open,
-  onToggle,
-  done,
-  children,
-}) => (
+const Step: React.FC<{
+  n: number;
+  title: string;
+  subtitle: string;
+  open: boolean;
+  onToggle: () => void;
+  done?: boolean;
+  children: React.ReactNode;
+}> = ({ n, title, subtitle, open, onToggle, done, children }) => (
   <Card className="overflow-hidden">
-    <button type="button" onClick={onToggle} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted/40" aria-expanded={open}>
-      <span className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold', done ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-primary/10 text-primary')}>
+    <button
+      type="button"
+      onClick={onToggle}
+      className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted/40"
+      aria-expanded={open}
+    >
+      <span
+        className={cn(
+          'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold',
+          done ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-primary/10 text-primary',
+        )}
+      >
         {done ? <CheckCircle2 className="h-4 w-4" aria-hidden /> : n}
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold text-foreground">{title}</span>
         <span className="block text-xs text-muted-foreground">{subtitle}</span>
       </span>
-      <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform', open && 'rotate-180')} aria-hidden />
+      <ChevronDown
+        className={cn('h-4 w-4 text-muted-foreground transition-transform', open && 'rotate-180')}
+        aria-hidden
+      />
     </button>
     {open && <div className="border-t border-border p-4">{children}</div>}
   </Card>
@@ -58,7 +84,8 @@ const TemplateEditor: React.FC<{ level: GeneratorSetup['levels'][number] }> = ({
     setDays(level.days);
     setSlots(level.slots);
   }, [level]);
-  const set = (i: number, patch: Partial<TemplateSlot>) => setSlots(slots.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
+  const set = (i: number, patch: Partial<TemplateSlot>) =>
+    setSlots(slots.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
   const addRow = () => {
     const last = slots[slots.length - 1];
     const toMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3));
@@ -74,7 +101,8 @@ const TemplateEditor: React.FC<{ level: GeneratorSetup['levels'][number] }> = ({
         <p className="text-sm font-semibold text-foreground">
           {LEVEL_NAME[level.level]}{' '}
           <span className="text-xs font-normal text-muted-foreground">
-            · {classCount} horas al día × {days.length} días = {classCount * days.length} horas semanales {level.custom ? '' : '(sugerida)'}
+            · {classCount} horas al día × {days.length} días = {classCount * days.length} horas semanales{' '}
+            {level.custom ? '' : '(sugerida)'}
           </span>
         </p>
         <div className="flex gap-1">
@@ -84,7 +112,10 @@ const TemplateEditor: React.FC<{ level: GeneratorSetup['levels'][number] }> = ({
               type="button"
               aria-pressed={days.includes(d)}
               onClick={() => setDays(days.includes(d) ? days.filter((x) => x !== d) : [...days, d].sort())}
-              className={cn('rounded-md border px-2 py-1 text-[11px] font-semibold', days.includes(d) ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground')}
+              className={cn(
+                'rounded-md border px-2 py-1 text-[11px] font-semibold',
+                days.includes(d) ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground',
+              )}
             >
               {SHORT_DAYS[d]}
             </button>
@@ -95,19 +126,50 @@ const TemplateEditor: React.FC<{ level: GeneratorSetup['levels'][number] }> = ({
         {slots.map((s, i) => (
           <div key={i} className="flex flex-wrap items-center gap-2">
             <span className="w-6 text-right text-[11px] text-muted-foreground">{i + 1}</span>
-            <Input type="time" className="h-8 w-28" value={s.start} onChange={(e) => set(i, { start: e.target.value })} aria-label={`Inicio fila ${i + 1}`} />
-            <Input type="time" className="h-8 w-28" value={s.end} onChange={(e) => set(i, { end: e.target.value })} aria-label={`Fin fila ${i + 1}`} />
+            <Input
+              type="time"
+              className="h-8 w-28"
+              value={s.start}
+              onChange={(e) => set(i, { start: e.target.value })}
+              aria-label={`Inicio fila ${i + 1}`}
+            />
+            <Input
+              type="time"
+              className="h-8 w-28"
+              value={s.end}
+              onChange={(e) => set(i, { end: e.target.value })}
+              aria-label={`Fin fila ${i + 1}`}
+            />
             <select
               className="h-8 rounded-md border border-input bg-background px-2 text-xs"
               value={s.kind}
-              onChange={(e) => set(i, { kind: e.target.value as TemplateSlot['kind'], label: e.target.value === 'BREAK' ? s.label || 'Recreo' : undefined })}
+              onChange={(e) =>
+                set(i, {
+                  kind: e.target.value as TemplateSlot['kind'],
+                  label: e.target.value === 'BREAK' ? s.label || 'Recreo' : undefined,
+                })
+              }
               aria-label={`Tipo fila ${i + 1}`}
             >
               <option value="CLASS">Hora de clase</option>
               <option value="BREAK">Recreo / refrigerio</option>
             </select>
-            {s.kind === 'BREAK' && <Input className="h-8 w-32" value={s.label ?? ''} maxLength={30} onChange={(e) => set(i, { label: e.target.value })} aria-label={`Nombre fila ${i + 1}`} />}
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSlots(slots.filter((_, idx) => idx !== i))} aria-label={`Quitar fila ${i + 1}`}>
+            {s.kind === 'BREAK' && (
+              <Input
+                className="h-8 w-32"
+                value={s.label ?? ''}
+                maxLength={30}
+                onChange={(e) => set(i, { label: e.target.value })}
+                aria-label={`Nombre fila ${i + 1}`}
+              />
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setSlots(slots.filter((_, idx) => idx !== i))}
+              aria-label={`Quitar fila ${i + 1}`}
+            >
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -121,7 +183,15 @@ const TemplateEditor: React.FC<{ level: GeneratorSetup['levels'][number] }> = ({
           size="sm"
           className="gap-1.5"
           disabled={save.isPending}
-          onClick={() => save.mutate({ level: level.level, days, slots }, { onSuccess: () => toast.success(`Jornada de ${LEVEL_NAME[level.level]} guardada`), onError: (e) => toast.error(apiErrorMessage(e)) })}
+          onClick={() =>
+            save.mutate(
+              { level: level.level, days, slots },
+              {
+                onSuccess: () => toast.success(`Jornada de ${LEVEL_NAME[level.level]} guardada`),
+                onError: (e) => toast.error(apiErrorMessage(e)),
+              },
+            )
+          }
         >
           <Save className="h-3.5 w-3.5" aria-hidden /> Guardar jornada
         </Button>
@@ -139,30 +209,47 @@ const PlanCoursesEditor: React.FC<{ setup: GeneratorSetup }> = ({ setup }) => {
     const map = new Map<string, { title: string; courses: GeneratorSetup['classrooms'][number]['courses'] }>();
     for (const c of setup.classrooms) {
       const key = `${c.level}-${c.grade}`;
-      if (!map.has(key)) map.set(key, { title: `${c.level === 'INITIAL' ? `${c.grade} años` : `${c.grade}.°`} de ${LEVEL_NAME[c.level]}`, courses: [] });
+      if (!map.has(key))
+        map.set(key, {
+          title: `${c.level === 'INITIAL' ? `${c.grade} años` : `${c.grade}.°`} de ${LEVEL_NAME[c.level]}`,
+          courses: [],
+        });
       const g = map.get(key)!;
-      for (const course of c.courses) if (!g.courses.some((x) => x.studyPlanCourseId && x.studyPlanCourseId === course.studyPlanCourseId)) g.courses.push(course);
+      for (const course of c.courses)
+        if (!g.courses.some((x) => x.studyPlanCourseId && x.studyPlanCourseId === course.studyPlanCourseId))
+          g.courses.push(course);
     }
     return [...map.entries()];
   }, [setup]);
   const [openKey, setOpenKey] = useState<string | null>(groups[0]?.[0] ?? null);
 
-  const patch = (id: string | null, data: { weeklyHours?: number | null; preferDoubleBlock?: boolean; maxHoursPerDay?: number; preferEarly?: boolean }) => {
-    if (!id) return toast.error('Este curso no está en el plan de estudios del grado. Agrégalo primero en “Plan de estudios”.');
+  const patch = (
+    id: string | null,
+    data: { weeklyHours?: number | null; preferDoubleBlock?: boolean; maxHoursPerDay?: number; preferEarly?: boolean },
+  ) => {
+    if (!id)
+      return toast.error(
+        'Este curso no está en el plan de estudios del grado. Agrégalo primero en “Plan de estudios”.',
+      );
     save.mutate({ id, ...data }, { onError: (e) => toast.error(apiErrorMessage(e)) });
   };
 
   return (
     <div className="space-y-2">
       <p className="text-xs text-muted-foreground">
-        Son las horas del plan de estudios (valen para todas las secciones del grado). Por defecto: bloques de 2 horas y máximo 2 horas del curso por día, así 3 h quedan como 2 + 1 en días distintos.
+        Son las horas del plan de estudios (valen para todas las secciones del grado). Por defecto: bloques de 2 horas y
+        máximo 2 horas del curso por día, así 3 h quedan como 2 + 1 en días distintos.
       </p>
       {groups.map(([key, g]) => {
         const total = g.courses.reduce((s, c) => s + (c.hours ?? 0), 0);
         const missing = g.courses.filter((c) => c.hours === null).length;
         return (
           <div key={key} className="rounded-xl border border-border">
-            <button type="button" onClick={() => setOpenKey(openKey === key ? null : key)} className="flex w-full items-center justify-between px-3 py-2 text-left text-sm">
+            <button
+              type="button"
+              onClick={() => setOpenKey(openKey === key ? null : key)}
+              className="flex w-full items-center justify-between px-3 py-2 text-left text-sm"
+            >
               <span className="font-medium text-foreground">{g.title}</span>
               <span className={cn('text-xs', missing ? 'text-amber-700 dark:text-amber-300' : 'text-muted-foreground')}>
                 {total} h/semana{missing ? ` · ${missing} curso(s) sin horas` : ''}
@@ -173,11 +260,21 @@ const PlanCoursesEditor: React.FC<{ setup: GeneratorSetup }> = ({ setup }) => {
                 <table className="w-full min-w-[560px] text-xs">
                   <thead className="bg-muted/40 text-muted-foreground">
                     <tr>
-                      <th scope="col" className="px-3 py-2 text-left font-medium">Curso</th>
-                      <th scope="col" className="px-2 py-2 font-medium">Horas/sem.</th>
-                      <th scope="col" className="px-2 py-2 font-medium">Bloques dobles</th>
-                      <th scope="col" className="px-2 py-2 font-medium">Máx. por día</th>
-                      <th scope="col" className="px-2 py-2 font-medium">Primeras horas</th>
+                      <th scope="col" className="px-3 py-2 text-left font-medium">
+                        Curso
+                      </th>
+                      <th scope="col" className="px-2 py-2 font-medium">
+                        Horas/sem.
+                      </th>
+                      <th scope="col" className="px-2 py-2 font-medium">
+                        Bloques dobles
+                      </th>
+                      <th scope="col" className="px-2 py-2 font-medium">
+                        Máx. por día
+                      </th>
+                      <th scope="col" className="px-2 py-2 font-medium">
+                        Primeras horas
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -203,7 +300,12 @@ const PlanCoursesEditor: React.FC<{ setup: GeneratorSetup }> = ({ setup }) => {
                           />
                         </td>
                         <td className="px-2 py-1.5 text-center">
-                          <input type="checkbox" checked={c.preferDoubleBlock} onChange={(e) => patch(c.studyPlanCourseId, { preferDoubleBlock: e.target.checked })} aria-label={`Bloques dobles en ${c.name}`} />
+                          <input
+                            type="checkbox"
+                            checked={c.preferDoubleBlock}
+                            onChange={(e) => patch(c.studyPlanCourseId, { preferDoubleBlock: e.target.checked })}
+                            aria-label={`Bloques dobles en ${c.name}`}
+                          />
                         </td>
                         <td className="px-2 py-1.5 text-center">
                           <select
@@ -213,12 +315,19 @@ const PlanCoursesEditor: React.FC<{ setup: GeneratorSetup }> = ({ setup }) => {
                             aria-label={`Máximo por día de ${c.name}`}
                           >
                             {[1, 2, 3, 4].map((n) => (
-                              <option key={n} value={n}>{n}</option>
+                              <option key={n} value={n}>
+                                {n}
+                              </option>
                             ))}
                           </select>
                         </td>
                         <td className="px-2 py-1.5 text-center">
-                          <input type="checkbox" checked={c.preferEarly} onChange={(e) => patch(c.studyPlanCourseId, { preferEarly: e.target.checked })} aria-label={`Primeras horas para ${c.name}`} />
+                          <input
+                            type="checkbox"
+                            checked={c.preferEarly}
+                            onChange={(e) => patch(c.studyPlanCourseId, { preferEarly: e.target.checked })}
+                            aria-label={`Primeras horas para ${c.name}`}
+                          />
                         </td>
                       </tr>
                     ))}
@@ -245,22 +354,33 @@ const AvailabilityEditor: React.FC<{ setup: GeneratorSetup }> = ({ setup }) => {
   // Filas: horas de clase de todas las jornadas (sin repetir)
   const rows = useMemo(() => {
     const map = new Map<string, { start: string; end: string }>();
-    for (const l of setup.levels) for (const s of l.slots) if (s.kind === 'CLASS') map.set(`${s.start}|${s.end}`, { start: s.start, end: s.end });
+    for (const l of setup.levels)
+      for (const s of l.slots) if (s.kind === 'CLASS') map.set(`${s.start}|${s.end}`, { start: s.start, end: s.end });
     return [...map.values()].sort((a, b) => a.start.localeCompare(b.start));
   }, [setup]);
   const days = useMemo(() => [...new Set(setup.levels.flatMap((l) => l.days))].sort(), [setup]);
-  const toggle = (key: string) => setMarked((prev) => {
-    const next = new Set(prev);
-    if (next.has(key)) next.delete(key);
-    else next.add(key);
-    return next;
-  });
+  const toggle = (key: string) =>
+    setMarked((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
 
-  if (!setup.teachers.length) return <p className="text-sm text-muted-foreground">Aún no hay docentes con carga asignada.</p>;
+  if (!setup.teachers.length)
+    return <p className="text-sm text-muted-foreground">Aún no hay docentes con carga asignada.</p>;
   return (
     <div className="space-y-3">
-      <p className="text-xs text-muted-foreground">Marca las horas en que el docente NO puede dictar (por ejemplo, si trabaja en otro colegio). Si no marcas nada, se asume que está disponible toda la jornada.</p>
-      <select className="h-9 w-full max-w-sm rounded-md border border-input bg-background px-2 text-sm" value={teacherId} onChange={(e) => setTeacherId(e.target.value)} aria-label="Docente">
+      <p className="text-xs text-muted-foreground">
+        Marca las horas en que el docente NO puede dictar (por ejemplo, si trabaja en otro colegio). Si no marcas nada,
+        se asume que está disponible toda la jornada.
+      </p>
+      <select
+        className="h-9 w-full max-w-sm rounded-md border border-input bg-background px-2 text-sm"
+        value={teacherId}
+        onChange={(e) => setTeacherId(e.target.value)}
+        aria-label="Docente"
+      >
         {setup.teachers.map((t) => (
           <option key={t.id} value={t.id}>
             {t.name} · {t.hours} h{t.unavailable.length ? ` · ${t.unavailable.length} bloque(s) no disponible(s)` : ''}
@@ -271,16 +391,22 @@ const AvailabilityEditor: React.FC<{ setup: GeneratorSetup }> = ({ setup }) => {
         <table className="text-xs">
           <thead>
             <tr>
-              <th scope="col" className="px-2 py-1 text-left font-medium text-muted-foreground">Hora</th>
+              <th scope="col" className="px-2 py-1 text-left font-medium text-muted-foreground">
+                Hora
+              </th>
               {days.map((d) => (
-                <th key={d} scope="col" className="px-1 py-1 font-medium text-muted-foreground">{SHORT_DAYS[d]}</th>
+                <th key={d} scope="col" className="px-1 py-1 font-medium text-muted-foreground">
+                  {SHORT_DAYS[d]}
+                </th>
               ))}
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.start}>
-                <td className="whitespace-nowrap px-2 py-0.5 font-mono text-[11px] text-muted-foreground">{r.start}–{r.end}</td>
+                <td className="whitespace-nowrap px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
+                  {r.start}–{r.end}
+                </td>
                 {days.map((d) => {
                   const key = `${d}|${r.start}|${r.end}`;
                   const off = marked.has(key);
@@ -291,7 +417,12 @@ const AvailabilityEditor: React.FC<{ setup: GeneratorSetup }> = ({ setup }) => {
                         onClick={() => toggle(key)}
                         aria-pressed={off}
                         aria-label={`${SHORT_DAYS[d]} ${r.start}: ${off ? 'no disponible' : 'disponible'}`}
-                        className={cn('flex h-7 w-12 items-center justify-center rounded-md border', off ? 'border-rose-500/40 bg-rose-500/15 text-rose-700 dark:text-rose-300' : 'border-border bg-emerald-500/5 text-emerald-700/60 dark:text-emerald-300/60')}
+                        className={cn(
+                          'flex h-7 w-12 items-center justify-center rounded-md border',
+                          off
+                            ? 'border-rose-500/40 bg-rose-500/15 text-rose-700 dark:text-rose-300'
+                            : 'border-border bg-emerald-500/5 text-emerald-700/60 dark:text-emerald-300/60',
+                        )}
                       >
                         {off ? <UserX className="h-3.5 w-3.5" /> : '✓'}
                       </button>
@@ -307,7 +438,15 @@ const AvailabilityEditor: React.FC<{ setup: GeneratorSetup }> = ({ setup }) => {
         size="sm"
         className="gap-1.5"
         disabled={save.isPending || !teacherId}
-        onClick={() => save.mutate({ teacherId, unavailable: [...marked] }, { onSuccess: () => toast.success('Disponibilidad guardada'), onError: (e) => toast.error(apiErrorMessage(e)) })}
+        onClick={() =>
+          save.mutate(
+            { teacherId, unavailable: [...marked] },
+            {
+              onSuccess: () => toast.success('Disponibilidad guardada'),
+              onError: (e) => toast.error(apiErrorMessage(e)),
+            },
+          )
+        }
       >
         <Save className="h-3.5 w-3.5" aria-hidden /> Guardar disponibilidad
       </Button>
@@ -344,7 +483,15 @@ const GenerateStep: React.FC<{ setup: GeneratorSetup }> = ({ setup }) => {
 
   const doApply = async () => {
     if (!result) return;
-    if (replacing && !(await confirmDialog({ title: '¿Reemplazar los horarios actuales?', description: `Se reemplazará el horario actual de ${replacing} aula(s).`, confirmText: 'Reemplazar' }))) return;
+    if (
+      replacing &&
+      !(await confirmDialog({
+        title: '¿Reemplazar los horarios actuales?',
+        description: `Se reemplazará el horario actual de ${replacing} aula(s).`,
+        confirmText: 'Reemplazar',
+      }))
+    )
+      return;
     apply.mutate(
       result.proposal.map((p) => ({ classroomId: p.classroomId, blocks: p.blocks })),
       {
@@ -374,12 +521,23 @@ const GenerateStep: React.FC<{ setup: GeneratorSetup }> = ({ setup }) => {
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="text-muted-foreground">Aulas a generar:</span>
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setSelected(new Set(setup.classrooms.map((c) => c.id)))}>Todas</Button>
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setSelected(new Set())}>Ninguna</Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs"
+            onClick={() => setSelected(new Set(setup.classrooms.map((c) => c.id)))}
+          >
+            Todas
+          </Button>
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setSelected(new Set())}>
+            Ninguna
+          </Button>
         </div>
         {byLevel.map(([level, list]) => (
           <div key={level}>
-            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{LEVEL_NAME[level]}</p>
+            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              {LEVEL_NAME[level]}
+            </p>
             <div className="flex flex-wrap gap-1.5">
               {list.map((c) => {
                 const on = selected.has(c.id);
@@ -388,13 +546,18 @@ const GenerateStep: React.FC<{ setup: GeneratorSetup }> = ({ setup }) => {
                     key={c.id}
                     type="button"
                     aria-pressed={on}
-                    onClick={() => setSelected((prev) => {
-                      const next = new Set(prev);
-                      if (on) next.delete(c.id);
-                      else next.add(c.id);
-                      return next;
-                    })}
-                    className={cn('rounded-lg border px-2.5 py-1 text-xs', on ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground')}
+                    onClick={() =>
+                      setSelected((prev) => {
+                        const next = new Set(prev);
+                        if (on) next.delete(c.id);
+                        else next.add(c.id);
+                        return next;
+                      })
+                    }
+                    className={cn(
+                      'rounded-lg border px-2.5 py-1 text-xs',
+                      on ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground',
+                    )}
                   >
                     {c.label.replace(/ de (Inicial|Primaria|Secundaria)$/, '').replace(/ \((Inicial)\)$/, '')}
                     {c.hasSchedule && <span className="ml-1 text-[10px] opacity-70">(tiene horario)</span>}
@@ -405,13 +568,18 @@ const GenerateStep: React.FC<{ setup: GeneratorSetup }> = ({ setup }) => {
           </div>
         ))}
         <p className="text-[11px] text-muted-foreground">
-          Las aulas que no elijas conservan su horario y el generador lo respeta (sus docentes se consideran ocupados en esas horas).
+          Las aulas que no elijas conservan su horario y el generador lo respeta (sus docentes se consideran ocupados en
+          esas horas).
         </p>
       </div>
 
       <div className="flex flex-wrap gap-2">
         <Button onClick={() => run(1)} disabled={!selected.size || generate.isPending} className="gap-2">
-          {generate.isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Wand2 className="h-4 w-4" aria-hidden />}
+          {generate.isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+          ) : (
+            <Wand2 className="h-4 w-4" aria-hidden />
+          )}
           Generar propuesta
         </Button>
         {result && (
@@ -423,17 +591,31 @@ const GenerateStep: React.FC<{ setup: GeneratorSetup }> = ({ setup }) => {
 
       {result && (
         <div className="space-y-3">
-          <div className={cn('rounded-xl border p-3 text-sm', totalMissing ? 'border-amber-500/40 bg-amber-500/5' : 'border-emerald-500/40 bg-emerald-500/5')}>
+          <div
+            className={cn(
+              'rounded-xl border p-3 text-sm',
+              totalMissing ? 'border-amber-500/40 bg-amber-500/5' : 'border-emerald-500/40 bg-emerald-500/5',
+            )}
+          >
             <p className="flex items-center gap-2 font-semibold text-foreground">
-              {totalMissing ? <AlertTriangle className="h-4 w-4 text-amber-600" aria-hidden /> : <Sparkles className="h-4 w-4 text-emerald-600" aria-hidden />}
-              {totalMissing ? `Propuesta casi completa: faltan ${totalMissing} hora(s) por ubicar` : 'Propuesta completa, sin cruces de docentes'}
+              {totalMissing ? (
+                <AlertTriangle className="h-4 w-4 text-amber-600" aria-hidden />
+              ) : (
+                <Sparkles className="h-4 w-4 text-emerald-600" aria-hidden />
+              )}
+              {totalMissing
+                ? `Propuesta casi completa: faltan ${totalMissing} hora(s) por ubicar`
+                : 'Propuesta completa, sin cruces de docentes'}
               <span className="text-xs font-normal text-muted-foreground">({result.elapsedMs} ms)</span>
             </p>
             {result.unplaced.length > 0 && (
               <ul className="mt-2 list-disc space-y-0.5 pl-5 text-xs text-foreground">
                 {result.unplaced.map((u) => (
                   <li key={`${u.classroomId}-${u.assignmentId}`}>
-                    <strong>{u.classroomLabel} · {u.courseName}</strong>: faltan {u.missingHours} h. {u.reason}
+                    <strong>
+                      {u.classroomLabel} · {u.courseName}
+                    </strong>
+                    : faltan {u.missingHours} h. {u.reason}
                   </li>
                 ))}
               </ul>
@@ -446,7 +628,10 @@ const GenerateStep: React.FC<{ setup: GeneratorSetup }> = ({ setup }) => {
               </ul>
             )}
             {totalMissing > 0 && (
-              <p className="mt-2 text-xs text-muted-foreground">Puedes aplicarla así y completar a mano en “Por aula”, probar otra versión, o revisar la disponibilidad y las horas.</p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Puedes aplicarla así y completar a mano en “Por aula”, probar otra versión, o revisar la disponibilidad
+                y las horas.
+              </p>
             )}
           </div>
 
@@ -457,9 +642,17 @@ const GenerateStep: React.FC<{ setup: GeneratorSetup }> = ({ setup }) => {
                 type="button"
                 onClick={() => setViewId(p.classroomId)}
                 aria-pressed={viewId === p.classroomId}
-                className={cn('rounded-lg border px-2.5 py-1 text-xs', viewId === p.classroomId ? 'border-primary bg-primary text-primary-foreground' : 'border-border text-foreground hover:bg-muted')}
+                className={cn(
+                  'rounded-lg border px-2.5 py-1 text-xs',
+                  viewId === p.classroomId
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-border text-foreground hover:bg-muted',
+                )}
               >
-                {p.label} <span className="opacity-75">{p.placedHours}/{p.requiredHours} h</span>
+                {p.label}{' '}
+                <span className="opacity-75">
+                  {p.placedHours}/{p.requiredHours} h
+                </span>
               </button>
             ))}
           </div>
@@ -467,14 +660,24 @@ const GenerateStep: React.FC<{ setup: GeneratorSetup }> = ({ setup }) => {
 
           {conflicts.length > 0 && (
             <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-3 text-xs">
-              <p className="mb-1 font-semibold text-foreground">Alguien cambió horarios mientras tanto; genera de nuevo:</p>
-              <ul className="list-disc pl-5">{conflicts.map((c) => <li key={c}>{c}</li>)}</ul>
+              <p className="mb-1 font-semibold text-foreground">
+                Alguien cambió horarios mientras tanto; genera de nuevo:
+              </p>
+              <ul className="list-disc pl-5">
+                {conflicts.map((c) => (
+                  <li key={c}>{c}</li>
+                ))}
+              </ul>
             </div>
           )}
 
           <div className="sticky bottom-4 z-10 flex justify-end">
             <Button onClick={doApply} disabled={apply.isPending} className="gap-2 shadow-lg">
-              {apply.isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Save className="h-4 w-4" aria-hidden />}
+              {apply.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              ) : (
+                <Save className="h-4 w-4" aria-hidden />
+              )}
               Aplicar a {result.proposal.length} aula(s)
             </Button>
           </div>
@@ -498,10 +701,19 @@ export const ScheduleGenerator: React.FC = () => {
       <Card className="flex items-start gap-3 border-primary/20 bg-primary/5 p-4">
         <Clock className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
         <p className="text-sm text-foreground">
-          El sistema arma el horario de todas las aulas respetando las horas del plan, sin que ningún docente quede en dos aulas a la vez. Revisa los pasos 1 a 3 (ya vienen con valores sugeridos) y genera. La propuesta no se guarda hasta que la apliques.
+          El sistema arma el horario de todas las aulas respetando las horas del plan, sin que ningún docente quede en
+          dos aulas a la vez. Revisa los pasos 1 a 3 (ya vienen con valores sugeridos) y genera. La propuesta no se
+          guarda hasta que la apliques.
         </p>
       </Card>
-      <Step n={1} title="Jornada escolar" subtitle="Horas pedagógicas y recreos de cada nivel" open={open === 1} onToggle={() => toggle(1)} done={setup.levels.every((l) => l.custom)}>
+      <Step
+        n={1}
+        title="Jornada escolar"
+        subtitle="Horas pedagógicas y recreos de cada nivel"
+        open={open === 1}
+        onToggle={() => toggle(1)}
+        done={setup.levels.every((l) => l.custom)}
+      >
         <div className="space-y-3">
           {setup.levels.map((l) => (
             <TemplateEditor key={l.level} level={l} />
@@ -511,17 +723,33 @@ export const ScheduleGenerator: React.FC = () => {
       <Step
         n={2}
         title="Horas por curso"
-        subtitle={coursesWithoutHours ? `${coursesWithoutHours} curso(s) sin horas semanales` : 'Horas semanales y cómo repartirlas'}
+        subtitle={
+          coursesWithoutHours
+            ? `${coursesWithoutHours} curso(s) sin horas semanales`
+            : 'Horas semanales y cómo repartirlas'
+        }
         open={open === 2}
         onToggle={() => toggle(2)}
         done={coursesWithoutHours === 0}
       >
         <PlanCoursesEditor setup={setup} />
       </Step>
-      <Step n={3} title="Disponibilidad de docentes" subtitle="Opcional: horas en que algún docente no puede dictar" open={open === 3} onToggle={() => toggle(3)}>
+      <Step
+        n={3}
+        title="Disponibilidad de docentes"
+        subtitle="Opcional: horas en que algún docente no puede dictar"
+        open={open === 3}
+        onToggle={() => toggle(3)}
+      >
         <AvailabilityEditor setup={setup} />
       </Step>
-      <Step n={4} title="Generar y aplicar" subtitle="Elige las aulas, revisa la propuesta y guárdala" open={open === 4} onToggle={() => toggle(4)}>
+      <Step
+        n={4}
+        title="Generar y aplicar"
+        subtitle="Elige las aulas, revisa la propuesta y guárdala"
+        open={open === 4}
+        onToggle={() => toggle(4)}
+      >
         <GenerateStep setup={setup} />
       </Step>
     </div>

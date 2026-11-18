@@ -70,7 +70,11 @@ export const useRisk = (classroomId: string | null, enabled: boolean) =>
     queryKey: [...KEY, 'risk', classroomId],
     enabled,
     queryFn: async () =>
-      (await api.get<{ data: { periodLabel: string; rows: RiskRow[] } }>('/insights/risk', { params: classroomId ? { classroomId } : {} })).data.data,
+      (
+        await api.get<{ data: { periodLabel: string; rows: RiskRow[] } }>('/insights/risk', {
+          params: classroomId ? { classroomId } : {},
+        })
+      ).data.data,
   });
 
 export const useInterventions = (enrollmentId: string | null) =>
@@ -83,8 +87,13 @@ export const useInterventions = (enrollmentId: string | null) =>
 export const useCreateIntervention = (enrollmentId: string | null) => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { type: string; date: string; notes: string; agreements?: string | null; followUpDate?: string | null }) =>
-      (await api.post(`/insights/tutoring/${enrollmentId}`, input)).data.data,
+    mutationFn: async (input: {
+      type: string;
+      date: string;
+      notes: string;
+      agreements?: string | null;
+      followUpDate?: string | null;
+    }) => (await api.post(`/insights/tutoring/${enrollmentId}`, input)).data.data,
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 };
@@ -92,7 +101,8 @@ export const useCreateIntervention = (enrollmentId: string | null) => {
 export const useSetInterventionStatus = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: 'OPEN' | 'CLOSED' }) => (await api.patch(`/insights/tutoring/item/${id}`, { status })).data.data,
+    mutationFn: async ({ id, status }: { id: string; status: 'OPEN' | 'CLOSED' }) =>
+      (await api.patch(`/insights/tutoring/item/${id}`, { status })).data.data,
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 };
@@ -102,7 +112,11 @@ export const useHeatmap = (periodNumber: number | null, level: string | null, en
     queryKey: [...KEY, 'heatmap', periodNumber, level],
     enabled,
     queryFn: async () =>
-      (await api.get<{ data: Heatmap }>('/insights/heatmap', { params: { ...(periodNumber ? { periodNumber } : {}), ...(level ? { level } : {}) } })).data.data,
+      (
+        await api.get<{ data: Heatmap }>('/insights/heatmap', {
+          params: { ...(periodNumber ? { periodNumber } : {}), ...(level ? { level } : {}) },
+        })
+      ).data.data,
   });
 
 export const useSiagieData = (enabled: boolean) =>
@@ -110,5 +124,12 @@ export const useSiagieData = (enabled: boolean) =>
     queryKey: [...KEY, 'siagie'],
     enabled,
     queryFn: async () =>
-      (await api.get<{ data: { rows: Array<{ studentId: string; name: string; classroom: string; issues: string[] }>; totals: Record<string, number> } }>('/insights/siagie-data')).data.data,
+      (
+        await api.get<{
+          data: {
+            rows: Array<{ studentId: string; name: string; classroom: string; issues: string[] }>;
+            totals: Record<string, number>;
+          };
+        }>('/insights/siagie-data')
+      ).data.data,
   });

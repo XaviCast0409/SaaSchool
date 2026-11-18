@@ -51,7 +51,10 @@ export interface Rubric {
   canEdit: boolean;
 }
 
-export type RubricInput = Pick<Rubric, 'title' | 'description' | 'areaName' | 'educationLevel' | 'criteria' | 'isShared'>;
+export type RubricInput = Pick<
+  Rubric,
+  'title' | 'description' | 'areaName' | 'educationLevel' | 'criteria' | 'isShared'
+>;
 
 const KEY = ['teacher-resources'];
 
@@ -69,7 +72,8 @@ export const useResources = (filters: { q?: string; kind?: string; level?: strin
 export const useShareResource = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: Partial<SharedResource> & { title: string; kind: ResourceKind; tags: string[] }) => (await api.post('/teacher-resources/resources', input)).data.data,
+    mutationFn: async (input: Partial<SharedResource> & { title: string; kind: ResourceKind; tags: string[] }) =>
+      (await api.post('/teacher-resources/resources', input)).data.data,
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 };
@@ -88,14 +92,20 @@ export const useRubrics = (filters: { q?: string; level?: string; mine?: boolean
   useQuery({
     queryKey: [...KEY, 'rubrics', filters],
     queryFn: async () =>
-      (await api.get<{ data: Rubric[] }>('/teacher-resources/rubrics', { params: { ...filters, mine: filters.mine ? 'true' : undefined } })).data.data,
+      (
+        await api.get<{ data: Rubric[] }>('/teacher-resources/rubrics', {
+          params: { ...filters, mine: filters.mine ? 'true' : undefined },
+        })
+      ).data.data,
   });
 
 export const useSaveRubric = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, input }: { id?: string; input: RubricInput }) =>
-      id ? (await api.put(`/teacher-resources/rubrics/${id}`, input)).data.data : (await api.post('/teacher-resources/rubrics', input)).data.data,
+      id
+        ? (await api.put(`/teacher-resources/rubrics/${id}`, input)).data.data
+        : (await api.post('/teacher-resources/rubrics', input)).data.data,
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 };
@@ -103,7 +113,8 @@ export const useSaveRubric = () => {
 export const useDuplicateRubric = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => (await api.post<{ data: Rubric }>(`/teacher-resources/rubrics/${id}/duplicate`)).data.data,
+    mutationFn: async (id: string) =>
+      (await api.post<{ data: Rubric }>(`/teacher-resources/rubrics/${id}/duplicate`)).data.data,
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 };

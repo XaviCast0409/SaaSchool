@@ -8,12 +8,7 @@ import {
   useSubscriptionPayments,
   useVoidSubscriptionPayment,
 } from '../api/useSuperAdmin';
-import {
-  PAYMENT_METHOD_LABELS,
-  SchoolWithStats,
-  SubscriptionPayment,
-  SubscriptionPaymentMethod,
-} from '../types';
+import { PAYMENT_METHOD_LABELS, SchoolWithStats, SubscriptionPayment, SubscriptionPaymentMethod } from '../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -90,7 +85,9 @@ export const SubscriptionPaymentsModal: React.FC<SubscriptionPaymentsModalProps>
       },
       {
         onSuccess: (payment) => {
-          toast.success(`Pago registrado. "${school.name}" queda vigente hasta el ${formatPeruShortDate(payment.newExpiresAt)}.`);
+          toast.success(
+            `Pago registrado. "${school.name}" queda vigente hasta el ${formatPeruShortDate(payment.newExpiresAt)}.`,
+          );
           reset({ ...values, reference: '', notes: '', paidOn: getPeruToday() });
         },
         onError: (err) => toast.error(errorMessage(err, 'No se pudo registrar el pago.')),
@@ -117,7 +114,11 @@ export const SubscriptionPaymentsModal: React.FC<SubscriptionPaymentsModalProps>
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200"
+    >
       <div className="w-full max-w-2xl max-h-[90vh] rounded-2xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border p-4 shrink-0">
@@ -172,7 +173,12 @@ export const SubscriptionPaymentsModal: React.FC<SubscriptionPaymentsModalProps>
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-wide text-foreground">Fecha de pago</label>
-                <Input type="date" max={getPeruToday()} {...register('paidOn', { required: true })} className="h-9 text-xs" />
+                <Input
+                  type="date"
+                  max={getPeruToday()}
+                  {...register('paidOn', { required: true })}
+                  className="h-9 text-xs"
+                />
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-wide text-foreground">Medio</label>
@@ -188,7 +194,9 @@ export const SubscriptionPaymentsModal: React.FC<SubscriptionPaymentsModalProps>
                 </select>
               </div>
               <div className="space-y-1.5 sm:col-span-2">
-                <label className="text-xs font-bold uppercase tracking-wide text-foreground">N.° de operación / comprobante</label>
+                <label className="text-xs font-bold uppercase tracking-wide text-foreground">
+                  N.° de operación / comprobante
+                </label>
                 <Input placeholder="Opcional" maxLength={120} {...register('reference')} className="h-9 text-xs" />
               </div>
               <div className="space-y-1.5 sm:col-span-3">
@@ -210,7 +218,9 @@ export const SubscriptionPaymentsModal: React.FC<SubscriptionPaymentsModalProps>
                   <span>
                     Vigente hoy hasta{' '}
                     <strong className="text-foreground">
-                      {preview.currentExpiresAt ? formatPeruShortDate(preview.currentExpiresAt) : 'sin fecha (indefinido)'}
+                      {preview.currentExpiresAt
+                        ? formatPeruShortDate(preview.currentExpiresAt)
+                        : 'sin fecha (indefinido)'}
                     </strong>
                     . Con este pago queda hasta{' '}
                     <strong className="text-foreground">{formatPeruShortDate(preview.newExpiresAt)}</strong>.
@@ -297,7 +307,13 @@ export const SubscriptionPaymentsModal: React.FC<SubscriptionPaymentsModalProps>
                           className="h-8 text-xs"
                         />
                         <div className="flex gap-2 shrink-0">
-                          <Button type="button" size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setVoidingId(null)}>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 text-xs"
+                            onClick={() => setVoidingId(null)}
+                          >
                             Cancelar
                           </Button>
                           <Button

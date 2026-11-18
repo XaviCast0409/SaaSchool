@@ -40,24 +40,22 @@ export const TeacherDashboardView: React.FC = () => {
   const [selectedDashboardClassroom, setSelectedDashboardClassroom] = React.useState<string>('');
 
   // Aulas donde es tutor
-  const tutoredClassrooms = classrooms.filter(
-    (c) => c.tutorTeacherId === user?.id || c.tutorTeacher?.id === user?.id,
-  );
+  const tutoredClassrooms = classrooms.filter((c) => c.tutorTeacherId === user?.id || c.tutorTeacher?.id === user?.id);
   const isTutor = tutoredClassrooms.length > 0;
   const tutorClassroom = tutoredClassrooms[0];
 
   // Cálculo de métricas
   const totalCourses = myCourses.length;
   const uniqueClassrooms = new Set(myCourses.map((c) => c.classroomId)).size;
-  const totalCompetences = myCourses.reduce(
-    (acc, curr) => acc + (curr.area.competences?.length || 0),
-    0,
-  );
+  const totalCompetences = myCourses.reduce((acc, curr) => acc + (curr.area.competences?.length || 0), 0);
   const announcementsCount = announcementsData?.meta?.total ?? announcementsData?.data?.length ?? 0;
 
   // Aulas agrupadas con conteo de asignaturas
   const availableClassrooms = React.useMemo(() => {
-    const map = new Map<string, { id: string; grade: number; section: string; educationLevel: string; count: number }>();
+    const map = new Map<
+      string,
+      { id: string; grade: number; section: string; educationLevel: string; count: number }
+    >();
     myCourses.forEach((c) => {
       const existing = map.get(c.classroomId);
       if (existing) {
@@ -137,9 +135,15 @@ export const TeacherDashboardView: React.FC = () => {
             </Badge>
 
             {isTutor && tutorClassroom && (
-              <Badge variant="outline" className="text-xs font-bold border-emerald-500/30 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 gap-1">
+              <Badge
+                variant="outline"
+                className="text-xs font-bold border-emerald-500/30 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 gap-1"
+              >
                 <School className="w-3 h-3" />
-                <span>Docente Tutor: {tutorClassroom.grade}° "{tutorClassroom.section}" • {formatEducationLevel(tutorClassroom.educationLevel)}</span>
+                <span>
+                  Docente Tutor: {tutorClassroom.grade}° "{tutorClassroom.section}" •{' '}
+                  {formatEducationLevel(tutorClassroom.educationLevel)}
+                </span>
               </Badge>
             )}
           </div>
@@ -148,7 +152,8 @@ export const TeacherDashboardView: React.FC = () => {
             ¡Hola, Prof. {user?.firstName} {user?.lastNamePaternal}!
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground max-w-2xl leading-relaxed">
-            Bienvenido a tu centro de trabajo docente. Organiza tus sesiones de aprendizaje, comparte recursos digitales en la nube y evalúa a tus estudiantes de manera ágil.
+            Bienvenido a tu centro de trabajo docente. Organiza tus sesiones de aprendizaje, comparte recursos digitales
+            en la nube y evalúa a tus estudiantes de manera ágil.
           </p>
         </div>
 
@@ -186,7 +191,9 @@ export const TeacherDashboardView: React.FC = () => {
             </div>
             <div>
               <p className="text-xs font-bold text-muted-foreground uppercase">Aulas Asignadas</p>
-              <p className="text-xl sm:text-2xl font-black text-emerald-700 dark:text-emerald-300">{uniqueClassrooms}</p>
+              <p className="text-xl sm:text-2xl font-black text-emerald-700 dark:text-emerald-300">
+                {uniqueClassrooms}
+              </p>
               <p className="text-xs text-muted-foreground mt-0.5">Secciones activas</p>
             </div>
           </CardContent>
@@ -236,16 +243,16 @@ export const TeacherDashboardView: React.FC = () => {
                 className="group bg-card border-border hover:border-primary/40 hover:shadow-md transition-all duration-200 cursor-pointer p-5 flex flex-col justify-between gap-4"
               >
                 <div className="flex items-start gap-4">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border ${action.color}`}>
+                  <div
+                    className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border ${action.color}`}
+                  >
                     <Icon className="w-6 h-6" />
                   </div>
                   <div className="space-y-1 min-w-0">
                     <h3 className="text-base font-extrabold text-foreground group-hover:text-primary transition-colors">
                       {action.title}
                     </h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      {action.desc}
-                    </p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{action.desc}</p>
                   </div>
                 </div>
 
@@ -347,9 +354,7 @@ export const TeacherDashboardView: React.FC = () => {
                           <Badge variant="outline" className={`text-xs font-bold py-0 h-4 ${theme.badgeStyle}`}>
                             {theme.category}
                           </Badge>
-                          <h4 className="text-sm font-extrabold text-foreground truncate mt-1">
-                            {course.area.name}
-                          </h4>
+                          <h4 className="text-sm font-extrabold text-foreground truncate mt-1">{course.area.name}</h4>
                         </div>
                       </div>
                     </div>
@@ -357,7 +362,8 @@ export const TeacherDashboardView: React.FC = () => {
                     <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1 border-t border-border/50">
                       <School className="w-3.5 h-3.5 text-primary shrink-0" />
                       <span className="font-semibold text-foreground">
-                        {course.classroom.grade}° "{course.classroom.section}" • {LEVEL_LABEL[course.classroom.educationLevel] || course.classroom.educationLevel}
+                        {course.classroom.grade}° "{course.classroom.section}" •{' '}
+                        {LEVEL_LABEL[course.classroom.educationLevel] || course.classroom.educationLevel}
                       </span>
                     </div>
                   </div>
@@ -373,9 +379,7 @@ export const TeacherDashboardView: React.FC = () => {
                     </Button>
                     <Button
                       size="sm"
-                      onClick={() =>
-                        navigate(`/gradebook/${course.id}`)
-                      }
+                      onClick={() => navigate(`/gradebook/${course.id}`)}
                       className="text-xs font-bold h-8 rounded-xl shadow-sm bg-primary hover:bg-primary/90 text-primary-foreground"
                     >
                       Notas

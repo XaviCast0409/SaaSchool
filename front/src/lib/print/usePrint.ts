@@ -59,4 +59,3 @@ export function usePrint({ pageSize = 'A4 portrait', margin = '10mm', title }: P
 
   return { print, isPrinting };
 }
-

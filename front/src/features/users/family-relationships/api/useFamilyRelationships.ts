@@ -95,7 +95,12 @@ export const useUpdateRelationship = (studentId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, ...patch }: { id: string } & Partial<Pick<FamilyRelationship, 'relationshipType' | 'isLegalGuardian' | 'isFinancialResponsible' | 'livesWithStudent'>>) => {
+    mutationFn: async ({
+      id,
+      ...patch
+    }: { id: string } & Partial<
+      Pick<FamilyRelationship, 'relationshipType' | 'isLegalGuardian' | 'isFinancialResponsible' | 'livesWithStudent'>
+    >) => {
       const response = await api.patch<SingleFamilyResponse>(`/family-relationships/${id}`, patch);
       return response.data.data;
     },

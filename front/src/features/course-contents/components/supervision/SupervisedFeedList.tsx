@@ -45,9 +45,7 @@ export const SupervisedFeedList: React.FC<SupervisedFeedListProps> = ({
         <div className="w-12 h-12 rounded-2xl bg-muted/60 text-muted-foreground flex items-center justify-center mx-auto mb-3">
           <Inbox className="w-6 h-6" />
         </div>
-        <h4 className="text-sm font-bold text-foreground">
-          No se encontraron materiales publicados
-        </h4>
+        <h4 className="text-sm font-bold text-foreground">No se encontraron materiales publicados</h4>
         <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1 leading-relaxed">
           No hay guías, tareas o foros que coincidan con los filtros seleccionados para este ciclo académico.
         </p>
@@ -72,12 +70,7 @@ export const SupervisedFeedList: React.FC<SupervisedFeedListProps> = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {items.map((item) => (
-          <SupervisedContentCard
-            key={item.id}
-            item={item}
-            onDelete={onDelete}
-            isDeleting={isDeleting}
-          />
+          <SupervisedContentCard key={item.id} item={item} onDelete={onDelete} isDeleting={isDeleting} />
         ))}
       </div>
 

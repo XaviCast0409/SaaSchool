@@ -14,10 +14,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/useAuthStore';
-import {
-  useCourseAssignments,
-  useMyCourseAssignments,
-} from '@/features/course-assignments/api/useCourseAssignments';
+import { useCourseAssignments, useMyCourseAssignments } from '@/features/course-assignments/api/useCourseAssignments';
 import {
   useCourseAttendanceSession,
   useSaveCourseAttendanceSession,
@@ -30,14 +27,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const PERIOD_LABELS = [
   { value: '1', label: '1.ª hora' },
@@ -133,15 +123,11 @@ export const CourseAttendancePage: React.FC = () => {
   const saveMutation = useSaveCourseAttendanceSession();
 
   const handleStatusChange = (enrollmentId: string, newStatus: CourseAttendanceStatus) => {
-    setStudentRows((prev) =>
-      prev.map((r) => (r.enrollmentId === enrollmentId ? { ...r, status: newStatus } : r)),
-    );
+    setStudentRows((prev) => prev.map((r) => (r.enrollmentId === enrollmentId ? { ...r, status: newStatus } : r)));
   };
 
   const handleNoteChange = (enrollmentId: string, note: string) => {
-    setStudentRows((prev) =>
-      prev.map((r) => (r.enrollmentId === enrollmentId ? { ...r, note } : r)),
-    );
+    setStudentRows((prev) => prev.map((r) => (r.enrollmentId === enrollmentId ? { ...r, note } : r)));
   };
 
   const handleMarkAllPresent = () => {
@@ -316,7 +302,10 @@ export const CourseAttendancePage: React.FC = () => {
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
                 <span>Lista de Estudiantes</span>
                 {sessionData?.sessionExists && sessionData.updatedAt && (
-                  <Badge variant="outline" className="gap-1 border-emerald-500/30 text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20">
+                  <Badge
+                    variant="outline"
+                    className="gap-1 border-emerald-500/30 text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20"
+                  >
                     <CheckCircle2 className="h-3 w-3" />
                     Guardado ({formatPeruTime(new Date(sessionData.updatedAt))})
                   </Badge>
@@ -325,9 +314,7 @@ export const CourseAttendancePage: React.FC = () => {
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 )}
               </CardTitle>
-              <p className="text-xs text-muted-foreground">
-                Total en aula: {studentRows.length} alumnos
-              </p>
+              <p className="text-xs text-muted-foreground">Total en aula: {studentRows.length} alumnos</p>
             </div>
 
             <div className="flex items-center gap-2">
@@ -347,11 +334,7 @@ export const CourseAttendancePage: React.FC = () => {
                 disabled={studentRows.length === 0 || loadingSession || saveMutation.isPending}
                 className="gap-1.5"
               >
-                {saveMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
+                {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Guardar asistencia
               </Button>
             </div>
@@ -385,10 +368,8 @@ export const CourseAttendancePage: React.FC = () => {
                     {studentRows.map((row, index) => {
                       const isAbsentDaily = row.dailyStatus?.startsWith('ABSENT_');
                       const isPresent = row.status === 'PRESENT';
-                      const isLate =
-                        row.status === 'LATE_UNJUSTIFIED' || row.status === 'LATE_JUSTIFIED';
-                      const isAbsent =
-                        row.status === 'ABSENT_UNJUSTIFIED' || row.status === 'ABSENT_JUSTIFIED';
+                      const isLate = row.status === 'LATE_UNJUSTIFIED' || row.status === 'LATE_JUSTIFIED';
+                      const isAbsent = row.status === 'ABSENT_UNJUSTIFIED' || row.status === 'ABSENT_JUSTIFIED';
 
                       return (
                         <TableRow key={row.enrollmentId}>
@@ -433,9 +414,7 @@ export const CourseAttendancePage: React.FC = () => {
                                 type="button"
                                 aria-label="Tardanza"
                                 aria-pressed={isLate}
-                                onClick={() =>
-                                  handleStatusChange(row.enrollmentId, 'LATE_UNJUSTIFIED')
-                                }
+                                onClick={() => handleStatusChange(row.enrollmentId, 'LATE_UNJUSTIFIED')}
                                 className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
                                   isLate
                                     ? 'bg-amber-500 text-white shadow-sm'
@@ -448,9 +427,7 @@ export const CourseAttendancePage: React.FC = () => {
                                 type="button"
                                 aria-label="Falta"
                                 aria-pressed={isAbsent}
-                                onClick={() =>
-                                  handleStatusChange(row.enrollmentId, 'ABSENT_UNJUSTIFIED')
-                                }
+                                onClick={() => handleStatusChange(row.enrollmentId, 'ABSENT_UNJUSTIFIED')}
                                 className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
                                   isAbsent
                                     ? 'bg-rose-600 text-white shadow-sm'
@@ -492,9 +469,7 @@ export const CourseAttendancePage: React.FC = () => {
             </CardTitle>
             <p className="text-xs text-muted-foreground">
               Total de sesiones dictadas en el mes:{' '}
-              <span className="font-semibold text-foreground">
-                {summaryData?.totalSessions || 0}
-              </span>
+              <span className="font-semibold text-foreground">{summaryData?.totalSessions || 0}</span>
             </p>
           </CardHeader>
           <CardContent className="p-0">
@@ -515,18 +490,10 @@ export const CourseAttendancePage: React.FC = () => {
                     <TableRow>
                       <TableHead className="w-12 text-center">N.°</TableHead>
                       <TableHead>Alumno</TableHead>
-                      <TableHead className="text-center font-semibold text-emerald-600">
-                        Presentes
-                      </TableHead>
-                      <TableHead className="text-center font-semibold text-amber-600">
-                        Tardanzas
-                      </TableHead>
-                      <TableHead className="text-center font-semibold text-rose-600">
-                        Faltas
-                      </TableHead>
-                      <TableHead className="text-center font-semibold">
-                        % Asistencia
-                      </TableHead>
+                      <TableHead className="text-center font-semibold text-emerald-600">Presentes</TableHead>
+                      <TableHead className="text-center font-semibold text-amber-600">Tardanzas</TableHead>
+                      <TableHead className="text-center font-semibold text-rose-600">Faltas</TableHead>
+                      <TableHead className="text-center font-semibold">% Asistencia</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -539,15 +506,9 @@ export const CourseAttendancePage: React.FC = () => {
                           <div className="font-medium text-foreground">{row.fullName}</div>
                           <div className="text-xs text-muted-foreground">DNI: {row.documentId}</div>
                         </TableCell>
-                        <TableCell className="text-center font-semibold text-emerald-600">
-                          {row.presents}
-                        </TableCell>
-                        <TableCell className="text-center font-semibold text-amber-600">
-                          {row.lates}
-                        </TableCell>
-                        <TableCell className="text-center font-semibold text-rose-600">
-                          {row.absences}
-                        </TableCell>
+                        <TableCell className="text-center font-semibold text-emerald-600">{row.presents}</TableCell>
+                        <TableCell className="text-center font-semibold text-amber-600">{row.lates}</TableCell>
+                        <TableCell className="text-center font-semibold text-rose-600">{row.absences}</TableCell>
                         <TableCell className="text-center">
                           <Badge
                             variant={row.attendancePercent >= 85 ? 'outline' : 'destructive'}

@@ -11,7 +11,10 @@ import { methodLabel } from '../types';
 import { soles } from './CashMovements';
 import { exportFinanceExcel } from '../utils/financeExcel';
 
-const STATUS: Record<string, { label: string; variant: 'success' | 'warning' | 'secondary' | 'outline' | 'destructive' }> = {
+const STATUS: Record<
+  string,
+  { label: string; variant: 'success' | 'warning' | 'secondary' | 'outline' | 'destructive' }
+> = {
   PAID: { label: 'Pagado', variant: 'success' },
   PENDING: { label: 'Pendiente', variant: 'warning' },
   PARTIAL: { label: 'Parcial', variant: 'secondary' },
@@ -30,7 +33,9 @@ const TotalsStrip: React.FC<{ t: StatementTotals }> = ({ t }) => (
     ].map(([label, v]) => (
       <div key={label as string} className="rounded-lg border border-border p-2">
         <p className="text-[10px] uppercase text-muted-foreground">{label}</p>
-        <p className={`text-sm font-bold ${label === 'Vencido' && Number(v) > 0 ? 'text-destructive' : ''}`}>{soles(v as number)}</p>
+        <p className={`text-sm font-bold ${label === 'Vencido' && Number(v) > 0 ? 'text-destructive' : ''}`}>
+          {soles(v as number)}
+        </p>
       </div>
     ))}
   </div>
@@ -43,7 +48,8 @@ const StudentBlock: React.FC<{ st: StudentStatement; showVoided: boolean }> = ({
       <h3 className="text-sm font-bold">
         {st.student.fullName}{' '}
         <span className="text-xs font-normal text-muted-foreground">
-          {st.student.classroom ?? ''} {st.student.documentId ? `· DNI ${st.student.documentId}` : ''} {st.student.year ? `· ${st.student.year}` : ''}
+          {st.student.classroom ?? ''} {st.student.documentId ? `· DNI ${st.student.documentId}` : ''}{' '}
+          {st.student.year ? `· ${st.student.year}` : ''}
         </span>
       </h3>
     </div>
@@ -65,20 +71,24 @@ const StudentBlock: React.FC<{ st: StudentStatement; showVoided: boolean }> = ({
         <tbody>
           {st.obligations.map((o) => {
             const details = [
-              ...o.adjustments.filter((a) => showVoided || a.status === 'ACTIVE').map((a) => ({
-                key: a.id,
-                voided: a.status === 'VOIDED',
-                text: `${a.number} · ${ADJUSTMENT_LABEL[a.type]}: ${a.reason}`,
-                amount: `${a.type === 'LATE_FEE' ? '+' : '−'} ${soles(a.amount)}`,
-                note: a.voidReason,
-              })),
-              ...o.payments.filter((p) => showVoided || p.status === 'ACTIVE').map((p) => ({
-                key: p.id,
-                voided: p.status === 'VOIDED',
-                text: `Recibo ${p.receiptNumber ?? '—'} · ${formatPeruShortDate(p.paymentDate)} · ${methodLabel(p.paymentMethod)}${p.operationNumber ? ` op. ${p.operationNumber}` : ''}`,
-                amount: soles(p.amountPaid),
-                note: p.voidReason,
-              })),
+              ...o.adjustments
+                .filter((a) => showVoided || a.status === 'ACTIVE')
+                .map((a) => ({
+                  key: a.id,
+                  voided: a.status === 'VOIDED',
+                  text: `${a.number} · ${ADJUSTMENT_LABEL[a.type]}: ${a.reason}`,
+                  amount: `${a.type === 'LATE_FEE' ? '+' : '−'} ${soles(a.amount)}`,
+                  note: a.voidReason,
+                })),
+              ...o.payments
+                .filter((p) => showVoided || p.status === 'ACTIVE')
+                .map((p) => ({
+                  key: p.id,
+                  voided: p.status === 'VOIDED',
+                  text: `Recibo ${p.receiptNumber ?? '—'} · ${formatPeruShortDate(p.paymentDate)} · ${methodLabel(p.paymentMethod)}${p.operationNumber ? ` op. ${p.operationNumber}` : ''}`,
+                  amount: soles(p.amountPaid),
+                  note: p.voidReason,
+                })),
             ];
             return (
               <React.Fragment key={o.id}>
@@ -86,15 +96,25 @@ const StudentBlock: React.FC<{ st: StudentStatement; showVoided: boolean }> = ({
                   <td className="p-1.5 whitespace-nowrap">{formatPeruShortDate(o.dueDate)}</td>
                   <td className="p-1.5">
                     {o.title}
-                    {o.daysOverdue > 0 && <span className="ml-1 text-[10px] font-semibold text-destructive">({o.daysOverdue} días vencida)</span>}
-                    {o.status === 'CANCELLED' && o.cancelReason && <span className="block text-[10px]">Anulada: {o.cancelReason}</span>}
+                    {o.daysOverdue > 0 && (
+                      <span className="ml-1 text-[10px] font-semibold text-destructive">
+                        ({o.daysOverdue} días vencida)
+                      </span>
+                    )}
+                    {o.status === 'CANCELLED' && o.cancelReason && (
+                      <span className="block text-[10px]">Anulada: {o.cancelReason}</span>
+                    )}
                   </td>
                   <td className="p-1.5 text-right">{soles(o.original)}</td>
                   <td className="p-1.5 text-right">{o.discounts ? `− ${soles(o.discounts)}` : '—'}</td>
                   <td className="p-1.5 text-right">{o.lateFees ? soles(o.lateFees) : '—'}</td>
                   <td className="p-1.5 text-right font-semibold">{soles(o.net)}</td>
                   <td className="p-1.5 text-right">{soles(o.paid)}</td>
-                  <td className={`p-1.5 text-right font-semibold ${o.balance > 0 ? 'text-amber-700 dark:text-amber-400' : ''}`}>{soles(o.balance)}</td>
+                  <td
+                    className={`p-1.5 text-right font-semibold ${o.balance > 0 ? 'text-amber-700 dark:text-amber-400' : ''}`}
+                  >
+                    {soles(o.balance)}
+                  </td>
                   <td className="p-1.5">
                     <Badge variant={STATUS[o.status].variant} className="text-[10px]">
                       {o.status === 'PAID' && o.net === 0 ? 'Exonerada' : STATUS[o.status].label}
@@ -102,7 +122,10 @@ const StudentBlock: React.FC<{ st: StudentStatement; showVoided: boolean }> = ({
                   </td>
                 </tr>
                 {details.map((d) => (
-                  <tr key={d.key} className={`text-[10px] ${d.voided ? 'text-muted-foreground line-through' : 'text-muted-foreground'}`}>
+                  <tr
+                    key={d.key}
+                    className={`text-[10px] ${d.voided ? 'text-muted-foreground line-through' : 'text-muted-foreground'}`}
+                  >
                     <td />
                     <td className="px-1.5 pb-1" colSpan={6}>
                       ↳ {d.text}
@@ -142,7 +165,12 @@ const StudentBlock: React.FC<{ st: StudentStatement; showVoided: boolean }> = ({
   </section>
 );
 
-const Document: React.FC<{ data: FamilyStatement | StudentStatement; schoolName: string; showVoided: boolean; print?: boolean }> = ({ data, schoolName, showVoided, print }) => {
+const Document: React.FC<{
+  data: FamilyStatement | StudentStatement;
+  schoolName: string;
+  showVoided: boolean;
+  print?: boolean;
+}> = ({ data, schoolName, showVoided, print }) => {
   const isFamily = 'children' in data;
   const children = isFamily ? data.children : [data];
   return (
@@ -169,7 +197,9 @@ const Document: React.FC<{ data: FamilyStatement | StudentStatement; schoolName:
               <strong className="text-foreground">
                 {data.guardians
                   .filter((g) => g.isFinancialResponsible)
-                  .concat(data.guardians.filter((g) => g.isFinancialResponsible).length ? [] : data.guardians.slice(0, 1))
+                  .concat(
+                    data.guardians.filter((g) => g.isFinancialResponsible).length ? [] : data.guardians.slice(0, 1),
+                  )
                   .map((g) => `${g.firstName} ${g.lastNamePaternal}`)
                   .join(', ')}
               </strong>
@@ -183,27 +213,55 @@ const Document: React.FC<{ data: FamilyStatement | StudentStatement; schoolName:
         <StudentBlock key={c.student.id} st={c} showVoided={showVoided} />
       ))}
       <p className="text-center text-[10px] text-muted-foreground">
-        Documento informativo de control interno. Los recibos internos no son comprobantes electrónicos válidos ante SUNAT.
+        Documento informativo de control interno. Los recibos internos no son comprobantes electrónicos válidos ante
+        SUNAT.
       </p>
     </div>
   );
 };
 
 /** Estado de cuenta imprimible y exportable a Excel (alumno o familia). */
-export const StatementView: React.FC<{ data: FamilyStatement | StudentStatement; showVoided?: boolean }> = ({ data, showVoided = false }) => {
+export const StatementView: React.FC<{ data: FamilyStatement | StudentStatement; showVoided?: boolean }> = ({
+  data,
+  showVoided = false,
+}) => {
   const { data: school } = useGetActiveSchool();
   const schoolName = school?.name ?? 'Institución educativa';
   const isFamily = 'children' in data;
   const name = isFamily ? data.guardian.fullName : data.student.fullName;
-  const { print, isPrinting } = usePrint({ pageSize: 'A4 portrait', margin: '10mm', title: `Estado_de_cuenta_${name}` });
+  const { print, isPrinting } = usePrint({
+    pageSize: 'A4 portrait',
+    margin: '10mm',
+    title: `Estado_de_cuenta_${name}`,
+  });
 
   const exportExcel = () => {
     const children = isFamily ? data.children : [data];
-    const rows = children.flatMap((c) => c.obligations.map((o) => ({ ...o, student: c.student.fullName, classroom: c.student.classroom })));
+    const rows = children.flatMap((c) =>
+      c.obligations.map((o) => ({ ...o, student: c.student.fullName, classroom: c.student.classroom })),
+    );
     const movements = children.flatMap((c) =>
       c.obligations.flatMap((o) => [
-        ...o.adjustments.map((a) => ({ student: c.student.fullName, cuota: o.title, date: a.createdAt, kind: ADJUSTMENT_LABEL[a.type], number: a.number, detail: a.reason, amount: a.type === 'LATE_FEE' ? Number(a.amount) : -Number(a.amount), status: a.status === 'ACTIVE' ? 'Vigente' : `Anulado: ${a.voidReason ?? ''}` })),
-        ...o.payments.map((p) => ({ student: c.student.fullName, cuota: o.title, date: p.paymentDate, kind: `Pago (${methodLabel(p.paymentMethod)})`, number: p.receiptNumber ?? '', detail: p.operationNumber ? `Op. ${p.operationNumber}` : '', amount: Number(p.amountPaid), status: p.status === 'ACTIVE' ? 'Vigente' : `Anulado: ${p.voidReason ?? ''}` })),
+        ...o.adjustments.map((a) => ({
+          student: c.student.fullName,
+          cuota: o.title,
+          date: a.createdAt,
+          kind: ADJUSTMENT_LABEL[a.type],
+          number: a.number,
+          detail: a.reason,
+          amount: a.type === 'LATE_FEE' ? Number(a.amount) : -Number(a.amount),
+          status: a.status === 'ACTIVE' ? 'Vigente' : `Anulado: ${a.voidReason ?? ''}`,
+        })),
+        ...o.payments.map((p) => ({
+          student: c.student.fullName,
+          cuota: o.title,
+          date: p.paymentDate,
+          kind: `Pago (${methodLabel(p.paymentMethod)})`,
+          number: p.receiptNumber ?? '',
+          detail: p.operationNumber ? `Op. ${p.operationNumber}` : '',
+          amount: Number(p.amountPaid),
+          status: p.status === 'ACTIVE' ? 'Vigente' : `Anulado: ${p.voidReason ?? ''}`,
+        })),
       ]),
     );
     void exportFinanceExcel(`estado-de-cuenta-${name.replace(/[^\w]+/g, '-')}`, schoolName, [

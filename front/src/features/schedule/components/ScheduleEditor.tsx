@@ -8,7 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { apiErrorMessage } from '@/features/academic/api';
-import { DAY_NAMES, SHORT_DAYS, useClassroomSchedule, useSaveClassroomSchedule, type ScheduleBlock } from '../api/useSchedule';
+import {
+  DAY_NAMES,
+  SHORT_DAYS,
+  useClassroomSchedule,
+  useSaveClassroomSchedule,
+  type ScheduleBlock,
+} from '../api/useSchedule';
 import { WeeklySchedule } from './WeeklySchedule';
 import { useUnsavedChangesGuard } from '@/lib/useUnsavedChangesGuard';
 
@@ -16,18 +22,35 @@ const BREAK = '__break__';
 
 const toMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
 const fromMin = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
-const overlap = (a: ScheduleBlock, b: ScheduleBlock) => a.dayOfWeek === b.dayOfWeek && a.startTime < b.endTime && b.startTime < a.endTime;
+const overlap = (a: ScheduleBlock, b: ScheduleBlock) =>
+  a.dayOfWeek === b.dayOfWeek && a.startTime < b.endTime && b.startTime < a.endTime;
 
 /** Editor del horario semanal de un aula (Dirección). Los cambios se guardan juntos al final. */
-export const ScheduleEditor: React.FC<{ classroomId: string; canEdit: boolean; onDirtyChange?: (dirty: boolean) => void }> = ({ classroomId, canEdit, onDirtyChange }) => {
+export const ScheduleEditor: React.FC<{
+  classroomId: string;
+  canEdit: boolean;
+  onDirtyChange?: (dirty: boolean) => void;
+}> = ({ classroomId, canEdit, onDirtyChange }) => {
   const { data, isLoading } = useClassroomSchedule(classroomId);
   const save = useSaveClassroomSchedule(classroomId);
   const [blocks, setBlocks] = useState<ScheduleBlock[]>([]);
   const [dirty, setDirty] = useState(false);
-  useUnsavedChangesGuard(dirty, 'Tienes cambios sin guardar en el horario. Si sales ahora se perderán. ¿Salir de todos modos?');
-  useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
+  useUnsavedChangesGuard(
+    dirty,
+    'Tienes cambios sin guardar en el horario. Si sales ahora se perderán. ¿Salir de todos modos?',
+  );
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
   const [conflicts, setConflicts] = useState<string[]>([]);
-  const [form, setForm] = useState({ days: [1] as number[], startTime: '08:00', endTime: '08:45', course: '', label: 'Recreo', room: '' });
+  const [form, setForm] = useState({
+    days: [1] as number[],
+    startTime: '08:00',
+    endTime: '08:45',
+    course: '',
+    label: 'Recreo',
+    room: '',
+  });
 
   useEffect(() => {
     if (data) {
@@ -44,7 +67,11 @@ export const ScheduleEditor: React.FC<{ classroomId: string; canEdit: boolean; o
     const last = blocks.filter((b) => b.dayOfWeek === day).sort((a, b) => b.endTime.localeCompare(a.endTime))[0];
     if (!last) return;
     const duration = toMin(form.endTime) - toMin(form.startTime) || 45;
-    setForm((f) => ({ ...f, startTime: last.endTime, endTime: fromMin(Math.min(toMin(last.endTime) + duration, 23 * 60 + 59)) }));
+    setForm((f) => ({
+      ...f,
+      startTime: last.endTime,
+      endTime: fromMin(Math.min(toMin(last.endTime) + duration, 23 * 60 + 59)),
+    }));
   };
 
   const update = (next: ScheduleBlock[]) => {
@@ -74,13 +101,25 @@ export const ScheduleEditor: React.FC<{ classroomId: string; canEdit: boolean; o
     update([...blocks, ...created]);
     // Preparar el siguiente bloque contiguo
     const duration = toMin(form.endTime) - toMin(form.startTime);
-    setForm((f) => ({ ...f, startTime: f.endTime, endTime: fromMin(Math.min(toMin(f.endTime) + duration, 23 * 60 + 59)) }));
+    setForm((f) => ({
+      ...f,
+      startTime: f.endTime,
+      endTime: fromMin(Math.min(toMin(f.endTime) + duration, 23 * 60 + 59)),
+    }));
   };
 
   const copyMondayToWeek = async () => {
     const monday = blocks.filter((b) => b.dayOfWeek === 1);
     if (monday.length === 0) return toast.error('Primero arma el lunes.');
-    if (blocks.some((b) => b.dayOfWeek > 1) && !(await confirmDialog({ title: '¿Copiar el lunes al resto de la semana?', description: 'Esto reemplaza martes a viernes con la estructura del lunes.', confirmText: 'Copiar' }))) return;
+    if (
+      blocks.some((b) => b.dayOfWeek > 1) &&
+      !(await confirmDialog({
+        title: '¿Copiar el lunes al resto de la semana?',
+        description: 'Esto reemplaza martes a viernes con la estructura del lunes.',
+        confirmText: 'Copiar',
+      }))
+    )
+      return;
     const copies = [2, 3, 4, 5].flatMap((d) => monday.map((b) => ({ ...b, id: undefined, dayOfWeek: d })));
     update([...monday, ...copies, ...blocks.filter((b) => b.dayOfWeek === 6)]);
     toast.success('Estructura del lunes copiada. Ahora cambia los cursos de cada día.');
@@ -143,7 +182,12 @@ export const ScheduleEditor: React.FC<{ classroomId: string; canEdit: boolean; o
                         setForm({ ...form, days });
                         if (!on && days.length === 1) suggestNext(d);
                       }}
-                      className={cn('rounded-lg border px-3 py-1.5 text-xs font-semibold', on ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-muted')}
+                      className={cn(
+                        'rounded-lg border px-3 py-1.5 text-xs font-semibold',
+                        on
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border text-muted-foreground hover:bg-muted',
+                      )}
                     >
                       {SHORT_DAYS[d]}
                     </button>
@@ -153,34 +197,61 @@ export const ScheduleEditor: React.FC<{ classroomId: string; canEdit: boolean; o
             </fieldset>
             <label className="text-xs text-muted-foreground">
               Inicio
-              <Input type="time" className="h-9" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} />
+              <Input
+                type="time"
+                className="h-9"
+                value={form.startTime}
+                onChange={(e) => setForm({ ...form, startTime: e.target.value })}
+              />
             </label>
             <label className="text-xs text-muted-foreground">
               Fin
-              <Input type="time" className="h-9" value={form.endTime} onChange={(e) => setForm({ ...form, endTime: e.target.value })} />
+              <Input
+                type="time"
+                className="h-9"
+                value={form.endTime}
+                onChange={(e) => setForm({ ...form, endTime: e.target.value })}
+              />
             </label>
             <label className="col-span-2 text-xs text-muted-foreground">
               Curso
-              <select className={select} value={form.course} onChange={(e) => setForm({ ...form, course: e.target.value })}>
+              <select
+                className={select}
+                value={form.course}
+                onChange={(e) => setForm({ ...form, course: e.target.value })}
+              >
                 <option value="">Elegir…</option>
-                {data.courses.filter((c) => !c.isTransversal).map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                    {c.teacherName ? ` · ${c.teacherName}` : ''}
-                  </option>
-                ))}
+                {data.courses
+                  .filter((c) => !c.isTransversal)
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                      {c.teacherName ? ` · ${c.teacherName}` : ''}
+                    </option>
+                  ))}
                 <option value={BREAK}>Recreo / bloque libre</option>
               </select>
             </label>
             {form.course === BREAK ? (
               <label className="text-xs text-muted-foreground">
                 Nombre
-                <Input className="h-9" value={form.label} maxLength={40} onChange={(e) => setForm({ ...form, label: e.target.value })} />
+                <Input
+                  className="h-9"
+                  value={form.label}
+                  maxLength={40}
+                  onChange={(e) => setForm({ ...form, label: e.target.value })}
+                />
               </label>
             ) : (
               <label className="text-xs text-muted-foreground">
                 Ambiente (opcional)
-                <Input className="h-9" placeholder="Lab., Patio…" value={form.room} maxLength={60} onChange={(e) => setForm({ ...form, room: e.target.value })} />
+                <Input
+                  className="h-9"
+                  placeholder="Lab., Patio…"
+                  value={form.room}
+                  maxLength={60}
+                  onChange={(e) => setForm({ ...form, room: e.target.value })}
+                />
               </label>
             )}
             <div className="col-span-2 flex flex-wrap items-end gap-2 md:col-span-6">
@@ -216,31 +287,60 @@ export const ScheduleEditor: React.FC<{ classroomId: string; canEdit: boolean; o
         </Card>
       )}
 
-      <WeeklySchedule blocks={blocks} onRemove={canEdit ? (i) => update(blocks.filter((_, idx) => idx !== i)) : undefined} onSelect={canEdit ? pick : undefined} />
+      <WeeklySchedule
+        blocks={blocks}
+        onRemove={canEdit ? (i) => update(blocks.filter((_, idx) => idx !== i)) : undefined}
+        onSelect={canEdit ? pick : undefined}
+      />
 
       <Card className="p-4">
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Horas por curso a la semana</h3>
+        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Horas por curso a la semana
+        </h3>
         <div className="flex flex-wrap gap-2">
-          {data.courses.filter((c) => !c.isTransversal).map((c) => {
-            const minutes = blocks.filter((b) => b.courseAssignmentId === c.id).reduce((s, b) => s + toMin(b.endTime) - toMin(b.startTime), 0);
-            return (
-              <span key={c.id} className={cn('rounded-lg px-2.5 py-1 text-xs', minutes ? 'bg-muted text-foreground' : 'bg-amber-500/10 text-amber-800 dark:text-amber-200')}>
-                {c.name}: <strong>{minutes ? `${Math.floor(minutes / 60)} h ${minutes % 60 ? `${minutes % 60} min` : ''}` : 'sin horas'}</strong>
-              </span>
-            );
-          })}
+          {data.courses
+            .filter((c) => !c.isTransversal)
+            .map((c) => {
+              const minutes = blocks
+                .filter((b) => b.courseAssignmentId === c.id)
+                .reduce((s, b) => s + toMin(b.endTime) - toMin(b.startTime), 0);
+              return (
+                <span
+                  key={c.id}
+                  className={cn(
+                    'rounded-lg px-2.5 py-1 text-xs',
+                    minutes ? 'bg-muted text-foreground' : 'bg-amber-500/10 text-amber-800 dark:text-amber-200',
+                  )}
+                >
+                  {c.name}:{' '}
+                  <strong>
+                    {minutes
+                      ? `${Math.floor(minutes / 60)} h ${minutes % 60 ? `${minutes % 60} min` : ''}`
+                      : 'sin horas'}
+                  </strong>
+                </span>
+              );
+            })}
         </div>
       </Card>
 
       {canEdit && (
         <div className="sticky bottom-4 z-10 flex justify-end gap-2">
           {dirty && (
-            <Button variant="outline" onClick={() => data && (setBlocks(data.blocks), setDirty(false), setConflicts([]))} className="gap-1.5 bg-background">
+            <Button
+              variant="outline"
+              onClick={() => data && (setBlocks(data.blocks), setDirty(false), setConflicts([]))}
+              className="gap-1.5 bg-background"
+            >
               <Undo2 className="h-4 w-4" aria-hidden /> Descartar cambios
             </Button>
           )}
           <Button onClick={() => onSave(false)} disabled={!dirty || save.isPending} className="gap-1.5 shadow-lg">
-            {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Save className="h-4 w-4" aria-hidden />}
+            {save.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+            ) : (
+              <Save className="h-4 w-4" aria-hidden />
+            )}
             Guardar horario
           </Button>
         </div>

@@ -26,13 +26,33 @@ export interface GeneratorCourse {
 
 export interface GeneratorSetup {
   levels: Array<{ level: Level; days: number[]; slots: TemplateSlot[]; custom: boolean }>;
-  classrooms: Array<{ id: string; label: string; level: Level; grade: number; hasSchedule: boolean; courses: GeneratorCourse[] }>;
+  classrooms: Array<{
+    id: string;
+    label: string;
+    level: Level;
+    grade: number;
+    hasSchedule: boolean;
+    courses: GeneratorCourse[];
+  }>;
   teachers: Array<{ id: string; name: string; hours: number; unavailable: string[] }>;
 }
 
 export interface GenerationResult {
-  proposal: Array<{ classroomId: string; label: string; blocks: ScheduleBlock[]; requiredHours: number; placedHours: number }>;
-  unplaced: Array<{ classroomId: string; classroomLabel: string; assignmentId: string; courseName: string; missingHours: number; reason: string }>;
+  proposal: Array<{
+    classroomId: string;
+    label: string;
+    blocks: ScheduleBlock[];
+    requiredHours: number;
+    placedHours: number;
+  }>;
+  unplaced: Array<{
+    classroomId: string;
+    classroomLabel: string;
+    assignmentId: string;
+    courseName: string;
+    missingHours: number;
+    reason: string;
+  }>;
   warnings: string[];
   elapsedMs: number;
 }
@@ -57,8 +77,16 @@ export const useSaveTemplate = () => {
 export const useSavePlanCourse = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...data }: { id: string; weeklyHours?: number | null; preferDoubleBlock?: boolean; maxHoursPerDay?: number; preferEarly?: boolean }) =>
-      (await api.patch(`/schedule/generator/plan-course/${id}`, data)).data.data,
+    mutationFn: async ({
+      id,
+      ...data
+    }: {
+      id: string;
+      weeklyHours?: number | null;
+      preferDoubleBlock?: boolean;
+      maxHoursPerDay?: number;
+      preferEarly?: boolean;
+    }) => (await api.patch(`/schedule/generator/plan-course/${id}`, data)).data.data,
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 };
@@ -109,5 +137,9 @@ export const useScheduleConflicts = (enabled: boolean) =>
     queryKey: [...KEY, 'conflicts'],
     enabled,
     queryFn: async () =>
-      (await api.get<{ data: Array<{ teacherName: string; day: string; time: string; detail: string }> }>('/schedule/generator/conflicts')).data.data,
+      (
+        await api.get<{ data: Array<{ teacherName: string; day: string; time: string; detail: string }> }>(
+          '/schedule/generator/conflicts',
+        )
+      ).data.data,
   });

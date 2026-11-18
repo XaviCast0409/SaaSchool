@@ -15,9 +15,7 @@ export const FamilySnapshotCard: React.FC<FamilySnapshotCardProps> = ({ children
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          Resumen Familiar
-        </h2>
+        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Resumen Familiar</h2>
         <span className="text-xs text-muted-foreground">
           {childrenList.length} {childrenList.length === 1 ? 'estudiante a cargo' : 'estudiantes a cargo'}
         </span>
@@ -26,7 +24,8 @@ export const FamilySnapshotCard: React.FC<FamilySnapshotCardProps> = ({ children
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {childrenList.map((child) => {
           const isSelected = selectedChildId === child.id;
-          const initials = `${child.firstNames?.trim()?.charAt(0) || ''}${child.lastNamePaternal?.trim()?.charAt(0) || ''}`.toUpperCase();
+          const initials =
+            `${child.firstNames?.trim()?.charAt(0) || ''}${child.lastNamePaternal?.trim()?.charAt(0) || ''}`.toUpperCase();
 
           const classroom = child.activeEnrollment?.classroom;
           const levelName =
@@ -62,7 +61,9 @@ export const FamilySnapshotCard: React.FC<FamilySnapshotCardProps> = ({ children
           const isFinancialUpToDate = !financialSummary?.hasPending || pendingCount === 0;
           // "Vencida" solo si la próxima cuota ya pasó su fecha; si no, es solo pendiente
           const nextDue = financialSummary?.nextDueDate ? String(financialSummary.nextDueDate).slice(0, 10) : null;
-          const isOverdue = Boolean(nextDue && nextDue < new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' }));
+          const isOverdue = Boolean(
+            nextDue && nextDue < new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' }),
+          );
 
           return (
             <button
@@ -90,9 +91,7 @@ export const FamilySnapshotCard: React.FC<FamilySnapshotCardProps> = ({ children
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground truncate mt-0.5">
-                    {classroomText}
-                  </p>
+                  <p className="text-xs text-muted-foreground truncate mt-0.5">{classroomText}</p>
                 </div>
               </div>
 
@@ -117,7 +116,9 @@ export const FamilySnapshotCard: React.FC<FamilySnapshotCardProps> = ({ children
                 ) : (
                   <span
                     className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
-                      isOverdue ? 'bg-destructive/15 text-destructive border-destructive/20' : 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/20'
+                      isOverdue
+                        ? 'bg-destructive/15 text-destructive border-destructive/20'
+                        : 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/20'
                     }`}
                   >
                     <AlertCircle className="w-3.5 h-3.5" />

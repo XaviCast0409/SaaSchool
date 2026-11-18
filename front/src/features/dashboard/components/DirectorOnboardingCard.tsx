@@ -10,10 +10,7 @@ interface DirectorOnboardingCardProps {
   onOpenSettings: () => void;
 }
 
-export const DirectorOnboardingCard: React.FC<DirectorOnboardingCardProps> = ({
-  onboarding,
-  onOpenSettings,
-}) => {
+export const DirectorOnboardingCard: React.FC<DirectorOnboardingCardProps> = ({ onboarding, onOpenSettings }) => {
   const navigate = useNavigate();
 
   const handleNextAction = (stepKey: string) => {
@@ -59,9 +56,7 @@ export const DirectorOnboardingCard: React.FC<DirectorOnboardingCardProps> = ({
             <Sparkles className="w-4 h-4 text-amber-500" />
             <span>Guía de Inicio</span>
           </div>
-          <h2 className="text-lg font-extrabold text-foreground tracking-tight mt-0.5">
-            Pon en marcha tu colegio
-          </h2>
+          <h2 className="text-lg font-extrabold text-foreground tracking-tight mt-0.5">Pon en marcha tu colegio</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             Completa estos pasos esenciales para que tus docentes, apoderados y estudiantes puedan empezar.
           </p>
@@ -141,4 +136,3 @@ export const DirectorOnboardingCard: React.FC<DirectorOnboardingCardProps> = ({
     </Card>
   );
 };
-

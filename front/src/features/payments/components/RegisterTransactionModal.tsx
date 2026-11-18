@@ -17,10 +17,7 @@ interface RegisterTransactionModalProps {
   onClose: () => void;
 }
 
-export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> = ({
-  obligation,
-  onClose,
-}) => {
+export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> = ({ obligation, onClose }) => {
   const { mutate: registerTransaction, isPending, error } = useRegisterTransaction();
   // Tras cobrar se muestra el recibo para imprimirlo o enviarlo, en vez de solo un aviso.
   const [receiptId, setReceiptId] = useState<string | null>(null);
@@ -54,13 +51,18 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
 
   const onSubmit = (data: RegisterTransactionFormData) => {
     if (data.amountPaid > remainingBalance + 0.001) {
-      setError('amountPaid', { type: 'manual', message: `No puedes cobrar más que el saldo pendiente (S/ ${remainingBalance.toFixed(2)}).` });
+      setError('amountPaid', {
+        type: 'manual',
+        message: `No puedes cobrar más que el saldo pendiente (S/ ${remainingBalance.toFixed(2)}).`,
+      });
       return;
     }
     const payload = { ...data, operationNumber: data.paymentMethod === 'CASH' ? undefined : data.operationNumber };
     registerTransaction(payload, {
       onSuccess: (tx) => {
-        toast.success(`Pago de S/ ${data.amountPaid.toFixed(2)} registrado para ${studentName}. Recibo ${tx.receiptNumber ?? ''}.`);
+        toast.success(
+          `Pago de S/ ${data.amountPaid.toFixed(2)} registrado para ${studentName}. Recibo ${tx.receiptNumber ?? ''}.`,
+        );
         if (tx?.id) setReceiptId(tx.id);
         else onClose();
       },
@@ -74,15 +76,18 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div role="dialog" aria-modal="true" aria-label="Registrar cobro" className="w-full max-w-md rounded-xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Registrar cobro"
+        className="w-full max-w-md rounded-xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col"
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border p-4 bg-card shrink-0">
           <div className="flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-emerald-500" />
             <div>
-              <h2 className="font-bold text-base text-foreground leading-none">
-                Registrar Cobro Manual
-              </h2>
+              <h2 className="font-bold text-base text-foreground leading-none">Registrar Cobro Manual</h2>
               <p className="text-xs text-muted-foreground mt-1">
                 {obligation.title} — {studentName}
               </p>
@@ -107,9 +112,7 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
           </div>
           <div className="text-right">
             <span className="text-xs text-muted-foreground block font-medium">Monto de esta cuota:</span>
-            <span className="text-sm font-semibold text-foreground">
-              S/ {obligation.amountDue.toFixed(2)}
-            </span>
+            <span className="text-sm font-semibold text-foreground">S/ {obligation.amountDue.toFixed(2)}</span>
           </div>
         </div>
 
@@ -126,26 +129,32 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
 
           {/* Monto a Cobrar */}
           <div className="space-y-1">
-            <label htmlFor="registertransactionmodal-amountPaid" className="text-xs font-semibold uppercase tracking-wide text-foreground">
+            <label
+              htmlFor="registertransactionmodal-amountPaid"
+              className="text-xs font-semibold uppercase tracking-wide text-foreground"
+            >
               Monto a Cobrar (S/)
             </label>
-            <Input id="registertransactionmodal-amountPaid"
+            <Input
+              id="registertransactionmodal-amountPaid"
               type="number"
               step="0.01"
               {...register('amountPaid')}
               className="h-9 font-semibold text-base"
             />
-            {errors.amountPaid && (
-              <p className="text-xs text-destructive">{errors.amountPaid.message}</p>
-            )}
+            {errors.amountPaid && <p className="text-xs text-destructive">{errors.amountPaid.message}</p>}
           </div>
 
           {/* Método de Pago */}
           <div className="space-y-1">
-            <label htmlFor="registertransactionmodal-paymentMethod" className="text-xs font-semibold uppercase tracking-wide text-foreground">
+            <label
+              htmlFor="registertransactionmodal-paymentMethod"
+              className="text-xs font-semibold uppercase tracking-wide text-foreground"
+            >
               Método de Pago
             </label>
-            <select id="registertransactionmodal-paymentMethod"
+            <select
+              id="registertransactionmodal-paymentMethod"
               {...register('paymentMethod')}
               className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
@@ -164,27 +173,45 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
               </p>
             )}
             {hasOpenCash && (
-              <p className="text-xs text-muted-foreground">El cobro entrará en tu caja abierta y quedará a tu nombre.</p>
+              <p className="text-xs text-muted-foreground">
+                El cobro entrará en tu caja abierta y quedará a tu nombre.
+              </p>
             )}
           </div>
 
           {/* N° Operación */}
           {method !== 'CASH' && (
             <div className="space-y-1">
-              <label htmlFor="registertransactionmodal-operationNumber" className="text-xs font-semibold uppercase tracking-wide text-foreground">
+              <label
+                htmlFor="registertransactionmodal-operationNumber"
+                className="text-xs font-semibold uppercase tracking-wide text-foreground"
+              >
                 N° de operación ({PAYMENT_METHOD_LABEL[method]})
               </label>
-              <Input id="registertransactionmodal-operationNumber" placeholder="Ej: 09812345" {...register('operationNumber')} className="h-9 text-xs" />
+              <Input
+                id="registertransactionmodal-operationNumber"
+                placeholder="Ej: 09812345"
+                {...register('operationNumber')}
+                className="h-9 text-xs"
+              />
               {errors.operationNumber && <p className="text-xs text-destructive">{errors.operationNumber.message}</p>}
             </div>
           )}
 
           {/* Observaciones */}
           <div className="space-y-1">
-            <label htmlFor="registertransactionmodal-notes" className="text-xs font-semibold uppercase tracking-wide text-foreground">
+            <label
+              htmlFor="registertransactionmodal-notes"
+              className="text-xs font-semibold uppercase tracking-wide text-foreground"
+            >
               Observación / Nota opcional
             </label>
-            <Input id="registertransactionmodal-notes" placeholder="Ej: Pago realizado por el apoderado en caja central" {...register('notes')} className="h-9 text-xs" />
+            <Input
+              id="registertransactionmodal-notes"
+              placeholder="Ej: Pago realizado por el apoderado en caja central"
+              {...register('notes')}
+              className="h-9 text-xs"
+            />
           </div>
 
           {/* Actions */}
@@ -192,7 +219,12 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
             <Button type="button" variant="ghost" size="sm" onClick={onClose}>
               Cancelar
             </Button>
-            <Button type="submit" size="sm" isLoading={isPending} className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
+            <Button
+              type="submit"
+              size="sm"
+              isLoading={isPending}
+              className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
               <Check className="w-4 h-4" />
               <span>Confirmar y Registrar Pago</span>
             </Button>

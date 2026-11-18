@@ -20,14 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatFullName } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { DirectoryUser } from '../types';
 import { useAuthStore } from '@/store/useAuthStore';
 import { canManage } from '../rules';
@@ -60,11 +53,7 @@ const ROLE_CONFIG: Record<string, { label: string; badgeClass: string }> = {
   },
 };
 
-export const UserTable: React.FC<UserTableProps> = ({
-  users,
-  isLoading,
-  renderExtraActions,
-}) => {
+export const UserTable: React.FC<UserTableProps> = ({ users, isLoading, renderExtraActions }) => {
   const { user: currentUser } = useAuthStore();
 
   const [globalFilter, setGlobalFilter] = useState('');
@@ -130,20 +119,14 @@ export const UserTable: React.FC<UserTableProps> = ({
       accessorKey: 'cellphone',
       header: 'Celular / Teléfono',
       cell: ({ row }) => (
-        <span className="text-xs text-muted-foreground font-mono">
-          {row.original.cellphone || '—'}
-        </span>
+        <span className="text-xs text-muted-foreground font-mono">{row.original.cellphone || '—'}</span>
       ),
     },
     {
       accessorKey: 'isActive',
       header: 'Estado',
       cell: ({ row }) =>
-        row.original.isActive ? (
-          <Badge variant="success">Activo</Badge>
-        ) : (
-          <Badge variant="destructive">Inactivo</Badge>
-        ),
+        row.original.isActive ? <Badge variant="success">Activo</Badge> : <Badge variant="destructive">Inactivo</Badge>,
     },
     {
       id: 'actions',
@@ -179,7 +162,11 @@ export const UserTable: React.FC<UserTableProps> = ({
                 className="h-7 px-2 text-xs text-amber-600 hover:bg-amber-500/10 hover:text-amber-600 font-semibold"
                 onClick={async () => {
                   if (
-                    await confirmDialog({ title: '¿Restablecer la contraseña?', description: `Se generará una contraseña temporal para ${user.firstName} ${user.lastNamePaternal}.`, confirmText: 'Restablecer' })
+                    await confirmDialog({
+                      title: '¿Restablecer la contraseña?',
+                      description: `Se generará una contraseña temporal para ${user.firstName} ${user.lastNamePaternal}.`,
+                      confirmText: 'Restablecer',
+                    })
                   ) {
                     try {
                       const data = await resetPassword({ userId: user.id });
@@ -294,9 +281,7 @@ export const UserTable: React.FC<UserTableProps> = ({
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id} className="hover:bg-muted/30 transition-colors">
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
+                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                   ))}
                 </TableRow>
               ))

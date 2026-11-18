@@ -2,7 +2,19 @@ import { useSelectedAcademicYear } from '@/components/AcademicYearSwitcher';
 import { confirmDialog } from '@/components/ui/confirm';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  AlertTriangle, BookOpen, CheckCircle2, ChevronDown, Clock, Filter, GraduationCap, Search, Sparkles, UserCheck, Users, Wand2, X,
+  AlertTriangle,
+  BookOpen,
+  CheckCircle2,
+  ChevronDown,
+  Clock,
+  Filter,
+  GraduationCap,
+  Search,
+  Sparkles,
+  UserCheck,
+  Users,
+  Wand2,
+  X,
 } from 'lucide-react';
 import { Tabs } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
@@ -13,7 +25,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { useAssignWholeClassroom, useSaveTeachingLoad, useTeachingLoad } from '../api';
 import {
-  LEVEL_LABEL, gradeLabel, teacherName, type Level, type LoadCell, type LoadClassroom, type TeacherLite, type TeachingLoad,
+  LEVEL_LABEL,
+  gradeLabel,
+  teacherName,
+  type Level,
+  type LoadCell,
+  type LoadClassroom,
+  type TeacherLite,
+  type TeachingLoad,
 } from '../types';
 
 const LEVELS: Level[] = ['INITIAL', 'PRIMARY', 'SECONDARY'];
@@ -45,7 +64,9 @@ const Avatar: React.FC<{ teacher?: TeacherLite | null; className?: string }> = (
   <span
     className={cn(
       'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold',
-      teacher ? AVATAR_TONES[hash(teacher.id) % AVATAR_TONES.length] : 'border border-dashed border-muted-foreground/40 text-muted-foreground',
+      teacher
+        ? AVATAR_TONES[hash(teacher.id) % AVATAR_TONES.length]
+        : 'border border-dashed border-muted-foreground/40 text-muted-foreground',
       className,
     )}
   >
@@ -83,7 +104,8 @@ export const TeachingLoadPage: React.FC = () => {
     const k = keyOf(room.id, cell.areaId);
     setPending((prev) => {
       const copy = { ...prev };
-      if (next === cell.teacherId) delete copy[k]; else copy[k] = next;
+      if (next === cell.teacherId) delete copy[k];
+      else copy[k] = next;
       return copy;
     });
   };
@@ -103,11 +125,13 @@ export const TeachingLoadPage: React.FC = () => {
   const stats = useMemo(() => {
     let total = 0;
     let assigned = 0;
-    (data?.classrooms ?? []).forEach((room) => room.courses.forEach((cell) => {
-      total += 1;
-      const k = keyOf(room.id, cell.areaId);
-      if (k in pending ? pending[k] : cell.teacherId) assigned += 1;
-    }));
+    (data?.classrooms ?? []).forEach((room) =>
+      room.courses.forEach((cell) => {
+        total += 1;
+        const k = keyOf(room.id, cell.areaId);
+        if (k in pending ? pending[k] : cell.teacherId) assigned += 1;
+      }),
+    );
     return { total, assigned, missing: total - assigned, pct: total ? Math.round((assigned / total) * 100) : 0 };
   }, [data, pending]);
 
@@ -120,12 +144,14 @@ export const TeachingLoadPage: React.FC = () => {
       const cur = m.get(id) ?? { courses: 0, hours: 0 };
       m.set(id, { courses: cur.courses + sign, hours: cur.hours + sign * h });
     };
-    data?.classrooms.forEach((room) => room.courses.forEach((cell) => {
-      const k = keyOf(room.id, cell.areaId);
-      if (!(k in pending)) return;
-      bump(cell.teacherId, -1, cell.weeklyHours ?? 0);
-      bump(pending[k], 1, cell.weeklyHours ?? 0);
-    }));
+    data?.classrooms.forEach((room) =>
+      room.courses.forEach((cell) => {
+        const k = keyOf(room.id, cell.areaId);
+        if (!(k in pending)) return;
+        bump(cell.teacherId, -1, cell.weeklyHours ?? 0);
+        bump(pending[k], 1, cell.weeklyHours ?? 0);
+      }),
+    );
     return m;
   }, [data, pending]);
 
@@ -141,7 +167,16 @@ export const TeachingLoadPage: React.FC = () => {
   }, [changes.length]);
 
   const changeLevel = async (l: Level) => {
-    if (changes.length && !(await confirmDialog({ title: '¿Descartar los cambios sin guardar?', description: 'Tienes cambios en la carga docente que todavía no guardaste.', confirmText: 'Descartar cambios', cancelText: 'Seguir editando' }))) return;
+    if (
+      changes.length &&
+      !(await confirmDialog({
+        title: '¿Descartar los cambios sin guardar?',
+        description: 'Tienes cambios en la carga docente que todavía no guardaste.',
+        confirmText: 'Descartar cambios',
+        cancelText: 'Seguir editando',
+      }))
+    )
+      return;
     setPending({});
     setFocusTeacher(null);
     setLevel(l);
@@ -162,13 +197,22 @@ export const TeachingLoadPage: React.FC = () => {
               Elige el docente de cada curso por aula. Cambiar de docente conserva las notas.
             </p>
           </div>
-          <Tabs value={level} onChange={changeLevel} items={LEVELS.map((l) => ({ value: l, label: LEVEL_LABEL[l] }))} className="self-start bg-background/60 backdrop-blur lg:self-auto" />
+          <Tabs
+            value={level}
+            onChange={changeLevel}
+            items={LEVELS.map((l) => ({ value: l, label: LEVEL_LABEL[l] }))}
+            className="self-start bg-background/60 backdrop-blur lg:self-auto"
+          />
         </div>
 
         {data && data.classrooms.length > 0 && (
           <div className="relative mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
             <StatTile icon={<BookOpen className="h-4 w-4" />} label="Aulas" value={data.classrooms.length} />
-            <StatTile icon={<UserCheck className="h-4 w-4" />} label="Cursos asignados" value={`${stats.assigned}/${stats.total}`}>
+            <StatTile
+              icon={<UserCheck className="h-4 w-4" />}
+              label="Cursos asignados"
+              value={`${stats.assigned}/${stats.total}`}
+            >
               <ProgressBar value={stats.pct} className="mt-2" />
             </StatTile>
             <StatTile
@@ -180,18 +224,29 @@ export const TeachingLoadPage: React.FC = () => {
               active={onlyMissing}
               hint={stats.missing ? (onlyMissing ? 'Mostrando solo estos' : 'Ver solo estos') : 'Todo cubierto'}
             />
-            <StatTile icon={<Users className="h-4 w-4" />} label="Docentes con carga" value={`${data.teachers.filter((t) => (loadByTeacher.get(t.id)?.courses ?? 0) > 0).length}/${data.teachers.length}`} />
+            <StatTile
+              icon={<Users className="h-4 w-4" />}
+              label="Docentes con carga"
+              value={`${data.teachers.filter((t) => (loadByTeacher.get(t.id)?.courses ?? 0) > 0).length}/${data.teachers.length}`}
+            />
           </div>
         )}
       </div>
 
       {isLoading || !data ? (
         <div className="grid gap-4 lg:grid-cols-[1fr_18rem]">
-          <div className="space-y-4"><Skeleton className="h-56 w-full" /><Skeleton className="h-56 w-full" /></div>
+          <div className="space-y-4">
+            <Skeleton className="h-56 w-full" />
+            <Skeleton className="h-56 w-full" />
+          </div>
           <Skeleton className="h-96 w-full" />
         </div>
       ) : data.classrooms.length === 0 ? (
-        <EmptyState icon={<Users className="h-8 w-8" />} title={`No hay aulas de ${LEVEL_LABEL[level]}`} description="Crea las aulas en Configuración > Aulas." />
+        <EmptyState
+          icon={<Users className="h-8 w-8" />}
+          title={`No hay aulas de ${LEVEL_LABEL[level]}`}
+          description="Crea las aulas en Configuración > Aulas."
+        />
       ) : (
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
           <div className="min-w-0 space-y-4">
@@ -206,7 +261,12 @@ export const TeachingLoadPage: React.FC = () => {
                   className="h-10 w-full rounded-lg border border-input bg-card pl-9 pr-9 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring/40"
                 />
                 {query && (
-                  <button type="button" aria-label="Limpiar búsqueda" onClick={() => setQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground">
+                  <button
+                    type="button"
+                    aria-label="Limpiar búsqueda"
+                    onClick={() => setQuery('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
+                  >
                     <X className="h-3.5 w-3.5" />
                   </button>
                 )}
@@ -216,7 +276,9 @@ export const TeachingLoadPage: React.FC = () => {
                 onClick={() => setOnlyMissing((v) => !v)}
                 className={cn(
                   'inline-flex h-10 items-center gap-2 rounded-lg border px-3 text-sm font-medium shadow-sm transition-colors',
-                  onlyMissing ? 'border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-300' : 'border-input bg-card text-muted-foreground hover:text-foreground',
+                  onlyMissing
+                    ? 'border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                    : 'border-input bg-card text-muted-foreground hover:text-foreground',
                 )}
               >
                 <Filter className="h-4 w-4" /> Solo sin docente
@@ -227,9 +289,18 @@ export const TeachingLoadPage: React.FC = () => {
               <div className="flex items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm animate-in fade-in slide-in-from-top-1">
                 <span className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 shrink-0 text-primary" />
-                  <span>Resaltando cursos de <strong>{teacherName(data.teachers.find((t) => t.id === focusTeacher)!)}</strong></span>
+                  <span>
+                    Resaltando cursos de{' '}
+                    <strong>{teacherName(data.teachers.find((t) => t.id === focusTeacher)!)}</strong>
+                  </span>
                 </span>
-                <button type="button" onClick={() => setFocusTeacher(null)} className="text-xs font-medium text-primary hover:underline">Quitar</button>
+                <button
+                  type="button"
+                  onClick={() => setFocusTeacher(null)}
+                  className="text-xs font-medium text-primary hover:underline"
+                >
+                  Quitar
+                </button>
               </div>
             )}
 
@@ -252,7 +323,12 @@ export const TeachingLoadPage: React.FC = () => {
             ))}
           </div>
 
-          <TeacherPanel data={data} loadByTeacher={loadByTeacher} focusTeacher={focusTeacher} onFocus={setFocusTeacher} />
+          <TeacherPanel
+            data={data}
+            loadByTeacher={loadByTeacher}
+            focusTeacher={focusTeacher}
+            onFocus={setFocusTeacher}
+          />
         </div>
       )}
 
@@ -264,11 +340,18 @@ export const TeachingLoadPage: React.FC = () => {
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
                 <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500" />
               </span>
-              <strong className="tabular-nums">{changes.length}</strong> cambio{changes.length === 1 ? '' : 's'} sin guardar
+              <strong className="tabular-nums">{changes.length}</strong> cambio{changes.length === 1 ? '' : 's'} sin
+              guardar
             </p>
             <div className="flex gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setPending({})}>Descartar</Button>
-              <Button size="sm" disabled={save.isPending} onClick={() => save.mutate(changes, { onSuccess: () => setPending({}) })}>
+              <Button variant="ghost" size="sm" onClick={() => setPending({})}>
+                Descartar
+              </Button>
+              <Button
+                size="sm"
+                disabled={save.isPending}
+                onClick={() => save.mutate(changes, { onSuccess: () => setPending({}) })}
+              >
                 {save.isPending ? 'Guardando…' : 'Guardar cambios'}
               </Button>
             </div>
@@ -282,8 +365,14 @@ export const TeachingLoadPage: React.FC = () => {
 // ─────────────────────────────────────────────────────────────
 
 const StatTile: React.FC<{
-  icon: React.ReactNode; label: string; value: React.ReactNode; tone?: 'default' | 'warning' | 'success';
-  onClick?: () => void; active?: boolean; hint?: string; children?: React.ReactNode;
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+  tone?: 'default' | 'warning' | 'success';
+  onClick?: () => void;
+  active?: boolean;
+  hint?: string;
+  children?: React.ReactNode;
 }> = ({ icon, label, value, tone = 'default', onClick, active, hint, children }) => {
   const Comp = onClick ? 'button' : 'div';
   return (
@@ -297,12 +386,18 @@ const StatTile: React.FC<{
       )}
     >
       <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-        <span className={cn(
-          'flex h-6 w-6 items-center justify-center rounded-md',
-          tone === 'warning' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
-            : tone === 'success' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-              : 'bg-primary/10 text-primary',
-        )}>{icon}</span>
+        <span
+          className={cn(
+            'flex h-6 w-6 items-center justify-center rounded-md',
+            tone === 'warning'
+              ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+              : tone === 'success'
+                ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                : 'bg-primary/10 text-primary',
+          )}
+        >
+          {icon}
+        </span>
         {label}
       </div>
       <p className="mt-1.5 text-xl font-bold tabular-nums">{value}</p>
@@ -313,14 +408,34 @@ const StatTile: React.FC<{
 };
 
 interface GradeBlockProps {
-  level: Level; grade: number; rooms: LoadClassroom[]; data: TeachingLoad;
-  query: string; onlyMissing: boolean; focusTeacher: string | null; pending: Record<string, string | null>;
+  level: Level;
+  grade: number;
+  rooms: LoadClassroom[];
+  data: TeachingLoad;
+  query: string;
+  onlyMissing: boolean;
+  focusTeacher: string | null;
+  pending: Record<string, string | null>;
   valueOf: (room: LoadClassroom, cell: LoadCell) => string | null;
   setCell: (room: LoadClassroom, cell: LoadCell, next: string | null) => void;
-  onWhole: (classroomId: string, teacherId: string) => void; wholeBusy: boolean;
+  onWhole: (classroomId: string, teacherId: string) => void;
+  wholeBusy: boolean;
 }
 
-const GradeBlock: React.FC<GradeBlockProps> = ({ level, grade, rooms, data, query, onlyMissing, focusTeacher, pending, valueOf, setCell, onWhole, wholeBusy }) => {
+const GradeBlock: React.FC<GradeBlockProps> = ({
+  level,
+  grade,
+  rooms,
+  data,
+  query,
+  onlyMissing,
+  focusTeacher,
+  pending,
+  valueOf,
+  setCell,
+  onWhole,
+  wholeBusy,
+}) => {
   const sortedRooms = useMemo(() => [...rooms].sort((a, b) => a.section.localeCompare(b.section)), [rooms]);
   const [activeId, setActiveId] = useState(sortedRooms[0]?.id);
   const [open, setOpen] = useState(true);
@@ -330,7 +445,10 @@ const GradeBlock: React.FC<GradeBlockProps> = ({ level, grade, rooms, data, quer
     return (
       <Card className="flex items-center gap-3 border-dashed p-4 text-sm text-muted-foreground">
         <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
-        <span><strong className="text-foreground">{gradeLabel(level, grade)}</strong>: no tiene plan de estudios. Créalo en "Plan de estudios".</span>
+        <span>
+          <strong className="text-foreground">{gradeLabel(level, grade)}</strong>: no tiene plan de estudios. Créalo en
+          "Plan de estudios".
+        </span>
       </Card>
     );
   }
@@ -344,13 +462,19 @@ const GradeBlock: React.FC<GradeBlockProps> = ({ level, grade, rooms, data, quer
   const gradePct = gradeTotal ? Math.round((gradeDone / gradeTotal) * 100) : 0;
 
   const q = query.trim().toLowerCase();
-  const visible = room.courses.filter((c) => (!q || c.name.toLowerCase().includes(q)) && (!onlyMissing || !valueOf(room, c)));
+  const visible = room.courses.filter(
+    (c) => (!q || c.name.toLowerCase().includes(q)) && (!onlyMissing || !valueOf(room, c)),
+  );
   const tutor = data.teachers.find((t) => t.id === room.tutorTeacherId);
 
   return (
     <Card className="overflow-hidden">
       {/* Cabecera del grado */}
-      <button type="button" onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-muted/30">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-muted/30"
+      >
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-violet-500 text-sm font-bold text-white shadow-sm">
           {level === 'INITIAL' ? `${grade}a` : `${grade}°`}
         </div>
@@ -363,11 +487,20 @@ const GradeBlock: React.FC<GradeBlockProps> = ({ level, grade, rooms, data, quer
         <div className="hidden w-40 sm:block">
           <div className="mb-1 flex justify-between text-xs">
             <span className="text-muted-foreground">Avance</span>
-            <span className={cn('font-semibold tabular-nums', gradePct === 100 && 'text-emerald-600 dark:text-emerald-400')}>{gradePct}%</span>
+            <span
+              className={cn('font-semibold tabular-nums', gradePct === 100 && 'text-emerald-600 dark:text-emerald-400')}
+            >
+              {gradePct}%
+            </span>
           </div>
           <ProgressBar value={gradePct} />
         </div>
-        <ChevronDown className={cn('h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-300', !open && '-rotate-90')} />
+        <ChevronDown
+          className={cn(
+            'h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-300',
+            !open && '-rotate-90',
+          )}
+        />
       </button>
 
       {open && (
@@ -389,17 +522,27 @@ const GradeBlock: React.FC<GradeBlockProps> = ({ level, grade, rooms, data, quer
                     onClick={() => setActiveId(r.id)}
                     className={cn(
                       'relative inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-all',
-                      isActive ? 'border-primary bg-primary text-primary-foreground shadow-md shadow-primary/20' : 'border-border bg-card hover:border-primary/40 hover:text-primary',
+                      isActive
+                        ? 'border-primary bg-primary text-primary-foreground shadow-md shadow-primary/20'
+                        : 'border-border bg-card hover:border-primary/40 hover:text-primary',
                     )}
                   >
                     "{r.section}"
-                    <span className={cn(
-                      'rounded-full px-1.5 text-xs font-medium tabular-nums',
-                      isActive ? 'bg-white/20' : complete ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
-                    )}>
+                    <span
+                      className={cn(
+                        'rounded-full px-1.5 text-xs font-medium tabular-nums',
+                        isActive
+                          ? 'bg-white/20'
+                          : complete
+                            ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                            : 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
+                      )}
+                    >
                       {complete ? <CheckCircle2 className="inline h-3 w-3" /> : `${s.done}/${s.total}`}
                     </span>
-                    {hasPending && <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-card bg-amber-500" />}
+                    {hasPending && (
+                      <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-card bg-amber-500" />
+                    )}
                   </button>
                 );
               })}
@@ -415,24 +558,51 @@ const GradeBlock: React.FC<GradeBlockProps> = ({ level, grade, rooms, data, quer
                 onChange={(e) => e.target.value && onWhole(room.id, e.target.value)}
               >
                 <option value="">Asignar todo "{room.section}" a…</option>
-                {data.teachers.map((t) => <option key={t.id} value={t.id}>{teacherName(t)}</option>)}
+                {data.teachers.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {teacherName(t)}
+                  </option>
+                ))}
               </Select>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 pt-4 text-xs text-muted-foreground">
-            <span>Aula <strong className="text-foreground">{gradeLabel(level, grade)} "{room.section}"</strong></span>
-            {room.shift && <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {room.shift === 'MORNING' ? 'Mañana' : room.shift === 'AFTERNOON' ? 'Tarde' : room.shift === 'NIGHT' ? 'Noche' : room.shift}</span>}
-            <span>Tutor(a): <strong className="text-foreground">{tutor ? teacherName(tutor) : 'sin asignar'}</strong></span>
+            <span>
+              Aula{' '}
+              <strong className="text-foreground">
+                {gradeLabel(level, grade)} "{room.section}"
+              </strong>
+            </span>
+            {room.shift && (
+              <span className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />{' '}
+                {room.shift === 'MORNING'
+                  ? 'Mañana'
+                  : room.shift === 'AFTERNOON'
+                    ? 'Tarde'
+                    : room.shift === 'NIGHT'
+                      ? 'Noche'
+                      : room.shift}
+              </span>
+            )}
+            <span>
+              Tutor(a): <strong className="text-foreground">{tutor ? teacherName(tutor) : 'sin asignar'}</strong>
+            </span>
           </div>
 
           {/* Cursos en cuadrícula: crece hacia abajo, no hacia la derecha */}
           {visible.length === 0 ? (
             <div className="px-5 py-10 text-center text-sm text-muted-foreground">
-              {onlyMissing && !q ? '¡Todos los cursos de esta aula tienen docente!' : 'Ningún curso coincide con el filtro.'}
+              {onlyMissing && !q
+                ? '¡Todos los cursos de esta aula tienen docente!'
+                : 'Ningún curso coincide con el filtro.'}
             </div>
           ) : (
-            <div key={room.id} className="grid gap-3 p-5 animate-in fade-in slide-in-from-bottom-2 duration-300 [grid-template-columns:repeat(auto-fill,minmax(15rem,1fr))]">
+            <div
+              key={room.id}
+              className="grid gap-3 p-5 animate-in fade-in slide-in-from-bottom-2 duration-300 [grid-template-columns:repeat(auto-fill,minmax(15rem,1fr))]"
+            >
               {visible.map((cell) => (
                 <CourseCard
                   key={cell.areaId}
@@ -455,27 +625,50 @@ const GradeBlock: React.FC<GradeBlockProps> = ({ level, grade, rooms, data, quer
 };
 
 const CourseCard: React.FC<{
-  room: LoadClassroom; cell: LoadCell; teachers: TeacherLite[]; value: string | null;
-  changed: boolean; dimmed: boolean; highlighted: boolean; onChange: (next: string | null) => void;
+  room: LoadClassroom;
+  cell: LoadCell;
+  teachers: TeacherLite[];
+  value: string | null;
+  changed: boolean;
+  dimmed: boolean;
+  highlighted: boolean;
+  onChange: (next: string | null) => void;
 }> = ({ room, cell, teachers, value, changed, dimmed, highlighted, onChange }) => {
   const teacher = teachers.find((t) => t.id === value) ?? null;
   return (
     <div
       className={cn(
         'group relative overflow-hidden rounded-xl border bg-card p-3.5 pt-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-        changed ? 'border-amber-500/60 ring-2 ring-amber-500/15' : !value ? 'border-dashed border-amber-500/40 bg-amber-500/[0.03]' : 'border-border',
+        changed
+          ? 'border-amber-500/60 ring-2 ring-amber-500/15'
+          : !value
+            ? 'border-dashed border-amber-500/40 bg-amber-500/[0.03]'
+            : 'border-border',
         highlighted && 'border-primary ring-2 ring-primary/25',
         dimmed && 'opacity-40',
       )}
     >
-      <div className={cn('absolute inset-x-0 top-0 h-1 bg-gradient-to-r', COURSE_TONES[hash(cell.name) % COURSE_TONES.length])} />
+      <div
+        className={cn(
+          'absolute inset-x-0 top-0 h-1 bg-gradient-to-r',
+          COURSE_TONES[hash(cell.name) % COURSE_TONES.length],
+        )}
+      />
       <div className="mb-3 flex items-start justify-between gap-2">
-        <p className="line-clamp-2 text-sm font-semibold leading-snug" title={cell.name}>{cell.name}</p>
+        <p className="line-clamp-2 text-sm font-semibold leading-snug" title={cell.name}>
+          {cell.name}
+        </p>
         <div className="flex shrink-0 items-center gap-1">
           {cell.weeklyHours != null && (
-            <span className="rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium tabular-nums text-muted-foreground">{cell.weeklyHours} h</span>
+            <span className="rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium tabular-nums text-muted-foreground">
+              {cell.weeklyHours} h
+            </span>
           )}
-          {changed && <span className="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-300">Editado</span>}
+          {changed && (
+            <span className="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-300">
+              Editado
+            </span>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-2.5">
@@ -490,9 +683,14 @@ const CourseCard: React.FC<{
               !value && 'text-amber-700 dark:text-amber-300',
             )}
           >
-            <option value="" disabled={cell.hasGrades}>{cell.hasGrades ? 'Sin docente (tiene notas)' : 'Sin docente'}</option>
+            <option value="" disabled={cell.hasGrades}>
+              {cell.hasGrades ? 'Sin docente (tiene notas)' : 'Sin docente'}
+            </option>
             {teachers.map((t) => (
-              <option key={t.id} value={t.id}>{teacherName(t)}{cell.isTransversal && t.id === room.tutorTeacherId ? ' (tutor/a)' : ''}</option>
+              <option key={t.id} value={t.id}>
+                {teacherName(t)}
+                {cell.isTransversal && t.id === room.tutorTeacherId ? ' (tutor/a)' : ''}
+              </option>
             ))}
           </select>
           <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -500,8 +698,16 @@ const CourseCard: React.FC<{
       </div>
       {(cell.hasGrades || cell.isTransversal) && (
         <div className="mt-2 flex flex-wrap gap-1">
-          {cell.hasGrades && <span className="rounded-full bg-sky-500/10 px-2 py-0.5 text-xs font-medium text-sky-700 dark:text-sky-300">Tiene notas</span>}
-          {cell.isTransversal && <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-xs font-medium text-violet-700 dark:text-violet-300">Transversal</span>}
+          {cell.hasGrades && (
+            <span className="rounded-full bg-sky-500/10 px-2 py-0.5 text-xs font-medium text-sky-700 dark:text-sky-300">
+              Tiene notas
+            </span>
+          )}
+          {cell.isTransversal && (
+            <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-xs font-medium text-violet-700 dark:text-violet-300">
+              Transversal
+            </span>
+          )}
         </div>
       )}
     </div>
@@ -509,8 +715,10 @@ const CourseCard: React.FC<{
 };
 
 const TeacherPanel: React.FC<{
-  data: TeachingLoad; loadByTeacher: Map<string, { courses: number; hours: number }>;
-  focusTeacher: string | null; onFocus: (id: string | null) => void;
+  data: TeachingLoad;
+  loadByTeacher: Map<string, { courses: number; hours: number }>;
+  focusTeacher: string | null;
+  onFocus: (id: string | null) => void;
 }> = ({ data, loadByTeacher, focusTeacher, onFocus }) => {
   const [q, setQ] = useState('');
   const rows = useMemo(() => {
@@ -525,7 +733,9 @@ const TeacherPanel: React.FC<{
   return (
     <Card className="overflow-hidden lg:sticky lg:top-4">
       <div className="border-b border-border px-4 py-3">
-        <p className="flex items-center gap-2 text-sm font-semibold"><Users className="h-4 w-4 text-primary" /> Carga por docente</p>
+        <p className="flex items-center gap-2 text-sm font-semibold">
+          <Users className="h-4 w-4 text-primary" /> Carga por docente
+        </p>
         <p className="mt-0.5 text-xs text-muted-foreground">Toca un docente para resaltar sus cursos.</p>
         <div className="relative mt-3">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -553,14 +763,24 @@ const TeacherPanel: React.FC<{
                 <Avatar teacher={t} className="h-7 w-7 text-xs" />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className={cn('truncate text-xs font-medium', !load.courses && 'text-muted-foreground')}>{teacherName(t)}</span>
+                    <span className={cn('truncate text-xs font-medium', !load.courses && 'text-muted-foreground')}>
+                      {teacherName(t)}
+                    </span>
                     <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{load.hours} h</span>
                   </div>
                   <div className="mt-1 flex items-center gap-2">
                     <div className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
-                      <div className={cn('h-full rounded-full transition-all duration-500', load.courses ? 'bg-primary/70' : 'bg-transparent')} style={{ width: `${(load.hours / maxHours) * 100}%` }} />
+                      <div
+                        className={cn(
+                          'h-full rounded-full transition-all duration-500',
+                          load.courses ? 'bg-primary/70' : 'bg-transparent',
+                        )}
+                        style={{ width: `${(load.hours / maxHours) * 100}%` }}
+                      />
                     </div>
-                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{load.courses} curso{load.courses === 1 ? '' : 's'}</span>
+                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                      {load.courses} curso{load.courses === 1 ? '' : 's'}
+                    </span>
                   </div>
                 </div>
               </button>

@@ -33,8 +33,8 @@ export const NotFoundPage: React.FC = () => {
       title="No encontramos esta página"
       description={
         <>
-          La dirección <span className="break-all font-semibold text-foreground">{pathname}</span> no existe o cambió
-          de lugar. Revisa el enlace o busca la sección en el menú.
+          La dirección <span className="break-all font-semibold text-foreground">{pathname}</span> no existe o cambió de
+          lugar. Revisa el enlace o busca la sección en el menú.
         </>
       }
     />

@@ -15,9 +15,17 @@ export const AttendanceStatusBadge: React.FC<AttendanceStatusBadgeProps> = ({ st
     case 'ABSENT_UNJUSTIFIED':
       return <Badge variant="destructive">FALTA INJUSTIFICADA</Badge>;
     case 'LATE_JUSTIFIED':
-      return <Badge variant="outline" className="border-amber-500 text-amber-600 dark:text-amber-400">TARDANZA JUST.</Badge>;
+      return (
+        <Badge variant="outline" className="border-amber-500 text-amber-600 dark:text-amber-400">
+          TARDANZA JUST.
+        </Badge>
+      );
     case 'LATE_UNJUSTIFIED':
-      return <Badge variant="outline" className="border-amber-500 text-amber-600 dark:text-amber-400">TARDANZA INJ.</Badge>;
+      return (
+        <Badge variant="outline" className="border-amber-500 text-amber-600 dark:text-amber-400">
+          TARDANZA INJ.
+        </Badge>
+      );
     default:
       return <Badge variant="outline">{status}</Badge>;
   }

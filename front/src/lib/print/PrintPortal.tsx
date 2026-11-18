@@ -24,4 +24,3 @@ export function PrintPortal({ children }: { children: ReactNode }) {
   }, []);
   return root ? createPortal(<div className="print-document">{children}</div>, root) : null;
 }
-

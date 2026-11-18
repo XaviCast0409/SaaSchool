@@ -34,7 +34,11 @@ export const useFamilyTimeline = (studentId: string | null, days = 14) =>
     queryKey: ['family', 'timeline', studentId, days],
     enabled: Boolean(studentId),
     queryFn: async () =>
-      (await api.get<{ data: { past: TimelineItem[]; upcoming: TimelineItem[] } }>('/family/timeline', { params: { studentId, days } })).data.data,
+      (
+        await api.get<{ data: { past: TimelineItem[]; upcoming: TimelineItem[] } }>('/family/timeline', {
+          params: { studentId, days },
+        })
+      ).data.data,
     refetchInterval: 60_000,
   });
 
@@ -45,7 +49,15 @@ export interface GateToday {
   stillInSchool: number;
   isSchoolDay: boolean;
   nonSchoolDayReason: string | null;
-  rows: Array<{ id: string; checkOutTime: string; student: string; classroom: string; pickedUpByName: string | null; pickedUpByDocument: string | null; earlyLeaveReason: string | null }>;
+  rows: Array<{
+    id: string;
+    checkOutTime: string;
+    student: string;
+    classroom: string;
+    pickedUpByName: string | null;
+    pickedUpByDocument: string | null;
+    earlyLeaveReason: string | null;
+  }>;
   inSchool: Array<{ id: string; checkInTime: string | null; student: string; classroom: string }>;
 }
 

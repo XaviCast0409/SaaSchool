@@ -21,9 +21,17 @@ export interface SubjectTheme {
 }
 
 export const getSubjectTheme = (areaName: string = ''): SubjectTheme => {
-  const normalized = areaName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const normalized = areaName
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
 
-  if (normalized.includes('matemat') || normalized.includes('algeb') || normalized.includes('geom') || normalized.includes('aritmet')) {
+  if (
+    normalized.includes('matemat') ||
+    normalized.includes('algeb') ||
+    normalized.includes('geom') ||
+    normalized.includes('aritmet')
+  ) {
     return {
       icon: Calculator,
       category: 'Ciencias Exactas',
@@ -32,7 +40,12 @@ export const getSubjectTheme = (areaName: string = ''): SubjectTheme => {
     };
   }
 
-  if (normalized.includes('comunic') || normalized.includes('lengu') || normalized.includes('literat') || normalized.includes('lectur')) {
+  if (
+    normalized.includes('comunic') ||
+    normalized.includes('lengu') ||
+    normalized.includes('literat') ||
+    normalized.includes('lectur')
+  ) {
     return {
       icon: BookOpen,
       category: 'Lenguaje y Letras',
@@ -41,7 +54,13 @@ export const getSubjectTheme = (areaName: string = ''): SubjectTheme => {
     };
   }
 
-  if (normalized.includes('cienc') || normalized.includes('fisic') || normalized.includes('quimic') || normalized.includes('biol') || normalized.includes('ambient')) {
+  if (
+    normalized.includes('cienc') ||
+    normalized.includes('fisic') ||
+    normalized.includes('quimic') ||
+    normalized.includes('biol') ||
+    normalized.includes('ambient')
+  ) {
     return {
       icon: FlaskConical,
       category: 'Ciencia y Tecnología',
@@ -50,7 +69,12 @@ export const getSubjectTheme = (areaName: string = ''): SubjectTheme => {
     };
   }
 
-  if (normalized.includes('social') || normalized.includes('histor') || normalized.includes('geograf') || normalized.includes('econom')) {
+  if (
+    normalized.includes('social') ||
+    normalized.includes('histor') ||
+    normalized.includes('geograf') ||
+    normalized.includes('econom')
+  ) {
     return {
       icon: Globe,
       category: 'Ciencias Sociales',
@@ -59,7 +83,12 @@ export const getSubjectTheme = (areaName: string = ''): SubjectTheme => {
     };
   }
 
-  if (normalized.includes('ingles') || normalized.includes('english') || normalized.includes('extranjer') || normalized.includes('idiom')) {
+  if (
+    normalized.includes('ingles') ||
+    normalized.includes('english') ||
+    normalized.includes('extranjer') ||
+    normalized.includes('idiom')
+  ) {
     return {
       icon: Languages,
       category: 'Idiomas Extranjeros',
@@ -68,7 +97,13 @@ export const getSubjectTheme = (areaName: string = ''): SubjectTheme => {
     };
   }
 
-  if (normalized.includes('arte') || normalized.includes('cultur') || normalized.includes('music') || normalized.includes('teatr') || normalized.includes('danz')) {
+  if (
+    normalized.includes('arte') ||
+    normalized.includes('cultur') ||
+    normalized.includes('music') ||
+    normalized.includes('teatr') ||
+    normalized.includes('danz')
+  ) {
     return {
       icon: Palette,
       category: 'Arte y Cultura',
@@ -86,7 +121,13 @@ export const getSubjectTheme = (areaName: string = ''): SubjectTheme => {
     };
   }
 
-  if (normalized.includes('comput') || normalized.includes('informa') || normalized.includes('robotic') || normalized.includes('tecnol') || normalized.includes('trabaj')) {
+  if (
+    normalized.includes('comput') ||
+    normalized.includes('informa') ||
+    normalized.includes('robotic') ||
+    normalized.includes('tecnol') ||
+    normalized.includes('trabaj')
+  ) {
     return {
       icon: Laptop,
       category: 'Tecnología y Trabajo',
@@ -95,7 +136,13 @@ export const getSubjectTheme = (areaName: string = ''): SubjectTheme => {
     };
   }
 
-  if (normalized.includes('personal') || normalized.includes('civic') || normalized.includes('ciudadan') || normalized.includes('dpcc') || normalized.includes('tutor')) {
+  if (
+    normalized.includes('personal') ||
+    normalized.includes('civic') ||
+    normalized.includes('ciudadan') ||
+    normalized.includes('dpcc') ||
+    normalized.includes('tutor')
+  ) {
     return {
       icon: HeartHandshake,
       category: 'Desarrollo Personal',

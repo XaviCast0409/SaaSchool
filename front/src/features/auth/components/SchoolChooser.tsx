@@ -23,7 +23,8 @@ const ROLE_LABEL: Record<string, string> = {
 
 /** Extrae las opciones de un error de login con code SELECT_SCHOOL (o null si no es ese caso). */
 export const schoolOptionsFromError = (error: unknown): SchoolOption[] | null => {
-  const data = (error as { response?: { data?: { code?: string; details?: { options?: SchoolOption[] } } } })?.response?.data;
+  const data = (error as { response?: { data?: { code?: string; details?: { options?: SchoolOption[] } } } })?.response
+    ?.data;
   return data?.code === 'SELECT_SCHOOL' && data.details?.options?.length ? data.details.options : null;
 };
 
@@ -39,7 +40,9 @@ export const SchoolChooser: React.FC<Props> = ({ options, onPick, onCancel, pend
   <div className="space-y-3">
     <div>
       <p className="text-sm font-semibold text-foreground">Tienes cuenta en más de un colegio</p>
-      <p className="text-xs text-muted-foreground">Elige a cuál quieres entrar. Luego podrás cambiar cerrando sesión.</p>
+      <p className="text-xs text-muted-foreground">
+        Elige a cuál quieres entrar. Luego podrás cambiar cerrando sesión.
+      </p>
     </div>
     <ul className="space-y-2">
       {options.map((option) => {
@@ -65,7 +68,11 @@ export const SchoolChooser: React.FC<Props> = ({ options, onPick, onCancel, pend
                   {ROLE_LABEL[option.role] ?? option.role} · {option.name}
                 </span>
               </span>
-              {pending ? <Loader2 className="h-4 w-4 animate-spin shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+              {pending ? (
+                <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+              )}
             </button>
           </li>
         );

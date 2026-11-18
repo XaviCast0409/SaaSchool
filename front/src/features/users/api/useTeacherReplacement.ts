@@ -5,7 +5,13 @@ import { api } from '@/lib/axios';
 
 export interface ReplacementPreview {
   year: { id: string; year: number; isActive: boolean };
-  teacher: { id: string; firstName: string; lastNamePaternal: string; lastNameMaternal: string | null; email: string | null };
+  teacher: {
+    id: string;
+    firstName: string;
+    lastNamePaternal: string;
+    lastNameMaternal: string | null;
+    email: string | null;
+  };
   courses: Array<{
     id: string;
     course: string;
@@ -46,13 +52,15 @@ export interface TeacherReplacementRow {
 }
 
 const invalidate = (qc: ReturnType<typeof useQueryClient>) => {
-  for (const key of ['users', 'staff-load', 'teacher-replacements', 'classrooms', 'teaching-load']) qc.invalidateQueries({ queryKey: [key] });
+  for (const key of ['users', 'staff-load', 'teacher-replacements', 'classrooms', 'teaching-load'])
+    qc.invalidateQueries({ queryKey: [key] });
 };
 
 export const useReplacementPreview = (teacherId: string | null) =>
   useQuery({
     queryKey: ['teacher-replacements', 'preview', teacherId],
-    queryFn: async () => (await api.get<{ data: ReplacementPreview }>(`/academic/teacher-replacements/preview/${teacherId}`)).data.data,
+    queryFn: async () =>
+      (await api.get<{ data: ReplacementPreview }>(`/academic/teacher-replacements/preview/${teacherId}`)).data.data,
     enabled: !!teacherId,
   });
 
@@ -66,7 +74,12 @@ export const useReplaceTeacher = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (body: ReplacementBody) =>
-      (await api.post<{ data: { transferred: { courses: number; tutorships: number; rubricsCopied: number } } }>('/academic/teacher-replacements', body)).data.data,
+      (
+        await api.post<{ data: { transferred: { courses: number; tutorships: number; rubricsCopied: number } } }>(
+          '/academic/teacher-replacements',
+          body,
+        )
+      ).data.data,
     onSuccess: () => invalidate(qc),
   });
 };
@@ -75,7 +88,8 @@ export const useEndReplacement = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, returnDate }: { id: string; returnDate?: string }) =>
-      (await api.post<{ data: { returned: number } }>(`/academic/teacher-replacements/${id}/end`, { returnDate })).data.data,
+      (await api.post<{ data: { returned: number } }>(`/academic/teacher-replacements/${id}/end`, { returnDate })).data
+        .data,
     onSuccess: () => invalidate(qc),
   });
 };

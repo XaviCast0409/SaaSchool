@@ -28,11 +28,7 @@ interface SchoolInfoFormValues {
   slug: string;
 }
 
-export const EditSchoolInfoModal: React.FC<EditSchoolInfoModalProps> = ({
-  school,
-  isOpen,
-  onClose,
-}) => {
+export const EditSchoolInfoModal: React.FC<EditSchoolInfoModalProps> = ({ school, isOpen, onClose }) => {
   const { mutate: updateSchool, isPending } = useUpdateSchoolInfo();
 
   const {
@@ -84,16 +80,18 @@ export const EditSchoolInfoModal: React.FC<EditSchoolInfoModalProps> = ({
           onClose();
         },
         onError: (err: any) => {
-          toast.error(
-            err?.response?.data?.message || 'Error al actualizar los datos del colegio.'
-          );
+          toast.error(err?.response?.data?.message || 'Error al actualizar los datos del colegio.');
         },
-      }
+      },
     );
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200"
+    >
       <div className="w-full max-w-2xl rounded-2xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border p-5 bg-card shrink-0">
@@ -102,18 +100,13 @@ export const EditSchoolInfoModal: React.FC<EditSchoolInfoModalProps> = ({
               <Building2 className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="font-bold text-lg text-foreground leading-none">
-                Editar Datos del Colegio
-              </h2>
+              <h2 className="font-bold text-lg text-foreground leading-none">Editar Datos del Colegio</h2>
               <p className="text-xs text-muted-foreground mt-1 truncate max-w-[320px]">
                 Actualiza teléfonos, dirección, códigos oficiales y datos de contacto de {school.name}
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-2 text-muted-foreground hover:bg-muted transition-colors"
-          >
+          <button onClick={onClose} className="rounded-lg p-2 text-muted-foreground hover:bg-muted transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -128,10 +121,7 @@ export const EditSchoolInfoModal: React.FC<EditSchoolInfoModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1 sm:col-span-2">
                 <label className="text-xs font-semibold text-foreground">Nombre de la Institución *</label>
-                <Input
-                  {...register('name', { required: 'El nombre es obligatorio' })}
-                  className="h-9 text-xs"
-                />
+                <Input {...register('name', { required: 'El nombre es obligatorio' })} className="h-9 text-xs" />
                 {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
               </div>
 
@@ -147,20 +137,12 @@ export const EditSchoolInfoModal: React.FC<EditSchoolInfoModalProps> = ({
 
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-foreground">Código Modular MINEDU</label>
-                <Input
-                  {...register('modularCode')}
-                  placeholder="Ej: 0614990"
-                  className="h-9 text-xs font-mono"
-                />
+                <Input {...register('modularCode')} placeholder="Ej: 0614990" className="h-9 text-xs font-mono" />
               </div>
 
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-foreground">Código de Local MINEDU</label>
-                <Input
-                  {...register('localCode')}
-                  placeholder="Ej: LO1234"
-                  className="h-9 text-xs font-mono"
-                />
+                <Input {...register('localCode')} placeholder="Ej: LO1234" className="h-9 text-xs font-mono" />
               </div>
 
               <div className="space-y-1">
@@ -168,11 +150,7 @@ export const EditSchoolInfoModal: React.FC<EditSchoolInfoModalProps> = ({
                   <Globe className="w-3.5 h-3.5 text-primary" />
                   <span>URL del Logotipo (Cloudinary / Web)</span>
                 </label>
-                <Input
-                  {...register('logoUrl')}
-                  placeholder="https://res.cloudinary.com/..."
-                  className="h-9 text-xs"
-                />
+                <Input {...register('logoUrl')} placeholder="https://res.cloudinary.com/..." className="h-9 text-xs" />
               </div>
 
               <div className="space-y-1 sm:col-span-2">
@@ -212,11 +190,7 @@ export const EditSchoolInfoModal: React.FC<EditSchoolInfoModalProps> = ({
                   <Phone className="w-3.5 h-3.5 text-primary" />
                   <span>Teléfono / Celular de Contacto</span>
                 </label>
-                <Input
-                  {...register('phone')}
-                  placeholder="Ej: 01-4445566 o 987654321"
-                  className="h-9 text-xs"
-                />
+                <Input {...register('phone')} placeholder="Ej: 01-4445566 o 987654321" className="h-9 text-xs" />
               </div>
 
               <div className="space-y-1">
@@ -224,12 +198,7 @@ export const EditSchoolInfoModal: React.FC<EditSchoolInfoModalProps> = ({
                   <Mail className="w-3.5 h-3.5 text-primary" />
                   <span>Email Institucional</span>
                 </label>
-                <Input
-                  type="email"
-                  {...register('email')}
-                  placeholder="admin@colegio.edu.pe"
-                  className="h-9 text-xs"
-                />
+                <Input type="email" {...register('email')} placeholder="admin@colegio.edu.pe" className="h-9 text-xs" />
               </div>
 
               <div className="space-y-1 sm:col-span-2">
@@ -237,11 +206,7 @@ export const EditSchoolInfoModal: React.FC<EditSchoolInfoModalProps> = ({
                   <MapPin className="w-3.5 h-3.5 text-primary" />
                   <span>Dirección Física</span>
                 </label>
-                <Input
-                  {...register('address')}
-                  placeholder="Ej: Av. La Marina 1200"
-                  className="h-9 text-xs"
-                />
+                <Input {...register('address')} placeholder="Ej: Av. La Marina 1200" className="h-9 text-xs" />
               </div>
 
               <div className="space-y-1">

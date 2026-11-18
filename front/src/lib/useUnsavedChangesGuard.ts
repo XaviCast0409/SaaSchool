@@ -17,7 +17,15 @@ export function useUnsavedChangesGuard(dirty: boolean, message: string = DEFAULT
     };
 
     const onClick = (event: MouseEvent) => {
-      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      )
+        return;
       const anchor = (event.target as HTMLElement | null)?.closest?.('a[href]') as HTMLAnchorElement | null;
       if (!anchor || anchor.target === '_blank' || anchor.hasAttribute('download')) return;
       const url = new URL(anchor.href, window.location.href);

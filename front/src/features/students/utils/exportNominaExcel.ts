@@ -144,9 +144,7 @@ export async function exportNominaToExcel(data: NominaMatriculaResponse): Promis
       OTHER: 'OTRO',
     };
 
-    const disabilityText = student.hasDisability
-      ? `SÍ (${student.disabilityType || 'NEE'})`
-      : 'NO';
+    const disabilityText = student.hasDisability ? `SÍ (${student.disabilityType || 'NEE'})` : 'NO';
 
     return [
       index + 1,
@@ -167,7 +165,9 @@ export async function exportNominaToExcel(data: NominaMatriculaResponse): Promis
       student.repeatingGrade ? 'SÍ' : 'NO',
       student.guardian?.documentId || '---',
       student.guardian?.fullName || '---',
-      student.guardian?.relationshipType ? (relationshipMap[student.guardian.relationshipType] || student.guardian.relationshipType) : '---',
+      student.guardian?.relationshipType
+        ? relationshipMap[student.guardian.relationshipType] || student.guardian.relationshipType
+        : '---',
       student.guardian?.cellphone || '---',
       student.guardian?.email || '---',
       student.address || '---',
@@ -216,7 +216,7 @@ export async function exportNominaToExcel(data: NominaMatriculaResponse): Promis
     { wch: 18 }, // Apellido Paterno
     { wch: 18 }, // Apellido Materno
     { wch: 22 }, // Nombres
-    { wch: 8 },  // Sexo
+    { wch: 8 }, // Sexo
     { wch: 14 }, // Fecha Nac.
     { wch: 15 }, // Edad 31/03
     { wch: 14 }, // País
@@ -234,7 +234,8 @@ export async function exportNominaToExcel(data: NominaMatriculaResponse): Promis
   ];
 
   const workbook = XLSX.utils.book_new();
-  const safeSheetName = `NOMINA_${data.classroom.grade}${data.classroom.section}_${data.classroom.educationLevel}`.slice(0, 31);
+  const safeSheetName =
+    `NOMINA_${data.classroom.grade}${data.classroom.section}_${data.classroom.educationLevel}`.slice(0, 31);
   XLSX.utils.book_append_sheet(workbook, worksheet, safeSheetName);
 
   const fileName = `Nomina_Oficial_SIAGIE_${data.classroom.grade}${data.classroom.section}_${data.classroom.educationLevel}_${currentYear}.xlsx`;

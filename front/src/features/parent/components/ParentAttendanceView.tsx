@@ -1,15 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import {
-  CalendarCheck,
-  Clock,
-  AlertCircle,
-  Filter,
-  Calendar,
-  FileText,
-  UserCheck,
-  Info,
-} from 'lucide-react';
+import { CalendarCheck, Clock, AlertCircle, Filter, Calendar, FileText, UserCheck, Info } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -40,15 +31,14 @@ export const ParentAttendanceView: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalDefaultDate, setModalDefaultDate] = useState<string | undefined>(undefined);
 
-  const activeChild =
-    children.find((c) => c.id === selectedChildId) || children[0] || null;
+  const activeChild = children.find((c) => c.id === selectedChildId) || children[0] || null;
   const enrollmentId = activeChild?.activeEnrollment?.id;
 
-  const { data: records = [], isLoading: loadingRecords } =
-    useAttendanceByEnrollment(enrollmentId);
+  const { data: records = [], isLoading: loadingRecords } = useAttendanceByEnrollment(enrollmentId);
 
-  const { data: justificationsData, isLoading: loadingJustifications } =
-    useJustifications(enrollmentId ? { enrollmentId } : {});
+  const { data: justificationsData, isLoading: loadingJustifications } = useJustifications(
+    enrollmentId ? { enrollmentId } : {},
+  );
 
   const { data: authorizedPickups = [] } = usePickups(activeChild?.id);
 
@@ -101,10 +91,8 @@ export const ParentAttendanceView: React.FC = () => {
     return records.filter((r) => {
       if (filterStatus === 'ALL') return true;
       if (filterStatus === 'PRESENT') return r.status === 'PRESENT';
-      if (filterStatus === 'LATE')
-        return r.status === 'LATE_JUSTIFIED' || r.status === 'LATE_UNJUSTIFIED';
-      if (filterStatus === 'ABSENT')
-        return r.status === 'ABSENT_JUSTIFIED' || r.status === 'ABSENT_UNJUSTIFIED';
+      if (filterStatus === 'LATE') return r.status === 'LATE_JUSTIFIED' || r.status === 'LATE_UNJUSTIFIED';
+      if (filterStatus === 'ABSENT') return r.status === 'ABSENT_JUSTIFIED' || r.status === 'ABSENT_UNJUSTIFIED';
       return true;
     });
   }, [records, filterStatus]);
@@ -128,9 +116,7 @@ export const ParentAttendanceView: React.FC = () => {
       <div className="p-8 text-center bg-card border border-border rounded-2xl space-y-2 shadow-sm">
         <AlertCircle className="w-8 h-8 text-amber-500 mx-auto" />
         <h3 className="font-bold text-sm text-foreground">Sin estudiantes asignados</h3>
-        <p className="text-xs text-muted-foreground">
-          No hay alumnos vinculados a tu cuenta de usuario.
-        </p>
+        <p className="text-xs text-muted-foreground">No hay alumnos vinculados a tu cuenta de usuario.</p>
       </div>
     );
   }
@@ -175,11 +161,7 @@ export const ParentAttendanceView: React.FC = () => {
 
       {/* 2. Selector Multi-Hijo si aplica */}
       {children.length > 1 && (
-        <ChildSwitcher
-          childrenList={children}
-          selectedId={activeChild.id}
-          onSelect={setSelectedChildId}
-        />
+        <ChildSwitcher childrenList={children} selectedId={activeChild.id} onSelect={setSelectedChildId} />
       )}
 
       {/* 3. Métricas de Asistencia Clave */}
@@ -228,9 +210,7 @@ export const ParentAttendanceView: React.FC = () => {
         </div>
 
         {loadingRecords ? (
-          <div className="p-8 text-center text-xs text-muted-foreground">
-            Cargando historial de asistencias...
-          </div>
+          <div className="p-8 text-center text-xs text-muted-foreground">Cargando historial de asistencias...</div>
         ) : filteredRecords.length === 0 ? (
           <div className="p-12 text-center text-muted-foreground space-y-1">
             <CalendarCheck className="w-10 h-10 mx-auto opacity-30 mb-2" />
@@ -276,7 +256,12 @@ export const ParentAttendanceView: React.FC = () => {
                         {item.checkInTime ? (
                           <span className="flex items-center gap-1 font-semibold text-foreground">
                             <Clock className="w-3 h-3 text-primary" />
-                            Ingreso: {new Date(item.checkInTime).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Lima' })}
+                            Ingreso:{' '}
+                            {new Date(item.checkInTime).toLocaleTimeString('es-PE', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              timeZone: 'America/Lima',
+                            })}
                           </span>
                         ) : (
                           <span>Marcado en lista</span>
@@ -284,9 +269,7 @@ export const ParentAttendanceView: React.FC = () => {
                         {item.notes && (
                           <>
                             <span>•</span>
-                            <span className="italic text-muted-foreground truncate max-w-[200px]">
-                              "{item.notes}"
-                            </span>
+                            <span className="italic text-muted-foreground truncate max-w-[200px]">"{item.notes}"</span>
                           </>
                         )}
                       </div>
@@ -327,9 +310,7 @@ export const ParentAttendanceView: React.FC = () => {
         </div>
 
         {loadingJustifications ? (
-          <div className="p-8 text-center text-xs text-muted-foreground">
-            Cargando justificaciones...
-          </div>
+          <div className="p-8 text-center text-xs text-muted-foreground">Cargando justificaciones...</div>
         ) : !justificationsData?.data || justificationsData.data.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground text-xs">
             No tienes solicitudes de justificación registradas para este estudiante.
@@ -358,20 +339,14 @@ export const ParentAttendanceView: React.FC = () => {
                 >
                   <div className="space-y-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs sm:text-sm font-bold text-foreground">
-                        {dateDisplay}
-                      </span>
+                      <span className="text-xs sm:text-sm font-bold text-foreground">{dateDisplay}</span>
                       <span className="text-xs font-medium text-muted-foreground">
                         • {REASON_LABELS[j.reason] || j.reason}
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground line-clamp-2">
-                      {j.description}
-                    </p>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{j.description}</p>
                     {j.reviewNote && j.status === 'REJECTED' && (
-                      <p className="text-xs text-destructive font-medium">
-                        Nota del colegio: {j.reviewNote}
-                      </p>
+                      <p className="text-xs text-destructive font-medium">Nota del colegio: {j.reviewNote}</p>
                     )}
                   </div>
 
@@ -404,7 +379,9 @@ export const ParentAttendanceView: React.FC = () => {
         <div className="p-4 border-b border-border bg-muted/30 flex items-center justify-between">
           <h3 className="font-extrabold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
             <UserCheck className="w-4 h-4 text-primary" />
-            <span>Personas autorizadas a recoger a {activeChild.firstNames} ({authorizedPickups.length})</span>
+            <span>
+              Personas autorizadas a recoger a {activeChild.firstNames} ({authorizedPickups.length})
+            </span>
           </h3>
         </div>
 
@@ -421,10 +398,11 @@ export const ParentAttendanceView: React.FC = () => {
               >
                 <div className="space-y-0.5 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs sm:text-sm font-bold text-foreground truncate">
-                      {p.fullName}
-                    </span>
-                    <Badge variant="outline" className="text-xs text-emerald-600 bg-emerald-500/10 border-emerald-500/30">
+                    <span className="text-xs sm:text-sm font-bold text-foreground truncate">{p.fullName}</span>
+                    <Badge
+                      variant="outline"
+                      className="text-xs text-emerald-600 bg-emerald-500/10 border-emerald-500/30"
+                    >
                       {p.relationship}
                     </Badge>
                   </div>
@@ -459,4 +437,3 @@ export const ParentAttendanceView: React.FC = () => {
     </div>
   );
 };
-

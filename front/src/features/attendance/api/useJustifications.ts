@@ -1,11 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/axios';
-import type {
-  AttendanceJustification,
-  CreateJustificationPayload,
-  ReviewJustificationPayload,
-} from '../types';
+import type { AttendanceJustification, CreateJustificationPayload, ReviewJustificationPayload } from '../types';
 
 export interface JustificationFilters {
   status?: string;
@@ -90,11 +86,7 @@ export const useReviewJustification = () => {
       queryClient.invalidateQueries({ queryKey: ['attendance-justifications'] });
       queryClient.invalidateQueries({ queryKey: ['attendance'] });
       queryClient.invalidateQueries({ queryKey: ['student-attendance'] });
-      toast.success(
-        data.status === 'APPROVED'
-          ? 'Justificación aprobada correctamente.'
-          : 'Justificación rechazada.',
-      );
+      toast.success(data.status === 'APPROVED' ? 'Justificación aprobada correctamente.' : 'Justificación rechazada.');
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message || 'Error al revisar la justificación.');

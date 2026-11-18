@@ -30,11 +30,7 @@ export const FamiliesByStateReport: React.FC<FamiliesByStateReportProps> = ({ da
       />
 
       <div className="bg-card border border-border p-4 sm:p-6 rounded-2xl shadow-sm max-w-5xl mx-auto print:border-none print:shadow-none print:p-0">
-        <ReportHeader
-          school={school}
-          title={title}
-          subtitle={subtitle}
-        />
+        <ReportHeader school={school} title={title} subtitle={subtitle} />
 
         <div className="flex items-center justify-between text-xs font-semibold mb-3 border-b border-border pb-2 text-foreground">
           <div>
@@ -72,10 +68,18 @@ export const FamiliesByStateReport: React.FC<FamiliesByStateReportProps> = ({ da
                   <td className="border border-foreground/50 p-1.5 font-bold uppercase text-foreground">
                     {fam.familyName}
                   </td>
-                  <td className="border border-foreground/50 p-1.5 text-muted-foreground uppercase">{fam.fatherName}</td>
-                  <td className="border border-foreground/50 p-1.5 text-muted-foreground uppercase">{fam.motherName}</td>
+                  <td className="border border-foreground/50 p-1.5 text-muted-foreground uppercase">
+                    {fam.fatherName}
+                  </td>
+                  <td className="border border-foreground/50 p-1.5 text-muted-foreground uppercase">
+                    {fam.motherName}
+                  </td>
                   <td className="border border-foreground/50 p-1.5 text-center font-mono text-xs text-muted-foreground">
-                    {fam.fatherPhone !== '—' ? fam.fatherPhone : fam.motherPhone !== '—' ? fam.motherPhone : fam.guardianPhone}
+                    {fam.fatherPhone !== '—'
+                      ? fam.fatherPhone
+                      : fam.motherPhone !== '—'
+                        ? fam.motherPhone
+                        : fam.guardianPhone}
                   </td>
                   <td className="border border-foreground/50 p-1.5 text-center font-semibold text-xs uppercase">
                     <span

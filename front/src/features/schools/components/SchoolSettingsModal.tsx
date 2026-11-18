@@ -1,6 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { X, School as SchoolIcon, Save, Loader2, Lock, ShieldAlert, Palette, RotateCcw, CalendarCheck, MessagesSquare } from 'lucide-react';
+import {
+  X,
+  School as SchoolIcon,
+  Save,
+  Loader2,
+  Lock,
+  ShieldAlert,
+  Palette,
+  RotateCcw,
+  CalendarCheck,
+  MessagesSquare,
+} from 'lucide-react';
 import { useGetActiveSchool, useUpdateSchool } from '../api/useSchool';
 import { toast } from 'sonner';
 import { LoginPageSettingsSection } from './LoginPageSettingsSection';
@@ -48,10 +59,7 @@ const PLAN_QUOTA: Record<string, string> = { BASIC: '150 alumnos', PRO: '500 alu
 /** Correo de soporte de la plataforma (VITE_SUPPORT_EMAIL). Sin configurar, no se muestra el botón. */
 const SUPPORT_EMAIL: string | undefined = import.meta.env.VITE_SUPPORT_EMAIL || undefined;
 
-export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
-  isOpen,
-  onClose,
-}) => {
+export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({ isOpen, onClose }) => {
   const { data: school, isLoading } = useGetActiveSchool();
   const { mutateAsync: updateSchool, isPending } = useUpdateSchool();
 
@@ -99,13 +107,7 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
       const sanitizedPayload = Object.fromEntries(
         Object.entries(values).map(([key, val]) => [
           key,
-          typeof val === 'string'
-            ? val.trim() === ''
-              ? key === 'brandColor'
-                ? null
-                : undefined
-              : val
-            : val,
+          typeof val === 'string' ? (val.trim() === '' ? (key === 'brandColor' ? null : undefined) : val) : val,
         ]),
       );
       if (values.brandColor === null) {
@@ -167,7 +169,11 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
         ) : (
           <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-4">
             {/* Pestañas: cada tema por separado. Los campos quedan montados para no perder lo escrito. */}
-            <div role="tablist" aria-label="Secciones de ajustes" className="flex flex-wrap gap-1 rounded-xl bg-muted/50 p-1">
+            <div
+              role="tablist"
+              aria-label="Secciones de ajustes"
+              className="flex flex-wrap gap-1 rounded-xl bg-muted/50 p-1"
+            >
               {SETTINGS_TABS.map((t) => (
                 <button
                   key={t.id}
@@ -183,402 +189,451 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
             </div>
 
             <div role="tabpanel" className={tab === 'identity' ? 'space-y-4' : 'hidden'}>
-            {/* Logo: se sube como imagen y se guarda al instante */}
-            <SchoolLogoUploader logoUrl={school?.logoUrl} schoolName={school?.name || 'el colegio'} />
+              {/* Logo: se sube como imagen y se guarda al instante */}
+              <SchoolLogoUploader logoUrl={school?.logoUrl} schoolName={school?.name || 'el colegio'} />
 
-            {/* Color Institucional */}
-            <div className="p-4 rounded-xl bg-secondary/30 border border-border space-y-3">
-              <div className="flex items-center justify-between">
-                <label htmlFor="school-brand-color" className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
-                  <Palette className="w-4 h-4 text-primary" />
-                  Color institucional
-                </label>
-                {brandColorValue && (
-                  <button
-                    type="button"
-                    onClick={() => setValue('brandColor', null, { shouldDirty: true })}
-                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
+              {/* Color Institucional */}
+              <div className="p-4 rounded-xl bg-secondary/30 border border-border space-y-3">
+                <div className="flex items-center justify-between">
+                  <label
+                    htmlFor="school-brand-color"
+                    className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1.5"
                   >
-                    <RotateCcw className="w-3 h-3" />
-                    Restablecer
-                  </button>
-                )}
+                    <Palette className="w-4 h-4 text-primary" />
+                    Color institucional
+                  </label>
+                  {brandColorValue && (
+                    <button
+                      type="button"
+                      onClick={() => setValue('brandColor', null, { shouldDirty: true })}
+                      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      Restablecer
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <input
+                    id="school-brand-color"
+                    type="color"
+                    aria-label="Selector de color institucional"
+                    value={brandColorValue || '#5046e5'}
+                    onChange={(e) => setValue('brandColor', e.target.value, { shouldDirty: true })}
+                    className="w-10 h-10 rounded-lg cursor-pointer border border-border bg-transparent p-0.5"
+                  />
+                  <input
+                    type="text"
+                    placeholder="#5046e5 (por defecto)"
+                    aria-label="Código hexadecimal del color institucional"
+                    value={brandColorValue || ''}
+                    onChange={(e) => setValue('brandColor', e.target.value || null, { shouldDirty: true })}
+                    className="w-36 rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  <div className="flex-1 flex justify-end">
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      style={{
+                        backgroundColor: brandColorValue || '#5046e5',
+                        color: '#ffffff',
+                      }}
+                      className="px-4 py-1.5 rounded-lg text-xs font-semibold shadow-sm pointer-events-none transition-colors"
+                    >
+                      Vista previa
+                    </button>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Personaliza el color primario de los botones, bordes y acentos visuales de la plataforma para tu
+                  colegio.
+                </p>
               </div>
-              <div className="flex items-center gap-3">
+
+              <div>
+                <label
+                  htmlFor="school-name-input"
+                  className="block text-xs font-semibold text-muted-foreground uppercase mb-1"
+                >
+                  Nombre de la Institución Educativa *
+                </label>
                 <input
-                  id="school-brand-color"
-                  type="color"
-                  aria-label="Selector de color institucional"
-                  value={brandColorValue || '#5046e5'}
-                  onChange={(e) => setValue('brandColor', e.target.value, { shouldDirty: true })}
-                  className="w-10 h-10 rounded-lg cursor-pointer border border-border bg-transparent p-0.5"
-                />
-                <input
+                  id="school-name-input"
                   type="text"
-                  placeholder="#5046e5 (por defecto)"
-                  aria-label="Código hexadecimal del color institucional"
-                  value={brandColorValue || ''}
-                  onChange={(e) => setValue('brandColor', e.target.value || null, { shouldDirty: true })}
-                  className="w-36 rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+                  {...register('name', { required: true })}
+                  className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
-                <div className="flex-1 flex justify-end">
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    style={{
-                      backgroundColor: brandColorValue || '#5046e5',
-                      color: '#ffffff',
-                    }}
-                    className="px-4 py-1.5 rounded-lg text-xs font-semibold shadow-sm pointer-events-none transition-colors"
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label
+                    htmlFor="school-ruc-input"
+                    className="block text-xs font-semibold text-muted-foreground uppercase mb-1"
                   >
-                    Vista previa
-                  </button>
+                    RUC
+                  </label>
+                  <input
+                    id="school-ruc-input"
+                    type="text"
+                    value={school?.documentId ?? ''}
+                    readOnly
+                    title="El RUC lo registra KIPUX al dar de alta el colegio"
+                    className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2 text-sm text-muted-foreground"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="school-modular-input"
+                    className="block text-xs font-semibold text-muted-foreground uppercase mb-1"
+                  >
+                    Código modular
+                  </label>
+                  <input
+                    id="school-modular-input"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={7}
+                    placeholder="7 dígitos (ESCALE)"
+                    {...register('modularCode')}
+                    className="w-full rounded-xl border border-border bg-background px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Personaliza el color primario de los botones, bordes y acentos visuales de la plataforma para tu colegio.
-              </p>
-            </div>
 
-            <div>
-              <label htmlFor="school-name-input" className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
-                Nombre de la Institución Educativa *
-              </label>
-              <input
-                id="school-name-input"
-                type="text"
-                {...register('name', { required: true })}
-                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label
+                    htmlFor="school-phone-input"
+                    className="block text-xs font-semibold text-muted-foreground uppercase mb-1"
+                  >
+                    Teléfono / Celular de Contacto
+                  </label>
+                  <input
+                    id="school-phone-input"
+                    type="text"
+                    placeholder="912345678"
+                    {...register('phone')}
+                    className="w-full rounded-xl border border-border bg-background px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label htmlFor="school-ruc-input" className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
-                  RUC
-                </label>
-                <input
-                  id="school-ruc-input"
-                  type="text"
-                  value={school?.documentId ?? ''}
-                  readOnly
-                  title="El RUC lo registra KIPUX al dar de alta el colegio"
-                  className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2 text-sm text-muted-foreground"
-                />
+                <div>
+                  <label
+                    htmlFor="school-email-input"
+                    className="block text-xs font-semibold text-muted-foreground uppercase mb-1"
+                  >
+                    Email Institucional
+                  </label>
+                  <input
+                    id="school-email-input"
+                    type="email"
+                    placeholder="contacto@colegio.edu.pe"
+                    {...register('email')}
+                    className="w-full rounded-xl border border-border bg-background px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
               </div>
-              <div>
-                <label htmlFor="school-modular-input" className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
-                  Código modular
-                </label>
-                <input
-                  id="school-modular-input"
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={7}
-                  placeholder="7 dígitos (ESCALE)"
-                  {...register('modularCode')}
-                  className="w-full rounded-xl border border-border bg-background px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="school-phone-input" className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
-                  Teléfono / Celular de Contacto
+                <label
+                  htmlFor="school-address-input"
+                  className="block text-xs font-semibold text-muted-foreground uppercase mb-1"
+                >
+                  Dirección del Colegio
                 </label>
                 <input
-                  id="school-phone-input"
+                  id="school-address-input"
                   type="text"
-                  placeholder="912345678"
-                  {...register('phone')}
+                  placeholder="Av. Los Educadores 123"
+                  {...register('address')}
                   className="w-full rounded-xl border border-border bg-background px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
 
-              <div>
-                <label htmlFor="school-email-input" className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
-                  Email Institucional
-                </label>
-                <input
-                  id="school-email-input"
-                  type="email"
-                  placeholder="contacto@colegio.edu.pe"
-                  {...register('email')}
-                  className="w-full rounded-xl border border-border bg-background px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                />
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label
+                    htmlFor="school-dep-input"
+                    className="block text-xs font-semibold text-muted-foreground uppercase mb-1"
+                  >
+                    Departamento
+                  </label>
+                  <input
+                    id="school-dep-input"
+                    type="text"
+                    placeholder="LIMA"
+                    {...register('department')}
+                    className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="school-prov-input"
+                    className="block text-xs font-semibold text-muted-foreground uppercase mb-1"
+                  >
+                    Provincia
+                  </label>
+                  <input
+                    id="school-prov-input"
+                    type="text"
+                    placeholder="LIMA"
+                    {...register('province')}
+                    className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="school-dist-input"
+                    className="block text-xs font-semibold text-muted-foreground uppercase mb-1"
+                  >
+                    Distrito
+                  </label>
+                  <input
+                    id="school-dist-input"
+                    type="text"
+                    placeholder="MIRAFLORES"
+                    {...register('district')}
+                    className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
               </div>
-            </div>
-
-            <div>
-              <label htmlFor="school-address-input" className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
-                Dirección del Colegio
-              </label>
-              <input
-                id="school-address-input"
-                type="text"
-                placeholder="Av. Los Educadores 123"
-                {...register('address')}
-                className="w-full rounded-xl border border-border bg-background px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-
-            <div className="grid grid-cols-3 gap-2">
-              <div>
-                <label htmlFor="school-dep-input" className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
-                  Departamento
-                </label>
-                <input
-                  id="school-dep-input"
-                  type="text"
-                  placeholder="LIMA"
-                  {...register('department')}
-                  className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-              <div>
-                <label htmlFor="school-prov-input" className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
-                  Provincia
-                </label>
-                <input
-                  id="school-prov-input"
-                  type="text"
-                  placeholder="LIMA"
-                  {...register('province')}
-                  className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-              <div>
-                <label htmlFor="school-dist-input" className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
-                  Distrito
-                </label>
-                <input
-                  id="school-dist-input"
-                  type="text"
-                  placeholder="MIRAFLORES"
-                  {...register('district')}
-                  className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-            </div>
-
             </div>
 
             <div role="tabpanel" className={tab === 'families' ? 'space-y-4' : 'hidden'}>
-            {/* Retener constancias oficiales por deuda vencida (Ley 27665) */}
-            <div className="p-4 rounded-xl bg-card border border-border space-y-2">
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-0.5">
-                  <label htmlFor="school-block-cert" className="text-xs font-bold text-foreground flex items-center gap-1.5 cursor-pointer">
-                    <ShieldAlert className="w-4 h-4 text-amber-500" />
-                    <span>Retener constancias oficiales por deuda vencida</span>
-                  </label>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Conforme a la Ley 27665, solo se pueden retener constancias y certificados de periodos no pagados. Las notas, la libreta y la asistencia SIEMPRE permanecen visibles para las familias.
-                  </p>
-                </div>
-                <input
-                  id="school-block-cert"
-                  type="checkbox"
-                  {...register('blockCertificatesOnOverdue')}
-                  className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary cursor-pointer mt-0.5"
-                />
-              </div>
-            </div>
-
-            {/* Asistencia */}
-            <div className="p-4 rounded-xl bg-card border border-border space-y-3">
-              <div className="flex items-center gap-2 border-b border-border pb-2">
-                <CalendarCheck className="w-4 h-4 text-primary" />
-                <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
-                  Asistencia
-                </h3>
-              </div>
-
-              {/* Toggle avisar a familias */}
-              <div className="flex items-start justify-between gap-3 pt-1">
-                <div className="space-y-0.5">
-                  <label
-                    htmlFor="notify-absences-families"
-                    className="text-xs font-semibold text-foreground cursor-pointer"
-                  >
-                    Avisar a las familias cuando el estudiante no registra ingreso
-                  </label>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Envía una notificación a los apoderados al cerrarse la asistencia si el alumno no ingresó.
-                  </p>
-                </div>
-                <input
-                  id="notify-absences-families"
-                  type="checkbox"
-                  {...register('notifyAbsencesToFamilies')}
-                  className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary cursor-pointer mt-0.5"
-                />
-              </div>
-
-              {/* Parámetros de alerta */}
-              <div className="pt-2 border-t border-border/60 space-y-2.5">
-                <p className="text-xs text-muted-foreground">
-                  Las alertas se calculan cada día lectivo después del cierre automático y se envían al tutor del aula.
-                </p>
-
-                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-                  <div>
+              {/* Retener constancias oficiales por deuda vencida (Ley 27665) */}
+              <div className="p-4 rounded-xl bg-card border border-border space-y-2">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-0.5">
                     <label
-                      htmlFor="alert-consecutive"
-                      className="block text-xs font-medium text-foreground mb-1"
+                      htmlFor="school-block-cert"
+                      className="text-xs font-bold text-foreground flex items-center gap-1.5 cursor-pointer"
                     >
-                      Alerta por faltas injustificadas seguidas
+                      <ShieldAlert className="w-4 h-4 text-amber-500" />
+                      <span>Retener constancias oficiales por deuda vencida</span>
                     </label>
-                    <input
-                      id="alert-consecutive"
-                      type="number"
-                      min={2}
-                      max={10}
-                      {...register('absenceAlertConsecutive', { valueAsNumber: true })}
-                      className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Conforme a la Ley 27665, solo se pueden retener constancias y certificados de periodos no pagados.
+                      Las notas, la libreta y la asistencia SIEMPRE permanecen visibles para las familias.
+                    </p>
                   </div>
+                  <input
+                    id="school-block-cert"
+                    type="checkbox"
+                    {...register('blockCertificatesOnOverdue')}
+                    className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary cursor-pointer mt-0.5"
+                  />
+                </div>
+              </div>
 
-                  <div>
+              {/* Asistencia */}
+              <div className="p-4 rounded-xl bg-card border border-border space-y-3">
+                <div className="flex items-center gap-2 border-b border-border pb-2">
+                  <CalendarCheck className="w-4 h-4 text-primary" />
+                  <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">Asistencia</h3>
+                </div>
+
+                {/* Toggle avisar a familias */}
+                <div className="flex items-start justify-between gap-3 pt-1">
+                  <div className="space-y-0.5">
                     <label
-                      htmlFor="alert-percent"
-                      className="block text-xs font-medium text-foreground mb-1"
+                      htmlFor="notify-absences-families"
+                      className="text-xs font-semibold text-foreground cursor-pointer"
                     >
-                      Alerta por % de faltas injustificadas en 30 días
+                      Avisar a las familias cuando el estudiante no registra ingreso
                     </label>
-                    <div className="relative">
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Envía una notificación a los apoderados al cerrarse la asistencia si el alumno no ingresó.
+                    </p>
+                  </div>
+                  <input
+                    id="notify-absences-families"
+                    type="checkbox"
+                    {...register('notifyAbsencesToFamilies')}
+                    className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary cursor-pointer mt-0.5"
+                  />
+                </div>
+
+                {/* Parámetros de alerta */}
+                <div className="pt-2 border-t border-border/60 space-y-2.5">
+                  <p className="text-xs text-muted-foreground">
+                    Las alertas se calculan cada día lectivo después del cierre automático y se envían al tutor del
+                    aula.
+                  </p>
+
+                  <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+                    <div>
+                      <label htmlFor="alert-consecutive" className="block text-xs font-medium text-foreground mb-1">
+                        Alerta por faltas injustificadas seguidas
+                      </label>
                       <input
-                        id="alert-percent"
+                        id="alert-consecutive"
                         type="number"
-                        min={5}
-                        max={50}
-                        {...register('absenceAlertMonthlyPercent', { valueAsNumber: true })}
-                        className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 pr-6 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                        min={2}
+                        max={10}
+                        {...register('absenceAlertConsecutive', { valueAsNumber: true })}
+                        className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                       />
-                      <span className="absolute right-2.5 top-1.5 text-xs text-muted-foreground pointer-events-none">
-                        %
-                      </span>
+                    </div>
+
+                    <div>
+                      <label htmlFor="alert-percent" className="block text-xs font-medium text-foreground mb-1">
+                        Alerta por % de faltas injustificadas en 30 días
+                      </label>
+                      <div className="relative">
+                        <input
+                          id="alert-percent"
+                          type="number"
+                          min={5}
+                          max={50}
+                          {...register('absenceAlertMonthlyPercent', { valueAsNumber: true })}
+                          className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 pr-6 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                        <span className="absolute right-2.5 top-1.5 text-xs text-muted-foreground pointer-events-none">
+                          %
+                        </span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label htmlFor="alert-lates" className="block text-xs font-medium text-foreground mb-1">
+                        Alerta por tardanzas injustificadas en 30 días
+                      </label>
+                      <input
+                        id="alert-lates"
+                        type="number"
+                        min={2}
+                        max={20}
+                        {...register('lateAlertMonthlyCount', { valueAsNumber: true })}
+                        className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
                     </div>
                   </div>
+                </div>
+              </div>
 
+              {/* Comunicación con familias */}
+              <div className="p-4 rounded-xl bg-card border border-border space-y-3">
+                <div className="flex items-center gap-2 border-b border-border pb-2">
+                  <MessagesSquare className="w-4 h-4 text-primary" />
+                  <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
+                    Comunicación con familias
+                  </h3>
+                </div>
+                <div className="flex items-start justify-between gap-3 pt-1">
+                  <div className="space-y-0.5">
+                    <label htmlFor="messaging-enabled" className="text-xs font-semibold text-foreground cursor-pointer">
+                      Mensajería entre familias y docentes
+                    </label>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Chat privado dentro de la app: los docentes no necesitan dar su número personal.
+                    </p>
+                  </div>
+                  <input
+                    id="messaging-enabled"
+                    type="checkbox"
+                    {...register('messagingEnabled')}
+                    className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary cursor-pointer mt-0.5"
+                  />
+                </div>
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
                   <div>
-                    <label
-                      htmlFor="alert-lates"
-                      className="block text-xs font-medium text-foreground mb-1"
-                    >
-                      Alerta por tardanzas injustificadas en 30 días
+                    <label htmlFor="messaging-start" className="block text-xs font-medium text-foreground mb-1">
+                      Atención desde
                     </label>
                     <input
-                      id="alert-lates"
-                      type="number"
-                      min={2}
-                      max={20}
-                      {...register('lateAlertMonthlyCount', { valueAsNumber: true })}
+                      id="messaging-start"
+                      type="time"
+                      {...register('messagingStartTime')}
+                      className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="messaging-end" className="block text-xs font-medium text-foreground mb-1">
+                      Atención hasta
+                    </label>
+                    <input
+                      id="messaging-end"
+                      type="time"
+                      {...register('messagingEndTime')}
+                      className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="wa-prefix" className="block text-xs font-medium text-foreground mb-1">
+                      Prefijo de WhatsApp
+                    </label>
+                    <input
+                      id="wa-prefix"
+                      inputMode="numeric"
+                      maxLength={4}
+                      {...register('whatsappCountryCode')}
                       className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Fuera del horario de atención (y fines de semana) los mensajes de las familias se guardan, pero no
+                  suenan en el celular del docente.
+                </p>
               </div>
-            </div>
-
-            {/* Comunicación con familias */}
-            <div className="p-4 rounded-xl bg-card border border-border space-y-3">
-              <div className="flex items-center gap-2 border-b border-border pb-2">
-                <MessagesSquare className="w-4 h-4 text-primary" />
-                <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">Comunicación con familias</h3>
-              </div>
-              <div className="flex items-start justify-between gap-3 pt-1">
-                <div className="space-y-0.5">
-                  <label htmlFor="messaging-enabled" className="text-xs font-semibold text-foreground cursor-pointer">
-                    Mensajería entre familias y docentes
-                  </label>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Chat privado dentro de la app: los docentes no necesitan dar su número personal.
-                  </p>
-                </div>
-                <input
-                  id="messaging-enabled"
-                  type="checkbox"
-                  {...register('messagingEnabled')}
-                  className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary cursor-pointer mt-0.5"
-                />
-              </div>
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-                <div>
-                  <label htmlFor="messaging-start" className="block text-xs font-medium text-foreground mb-1">
-                    Atención desde
-                  </label>
-                  <input id="messaging-start" type="time" {...register('messagingStartTime')} className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary" />
-                </div>
-                <div>
-                  <label htmlFor="messaging-end" className="block text-xs font-medium text-foreground mb-1">
-                    Atención hasta
-                  </label>
-                  <input id="messaging-end" type="time" {...register('messagingEndTime')} className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary" />
-                </div>
-                <div>
-                  <label htmlFor="wa-prefix" className="block text-xs font-medium text-foreground mb-1">
-                    Prefijo de WhatsApp
-                  </label>
-                  <input id="wa-prefix" inputMode="numeric" maxLength={4} {...register('whatsappCountryCode')} className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary" />
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Fuera del horario de atención (y fines de semana) los mensajes de las familias se guardan, pero no suenan en el celular del docente.
-              </p>
-            </div>
-
             </div>
 
             <div role="tabpanel" className={tab === 'login' ? 'space-y-4' : 'hidden'}>
-            <LoginPageSettingsSection
-              slug={school?.slug}
-              schoolName={school?.name ?? 'tu colegio'}
-              brandColor={brandColorValue}
-              values={loginPageValues}
-              register={register}
-              setValue={setValue}
-            />
-
+              <LoginPageSettingsSection
+                slug={school?.slug}
+                schoolName={school?.name ?? 'tu colegio'}
+                brandColor={brandColorValue}
+                values={loginPageValues}
+                register={register}
+                setValue={setValue}
+              />
             </div>
 
             <div role="tabpanel" className={tab === 'plan' ? 'space-y-4' : 'hidden'}>
-            {/* Plan de suscripción (solo lectura: lo gestiona la plataforma) */}
-            <div className="p-4 rounded-xl bg-secondary/40 border border-border space-y-3 shadow-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-foreground uppercase flex items-center gap-1.5">
-                  <Lock className="w-3.5 h-3.5 text-amber-500" />
-                  Plan contratado
-                </span>
-                <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-primary/10 text-primary border border-primary/20">
-                  PLAN {school?.plan || 'BASIC'}
-                </span>
+              {/* Plan de suscripción (solo lectura: lo gestiona la plataforma) */}
+              <div className="p-4 rounded-xl bg-secondary/40 border border-border space-y-3 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-foreground uppercase flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-amber-500" />
+                    Plan contratado
+                  </span>
+                  <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-primary/10 text-primary border border-primary/20">
+                    PLAN {school?.plan || 'BASIC'}
+                  </span>
+                </div>
+                <dl className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <dt className="text-muted-foreground">Vigente hasta</dt>
+                    <dd className="font-semibold text-foreground">
+                      {school?.planExpiresAt
+                        ? new Date(school.planExpiresAt).toLocaleDateString('es-PE', {
+                            timeZone: 'UTC',
+                            day: '2-digit',
+                            month: 'long',
+                            year: 'numeric',
+                          })
+                        : 'Sin fecha de vencimiento'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Cupo de alumnos</dt>
+                    <dd className="font-semibold text-foreground">{PLAN_QUOTA[school?.plan || 'BASIC'] ?? '—'}</dd>
+                  </div>
+                </dl>
+                <p className="text-xs text-muted-foreground">
+                  El plan lo gestiona KIPUX. Para cambiarlo o renovarlo,{' '}
+                  {SUPPORT_EMAIL ? 'escríbenos desde aquí.' : 'comunícate con tu asesor de KIPUX.'}
+                </p>
+                {SUPPORT_EMAIL && (
+                  <a
+                    href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`Cambio de plan - ${school?.name ?? ''}`)}`}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary"
+                  >
+                    Solicitar cambio de plan
+                  </a>
+                )}
               </div>
-              <dl className="grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <dt className="text-muted-foreground">Vigente hasta</dt>
-                  <dd className="font-semibold text-foreground">
-                    {school?.planExpiresAt
-                      ? new Date(school.planExpiresAt).toLocaleDateString('es-PE', { timeZone: 'UTC', day: '2-digit', month: 'long', year: 'numeric' })
-                      : 'Sin fecha de vencimiento'}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Cupo de alumnos</dt>
-                  <dd className="font-semibold text-foreground">{PLAN_QUOTA[school?.plan || 'BASIC'] ?? '—'}</dd>
-                </div>
-              </dl>
-              <p className="text-xs text-muted-foreground">
-                El plan lo gestiona KIPUX. Para cambiarlo o renovarlo, {SUPPORT_EMAIL ? 'escríbenos desde aquí.' : 'comunícate con tu asesor de KIPUX.'}
-              </p>
-              {SUPPORT_EMAIL && <a
-                href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`Cambio de plan - ${school?.name ?? ''}`)}`}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary"
-              >
-                Solicitar cambio de plan
-              </a>}
-            </div>
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">

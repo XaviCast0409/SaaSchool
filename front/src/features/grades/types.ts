@@ -418,4 +418,3 @@ export interface TogglePeriodLockPayload {
   isLocked: boolean;
   reason?: string | null;
 }
-

@@ -115,23 +115,20 @@ export const StudentFichaDocument: React.FC<{
   onAddPickup?: () => void;
   onRemovePickup?: (pickup: AuthorizedPickup) => void;
   isPrint?: boolean;
-}> = ({
-  student,
-  pickups,
-  canManagePickups = false,
-  onAddPickup,
-  onRemovePickup,
-  isPrint = false,
-}) => {
+}> = ({ student, pickups, canManagePickups = false, onAddPickup, onRemovePickup, isPrint = false }) => {
   return (
-    <div className={isPrint ? 'space-y-6 text-xs text-black bg-white p-6 max-w-4xl mx-auto' : 'space-y-6 text-xs text-foreground'}>
-      {isPrint && <SchoolLetterhead title="Ficha única de matrícula" subtitle="Datos de identificación, historial y familia" />}
+    <div
+      className={
+        isPrint ? 'space-y-6 text-xs text-black bg-white p-6 max-w-4xl mx-auto' : 'space-y-6 text-xs text-foreground'
+      }
+    >
+      {isPrint && (
+        <SchoolLetterhead title="Ficha única de matrícula" subtitle="Datos de identificación, historial y familia" />
+      )}
       {/* Encabezado Ficha para Impresión */}
       <div className="p-4 rounded-xl border border-border bg-muted/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 avoid-break">
         <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-primary">
-            Estudiante Registrado
-          </span>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-primary">Estudiante Registrado</span>
           <h3 className="text-lg font-bold text-foreground">
             {student.lastNamePaternal} {student.lastNameMaternal || ''}, {student.firstNames}
           </h3>
@@ -141,7 +138,8 @@ export const StudentFichaDocument: React.FC<{
             </span>
             <span>·</span>
             <span>
-              Código SIAGIE: <strong className="text-foreground font-mono">{student.studentCode || 'No asignado'}</strong>
+              Código SIAGIE:{' '}
+              <strong className="text-foreground font-mono">{student.studentCode || 'No asignado'}</strong>
             </span>
           </div>
         </div>
@@ -171,9 +169,7 @@ export const StudentFichaDocument: React.FC<{
           </div>
           <div>
             <span className="text-muted-foreground block text-[11px]">Fecha de Nacimiento</span>
-            <span className="font-semibold">
-              {student.birthDate ? formatPeruShortDate(student.birthDate) : '-'}
-            </span>
+            <span className="font-semibold">{student.birthDate ? formatPeruShortDate(student.birthDate) : '-'}</span>
           </div>
           <div>
             <span className="text-muted-foreground block text-[11px]">País de Nacimiento</span>
@@ -182,7 +178,10 @@ export const StudentFichaDocument: React.FC<{
           <div>
             <span className="text-muted-foreground block text-[11px]">Ubigeo Nacimiento (INEI)</span>
             <span className="font-mono font-semibold">
-              {student.birthUbigeo || (student.birthDepartment ? `${student.birthDepartment} / ${student.birthProvince || ''}` : 'No especificado')}
+              {student.birthUbigeo ||
+                (student.birthDepartment
+                  ? `${student.birthDepartment} / ${student.birthProvince || ''}`
+                  : 'No especificado')}
             </span>
           </div>
           <div>
@@ -233,19 +232,26 @@ export const StudentFichaDocument: React.FC<{
                       </Badge>
                     )}
                     {(enr as any).customPensionAmount && (
-                      <Badge variant="outline" className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
-                        Pensión Especial: S/ {Number((enr as any).customPensionAmount).toFixed(2)} ({(enr as any).discountReason || 'Beca'})
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                      >
+                        Pensión Especial: S/ {Number((enr as any).customPensionAmount).toFixed(2)} (
+                        {(enr as any).discountReason || 'Beca'})
                       </Badge>
                     )}
                   </div>
                   <div className="text-muted-foreground mt-1 text-[11px]">
                     Aula:{' '}
                     <strong className="text-foreground">
-                      {enr.classroom?.grade}° "{enr.classroom?.section}" - {formatEducationLevel(enr.classroom?.educationLevel)} ({formatShift(enr.classroom?.shift) ? `Turno ${formatShift(enr.classroom?.shift)}` : ''})
+                      {enr.classroom?.grade}° "{enr.classroom?.section}" -{' '}
+                      {formatEducationLevel(enr.classroom?.educationLevel)} (
+                      {formatShift(enr.classroom?.shift) ? `Turno ${formatShift(enr.classroom?.shift)}` : ''})
                     </strong>
                     {enr.previousSchoolModularCode && (
                       <span className="ml-2">
-                        · Cód. Modular Origen: <strong className="text-foreground font-mono">{enr.previousSchoolModularCode}</strong>
+                        · Cód. Modular Origen:{' '}
+                        <strong className="text-foreground font-mono">{enr.previousSchoolModularCode}</strong>
                       </span>
                     )}
                   </div>
@@ -272,10 +278,7 @@ export const StudentFichaDocument: React.FC<{
         {student.familyRelations && student.familyRelations.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {student.familyRelations.map((rel) => (
-              <div
-                key={rel.id}
-                className="p-3 rounded-lg border border-border bg-card space-y-2"
-              >
+              <div key={rel.id} className="p-3 rounded-lg border border-border bg-card space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-sm text-foreground">
                     {rel.user?.firstName} {rel.user?.lastNamePaternal} {rel.user?.lastNameMaternal || ''}
@@ -285,10 +288,22 @@ export const StudentFichaDocument: React.FC<{
                   </Badge>
                 </div>
                 <div className="text-muted-foreground text-[11px] space-y-0.5">
-                  <div>Doc: <strong className="text-foreground">{rel.user?.documentType || 'DNI'}: {rel.user?.documentId || 'S/N'}</strong></div>
-                  <div>Email: <strong className="text-foreground">{rel.user?.email || '(Sin correo registrado)'}</strong></div>
-                  <div>Celular: <strong className="text-foreground">{rel.user?.cellphone || 'No registrado'}</strong></div>
-                  <div>Grado de Instrucción: <strong className="text-foreground">{rel.user?.educationLevel || 'No especificado'}</strong></div>
+                  <div>
+                    Doc:{' '}
+                    <strong className="text-foreground">
+                      {rel.user?.documentType || 'DNI'}: {rel.user?.documentId || 'S/N'}
+                    </strong>
+                  </div>
+                  <div>
+                    Email: <strong className="text-foreground">{rel.user?.email || '(Sin correo registrado)'}</strong>
+                  </div>
+                  <div>
+                    Celular: <strong className="text-foreground">{rel.user?.cellphone || 'No registrado'}</strong>
+                  </div>
+                  <div>
+                    Grado de Instrucción:{' '}
+                    <strong className="text-foreground">{rel.user?.educationLevel || 'No especificado'}</strong>
+                  </div>
                 </div>
                 <div className="flex flex-wrap gap-1 pt-1">
                   {rel.isLegalGuardian && (
@@ -359,7 +374,11 @@ export const StudentFichaDocument: React.FC<{
       </div>
 
       {/* Pie de Ficha / Firma para impresión */}
-      <div className={isPrint ? 'grid grid-cols-2 gap-8 pt-12 mt-12 border-t border-border text-center avoid-break' : 'hidden'}>
+      <div
+        className={
+          isPrint ? 'grid grid-cols-2 gap-8 pt-12 mt-12 border-t border-border text-center avoid-break' : 'hidden'
+        }
+      >
         <div>
           <div className="border-t border-foreground w-48 mx-auto mb-1"></div>
           <span className="text-[11px] font-semibold">Firma del Apoderado Legal</span>
@@ -373,11 +392,7 @@ export const StudentFichaDocument: React.FC<{
   );
 };
 
-export const StudentFichaModal: React.FC<StudentFichaModalProps> = ({
-  studentId,
-  isOpen,
-  onClose,
-}) => {
+export const StudentFichaModal: React.FC<StudentFichaModalProps> = ({ studentId, isOpen, onClose }) => {
   const user = useAuthStore((state) => state.user);
   const canExportArco = user?.role === 'SUPER_ADMIN' || user?.role === 'SCHOOL_ADMIN';
   const canManagePickups =
@@ -478,16 +493,18 @@ export const StudentFichaModal: React.FC<StudentFichaModalProps> = ({
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200"
+    >
       <div className="relative w-full max-w-3xl rounded-2xl border border-border bg-card p-6 shadow-2xl overflow-y-auto max-h-[90vh] space-y-6">
         {/* Header no imprimible */}
         <div className="flex items-center justify-between pb-4 border-b border-border">
           <div className="flex items-center gap-2">
             <GraduationCap className="w-6 h-6 text-primary" />
             <div>
-              <h2 className="text-xl font-bold text-foreground">
-                Ficha Única de Matrícula SIAGIE (FUM)
-              </h2>
+              <h2 className="text-xl font-bold text-foreground">Ficha Única de Matrícula SIAGIE (FUM)</h2>
               <p className="text-xs text-muted-foreground">
                 Estándar MINEDU Perú · Datos de Identificación, Historial y Familia
               </p>
@@ -558,12 +575,14 @@ export const StudentFichaModal: React.FC<StudentFichaModalProps> = ({
 
       {/* Modal: Agregar Persona Autorizada */}
       {isAddPickupOpen && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-150">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-150"
+        >
           <div className="w-full max-w-md rounded-2xl border border-border bg-card shadow-2xl p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-border pb-3">
-              <h3 className="text-base font-black text-foreground">
-                Nueva Persona Autorizada a Recoger
-              </h3>
+              <h3 className="text-base font-black text-foreground">Nueva Persona Autorizada a Recoger</h3>
               <button
                 onClick={() => setIsAddPickupOpen(false)}
                 className="rounded-lg p-1 text-muted-foreground hover:bg-muted"
@@ -635,9 +654,7 @@ export const StudentFichaModal: React.FC<StudentFichaModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-foreground block mb-1">
-                    Celular (opcional)
-                  </label>
+                  <label className="text-xs font-bold text-foreground block mb-1">Celular (opcional)</label>
                   <input
                     type="text"
                     value={pickupCellphone}
@@ -650,9 +667,7 @@ export const StudentFichaModal: React.FC<StudentFichaModalProps> = ({
               </div>
 
               <div>
-                <label className="text-xs font-bold text-foreground block mb-1">
-                  Foto de la persona (opcional)
-                </label>
+                <label className="text-xs font-bold text-foreground block mb-1">Foto de la persona (opcional)</label>
                 <input
                   type="file"
                   accept="image/*"
@@ -678,9 +693,7 @@ export const StudentFichaModal: React.FC<StudentFichaModalProps> = ({
                   disabled={isCreatingPickup || isUploadingPhoto}
                   className="rounded-xl text-xs font-bold gap-1.5"
                 >
-                  {(isCreatingPickup || isUploadingPhoto) && (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  )}
+                  {(isCreatingPickup || isUploadingPhoto) && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   <span>{isUploadingPhoto ? 'Subiendo foto...' : 'Guardar persona'}</span>
                 </Button>
               </div>

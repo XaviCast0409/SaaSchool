@@ -42,7 +42,8 @@ export const AdjustmentDialog: React.FC<{
   const sign = type === 'LATE_FEE' ? 1 : -1;
   const newDue = Math.round((currentDue + sign * amount) * 100) / 100;
   const belowPaid = sign < 0 && newDue < paid;
-  const valid = amount > 0 && newDue >= 0 && !belowPaid && reason.trim().length >= 5 && (mode === 'amount' || num <= 100);
+  const valid =
+    amount > 0 && newDue >= 0 && !belowPaid && reason.trim().length >= 5 && (mode === 'amount' || num <= 100);
 
   const submit = () =>
     create.mutate(
@@ -98,21 +99,38 @@ export const AdjustmentDialog: React.FC<{
               <input type="radio" checked={mode === 'amount'} onChange={() => setMode('amount')} /> Monto en soles
             </label>
             <label className="flex items-center gap-1.5">
-              <input type="radio" checked={mode === 'percent'} onChange={() => setMode('percent')} /> Porcentaje del monto original
+              <input type="radio" checked={mode === 'percent'} onChange={() => setMode('percent')} /> Porcentaje del
+              monto original
             </label>
           </div>
         )}
         <label className="block space-y-1 text-xs font-semibold">
           {mode === 'percent' ? 'Porcentaje (%)' : 'Monto (S/)'}
-          <Input type="number" step="0.01" min="0" max={mode === 'percent' ? 100 : undefined} value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
+          <Input
+            type="number"
+            step="0.01"
+            min="0"
+            max={mode === 'percent' ? 100 : undefined}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            autoFocus
+          />
         </label>
         {amount > 0 && (
           <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-2.5 text-sm">
-            <span className="text-muted-foreground">{sign < 0 ? 'Rebaja' : 'Recargo'} de S/ {amount.toFixed(2)} → cuota queda en</span>
-            <span className={`font-bold ${belowPaid || newDue < 0 ? 'text-destructive' : ''}`}>S/ {newDue.toFixed(2)}</span>
+            <span className="text-muted-foreground">
+              {sign < 0 ? 'Rebaja' : 'Recargo'} de S/ {amount.toFixed(2)} → cuota queda en
+            </span>
+            <span className={`font-bold ${belowPaid || newDue < 0 ? 'text-destructive' : ''}`}>
+              S/ {newDue.toFixed(2)}
+            </span>
           </div>
         )}
-        {belowPaid && <p className="text-xs text-destructive">No puede quedar por debajo de lo ya pagado. Anula primero el cobro o registra una devolución.</p>}
+        {belowPaid && (
+          <p className="text-xs text-destructive">
+            No puede quedar por debajo de lo ya pagado. Anula primero el cobro o registra una devolución.
+          </p>
+        )}
         <label className="block space-y-1 text-xs font-semibold">
           Motivo (obligatorio)
           <textarea

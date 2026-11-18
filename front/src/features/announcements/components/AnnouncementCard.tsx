@@ -1,14 +1,5 @@
 import React from 'react';
-import {
-  Bell,
-  AlertTriangle,
-  Info,
-  Trash2,
-  Calendar,
-  School,
-  CalendarClock,
-  Archive,
-} from 'lucide-react';
+import { Bell, AlertTriangle, Info, Trash2, Calendar, School, CalendarClock, Archive } from 'lucide-react';
 import type { Announcement } from '../types';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Badge } from '@/components/ui/badge';
@@ -38,11 +29,7 @@ interface AnnouncementCardProps {
   isPast?: boolean;
 }
 
-export const AnnouncementCard: React.FC<AnnouncementCardProps> = ({
-  announcement,
-  onDelete,
-  isPast = false,
-}) => {
+export const AnnouncementCard: React.FC<AnnouncementCardProps> = ({ announcement, onDelete, isPast = false }) => {
   const currentUser = useAuthStore((state) => state.user);
   const canDelete =
     currentUser?.role === 'SUPER_ADMIN' ||
@@ -84,10 +71,10 @@ export const AnnouncementCard: React.FC<AnnouncementCardProps> = ({
   const borderAccentClass = isPast
     ? 'border-l-4 border-l-muted-foreground/30'
     : isUrgent
-    ? 'border-l-4 border-l-destructive shadow-sm'
-    : isImportant
-    ? 'border-l-4 border-l-amber-500 shadow-sm'
-    : 'border-l-4 border-l-primary/50 shadow-sm';
+      ? 'border-l-4 border-l-destructive shadow-sm'
+      : isImportant
+        ? 'border-l-4 border-l-amber-500 shadow-sm'
+        : 'border-l-4 border-l-primary/50 shadow-sm';
 
   const formattedDate = formatPeruDate(announcement.publishedAt, {
     weekday: 'short',
@@ -108,7 +95,9 @@ export const AnnouncementCard: React.FC<AnnouncementCardProps> = ({
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
         <div className="flex items-center gap-2 flex-wrap">
           {isUrgent ? (
-            <Badge className={`bg-destructive/15 text-destructive border-destructive/30 font-black text-xs gap-1 ${isPast ? '' : 'animate-pulse'}`}>
+            <Badge
+              className={`bg-destructive/15 text-destructive border-destructive/30 font-black text-xs gap-1 ${isPast ? '' : 'animate-pulse'}`}
+            >
               <AlertTriangle className="w-3.5 h-3.5" />
               <span>COMUNICADO URGENTE</span>
             </Badge>
@@ -125,29 +114,47 @@ export const AnnouncementCard: React.FC<AnnouncementCardProps> = ({
           )}
 
           {!announcement.classroom && announcement.targetLevel && (
-            <Badge variant="outline" className="text-xs font-semibold gap-1 bg-secondary/40 text-foreground border-border">
+            <Badge
+              variant="outline"
+              className="text-xs font-semibold gap-1 bg-secondary/40 text-foreground border-border"
+            >
               <School className="w-3.5 h-3.5 text-primary" />
               <span>
-                Todo {announcement.targetGrade ? `${announcement.targetLevel === 'INITIAL' ? `${announcement.targetGrade} años` : `${announcement.targetGrade}.°`} de ` : ''}
+                Todo{' '}
+                {announcement.targetGrade
+                  ? `${announcement.targetLevel === 'INITIAL' ? `${announcement.targetGrade} años` : `${announcement.targetGrade}.°`} de `
+                  : ''}
                 {formatEducationLevel(announcement.targetLevel)}
               </span>
             </Badge>
           )}
 
           {announcement.classroom && (
-            <Badge variant="outline" className="text-xs font-semibold gap-1 bg-secondary/40 text-foreground border-border">
+            <Badge
+              variant="outline"
+              className="text-xs font-semibold gap-1 bg-secondary/40 text-foreground border-border"
+            >
               <School className="w-3.5 h-3.5 text-primary" />
-              <span>{announcement.classroom.grade}° "{announcement.classroom.section}" • {formatEducationLevel(announcement.classroom.educationLevel)}</span>
+              <span>
+                {announcement.classroom.grade}° "{announcement.classroom.section}" •{' '}
+                {formatEducationLevel(announcement.classroom.educationLevel)}
+              </span>
             </Badge>
           )}
 
           {isPast && endsLabel ? (
-            <Badge variant="outline" className="text-xs font-semibold gap-1 bg-muted text-muted-foreground border-border">
+            <Badge
+              variant="outline"
+              className="text-xs font-semibold gap-1 bg-muted text-muted-foreground border-border"
+            >
               <Archive className="w-3.5 h-3.5" />
               <span>Venció el {endsLabel}</span>
             </Badge>
           ) : announcement.expiresAt && endsLabel ? (
-            <Badge variant="outline" className="text-xs font-semibold gap-1 bg-secondary/40 text-muted-foreground border-border">
+            <Badge
+              variant="outline"
+              className="text-xs font-semibold gap-1 bg-secondary/40 text-muted-foreground border-border"
+            >
               <CalendarClock className="w-3.5 h-3.5" />
               <span>Visible hasta el {endsLabel}</span>
             </Badge>
@@ -155,30 +162,31 @@ export const AnnouncementCard: React.FC<AnnouncementCardProps> = ({
         </div>
 
         <div className="flex items-center gap-1">
-        {canEditExpiry && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => (editingExpiry ? setEditingExpiry(false) : openExpiryEditor())}
-            className="sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl"
-            title={isPast ? 'Volver a publicar en Vigentes' : 'Cambiar vigencia'}
-            aria-label={isPast ? 'Volver a publicar en Vigentes' : 'Cambiar vigencia'}
-            aria-expanded={editingExpiry}
-          >
-            <CalendarClock className="w-4 h-4" />
-          </Button>
-        )}
-        {canDelete && onDelete && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onDelete(announcement.id)}
-            className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl"
-            title="Eliminar comunicado" aria-label="Eliminar comunicado"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
-        )}
+          {canEditExpiry && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => (editingExpiry ? setEditingExpiry(false) : openExpiryEditor())}
+              className="sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl"
+              title={isPast ? 'Volver a publicar en Vigentes' : 'Cambiar vigencia'}
+              aria-label={isPast ? 'Volver a publicar en Vigentes' : 'Cambiar vigencia'}
+              aria-expanded={editingExpiry}
+            >
+              <CalendarClock className="w-4 h-4" />
+            </Button>
+          )}
+          {canDelete && onDelete && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onDelete(announcement.id)}
+              className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl"
+              title="Eliminar comunicado"
+              aria-label="Eliminar comunicado"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       </div>
 
@@ -199,7 +207,9 @@ export const AnnouncementCard: React.FC<AnnouncementCardProps> = ({
             size="sm"
             className="h-8 rounded-lg text-xs font-bold"
             disabled={savingExpiry || !expiryDate || expiryDate < today}
-            onClick={() => saveExpiry(endOfDayLima(expiryDate), isPast ? 'El comunicado volvió a Vigentes' : 'Vigencia actualizada')}
+            onClick={() =>
+              saveExpiry(endOfDayLima(expiryDate), isPast ? 'El comunicado volvió a Vigentes' : 'Vigencia actualizada')
+            }
           >
             Guardar
           </Button>
@@ -236,7 +246,9 @@ export const AnnouncementCard: React.FC<AnnouncementCardProps> = ({
             <li key={a.fileId}>
               <button
                 type="button"
-                onClick={() => void openFile(`/api/files/${a.fileId}`).catch(() => toast.error('No se pudo abrir el archivo.'))}
+                onClick={() =>
+                  void openFile(`/api/files/${a.fileId}`).catch(() => toast.error('No se pudo abrir el archivo.'))
+                }
                 className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-secondary/40 px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary"
               >
                 <Paperclip className="h-3.5 w-3.5 text-primary" />

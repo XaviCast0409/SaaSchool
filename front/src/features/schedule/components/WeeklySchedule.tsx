@@ -49,13 +49,24 @@ export const WeeklySchedule: React.FC<Props> = ({ blocks, showClassroom, onRemov
   }, [blocks]);
 
   if (blocks.length === 0) {
-    return <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">Todavía no hay clases en el horario.</p>;
+    return (
+      <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+        Todavía no hay clases en el horario.
+      </p>
+    );
   }
 
   return (
     <div className={cn('grid gap-3', days.length === 6 ? 'md:grid-cols-6' : 'md:grid-cols-5')}>
       {days.map((day) => (
-        <section key={day} className={cn('rounded-xl border border-border bg-card p-2', highlightDay === day && 'ring-2 ring-primary/40')} aria-label={DAY_NAMES[day]}>
+        <section
+          key={day}
+          className={cn(
+            'rounded-xl border border-border bg-card p-2',
+            highlightDay === day && 'ring-2 ring-primary/40',
+          )}
+          aria-label={DAY_NAMES[day]}
+        >
           <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             <span className="md:hidden">{DAY_NAMES[day]}</span>
             <span className="hidden md:inline">{SHORT_DAYS[day]}</span>
@@ -81,7 +92,9 @@ export const WeeklySchedule: React.FC<Props> = ({ blocks, showClassroom, onRemov
                     {isBreak ? block.label || 'Recreo' : block.courseName}
                   </p>
                   {!isBreak && (showClassroom ? block.classroomLabel : block.teacherName) && (
-                    <p className="truncate text-[11px] opacity-80">{showClassroom ? block.classroomLabel : block.teacherName}</p>
+                    <p className="truncate text-[11px] opacity-80">
+                      {showClassroom ? block.classroomLabel : block.teacherName}
+                    </p>
                   )}
                   {block.room && (
                     <p className="flex items-center gap-0.5 text-[10px] opacity-70">
@@ -104,7 +117,9 @@ export const WeeklySchedule: React.FC<Props> = ({ blocks, showClassroom, onRemov
                 </li>
               );
             })}
-            {(byDay.get(day) ?? []).length === 0 && <li className="px-1 py-2 text-[11px] text-muted-foreground">Sin clases</li>}
+            {(byDay.get(day) ?? []).length === 0 && (
+              <li className="px-1 py-2 text-[11px] text-muted-foreground">Sin clases</li>
+            )}
           </ul>
         </section>
       ))}

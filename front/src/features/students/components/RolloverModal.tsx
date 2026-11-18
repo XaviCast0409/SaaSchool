@@ -58,7 +58,11 @@ export const RolloverModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
   }, [isOpen]);
 
   const { data, isLoading, isError } = useRolloverCandidates(
-    { fromAcademicYearId: fromId || undefined, toAcademicYearId: toId || undefined, classroomId: fromClassroomId || undefined },
+    {
+      fromAcademicYearId: fromId || undefined,
+      toAcademicYearId: toId || undefined,
+      classroomId: fromClassroomId || undefined,
+    },
     isOpen,
   );
 
@@ -66,7 +70,11 @@ export const RolloverModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
     if (!data) return;
     const next: Record<string, RowState> = {};
     for (const r of data.rows) {
-      next[r.student.id] = { selected: r.selectedByDefault, classroomId: r.proposedClassroomId ?? '', repeatingGrade: r.repeatingGrade };
+      next[r.student.id] = {
+        selected: r.selectedByDefault,
+        classroomId: r.proposedClassroomId ?? '',
+        repeatingGrade: r.repeatingGrade,
+      };
     }
     setState(next);
   }, [data]);
@@ -94,16 +102,21 @@ export const RolloverModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
     }
     return map;
   }, [data, selectedRows, state]);
-  const overCapacity = (data?.classrooms ?? []).filter((c) => (projected.get(c.id) ?? 0) > c.capacity && selectedRows.some((r) => state[r.student.id]?.classroomId === c.id));
+  const overCapacity = (data?.classrooms ?? []).filter(
+    (c) =>
+      (projected.get(c.id) ?? 0) > c.capacity && selectedRows.some((r) => state[r.student.id]?.classroomId === c.id),
+  );
 
-  const update = (studentId: string, patch: Partial<RowState>) => setState((s) => ({ ...s, [studentId]: { ...s[studentId], ...patch } }));
+  const update = (studentId: string, patch: Partial<RowState>) =>
+    setState((s) => ({ ...s, [studentId]: { ...s[studentId], ...patch } }));
   const selectableRows = rows.filter((r) => r.selectable);
   const allSelected = selectableRows.length > 0 && selectableRows.every((r) => state[r.student.id]?.selected);
   const toggleAll = () => {
     const value = !allSelected;
     setState((s) => {
       const next = { ...s };
-      for (const r of selectableRows) next[r.student.id] = { ...next[r.student.id], selected: value && !!next[r.student.id].classroomId };
+      for (const r of selectableRows)
+        next[r.student.id] = { ...next[r.student.id], selected: value && !!next[r.student.id].classroomId };
       return next;
     });
   };
@@ -157,7 +170,13 @@ export const RolloverModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
             <Button variant="ghost" size="sm" onClick={onClose}>
               Cancelar
             </Button>
-            <Button size="sm" disabled={selectedRows.length === 0 || missingClassroom > 0} isLoading={rollover.isPending} onClick={submit} className="gap-1.5">
+            <Button
+              size="sm"
+              disabled={selectedRows.length === 0 || missingClassroom > 0}
+              isLoading={rollover.isPending}
+              onClick={submit}
+              className="gap-1.5"
+            >
               <Repeat2 className="w-3.5 h-3.5" />
               Matricular {selectedRows.length} {selectedRows.length === 1 ? 'alumno' : 'alumnos'}
             </Button>
@@ -171,19 +190,27 @@ export const RolloverModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
             <Stat label="Matriculados" value={result.enrolled} tone="ok" />
             <Stat label="Con error" value={result.failed} tone={result.failed ? 'bad' : 'muted'} />
             <Stat label="Cuotas generadas" value={result.cuotas} tone="muted" />
-            <Stat label="Sin tarifario" value={result.withoutFeeSchedule} tone={result.withoutFeeSchedule ? 'warn' : 'muted'} />
+            <Stat
+              label="Sin tarifario"
+              value={result.withoutFeeSchedule}
+              tone={result.withoutFeeSchedule ? 'warn' : 'muted'}
+            />
           </div>
           {result.withoutFeeSchedule > 0 && (
             <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-amber-800 dark:text-amber-300">
-              {result.withoutFeeSchedule} matrículas quedaron sin cuotas porque su nivel no tiene tarifario en {result.year}. Configúralo en
-              Tesorería → Tarifario y usa <strong>Generar cuotas faltantes</strong>.
+              {result.withoutFeeSchedule} matrículas quedaron sin cuotas porque su nivel no tiene tarifario en{' '}
+              {result.year}. Configúralo en Tesorería → Tarifario y usa <strong>Generar cuotas faltantes</strong>.
             </p>
           )}
           <ul className="divide-y divide-border/60 rounded-xl border border-border max-h-72 overflow-y-auto">
             {result.results.map((r) => (
               <li key={r.studentId} className="flex items-center justify-between gap-3 px-3 py-2">
                 <span className="flex items-center gap-2 font-semibold text-foreground">
-                  {r.ok ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <XCircle className="w-3.5 h-3.5 text-destructive" />}
+                  {r.ok ? (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  ) : (
+                    <XCircle className="w-3.5 h-3.5 text-destructive" />
+                  )}
                   {r.name}
                 </span>
                 <span className={`text-right ${r.ok ? 'text-muted-foreground' : 'text-destructive'}`}>
@@ -198,7 +225,14 @@ export const RolloverModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
           <div className="flex flex-wrap items-end gap-2">
             <label className="space-y-1">
               <span className="block font-semibold">Desde</span>
-              <select className={selectCls} value={fromId} onChange={(e) => { setFromId(e.target.value); setFromClassroomId(''); }}>
+              <select
+                className={selectCls}
+                value={fromId}
+                onChange={(e) => {
+                  setFromId(e.target.value);
+                  setFromClassroomId('');
+                }}
+              >
                 {years.map((y) => (
                   <option key={y.id} value={y.id}>
                     {y.year}
@@ -224,7 +258,11 @@ export const RolloverModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
             </label>
             <label className="space-y-1 flex-1 min-w-[180px]">
               <span className="block font-semibold">Aula de origen</span>
-              <select className={`${selectCls} w-full`} value={fromClassroomId} onChange={(e) => setFromClassroomId(e.target.value)}>
+              <select
+                className={`${selectCls} w-full`}
+                value={fromClassroomId}
+                onChange={(e) => setFromClassroomId(e.target.value)}
+              >
                 <option value="">Todas las aulas</option>
                 {fromClassrooms.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -246,13 +284,21 @@ export const RolloverModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
           ) : isError ? (
             <p className="text-destructive">No se pudo cargar la lista.</p>
           ) : rows.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-border p-6 text-center text-muted-foreground">No hay alumnos matriculados en {fromYear?.year}.</p>
+            <p className="rounded-xl border border-dashed border-border p-6 text-center text-muted-foreground">
+              No hay alumnos matriculados en {fromYear?.year}.
+            </p>
           ) : (
             <>
               <div className="flex flex-wrap gap-2">
-                <Chip>{rows.length} alumnos en {data?.fromYear.year}</Chip>
+                <Chip>
+                  {rows.length} alumnos en {data?.fromYear.year}
+                </Chip>
                 <Chip tone="primary">{selectedRows.length} seleccionados</Chip>
-                {counts.already > 0 && <Chip tone="ok">{counts.already} ya matriculados en {data?.toYear.year}</Chip>}
+                {counts.already > 0 && (
+                  <Chip tone="ok">
+                    {counts.already} ya matriculados en {data?.toYear.year}
+                  </Chip>
+                )}
                 {counts.graduates > 0 && <Chip>{counts.graduates} egresan</Chip>}
                 {counts.declined > 0 && <Chip tone="bad">{counts.declined} no continúan</Chip>}
                 {counts.debt > 0 && <Chip tone="warn">{counts.debt} con deuda vencida</Chip>}
@@ -260,7 +306,8 @@ export const RolloverModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
               {overCapacity.length > 0 && (
                 <p className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 text-amber-800 dark:text-amber-300">
                   <AlertTriangle className="w-4 h-4 shrink-0" />
-                  Supera la capacidad: {overCapacity.map((c) => `${classroomLabel(c)} (${projected.get(c.id)}/${c.capacity})`).join(', ')}.
+                  Supera la capacidad:{' '}
+                  {overCapacity.map((c) => `${classroomLabel(c)} (${projected.get(c.id)}/${c.capacity})`).join(', ')}.
                 </p>
               )}
               <div className="rounded-xl border border-border overflow-x-auto max-h-[50vh] overflow-y-auto">
@@ -268,7 +315,13 @@ export const RolloverModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
                   <thead className="sticky top-0 bg-muted/90 backdrop-blur text-xs font-extrabold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
                     <tr>
                       <th className="px-3 py-2 w-8">
-                        <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Seleccionar todos" className="w-4 h-4 rounded" />
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          onChange={toggleAll}
+                          aria-label="Seleccionar todos"
+                          className="w-4 h-4 rounded"
+                        />
                       </th>
                       <th className="px-3 py-2">Alumno</th>
                       <th className="px-3 py-2">{data?.fromYear.year}</th>
@@ -283,7 +336,10 @@ export const RolloverModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
                       if (!st) return null;
                       const name = `${r.student.lastNamePaternal} ${r.student.lastNameMaternal ?? ''}, ${r.student.firstNames}`;
                       return (
-                        <tr key={r.student.id} className={`${r.selectable ? 'hover:bg-muted/20' : 'opacity-60'} transition-colors`}>
+                        <tr
+                          key={r.student.id}
+                          className={`${r.selectable ? 'hover:bg-muted/20' : 'opacity-60'} transition-colors`}
+                        >
                           <td className="px-3 py-2">
                             <input
                               type="checkbox"
@@ -298,10 +354,14 @@ export const RolloverModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
                             <div className="font-bold text-foreground whitespace-nowrap">{name}</div>
                             <div className="text-xs text-muted-foreground font-mono">{r.student.documentId}</div>
                           </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{classroomLabel(r.fromClassroom)}</td>
+                          <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
+                            {classroomLabel(r.fromClassroom)}
+                          </td>
                           <td className="px-3 py-2">
                             {r.enrolledInTarget ? (
-                              <span className="whitespace-nowrap text-emerald-700 dark:text-emerald-400 font-semibold">{classroomLabel(r.enrolledInTarget)}</span>
+                              <span className="whitespace-nowrap text-emerald-700 dark:text-emerald-400 font-semibold">
+                                {classroomLabel(r.enrolledInTarget)}
+                              </span>
                             ) : r.step.kind === 'GRADUATE' ? (
                               <span className="text-muted-foreground">—</span>
                             ) : (
@@ -309,7 +369,12 @@ export const RolloverModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
                                 className={`${selectCls} py-1.5 min-w-[170px] ${st.selected && !st.classroomId ? 'border-destructive' : ''}`}
                                 value={st.classroomId}
                                 disabled={!r.selectable}
-                                onChange={(e) => update(r.student.id, { classroomId: e.target.value, selected: !!e.target.value || st.selected })}
+                                onChange={(e) =>
+                                  update(r.student.id, {
+                                    classroomId: e.target.value,
+                                    selected: !!e.target.value || st.selected,
+                                  })
+                                }
                               >
                                 <option value="">-- Elige aula --</option>
                                 {data?.classrooms.map((c) => (
@@ -334,11 +399,17 @@ export const RolloverModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
                             <div className="flex flex-wrap gap-1">
                               {r.flags.map((f) =>
                                 f === 'DEBT' ? (
-                                  <span key={f} className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 whitespace-nowrap">
+                                  <span
+                                    key={f}
+                                    className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 whitespace-nowrap"
+                                  >
                                     Debe {soles(r.overdueDebt)}
                                   </span>
                                 ) : FLAG[f] ? (
-                                  <span key={f} className={`px-1.5 py-0.5 rounded-full text-xs font-bold whitespace-nowrap ${FLAG[f]!.cls}`}>
+                                  <span
+                                    key={f}
+                                    className={`px-1.5 py-0.5 rounded-full text-xs font-bold whitespace-nowrap ${FLAG[f]!.cls}`}
+                                  >
                                     {FLAG[f]!.label}
                                   </span>
                                 ) : null,
@@ -352,9 +423,10 @@ export const RolloverModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
                 </table>
               </div>
               <p className="text-xs text-muted-foreground">
-                El aula propuesta es el grado siguiente en la misma sección y turno, entre las secciones abiertas en {data?.toYear.year}. Quien
-                tiene situación final "permanece" se propone repitiendo; si falta la situación final, regístrala en <strong>Años lectivos</strong>{' '}
-                o marca <strong>Repite</strong> y cambia su aula. La deuda no bloquea la matrícula: se muestra para que Dirección decida.
+                El aula propuesta es el grado siguiente en la misma sección y turno, entre las secciones abiertas en{' '}
+                {data?.toYear.year}. Quien tiene situación final "permanece" se propone repitiendo; si falta la
+                situación final, regístrala en <strong>Años lectivos</strong> o marca <strong>Repite</strong> y cambia
+                su aula. La deuda no bloquea la matrícula: se muestra para que Dirección decida.
               </p>
             </>
           )}
@@ -364,7 +436,10 @@ export const RolloverModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
   );
 };
 
-const Chip: React.FC<{ children: React.ReactNode; tone?: 'ok' | 'bad' | 'warn' | 'primary' }> = ({ children, tone }) => {
+const Chip: React.FC<{ children: React.ReactNode; tone?: 'ok' | 'bad' | 'warn' | 'primary' }> = ({
+  children,
+  tone,
+}) => {
   const cls =
     tone === 'ok'
       ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
@@ -378,11 +453,21 @@ const Chip: React.FC<{ children: React.ReactNode; tone?: 'ok' | 'bad' | 'warn' |
   return <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${cls}`}>{children}</span>;
 };
 
-const Stat: React.FC<{ label: string; value: number; tone: 'ok' | 'bad' | 'warn' | 'muted' }> = ({ label, value, tone }) => (
+const Stat: React.FC<{ label: string; value: number; tone: 'ok' | 'bad' | 'warn' | 'muted' }> = ({
+  label,
+  value,
+  tone,
+}) => (
   <div className="rounded-xl border border-border p-3">
     <div
       className={`text-xl font-black ${
-        tone === 'ok' ? 'text-emerald-600' : tone === 'bad' ? 'text-destructive' : tone === 'warn' ? 'text-amber-600' : 'text-foreground'
+        tone === 'ok'
+          ? 'text-emerald-600'
+          : tone === 'bad'
+            ? 'text-destructive'
+            : tone === 'warn'
+              ? 'text-amber-600'
+              : 'text-foreground'
       }`}
     >
       {value}

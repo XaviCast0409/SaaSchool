@@ -1,12 +1,5 @@
 import React, { useState } from 'react';
-import {
-  CheckCircle2,
-  AlertTriangle,
-  XCircle,
-  Clock,
-  ChevronDown,
-  ChevronUp,
-} from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -70,9 +63,7 @@ export const TeacherComplianceTable: React.FC<TeacherComplianceTableProps> = ({
             {teachers.map((t) => {
               const isExpanded = expandedTeacherId === t.id;
               const percent =
-                t.assignedCoursesCount > 0
-                  ? Math.round((t.coursesWithContentCount / t.assignedCoursesCount) * 100)
-                  : 0;
+                t.assignedCoursesCount > 0 ? Math.round((t.coursesWithContentCount / t.assignedCoursesCount) * 100) : 0;
 
               return (
                 <React.Fragment key={t.id}>
@@ -84,9 +75,7 @@ export const TeacherComplianceTable: React.FC<TeacherComplianceTableProps> = ({
                     </td>
 
                     {/* Cursos */}
-                    <td className="py-3 px-3 text-center font-bold text-foreground">
-                      {t.assignedCoursesCount}
-                    </td>
+                    <td className="py-3 px-3 text-center font-bold text-foreground">{t.assignedCoursesCount}</td>
 
                     {/* Barra de Cobertura */}
                     <td className="py-3 px-3 min-w-[140px]">
@@ -99,11 +88,7 @@ export const TeacherComplianceTable: React.FC<TeacherComplianceTableProps> = ({
                       <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all duration-300 ${
-                            percent === 100
-                              ? 'bg-emerald-500'
-                              : percent > 0
-                              ? 'bg-amber-500'
-                              : 'bg-red-500'
+                            percent === 100 ? 'bg-emerald-500' : percent > 0 ? 'bg-amber-500' : 'bg-red-500'
                           }`}
                           style={{ width: `${percent}%` }}
                         />
@@ -192,16 +177,12 @@ export const TeacherComplianceTable: React.FC<TeacherComplianceTableProps> = ({
                             <div
                               key={c.assignmentId}
                               className={`p-2.5 rounded-lg border text-xs flex items-center justify-between gap-2 ${
-                                c.contentsCount > 0
-                                  ? 'bg-card border-border'
-                                  : 'bg-red-500/5 border-red-500/20'
+                                c.contentsCount > 0 ? 'bg-card border-border' : 'bg-red-500/5 border-red-500/20'
                               }`}
                             >
                               <div className="min-w-0">
                                 <p className="font-bold text-foreground truncate">{c.areaName}</p>
-                                <p className="text-xs text-muted-foreground truncate">
-                                  {c.classroomLabel}
-                                </p>
+                                <p className="text-xs text-muted-foreground truncate">{c.classroomLabel}</p>
                               </div>
                               <span
                                 className={`text-xs font-black px-2 py-0.5 rounded-full shrink-0 ${

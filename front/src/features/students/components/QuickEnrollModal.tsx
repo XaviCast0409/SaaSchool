@@ -21,7 +21,10 @@ const selectCls =
  * Matrícula rápida de un alumno que ya existe (p. ej. matricularlo en el año siguiente): solo año,
  * aula y condición, con la vista previa de su cronograma de cuotas. No se vuelve a llenar la ficha.
  */
-export const QuickEnrollModal: React.FC<{ student: QuickEnrollStudent | null; onClose: () => void }> = ({ student, onClose }) => {
+export const QuickEnrollModal: React.FC<{ student: QuickEnrollStudent | null; onClose: () => void }> = ({
+  student,
+  onClose,
+}) => {
   const { data: years = [] } = useAcademicYears();
   const rollover = useRollover();
   const [yearId, setYearId] = useState('');
@@ -68,14 +71,24 @@ export const QuickEnrollModal: React.FC<{ student: QuickEnrollStudent | null; on
       open={!!student}
       onClose={onClose}
       title={`Matricular en ${year?.year ?? '...'}`}
-      description={student ? `${student.name}${student.documentId ? ` · DNI ${student.documentId}` : ''}. Sus datos y apoderados se mantienen.` : undefined}
+      description={
+        student
+          ? `${student.name}${student.documentId ? ` · DNI ${student.documentId}` : ''}. Sus datos y apoderados se mantienen.`
+          : undefined
+      }
       size="md"
       footer={
         <>
           <Button variant="ghost" size="sm" onClick={onClose}>
             Cancelar
           </Button>
-          <Button size="sm" disabled={!yearId || !classroomId} isLoading={rollover.isPending} onClick={submit} className="gap-1.5">
+          <Button
+            size="sm"
+            disabled={!yearId || !classroomId}
+            isLoading={rollover.isPending}
+            onClick={submit}
+            className="gap-1.5"
+          >
             <UserCheck className="w-3.5 h-3.5" /> Matricular
           </Button>
         </>
@@ -96,7 +109,11 @@ export const QuickEnrollModal: React.FC<{ student: QuickEnrollStudent | null; on
           </label>
           <label className="space-y-1">
             <span className="block font-semibold">Condición</span>
-            <select className={selectCls} value={condition} onChange={(e) => setCondition(e.target.value as EnrollmentCondition)}>
+            <select
+              className={selectCls}
+              value={condition}
+              onChange={(e) => setCondition(e.target.value as EnrollmentCondition)}
+            >
               <option value="CONTINUO">Continuo / promovido</option>
               <option value="REENTRANTE">Reentrante</option>
               <option value="TRASLADO">Traslado</option>
@@ -116,10 +133,19 @@ export const QuickEnrollModal: React.FC<{ student: QuickEnrollStudent | null; on
           </select>
         </label>
         <label className="flex items-center gap-2 font-semibold cursor-pointer">
-          <input type="checkbox" checked={repeatingGrade} onChange={(e) => setRepeatingGrade(e.target.checked)} className="w-4 h-4 rounded" />
+          <input
+            type="checkbox"
+            checked={repeatingGrade}
+            onChange={(e) => setRepeatingGrade(e.target.checked)}
+            className="w-4 h-4 rounded"
+          />
           Repite el grado
         </label>
-        <SchedulePreviewCard academicYearId={yearId || undefined} classroomId={classroomId || undefined} condition={condition} />
+        <SchedulePreviewCard
+          academicYearId={yearId || undefined}
+          classroomId={classroomId || undefined}
+          condition={condition}
+        />
       </div>
     </Modal>
   );

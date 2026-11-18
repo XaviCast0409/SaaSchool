@@ -14,7 +14,10 @@ const DEBOUNCE_MS = 800;
  */
 const shouldRefresh = (query: Query): boolean => {
   // query.options incluye las opciones del useQuery que la creó (staleTime, refetchOnWindowFocus…)
-  const { staleTime, refetchOnWindowFocus } = query.options as unknown as { staleTime?: unknown; refetchOnWindowFocus?: unknown };
+  const { staleTime, refetchOnWindowFocus } = query.options as unknown as {
+    staleTime?: unknown;
+    refetchOnWindowFocus?: unknown;
+  };
   return staleTime !== Infinity && refetchOnWindowFocus !== false;
 };
 

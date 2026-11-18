@@ -27,19 +27,52 @@ import { toast } from 'sonner';
 import { formatPeruDateTime, formatPeruShortDate } from '@/lib/dateUtils';
 import { formatEducationLevel } from '@/lib/utils';
 
-const TYPE_CONFIG: Record<
-  IncidentType,
-  { label: string; icon: React.ReactNode; color: string }
-> = {
-  MERITO: { label: 'Mérito', icon: <Award className="w-3.5 h-3.5 text-emerald-500" />, color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' },
-  POSITIVE: { label: 'Mérito', icon: <Award className="w-3.5 h-3.5 text-emerald-500" />, color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' },
-  DEMERITO: { label: 'Falta Conductual', icon: <AlertCircle className="w-3.5 h-3.5 text-amber-500" />, color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' },
-  BEHAVIORAL: { label: 'Conductual', icon: <AlertCircle className="w-3.5 h-3.5 text-amber-500" />, color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' },
-  ATENCION_TOPICO: { label: 'Tópico de Salud', icon: <Stethoscope className="w-3.5 h-3.5 text-blue-500" />, color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' },
-  HEALTH: { label: 'Salud', icon: <Stethoscope className="w-3.5 h-3.5 text-blue-500" />, color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' },
-  CITACION_PADRES: { label: 'Citación', icon: <CalendarClock className="w-3.5 h-3.5 text-purple-500" />, color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20' },
-  CITATION: { label: 'Citación', icon: <CalendarClock className="w-3.5 h-3.5 text-purple-500" />, color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20' },
-  ACADEMIC: { label: 'Académico', icon: <AlertCircle className="w-3.5 h-3.5 text-cyan-500" />, color: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20' },
+const TYPE_CONFIG: Record<IncidentType, { label: string; icon: React.ReactNode; color: string }> = {
+  MERITO: {
+    label: 'Mérito',
+    icon: <Award className="w-3.5 h-3.5 text-emerald-500" />,
+    color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+  },
+  POSITIVE: {
+    label: 'Mérito',
+    icon: <Award className="w-3.5 h-3.5 text-emerald-500" />,
+    color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+  },
+  DEMERITO: {
+    label: 'Falta Conductual',
+    icon: <AlertCircle className="w-3.5 h-3.5 text-amber-500" />,
+    color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+  },
+  BEHAVIORAL: {
+    label: 'Conductual',
+    icon: <AlertCircle className="w-3.5 h-3.5 text-amber-500" />,
+    color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+  },
+  ATENCION_TOPICO: {
+    label: 'Tópico de Salud',
+    icon: <Stethoscope className="w-3.5 h-3.5 text-blue-500" />,
+    color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+  },
+  HEALTH: {
+    label: 'Salud',
+    icon: <Stethoscope className="w-3.5 h-3.5 text-blue-500" />,
+    color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+  },
+  CITACION_PADRES: {
+    label: 'Citación',
+    icon: <CalendarClock className="w-3.5 h-3.5 text-purple-500" />,
+    color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20',
+  },
+  CITATION: {
+    label: 'Citación',
+    icon: <CalendarClock className="w-3.5 h-3.5 text-purple-500" />,
+    color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20',
+  },
+  ACADEMIC: {
+    label: 'Académico',
+    icon: <AlertCircle className="w-3.5 h-3.5 text-cyan-500" />,
+    color: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20',
+  },
 };
 
 const SEVERITY_CONFIG: Record<IncidentSeverity, { label: string; badgeClass: string }> = {
@@ -58,12 +91,16 @@ export const IncidentsPage: React.FC = () => {
     user?.role === 'TEACHER';
 
   const canManageSiseve =
-    user?.role === 'SUPER_ADMIN' ||
-    user?.role === 'SCHOOL_ADMIN' ||
-    user?.role === 'ADMINISTRATIVE';
+    user?.role === 'SUPER_ADMIN' || user?.role === 'SCHOOL_ADMIN' || user?.role === 'ADMINISTRATIVE';
 
   // Filtros en la URL: sobreviven a recargar, al botón Atrás y se pueden compartir como enlace
-  const [urlFilters, setUrlFilters] = useUrlFilters({ page: 1, limit: 20, type: 'ALL', severity: 'ALL', classroomId: '' });
+  const [urlFilters, setUrlFilters] = useUrlFilters({
+    page: 1,
+    limit: 20,
+    type: 'ALL',
+    severity: 'ALL',
+    classroomId: '',
+  });
   const { page, limit, type: selectedType, severity: selectedSeverity, classroomId: selectedClassroomId } = urlFilters;
   const setPage = (value: number) => setUrlFilters({ page: value });
   const setLimit = (value: number) => setUrlFilters({ limit: value });
@@ -113,9 +150,7 @@ export const IncidentsPage: React.FC = () => {
             <div className="p-2 rounded-xl bg-primary/10 text-primary">
               <ShieldAlert className="w-5 h-5" />
             </div>
-            <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
-              Agenda e incidencias
-            </h1>
+            <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">Agenda e incidencias</h1>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground">
             Bitácora de conducta, atenciones de enfermería, méritos y citaciones escolares
@@ -240,8 +275,8 @@ export const IncidentsPage: React.FC = () => {
                       </Badge>
                     )}
 
-                    {inc.isViolenceCase && (
-                      inc.siseveCode ? (
+                    {inc.isViolenceCase &&
+                      (inc.siseveCode ? (
                         <Badge
                           variant="outline"
                           className="text-xs bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 font-bold"
@@ -267,8 +302,7 @@ export const IncidentsPage: React.FC = () => {
                             </Button>
                           )}
                         </div>
-                      )
-                    )}
+                      ))}
                   </div>
 
                   <span className="text-xs text-muted-foreground flex items-center gap-1 font-medium">
@@ -298,9 +332,7 @@ export const IncidentsPage: React.FC = () => {
                   {/* Descripción y Título */}
                   <div className="md:col-span-2 space-y-1.5">
                     <h3 className="text-sm font-bold text-foreground">{inc.title}</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      {inc.description}
-                    </p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{inc.description}</p>
 
                     {inc.actionTaken && (
                       <div className="p-2 rounded-lg bg-muted/40 border border-border text-xs text-muted-foreground">
@@ -312,9 +344,7 @@ export const IncidentsPage: React.FC = () => {
                     {inc.citationDate && (
                       <div className="p-2 rounded-lg bg-purple-500/10 border border-purple-500/20 text-xs text-purple-700 dark:text-purple-300 flex items-center gap-2 font-semibold">
                         <CalendarClock className="w-4 h-4" />
-                        <span>
-                          Citación programada: {formatPeruDateTime(inc.citationDate)}
-                        </span>
+                        <span>Citación programada: {formatPeruDateTime(inc.citationDate)}</span>
                       </div>
                     )}
                   </div>
@@ -325,10 +355,7 @@ export const IncidentsPage: React.FC = () => {
                   {isAcknowledged ? (
                     <div className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>
-                        Enterado por el apoderado el{' '}
-                        {formatPeruShortDate(inc.acknowledgedAt!)}
-                      </span>
+                      <span>Enterado por el apoderado el {formatPeruShortDate(inc.acknowledgedAt!)}</span>
                     </div>
                   ) : (
                     <div className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
@@ -359,19 +386,18 @@ export const IncidentsPage: React.FC = () => {
 
       {/* Modal de Registro */}
       {isCreateModalOpen && (
-        <CreateIncidentModal
-          isOpen={isCreateModalOpen}
-          onClose={() => setIsCreateModalOpen(false)}
-        />
+        <CreateIncidentModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
       )}
 
       {/* Modal para Registrar Código SíseVe */}
       {siseveModalIncidentId && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200"
+        >
           <div className="bg-card w-full max-w-sm rounded-2xl border border-border p-6 shadow-2xl space-y-4">
-            <h3 className="text-base font-bold text-foreground">
-              Registrar Código SíseVe
-            </h3>
+            <h3 className="text-base font-bold text-foreground">Registrar Código SíseVe</h3>
             <p className="text-xs text-muted-foreground">
               Ingresa el código asignado por el portal del MINEDU (siseve.minedu.gob.pe).
             </p>
@@ -406,4 +432,3 @@ export const IncidentsPage: React.FC = () => {
     </div>
   );
 };
-

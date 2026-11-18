@@ -27,74 +27,88 @@ interface ModuleInfo {
 
 /** Qué gana el colegio con cada módulo bloqueado (por prefijo de ruta, el más específico primero) */
 const MODULES: Array<[prefix: string, info: ModuleInfo]> = [
-  ['/academic/progress', {
-    name: 'Avance y cierre de periodo',
-    benefits: [
-      'Seguimiento del registro de notas por docente y curso.',
-      'Detección de cursos con notas pendientes antes del cierre.',
-      'Cierre ordenado de cada periodo académico.',
-    ],
-  }],
-  ['/academic/report-cards', {
-    name: 'Libretas de notas',
-    benefits: [
-      'Libretas listas para imprimir por aula.',
-      'Formato oficial con la escala del colegio.',
-      'Las familias las consultan desde su portal.',
-    ],
-  }],
-  ['/academic/tutor-report', {
-    name: 'Informe del tutor',
-    benefits: [
-      'Resumen académico y de asistencia del aula a cargo.',
-      'Apoyo para las reuniones con las familias.',
-    ],
-  }],
-  ['/academic/reports', {
-    name: 'Reportes académicos',
-    benefits: [
-      'Consolidado de notas del aula.',
-      'Libretas para imprimir.',
-      'Archivo de notas listo para el SIAGIE.',
-    ],
-  }],
-  ['/academic-reports', {
-    name: 'Catálogo de reportes',
-    benefits: [
-      'Cuadros de mérito por aula y grado.',
-      'Nóminas, cumpleaños y reportes de familias.',
-      'Descarga directa en PDF o Excel.',
-    ],
-  }],
-  ['/gradebook', {
-    name: 'Registro de notas',
-    benefits: [
-      'Registro de notas por competencias (CNEB).',
-      'Carga rápida desde el celular o la computadora.',
-      'Libretas generadas a partir del registro.',
-    ],
-  }],
-  ['/insights', {
-    name: 'Analítica y tutoría',
-    benefits: [
-      'Alumnos en riesgo académico o de asistencia, en una sola vista.',
-      'Seguimiento de las acciones de tutoría.',
-    ],
-  }],
-  ['/evaluation-criteria', {
-    name: 'Criterios y escala de evaluación',
-    benefits: [
-      'Escala de calificación propia del colegio.',
-      'Criterios de evaluación por nivel.',
-    ],
-  }],
-  ['/virtual-classroom-supervision', {
-    name: 'Supervisión del aula virtual',
-    benefits: [
-      'Qué publica cada docente en su aula virtual.',
-      'Cumplimiento de publicaciones y tareas por docente.',
-    ],
-  }],
+  [
+    '/academic/progress',
+    {
+      name: 'Avance y cierre de periodo',
+      benefits: [
+        'Seguimiento del registro de notas por docente y curso.',
+        'Detección de cursos con notas pendientes antes del cierre.',
+        'Cierre ordenado de cada periodo académico.',
+      ],
+    },
+  ],
+  [
+    '/academic/report-cards',
+    {
+      name: 'Libretas de notas',
+      benefits: [
+        'Libretas listas para imprimir por aula.',
+        'Formato oficial con la escala del colegio.',
+        'Las familias las consultan desde su portal.',
+      ],
+    },
+  ],
+  [
+    '/academic/tutor-report',
+    {
+      name: 'Informe del tutor',
+      benefits: ['Resumen académico y de asistencia del aula a cargo.', 'Apoyo para las reuniones con las familias.'],
+    },
+  ],
+  [
+    '/academic/reports',
+    {
+      name: 'Reportes académicos',
+      benefits: ['Consolidado de notas del aula.', 'Libretas para imprimir.', 'Archivo de notas listo para el SIAGIE.'],
+    },
+  ],
+  [
+    '/academic-reports',
+    {
+      name: 'Catálogo de reportes',
+      benefits: [
+        'Cuadros de mérito por aula y grado.',
+        'Nóminas, cumpleaños y reportes de familias.',
+        'Descarga directa en PDF o Excel.',
+      ],
+    },
+  ],
+  [
+    '/gradebook',
+    {
+      name: 'Registro de notas',
+      benefits: [
+        'Registro de notas por competencias (CNEB).',
+        'Carga rápida desde el celular o la computadora.',
+        'Libretas generadas a partir del registro.',
+      ],
+    },
+  ],
+  [
+    '/insights',
+    {
+      name: 'Analítica y tutoría',
+      benefits: [
+        'Alumnos en riesgo académico o de asistencia, en una sola vista.',
+        'Seguimiento de las acciones de tutoría.',
+      ],
+    },
+  ],
+  [
+    '/evaluation-criteria',
+    {
+      name: 'Criterios y escala de evaluación',
+      benefits: ['Escala de calificación propia del colegio.', 'Criterios de evaluación por nivel.'],
+    },
+  ],
+  [
+    '/virtual-classroom-supervision',
+    {
+      name: 'Supervisión del aula virtual',
+      benefits: ['Qué publica cada docente en su aula virtual.', 'Cumplimiento de publicaciones y tareas por docente.'],
+    },
+  ],
 ];
 
 const DEFAULT_MODULE: ModuleInfo = {

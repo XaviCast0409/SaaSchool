@@ -8,9 +8,7 @@ export const useGetActiveSchool = () => {
   const impersonatedSchool = useAuthStore((state) => state.impersonatedSchool);
 
   // Si es SUPER_ADMIN, solo consulta si está en modo soporte (impersonatedSchool)
-  const schoolId = user?.role === 'SUPER_ADMIN'
-    ? impersonatedSchool?.id || null
-    : user?.schoolId || null;
+  const schoolId = user?.role === 'SUPER_ADMIN' ? impersonatedSchool?.id || null : user?.schoolId || null;
 
   return useQuery({
     queryKey: ['school', schoolId],
@@ -41,10 +39,7 @@ export const useUpdateSchool = () => {
   return useMutation({
     mutationFn: async (payload: UpdateSchoolPayload) => {
       if (!schoolId) throw new Error('No hay colegio activo');
-      const response = await api.patch<{ status: string; data: School }>(
-        `/schools/${schoolId}`,
-        payload,
-      );
+      const response = await api.patch<{ status: string; data: School }>(`/schools/${schoolId}`, payload);
       return response.data.data;
     },
     onSuccess: () => {

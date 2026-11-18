@@ -1,13 +1,6 @@
 import React from 'react';
 import { UserAvatar } from '@/components/ui/user-avatar';
-import {
-  School,
-  UserCheck,
-  FileText,
-  Phone,
-  Mail,
-  Sparkles,
-} from 'lucide-react';
+import { School, UserCheck, FileText, Phone, Mail, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { formatEducationLevel, formatShift } from '@/lib/utils';
 import type { ParentChildInfo } from '../types';
@@ -34,7 +27,10 @@ export const StudentOverviewCard: React.FC<StudentOverviewCardProps> = ({ child 
               <h2 className="text-base sm:text-lg font-extrabold text-foreground tracking-tight truncate">
                 {child.fullName}
               </h2>
-              <Badge variant="secondary" className="text-xs gap-1 font-bold bg-primary/10 text-primary border-primary/20">
+              <Badge
+                variant="secondary"
+                className="text-xs gap-1 font-bold bg-primary/10 text-primary border-primary/20"
+              >
                 <Sparkles className="w-3 h-3" />
                 <span>Estudiante</span>
               </Badge>
@@ -47,9 +43,7 @@ export const StudentOverviewCard: React.FC<StudentOverviewCardProps> = ({ child 
               {child.studentCode && (
                 <>
                   <span className="text-muted-foreground/40">•</span>
-                  <span className="text-xs text-muted-foreground font-medium">
-                    SIAGIE: {child.studentCode}
-                  </span>
+                  <span className="text-xs text-muted-foreground font-medium">SIAGIE: {child.studentCode}</span>
                 </>
               )}
             </div>
@@ -58,7 +52,10 @@ export const StudentOverviewCard: React.FC<StudentOverviewCardProps> = ({ child 
 
         {/* Status Tag */}
         <div className="flex items-center gap-1.5 self-start sm:self-auto">
-          <Badge variant="outline" className="text-xs gap-1.5 font-bold border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10">
+          <Badge
+            variant="outline"
+            className="text-xs gap-1.5 font-bold border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10"
+          >
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span>Matrícula Vigente {enrollment?.academicYear || 2026}</span>
           </Badge>

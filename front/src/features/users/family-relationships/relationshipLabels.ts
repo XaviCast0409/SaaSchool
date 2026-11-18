@@ -8,8 +8,7 @@ export const RELATIONSHIP_LABELS: Record<string, string> = {
   OTHER: 'Apoderado',
 };
 
-export const relationshipLabel = (code?: string | null): string =>
-  (code && RELATIONSHIP_LABELS[code]) || 'Apoderado';
+export const relationshipLabel = (code?: string | null): string => (code && RELATIONSHIP_LABELS[code]) || 'Apoderado';
 
 /** Opciones para elegir el parentesco al vincular (el código genérico va al final) */
 export const RELATIONSHIP_OPTIONS = [

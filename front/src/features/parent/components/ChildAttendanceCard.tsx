@@ -1,13 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  CalendarCheck,
-  CheckCircle2,
-  Clock,
-  AlertCircle,
-  HelpCircle,
-  ArrowRight,
-} from 'lucide-react';
+import { CalendarCheck, CheckCircle2, Clock, AlertCircle, HelpCircle, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { ActiveEnrollmentInfo, AttendanceTodayStatus } from '../types';
@@ -89,11 +82,7 @@ export const ChildAttendanceCard: React.FC<ChildAttendanceCardProps> = ({ enroll
         <div className="w-full h-2.5 rounded-full bg-secondary overflow-hidden">
           <div
             className={`h-full rounded-full transition-all duration-500 ${
-              percentage >= 90
-                ? 'bg-emerald-500'
-                : percentage >= 75
-                ? 'bg-amber-500'
-                : 'bg-destructive'
+              percentage >= 90 ? 'bg-emerald-500' : percentage >= 75 ? 'bg-amber-500' : 'bg-destructive'
             }`}
             style={{ width: `${percentage}%` }}
           />
@@ -103,28 +92,16 @@ export const ChildAttendanceCard: React.FC<ChildAttendanceCardProps> = ({ enroll
       {/* Mini Counters */}
       <div className="grid grid-cols-3 gap-2 text-center pt-1">
         <div className="p-2.5 rounded-xl bg-secondary/30 border border-border/40">
-          <span className="text-xs font-bold uppercase text-muted-foreground block">
-            Asistencias
-          </span>
-          <span className="text-base font-extrabold text-foreground">
-            {summary?.presentCount ?? 0}
-          </span>
+          <span className="text-xs font-bold uppercase text-muted-foreground block">Asistencias</span>
+          <span className="text-base font-extrabold text-foreground">{summary?.presentCount ?? 0}</span>
         </div>
         <div className="p-2.5 rounded-xl bg-secondary/30 border border-border/40">
-          <span className="text-xs font-bold uppercase text-muted-foreground block">
-            Tardanzas
-          </span>
-          <span className="text-base font-extrabold text-amber-600 dark:text-amber-400">
-            {summary?.lateCount ?? 0}
-          </span>
+          <span className="text-xs font-bold uppercase text-muted-foreground block">Tardanzas</span>
+          <span className="text-base font-extrabold text-amber-600 dark:text-amber-400">{summary?.lateCount ?? 0}</span>
         </div>
         <div className="p-2.5 rounded-xl bg-secondary/30 border border-border/40">
-          <span className="text-xs font-bold uppercase text-muted-foreground block">
-            Faltas
-          </span>
-          <span className="text-base font-extrabold text-destructive">
-            {summary?.absentCount ?? 0}
-          </span>
+          <span className="text-xs font-bold uppercase text-muted-foreground block">Faltas</span>
+          <span className="text-base font-extrabold text-destructive">{summary?.absentCount ?? 0}</span>
         </div>
       </div>
 

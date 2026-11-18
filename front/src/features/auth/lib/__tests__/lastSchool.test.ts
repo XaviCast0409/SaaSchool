@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { clearLastSchoolCode, getLastSchoolCode, isSchoolCodeFormat, normalizeSchoolCode, setLastSchoolCode } from '../lastSchool';
+import {
+  clearLastSchoolCode,
+  getLastSchoolCode,
+  isSchoolCodeFormat,
+  normalizeSchoolCode,
+  setLastSchoolCode,
+} from '../lastSchool';
 
 describe('último colegio recordado', () => {
   beforeEach(() => localStorage.clear());

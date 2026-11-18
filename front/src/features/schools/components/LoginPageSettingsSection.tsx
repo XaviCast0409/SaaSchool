@@ -24,7 +24,14 @@ interface Props {
 const MAX_BACKGROUND_BYTES = 5 * 1024 * 1024;
 
 /** Ajustes de la página de ingreso del colegio: fondo, título, mensaje y enlace para compartir. */
-export const LoginPageSettingsSection: React.FC<Props> = ({ slug, schoolName, brandColor, values, register, setValue }) => {
+export const LoginPageSettingsSection: React.FC<Props> = ({
+  slug,
+  schoolName,
+  brandColor,
+  values,
+  register,
+  setValue,
+}) => {
   const fileRef = useRef<HTMLInputElement>(null);
   const upload = useUploadVoucher();
   const { data: preview } = useResolvedFileUrl(values.loginBackgroundUrl || null);
@@ -70,45 +77,84 @@ export const LoginPageSettingsSection: React.FC<Props> = ({ slug, schoolName, br
       {link ? (
         <div className="space-y-1">
           <p className="text-xs text-muted-foreground">
-            Comparte este enlace con tu comunidad. El código del colegio es <strong className="text-foreground">{slug}</strong>.
+            Comparte este enlace con tu comunidad. El código del colegio es{' '}
+            <strong className="text-foreground">{slug}</strong>.
           </p>
           <div className="flex items-center gap-1.5">
-            <code className="flex-1 truncate rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground">{link}</code>
-            <button type="button" onClick={copyLink} aria-label="Copiar enlace" className="rounded-lg border border-border p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground">
+            <code className="flex-1 truncate rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground">
+              {link}
+            </code>
+            <button
+              type="button"
+              onClick={copyLink}
+              aria-label="Copiar enlace"
+              className="rounded-lg border border-border p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
+            >
               <Copy className="w-3.5 h-3.5" />
             </button>
-            <a href={link} target="_blank" rel="noreferrer" aria-label="Abrir página de ingreso" className="rounded-lg border border-border p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground">
+            <a
+              href={link}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Abrir página de ingreso"
+              className="rounded-lg border border-border p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
+            >
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
           </div>
         </div>
       ) : (
-        <p className="text-xs text-muted-foreground">Tu colegio aún no tiene código de ingreso. Solicítalo a soporte.</p>
+        <p className="text-xs text-muted-foreground">
+          Tu colegio aún no tiene código de ingreso. Solicítalo a soporte.
+        </p>
       )}
 
       {/* Vista previa del fondo */}
       <div className="relative h-32 overflow-hidden rounded-xl border border-border">
         {preview ? (
-          <img src={preview} alt="Fondo de la página de ingreso" className="absolute inset-0 h-full w-full object-cover" />
+          <img
+            src={preview}
+            alt="Fondo de la página de ingreso"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
         ) : (
-          <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${brand}, #0f172a)` }} aria-hidden />
+          <div
+            className="absolute inset-0"
+            style={{ background: `linear-gradient(135deg, ${brand}, #0f172a)` }}
+            aria-hidden
+          />
         )}
         <div className="absolute inset-0 bg-black/40" aria-hidden />
         <div className="relative flex h-full flex-col justify-end p-3 text-white">
-          <p className="text-sm font-bold leading-tight line-clamp-1">{values.loginTitle?.trim() || `Bienvenidos a ${schoolName}`}</p>
+          <p className="text-sm font-bold leading-tight line-clamp-1">
+            {values.loginTitle?.trim() || `Bienvenidos a ${schoolName}`}
+          </p>
           {values.loginMessage?.trim() && <p className="text-xs text-white/85 line-clamp-2">{values.loginMessage}</p>}
         </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => { onFile(e.target.files?.[0]); e.target.value = ''; }} />
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          className="hidden"
+          onChange={(e) => {
+            onFile(e.target.files?.[0]);
+            e.target.value = '';
+          }}
+        />
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={upload.isPending}
           className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-secondary disabled:opacity-60"
         >
-          {upload.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImagePlus className="w-3.5 h-3.5" aria-hidden />}
+          {upload.isPending ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <ImagePlus className="w-3.5 h-3.5" aria-hidden />
+          )}
           {values.loginBackgroundUrl ? 'Cambiar imagen de fondo' : 'Subir imagen de fondo'}
         </button>
         {values.loginBackgroundUrl && (
@@ -124,7 +170,9 @@ export const LoginPageSettingsSection: React.FC<Props> = ({ slug, schoolName, br
       </div>
 
       <div>
-        <label htmlFor="school-login-title" className="block text-xs font-medium text-muted-foreground mb-1">Título de bienvenida</label>
+        <label htmlFor="school-login-title" className="block text-xs font-medium text-muted-foreground mb-1">
+          Título de bienvenida
+        </label>
         <input
           id="school-login-title"
           type="text"
@@ -135,7 +183,9 @@ export const LoginPageSettingsSection: React.FC<Props> = ({ slug, schoolName, br
         />
       </div>
       <div>
-        <label htmlFor="school-login-message" className="block text-xs font-medium text-muted-foreground mb-1">Mensaje o aviso</label>
+        <label htmlFor="school-login-message" className="block text-xs font-medium text-muted-foreground mb-1">
+          Mensaje o aviso
+        </label>
         <textarea
           id="school-login-message"
           rows={3}
@@ -144,7 +194,9 @@ export const LoginPageSettingsSection: React.FC<Props> = ({ slug, schoolName, br
           {...register('loginMessage')}
           className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
         />
-        <p className="text-xs text-muted-foreground mt-1">Lo ve cualquier persona que abra la página de ingreso: no incluyas datos privados.</p>
+        <p className="text-xs text-muted-foreground mt-1">
+          Lo ve cualquier persona que abra la página de ingreso: no incluyas datos privados.
+        </p>
       </div>
     </div>
   );

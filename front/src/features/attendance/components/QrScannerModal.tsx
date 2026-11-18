@@ -24,12 +24,7 @@ import { ScanAttendanceResult } from '../types';
 import { formatPeruTime } from '@/lib/dateUtils';
 import { useAuthStore } from '@/store/useAuthStore';
 import { api } from '@/lib/axios';
-import {
-  saveRoster,
-  findInRoster,
-  enqueueScan,
-  type RosterEntry,
-} from '../offline/scanQueue';
+import { saveRoster, findInRoster, enqueueScan, type RosterEntry } from '../offline/scanQueue';
 import { useOfflineScanQueue } from '../offline/useOfflineScanQueue';
 
 interface QrScannerModalProps {
@@ -40,8 +35,7 @@ interface QrScannerModalProps {
 function playBeep(type: 'success' | 'warning' | 'error') {
   try {
     const AudioContextClass =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextClass) return;
     const ctx = new AudioContextClass();
 
@@ -179,10 +173,7 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
             return;
           }
 
-          const msg =
-            err.response?.data?.message ||
-            err.message ||
-            'Código QR no reconocido o sin matrícula activa';
+          const msg = err.response?.data?.message || err.message || 'Código QR no reconocido o sin matrícula activa';
           setErrorMessage(msg);
           if (soundEnabled) playBeep('error');
         },
@@ -199,7 +190,11 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 sm:p-4 backdrop-blur-sm animate-in fade-in">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 sm:p-4 backdrop-blur-sm animate-in fade-in"
+    >
       <div className="w-full max-w-4xl rounded-2xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border p-4 bg-muted/30">
@@ -209,15 +204,16 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="font-extrabold text-lg text-foreground">
-                  Lector QR de Asistencia Escolar
-                </h2>
+                <h2 className="font-extrabold text-lg text-foreground">Lector QR de Asistencia Escolar</h2>
                 {isOnline ? (
                   <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30">
                     En Vivo
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="text-xs bg-destructive/15 text-destructive border-destructive/30 gap-1">
+                  <Badge
+                    variant="outline"
+                    className="text-xs bg-destructive/15 text-destructive border-destructive/30 gap-1"
+                  >
                     <WifiOff className="w-3 h-3" />
                     Sin conexión
                   </Badge>
@@ -275,7 +271,9 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
         {!isOnline && (
           <div className="p-2.5 px-4 bg-destructive/10 border-b border-destructive/20 text-destructive text-xs font-bold flex items-center gap-2">
             <WifiOff className="w-4 h-4 shrink-0" />
-            <span>Sin conexión — los ingresos se guardan en este dispositivo y se sincronizarán al volver internet.</span>
+            <span>
+              Sin conexión — los ingresos se guardan en este dispositivo y se sincronizarán al volver internet.
+            </span>
           </div>
         )}
 
@@ -296,12 +294,8 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
                 >
                   <div className="truncate pr-2">
                     <span className="font-bold text-foreground">Código: {rej.code}</span>
-                    <span className="text-muted-foreground ml-2">
-                      ({formatPeruTime(rej.scannedAt)})
-                    </span>
-                    <span className="text-destructive block font-medium">
-                      Motivo: {rej.lastError || 'Rechazado'}
-                    </span>
+                    <span className="text-muted-foreground ml-2">({formatPeruTime(rej.scannedAt)})</span>
+                    <span className="text-destructive block font-medium">Motivo: {rej.lastError || 'Rechazado'}</span>
                   </div>
                   <Button
                     size="sm"
@@ -350,15 +344,12 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
           <div className="lg:col-span-7 p-6 border-b lg:border-b-0 lg:border-r border-border flex flex-col justify-between space-y-6">
             <div className="space-y-4">
               {/* Visor de Cámara QR */}
-              <CameraQrScanner
-                isActive={true}
-                onScan={handleProcessScan}
-                isProcessing={isPending}
-              />
+              <CameraQrScanner isActive={true} onScan={handleProcessScan} isProcessing={isPending} />
 
               {/* Texto de Ayuda Offline */}
               <p className="text-xs text-muted-foreground text-center italic">
-                Si se cae el internet, sigue escaneando: los ingresos se guardan con su hora real y se envían solos al volver la conexión. Abre el lector con internet al inicio del día.
+                Si se cae el internet, sigue escaneando: los ingresos se guardan con su hora real y se envían solos al
+                volver la conexión. Abre el lector con internet al inicio del día.
               </p>
 
               {/* Mensaje de Error */}
@@ -379,10 +370,10 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
                     lastResult.offline
                       ? 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300'
                       : lastResult.alreadyRegistered
-                      ? 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300'
-                      : lastResult.status === 'LATE_UNJUSTIFIED'
-                      ? 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300'
-                      : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                        ? 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                        : lastResult.status === 'LATE_UNJUSTIFIED'
+                          ? 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                          : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -392,8 +383,8 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
                           lastResult.offline
                             ? 'bg-amber-600 text-white'
                             : lastResult.status === 'PRESENT'
-                            ? 'bg-emerald-600 text-white'
-                            : 'bg-amber-600 text-white'
+                              ? 'bg-emerald-600 text-white'
+                              : 'bg-amber-600 text-white'
                         }`}
                       >
                         {lastResult.student.fullName.charAt(0)}
@@ -416,15 +407,11 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
                         lastResult.offline
                           ? 'bg-amber-600 text-white hover:bg-amber-600'
                           : lastResult.status === 'PRESENT'
-                          ? 'bg-emerald-600 text-white hover:bg-emerald-600'
-                          : 'bg-amber-600 text-white hover:bg-amber-600'
+                            ? 'bg-emerald-600 text-white hover:bg-emerald-600'
+                            : 'bg-amber-600 text-white hover:bg-amber-600'
                       }`}
                     >
-                      {lastResult.offline
-                        ? 'Sin Conexión'
-                        : lastResult.status === 'PRESENT'
-                        ? 'Puntual'
-                        : 'Tardanza'}
+                      {lastResult.offline ? 'Sin Conexión' : lastResult.status === 'PRESENT' ? 'Puntual' : 'Tardanza'}
                     </Badge>
                   </div>
 
@@ -434,7 +421,12 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
                       {lastResult.message}
                     </span>
                     <span className="text-muted-foreground">
-                      Hora: {formatPeruTime(lastResult.checkInTime, { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      Hora:{' '}
+                      {formatPeruTime(lastResult.checkInTime, {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                      })}
                     </span>
                   </div>
                 </div>
@@ -455,9 +447,7 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
           <div className="lg:col-span-5 p-5 bg-muted/10 flex flex-col justify-between space-y-4">
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-bold text-sm text-foreground">
-                  Marcaciones Recientes ({recentScans.length})
-                </h3>
+                <h3 className="font-bold text-sm text-foreground">Marcaciones Recientes ({recentScans.length})</h3>
                 {recentScans.length > 0 && (
                   <Button
                     variant="ghost"
@@ -486,12 +476,8 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
                       className="p-2.5 rounded-xl border border-border bg-card flex items-center justify-between text-xs shadow-sm hover:border-primary/40 transition-colors"
                     >
                       <div className="space-y-0.5 truncate pr-2">
-                        <span className="font-bold text-foreground block truncate">
-                          {scan.student.fullName}
-                        </span>
-                        <span className="text-xs text-muted-foreground block truncate">
-                          {scan.student.classroom}
-                        </span>
+                        <span className="font-bold text-foreground block truncate">{scan.student.fullName}</span>
+                        <span className="text-xs text-muted-foreground block truncate">{scan.student.classroom}</span>
                       </div>
                       <div className="text-right shrink-0">
                         <Badge
@@ -500,8 +486,8 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onClose }) => {
                             scan.offline
                               ? 'border-amber-500/40 bg-amber-500/10 text-amber-600'
                               : scan.status === 'PRESENT'
-                              ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600'
-                              : 'border-amber-500/40 bg-amber-500/10 text-amber-600'
+                                ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600'
+                                : 'border-amber-500/40 bg-amber-500/10 text-amber-600'
                           }`}
                         >
                           {scan.offline ? 'Sin conexión' : scan.status === 'PRESENT' ? 'Puntual' : 'Tardanza'}

@@ -39,12 +39,13 @@ export const ReportActionToolbar: React.FC<ReportActionToolbarProps> = ({
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-card border border-border rounded-xl shadow-sm mb-4 print:hidden">
       <div className="flex items-center gap-2">
-        <Badge variant="outline" className="font-mono text-xs px-2.5 py-0.5 font-bold border-primary/30 text-primary bg-primary/5">
+        <Badge
+          variant="outline"
+          className="font-mono text-xs px-2.5 py-0.5 font-bold border-primary/30 text-primary bg-primary/5"
+        >
           {reportCode}
         </Badge>
-        <span className="text-sm font-bold text-foreground truncate max-w-[280px] sm:max-w-md">
-          {reportTitle}
-        </span>
+        <span className="text-sm font-bold text-foreground truncate max-w-[280px] sm:max-w-md">{reportTitle}</span>
         <Badge variant="secondary" className="text-xs uppercase font-semibold text-muted-foreground">
           {orientation === 'landscape' ? 'Horizontal (A4)' : 'Vertical (A4)'}
         </Badge>
@@ -59,18 +60,17 @@ export const ReportActionToolbar: React.FC<ReportActionToolbarProps> = ({
             disabled={busy}
             className="gap-1.5 text-xs font-semibold hover:bg-emerald-500/10 hover:text-emerald-600 hover:border-emerald-500/30"
           >
-            {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />}
+            {busy ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+            )}
             <span>{busy ? 'Generando…' : 'Exportar Excel'}</span>
           </Button>
         )}
 
         {onPrint && (
-          <Button
-            variant="default"
-            size="sm"
-            onClick={onPrint}
-            className="gap-1.5 text-xs font-bold shadow-sm"
-          >
+          <Button variant="default" size="sm" onClick={onPrint} className="gap-1.5 text-xs font-bold shadow-sm">
             <Printer className="w-3.5 h-3.5" />
             <span>Imprimir / PDF</span>
           </Button>

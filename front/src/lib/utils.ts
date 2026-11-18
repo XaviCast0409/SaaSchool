@@ -1,5 +1,5 @@
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -12,10 +12,7 @@ export interface PersonNameInput {
   lastNameMaternal?: string | null;
 }
 
-export function formatFullName(
-  person: PersonNameInput,
-  format: 'LAST_FIRST' | 'FIRST_LAST' = 'FIRST_LAST',
-): string {
+export function formatFullName(person: PersonNameInput, format: 'LAST_FIRST' | 'FIRST_LAST' = 'FIRST_LAST'): string {
   const first = (person.firstNames || person.firstName || '').trim();
   const paternal = (person.lastNamePaternal || '').trim();
   const maternal = (person.lastNameMaternal || '').trim();

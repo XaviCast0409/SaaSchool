@@ -38,15 +38,28 @@ const TutoringModal: React.FC<{ row: RiskRow | null; onClose: () => void }> = ({
   const { data: list = [], isLoading } = useInterventions(row?.enrollmentId ?? null);
   const create = useCreateIntervention(row?.enrollmentId ?? null);
   const setStatus = useSetInterventionStatus();
-  const [form, setForm] = useState({ type: 'ENTREVISTA_ESTUDIANTE', date: getPeruToday(), notes: '', agreements: '', followUpDate: '' });
+  const [form, setForm] = useState({
+    type: 'ENTREVISTA_ESTUDIANTE',
+    date: getPeruToday(),
+    notes: '',
+    agreements: '',
+    followUpDate: '',
+  });
   useEffect(() => {
-    if (row) setForm({ type: 'ENTREVISTA_ESTUDIANTE', date: getPeruToday(), notes: '', agreements: '', followUpDate: '' });
+    if (row)
+      setForm({ type: 'ENTREVISTA_ESTUDIANTE', date: getPeruToday(), notes: '', agreements: '', followUpDate: '' });
   }, [row]);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     create.mutate(
-      { type: form.type, date: form.date, notes: form.notes, agreements: form.agreements || null, followUpDate: form.followUpDate || null },
+      {
+        type: form.type,
+        date: form.date,
+        notes: form.notes,
+        agreements: form.agreements || null,
+        followUpDate: form.followUpDate || null,
+      },
       {
         onSuccess: () => {
           toast.success('Intervención registrada');
@@ -58,40 +71,83 @@ const TutoringModal: React.FC<{ row: RiskRow | null; onClose: () => void }> = ({
   };
 
   return (
-    <Modal open={Boolean(row)} onClose={onClose} title={`Plan de tutoría · ${row?.name ?? ''}`} description={row ? `${row.classroom} · ${row.reasons.join(' · ') || 'Sin alertas'}` : undefined} size="xl">
+    <Modal
+      open={Boolean(row)}
+      onClose={onClose}
+      title={`Plan de tutoría · ${row?.name ?? ''}`}
+      description={row ? `${row.classroom} · ${row.reasons.join(' · ') || 'Sin alertas'}` : undefined}
+      size="xl"
+    >
       <div className="grid gap-5 lg:grid-cols-2">
         <form onSubmit={submit} className="space-y-3">
           <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Lock className="h-3.5 w-3.5" aria-hidden /> Información reservada: solo la ven la Dirección y el tutor del aula. La familia no la ve.
+            <Lock className="h-3.5 w-3.5" aria-hidden /> Información reservada: solo la ven la Dirección y el tutor del
+            aula. La familia no la ve.
           </p>
           <div className="grid grid-cols-2 gap-3">
             <label className="col-span-2 text-xs text-muted-foreground sm:col-span-1">
               Tipo
-              <select className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm text-foreground" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
+              <select
+                className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm text-foreground"
+                value={form.type}
+                onChange={(e) => setForm({ ...form, type: e.target.value })}
+              >
                 {Object.entries(INTERVENTION_LABEL).map(([k, v]) => (
-                  <option key={k} value={k}>{v}</option>
+                  <option key={k} value={k}>
+                    {v}
+                  </option>
                 ))}
               </select>
             </label>
             <label className="col-span-2 text-xs text-muted-foreground sm:col-span-1">
               Fecha
-              <Input type="date" className="h-9" max={getPeruToday()} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required />
+              <Input
+                type="date"
+                className="h-9"
+                max={getPeruToday()}
+                value={form.date}
+                onChange={(e) => setForm({ ...form, date: e.target.value })}
+                required
+              />
             </label>
           </div>
           <label className="block text-xs text-muted-foreground">
             ¿Qué se conversó o hizo?
-            <Textarea rows={4} required minLength={5} maxLength={4000} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+            <Textarea
+              rows={4}
+              required
+              minLength={5}
+              maxLength={4000}
+              value={form.notes}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+            />
           </label>
           <label className="block text-xs text-muted-foreground">
             Acuerdos (opcional)
-            <Textarea rows={2} maxLength={2000} value={form.agreements} onChange={(e) => setForm({ ...form, agreements: e.target.value })} />
+            <Textarea
+              rows={2}
+              maxLength={2000}
+              value={form.agreements}
+              onChange={(e) => setForm({ ...form, agreements: e.target.value })}
+            />
           </label>
           <label className="block text-xs text-muted-foreground">
             Volver a revisar el (opcional)
-            <Input type="date" className="h-9" min={getPeruToday()} value={form.followUpDate} onChange={(e) => setForm({ ...form, followUpDate: e.target.value })} />
+            <Input
+              type="date"
+              className="h-9"
+              min={getPeruToday()}
+              value={form.followUpDate}
+              onChange={(e) => setForm({ ...form, followUpDate: e.target.value })}
+            />
           </label>
           <Button type="submit" disabled={create.isPending} className="gap-2">
-            {create.isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <ClipboardCheck className="h-4 w-4" aria-hidden />} Registrar intervención
+            {create.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+            ) : (
+              <ClipboardCheck className="h-4 w-4" aria-hidden />
+            )}{' '}
+            Registrar intervención
           </Button>
         </form>
         <div>
@@ -111,13 +167,24 @@ const TutoringModal: React.FC<{ row: RiskRow | null; onClose: () => void }> = ({
                     </span>
                   </div>
                   <p className="mt-1 whitespace-pre-line text-xs text-foreground">{i.notes}</p>
-                  {i.agreements && <p className="mt-1 whitespace-pre-line text-xs text-muted-foreground"><strong>Acuerdos:</strong> {i.agreements}</p>}
+                  {i.agreements && (
+                    <p className="mt-1 whitespace-pre-line text-xs text-muted-foreground">
+                      <strong>Acuerdos:</strong> {i.agreements}
+                    </p>
+                  )}
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                    {i.followUpDate && <span className="text-muted-foreground">Revisar el {dateOnly(i.followUpDate)}</span>}
+                    {i.followUpDate && (
+                      <span className="text-muted-foreground">Revisar el {dateOnly(i.followUpDate)}</span>
+                    )}
                     <button
                       type="button"
                       onClick={() => setStatus.mutate({ id: i.id, status: i.status === 'OPEN' ? 'CLOSED' : 'OPEN' })}
-                      className={cn('ml-auto rounded-full px-2 py-0.5 font-semibold', i.status === 'OPEN' ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300')}
+                      className={cn(
+                        'ml-auto rounded-full px-2 py-0.5 font-semibold',
+                        i.status === 'OPEN'
+                          ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+                          : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
+                      )}
                       aria-label={i.status === 'OPEN' ? 'Marcar como cerrado' : 'Reabrir'}
                     >
                       {i.status === 'OPEN' ? 'En seguimiento' : 'Cerrado'}
@@ -152,19 +219,39 @@ const RiskTab: React.FC = () => {
   return (
     <div className="space-y-3">
       <Card className="p-4 text-sm text-muted-foreground">
-        Índice que combina, del <strong className="text-foreground">{data?.periodLabel ?? 'periodo actual'}</strong> y los últimos 30 días: competencias en C, competencias que bajaron de nivel, faltas sin justificar, tareas vencidas sin entregar, incidencias y tardanzas. <strong className="text-foreground">No usa pagos.</strong> Es una ayuda para priorizar, no un diagnóstico.
+        Índice que combina, del <strong className="text-foreground">{data?.periodLabel ?? 'periodo actual'}</strong> y
+        los últimos 30 días: competencias en C, competencias que bajaron de nivel, faltas sin justificar, tareas
+        vencidas sin entregar, incidencias y tardanzas. <strong className="text-foreground">No usa pagos.</strong> Es
+        una ayuda para priorizar, no un diagnóstico.
       </Card>
       <div className="flex flex-wrap items-center gap-2">
         {(['ALTO', 'MEDIO', 'BAJO'] as const).map((l) => (
-          <button key={l} type="button" onClick={() => setLevelFilter(levelFilter === l ? '' : l)} aria-pressed={levelFilter === l} className={cn('rounded-lg px-3 py-1.5 text-xs font-semibold', LEVEL_STYLE[l], levelFilter === l && 'ring-2 ring-primary')}>
+          <button
+            key={l}
+            type="button"
+            onClick={() => setLevelFilter(levelFilter === l ? '' : l)}
+            aria-pressed={levelFilter === l}
+            className={cn(
+              'rounded-lg px-3 py-1.5 text-xs font-semibold',
+              LEVEL_STYLE[l],
+              levelFilter === l && 'ring-2 ring-primary',
+            )}
+          >
             Riesgo {l.toLowerCase()}: {counts[l]}
           </button>
         ))}
         {classrooms.length > 1 && (
-          <select className="ml-auto h-9 rounded-md border border-input bg-background px-2 text-sm" value={classroomId} onChange={(e) => setClassroomId(e.target.value)} aria-label="Filtrar por aula">
+          <select
+            className="ml-auto h-9 rounded-md border border-input bg-background px-2 text-sm"
+            value={classroomId}
+            onChange={(e) => setClassroomId(e.target.value)}
+            aria-label="Filtrar por aula"
+          >
             <option value="">Todas las aulas</option>
             {classrooms.map(([id, label]) => (
-              <option key={id} value={id}>{label}</option>
+              <option key={id} value={id}>
+                {label}
+              </option>
             ))}
           </select>
         )}
@@ -173,24 +260,39 @@ const RiskTab: React.FC = () => {
         <Skeleton className="h-48 w-full rounded-xl" />
       ) : rows.length === 0 ? (
         <Card className="flex items-center gap-2 p-4 text-sm text-foreground">
-          <CheckCircle2 className="h-5 w-5 text-emerald-600" aria-hidden /> Ningún estudiante con señales de riesgo en este filtro.
+          <CheckCircle2 className="h-5 w-5 text-emerald-600" aria-hidden /> Ningún estudiante con señales de riesgo en
+          este filtro.
         </Card>
       ) : (
         <Card className="overflow-hidden">
           <ul className="divide-y divide-border">
             {rows.map((r) => (
               <li key={r.enrollmentId} className="flex flex-wrap items-start gap-3 p-3">
-                <span className={cn('mt-0.5 w-16 shrink-0 rounded-md px-2 py-1 text-center text-xs font-bold', LEVEL_STYLE[r.level])}>{r.level}</span>
+                <span
+                  className={cn(
+                    'mt-0.5 w-16 shrink-0 rounded-md px-2 py-1 text-center text-xs font-bold',
+                    LEVEL_STYLE[r.level],
+                  )}
+                >
+                  {r.level}
+                </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-foreground">
                     {r.name} <span className="text-xs font-normal text-muted-foreground">· {r.classroom}</span>
                   </p>
                   <p className="text-xs text-muted-foreground">{r.reasons.join(' · ') || 'Señales leves'}</p>
                   <p className="text-xs text-muted-foreground">
-                    {r.lastIntervention ? `Última intervención: ${INTERVENTION_LABEL[r.lastIntervention.type] ?? r.lastIntervention.type} · ${dateOnly(r.lastIntervention.date)}` : 'Sin intervenciones registradas'}
+                    {r.lastIntervention
+                      ? `Última intervención: ${INTERVENTION_LABEL[r.lastIntervention.type] ?? r.lastIntervention.type} · ${dateOnly(r.lastIntervention.date)}`
+                      : 'Sin intervenciones registradas'}
                   </p>
                 </div>
-                <Button size="sm" variant={r.lastIntervention ? 'outline' : 'default'} className="h-8 gap-1.5 text-xs" onClick={() => setOpen(r)}>
+                <Button
+                  size="sm"
+                  variant={r.lastIntervention ? 'outline' : 'default'}
+                  className="h-8 gap-1.5 text-xs"
+                  onClick={() => setOpen(r)}
+                >
                   <FileEdit className="h-3.5 w-3.5" aria-hidden /> Plan de tutoría
                 </Button>
               </li>
@@ -221,44 +323,83 @@ const HeatmapTab: React.FC = () => {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <select className="h-9 rounded-md border border-input bg-background px-2 text-sm" value={data.periodNumber} onChange={(e) => setPeriod(Number(e.target.value))} aria-label="Periodo">
+        <select
+          className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+          value={data.periodNumber}
+          onChange={(e) => setPeriod(Number(e.target.value))}
+          aria-label="Periodo"
+        >
           {data.periods.map((p) => (
-            <option key={p.number} value={p.number}>{p.label}</option>
+            <option key={p.number} value={p.number}>
+              {p.label}
+            </option>
           ))}
         </select>
-        <select className="h-9 rounded-md border border-input bg-background px-2 text-sm" value={level} onChange={(e) => setLevel(e.target.value)} aria-label="Nivel">
+        <select
+          className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+          value={level}
+          onChange={(e) => setLevel(e.target.value)}
+          aria-label="Nivel"
+        >
           <option value="">Todos los niveles</option>
           <option value="INITIAL">Inicial</option>
           <option value="PRIMARY">Primaria</option>
           <option value="SECONDARY">Secundaria</option>
         </select>
-        {data.provisional && <span className="text-xs text-amber-700 dark:text-amber-300">Periodo abierto: los calificativos aún pueden cambiar.</span>}
+        {data.provisional && (
+          <span className="text-xs text-amber-700 dark:text-amber-300">
+            Periodo abierto: los calificativos aún pueden cambiar.
+          </span>
+        )}
       </div>
       {data.classrooms.length === 0 ? (
-        <Card className="p-4 text-sm text-muted-foreground">Aún no hay calificativos registrados para este periodo.</Card>
+        <Card className="p-4 text-sm text-muted-foreground">
+          Aún no hay calificativos registrados para este periodo.
+        </Card>
       ) : (
         <Card className="overflow-x-auto p-3">
           <table className="text-xs">
             <thead>
               <tr>
-                <th scope="col" className="sticky left-0 bg-card px-2 py-1 text-left font-medium text-muted-foreground">Aula</th>
+                <th scope="col" className="sticky left-0 bg-card px-2 py-1 text-left font-medium text-muted-foreground">
+                  Aula
+                </th>
                 {data.areas.map((a) => (
-                  <th key={a} scope="col" className="min-w-[88px] px-1 py-1 text-center font-medium text-muted-foreground">{a}</th>
+                  <th
+                    key={a}
+                    scope="col"
+                    className="min-w-[88px] px-1 py-1 text-center font-medium text-muted-foreground"
+                  >
+                    {a}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {data.classrooms.map((c) => (
                 <tr key={c.id}>
-                  <th scope="row" className="sticky left-0 whitespace-nowrap bg-card px-2 py-1 text-left font-medium text-foreground">{c.label}</th>
+                  <th
+                    scope="row"
+                    className="sticky left-0 whitespace-nowrap bg-card px-2 py-1 text-left font-medium text-foreground"
+                  >
+                    {c.label}
+                  </th>
                   {data.areas.map((a) => {
                     const t = data.cells[`${c.id}|${a}`];
-                    if (!t || !t.total) return <td key={a} className="px-1 py-1"><div className="rounded-md bg-muted/40 py-2 text-center text-muted-foreground">—</div></td>;
+                    if (!t || !t.total)
+                      return (
+                        <td key={a} className="px-1 py-1">
+                          <div className="rounded-md bg-muted/40 py-2 text-center text-muted-foreground">—</div>
+                        </td>
+                      );
                     const pctC = Math.round((t.C / t.total) * 100);
                     const pctB = Math.round((t.B / t.total) * 100);
                     return (
                       <td key={a} className="px-1 py-1">
-                        <div className={cn('rounded-md px-1 py-1.5 text-center', cellColor(pctC, pctB))} title={`AD ${t.AD} · A ${t.A} · B ${t.B} · C ${t.C} (de ${t.total})`}>
+                        <div
+                          className={cn('rounded-md px-1 py-1.5 text-center', cellColor(pctC, pctB))}
+                          title={`AD ${t.AD} · A ${t.A} · B ${t.B} · C ${t.C} (de ${t.total})`}
+                        >
                           <span className="block font-bold">{pctC}% C</span>
                           <span className="block text-xs opacity-80">{pctB}% B</span>
                         </div>
@@ -269,7 +410,9 @@ const HeatmapTab: React.FC = () => {
               ))}
             </tbody>
           </table>
-          <p className="mt-2 text-xs text-muted-foreground">Porcentaje de calificativos de competencias en C y en B por aula y área. Pasa el cursor para ver el detalle.</p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Porcentaje de calificativos de competencias en C y en B por aula y área. Pasa el cursor para ver el detalle.
+          </p>
         </Card>
       )}
     </div>
@@ -287,18 +430,28 @@ const SiagieTab: React.FC = () => {
     <div className="space-y-3">
       {data.rows.length === 0 ? (
         <Card className="flex items-center gap-2 p-4 text-sm text-foreground">
-          <CheckCircle2 className="h-5 w-5 text-emerald-600" aria-hidden /> Todos los estudiantes matriculados tienen los datos que pide el SIAGIE.
+          <CheckCircle2 className="h-5 w-5 text-emerald-600" aria-hidden /> Todos los estudiantes matriculados tienen
+          los datos que pide el SIAGIE.
         </Card>
       ) : (
         <>
           <div className="flex flex-wrap gap-2">
             {Object.entries(data.totals).map(([k, v]) => (
-              <span key={k} className="rounded-lg bg-amber-500/10 px-3 py-1.5 text-xs text-amber-800 dark:text-amber-200">
+              <span
+                key={k}
+                className="rounded-lg bg-amber-500/10 px-3 py-1.5 text-xs text-amber-800 dark:text-amber-200"
+              >
                 {k}: <strong>{v}</strong>
               </span>
             ))}
           </div>
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar estudiante o aula" className="h-9 max-w-xs" aria-label="Buscar" />
+          <Input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Buscar estudiante o aula"
+            className="h-9 max-w-xs"
+            aria-label="Buscar"
+          />
           <Card className="overflow-hidden">
             <ul className="divide-y divide-border">
               {rows.map((r) => (
@@ -309,14 +462,19 @@ const SiagieTab: React.FC = () => {
                     </p>
                     <p className="text-xs text-amber-700 dark:text-amber-300">{r.issues.join(' · ')}</p>
                   </div>
-                  <Link to={`/students?q=${encodeURIComponent(r.name)}`} className="text-xs font-semibold text-primary hover:underline">
+                  <Link
+                    to={`/students?q=${encodeURIComponent(r.name)}`}
+                    className="text-xs font-semibold text-primary hover:underline"
+                  >
                     Corregir ficha
                   </Link>
                 </li>
               ))}
             </ul>
           </Card>
-          <p className="text-xs text-muted-foreground">Corrígelos antes de exportar las actas o la nómina: «Corregir ficha» abre al alumno en Alumnos y matrícula.</p>
+          <p className="text-xs text-muted-foreground">
+            Corrígelos antes de exportar las actas o la nómina: «Corregir ficha» abre al alumno en Alumnos y matrícula.
+          </p>
         </>
       )}
     </div>
@@ -336,7 +494,7 @@ export const InsightsPage: React.FC = () => {
   ];
   const [params, setParams] = useSearchParams();
   const requested = params.get('tab') as Tab | null;
-  const tab: Tab = tabs.some(([t]) => t === requested) ? requested! : tabs[0]?.[0] ?? 'siagie';
+  const tab: Tab = tabs.some(([t]) => t === requested) ? requested! : (tabs[0]?.[0] ?? 'siagie');
   // La analítica es del día a día: siempre trabaja con el año vigente
   const { isOtherYear, current } = useSelectedAcademicYear();
 
@@ -344,17 +502,30 @@ export const InsightsPage: React.FC = () => {
     <div className="max-w-6xl">
       <PageHeader
         title="Analítica y tutoría"
-        description={role === 'TEACHER' ? 'Estudiantes de tus aulas de tutoría que necesitan atención, y su plan de tutoría.' : 'Detecta a tiempo a quién apoyar, dónde está fallando el aprendizaje y qué datos faltan para el SIAGIE.'}
+        description={
+          role === 'TEACHER'
+            ? 'Estudiantes de tus aulas de tutoría que necesitan atención, y su plan de tutoría.'
+            : 'Detecta a tiempo a quién apoyar, dónde está fallando el aprendizaje y qué datos faltan para el SIAGIE.'
+        }
       />
       {isOtherYear && current && (
         <p className="mb-4 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-2 text-sm text-indigo-900 dark:text-indigo-200">
-          La analítica muestra siempre el año vigente (<strong>{current.year}</strong>), aunque en la cabecera estés viendo otro año.
+          La analítica muestra siempre el año vigente (<strong>{current.year}</strong>), aunque en la cabecera estés
+          viendo otro año.
         </p>
       )}
       {tabs.length > 1 && (
         <div className="mb-4 inline-flex flex-wrap rounded-lg border border-border p-0.5 text-xs">
           {tabs.map(([t, label]) => (
-            <button key={t} type="button" onClick={() => setParams({ tab: t }, { replace: true })} className={cn('rounded-md px-3 py-1.5 font-semibold', tab === t ? 'bg-primary text-primary-foreground' : 'text-muted-foreground')}>
+            <button
+              key={t}
+              type="button"
+              onClick={() => setParams({ tab: t }, { replace: true })}
+              className={cn(
+                'rounded-md px-3 py-1.5 font-semibold',
+                tab === t ? 'bg-primary text-primary-foreground' : 'text-muted-foreground',
+              )}
+            >
               {label}
             </button>
           ))}

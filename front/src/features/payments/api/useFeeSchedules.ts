@@ -12,7 +12,20 @@ export const LEVEL_LABEL: Record<EducationLevel, string> = {
 };
 
 export const MONTH_SHORT = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-export const MONTH_LONG = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+export const MONTH_LONG = [
+  'Enero',
+  'Febrero',
+  'Marzo',
+  'Abril',
+  'Mayo',
+  'Junio',
+  'Julio',
+  'Agosto',
+  'Septiembre',
+  'Octubre',
+  'Noviembre',
+  'Diciembre',
+];
 
 export interface FeeSchedule {
   id: string;
@@ -60,21 +73,37 @@ const KEY = 'fee-schedules';
 export const useFeeSchedules = (academicYearId: string | undefined) =>
   useQuery({
     queryKey: [KEY, academicYearId],
-    queryFn: async () => (await api.get<{ data: FeeSchedule[] }>('/payments/fee-schedules', { params: { academicYearId } })).data.data,
+    queryFn: async () =>
+      (await api.get<{ data: FeeSchedule[] }>('/payments/fee-schedules', { params: { academicYearId } })).data.data,
     enabled: !!academicYearId,
   });
 
 export const useSaveFeeSchedule = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, body, applyToPending }: { id?: string; body: FeeScheduleBody; applyToPending?: boolean }) =>
+    mutationFn: async ({
+      id,
+      body,
+      applyToPending,
+    }: {
+      id?: string;
+      body: FeeScheduleBody;
+      applyToPending?: boolean;
+    }) =>
       id
-        ? (await api.put<{ data: FeeSchedule & { repriced: number } }>(`/payments/fee-schedules/${id}`, { ...body, applyToPending: !!applyToPending })).data.data
+        ? (
+            await api.put<{ data: FeeSchedule & { repriced: number } }>(`/payments/fee-schedules/${id}`, {
+              ...body,
+              applyToPending: !!applyToPending,
+            })
+          ).data.data
         : (await api.post<{ data: FeeSchedule & { repriced?: number } }>('/payments/fee-schedules', body)).data.data,
     onSuccess: (r) => {
       qc.invalidateQueries({ queryKey: [KEY] });
       qc.invalidateQueries({ queryKey: ['schedule-preview'] });
-      if (r.repriced) for (const key of ['payments-obligations', 'financial-summary', 'statement']) qc.invalidateQueries({ queryKey: [key] });
+      if (r.repriced)
+        for (const key of ['payments-obligations', 'financial-summary', 'statement'])
+          qc.invalidateQueries({ queryKey: [key] });
     },
   });
 };
@@ -118,7 +147,8 @@ export const useGenerateMissing = () => {
       (await api.post<{ data: GenerateMissingResult }>('/payments/fee-schedules/generate-missing', body)).data.data,
     onSuccess: (r) => {
       if (!r.dryRun) {
-        for (const key of ['payments-obligations', 'financial-summary', 'statement']) qc.invalidateQueries({ queryKey: [key] });
+        for (const key of ['payments-obligations', 'financial-summary', 'statement'])
+          qc.invalidateQueries({ queryKey: [key] });
       }
     },
   });
@@ -127,7 +157,8 @@ export const useGenerateMissing = () => {
 export const useSchedulePreview = (input: { academicYearId?: string; classroomId?: string; condition?: string }) =>
   useQuery({
     queryKey: ['schedule-preview', input],
-    queryFn: async () => (await api.get<{ data: SchedulePreview }>('/enrollments/schedule-preview', { params: input })).data.data,
+    queryFn: async () =>
+      (await api.get<{ data: SchedulePreview }>('/enrollments/schedule-preview', { params: input })).data.data,
     enabled: !!input.academicYearId && !!input.classroomId,
     staleTime: 30_000,
   });

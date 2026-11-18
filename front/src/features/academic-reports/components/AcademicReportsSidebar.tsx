@@ -44,10 +44,7 @@ interface AcademicReportsSidebarProps {
   onSelectReport: (code: ReportCode) => void;
 }
 
-export const AcademicReportsSidebar: React.FC<AcademicReportsSidebarProps> = ({
-  selectedReport,
-  onSelectReport,
-}) => {
+export const AcademicReportsSidebar: React.FC<AcademicReportsSidebarProps> = ({ selectedReport, onSelectReport }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     grades: true,
@@ -65,9 +62,7 @@ export const AcademicReportsSidebar: React.FC<AcademicReportsSidebarProps> = ({
   const filteredItems = useMemo(() => {
     if (!searchTerm.trim()) return REPORT_MENU;
     const q = searchTerm.toLowerCase();
-    return REPORT_MENU.filter(
-      (item) => item.code.includes(q) || item.title.toLowerCase().includes(q),
-    );
+    return REPORT_MENU.filter((item) => item.code.includes(q) || item.title.toLowerCase().includes(q));
   }, [searchTerm]);
 
   const gradesReports = filteredItems.filter((i) => i.category === 'grades');
@@ -83,9 +78,7 @@ export const AcademicReportsSidebar: React.FC<AcademicReportsSidebarProps> = ({
             <ShieldCheck className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
-              Centro de Reportes
-            </h3>
+            <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">Centro de Reportes</h3>
             <p className="text-xs text-muted-foreground">Emisión y Actas Oficiales</p>
           </div>
         </div>

@@ -10,7 +10,7 @@
   "assets": {
     "directory": "./dist",
     // Las rutas de React Router (/login, /c/<código>, ...) devuelven index.html.
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "single-page-application",
   },
   // Las rutas solo se activan en nombres con registro DNS con proxy (nube naranja):
   // "@" (raíz), "www" y "*" (comodín).
@@ -19,15 +19,15 @@
   "routes": [
     {
       "pattern": "kipuxedu.com/*",
-      "zone_name": "kipuxedu.com"
+      "zone_name": "kipuxedu.com",
     },
     {
       "pattern": "*.kipuxedu.com/*",
-      "zone_name": "kipuxedu.com"
-    }
+      "zone_name": "kipuxedu.com",
+    },
   ],
   // kipux-front.<cuenta>.workers.dev sirve para probar antes de cambiar el DNS.
   // Cuando los dominios funcionen, ponlo en false para que el sitio solo responda en kipuxedu.com.
   "workers_dev": false,
-  "preview_urls": false
+  "preview_urls": false,
 }

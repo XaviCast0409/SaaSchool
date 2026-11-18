@@ -25,8 +25,9 @@ export interface PendingGrade {
   savedAt: string;
 }
 
-export const cellKey = (g: Pick<PendingGrade, 'assignmentId' | 'periodNumber' | 'enrollmentId' | 'competenceId' | 'criterionId'>) =>
-  `${g.assignmentId}|${g.periodNumber}|${g.enrollmentId}|${g.competenceId}|${g.criterionId}`;
+export const cellKey = (
+  g: Pick<PendingGrade, 'assignmentId' | 'periodNumber' | 'enrollmentId' | 'competenceId' | 'criterionId'>,
+) => `${g.assignmentId}|${g.periodNumber}|${g.enrollmentId}|${g.competenceId}|${g.criterionId}`;
 
 /** Clave en IndexedDB: incluye al dueño para que dos usuarios no se pisen la misma celda. */
 const storeKey = (g: Pick<PendingGrade, 'ownerId'> & Parameters<typeof cellKey>[0]) => `${g.ownerId}|${cellKey(g)}`;
@@ -57,7 +58,11 @@ export async function clearSent(sent: PendingGrade[]): Promise<void> {
 }
 
 export async function cacheGradebook(ownerId: string, data: GradebookData): Promise<void> {
-  await set(`${ownerId}|${data.assignment.id}|${data.periodNumber}`, { savedAt: new Date().toISOString(), data }, cacheStore);
+  await set(
+    `${ownerId}|${data.assignment.id}|${data.periodNumber}`,
+    { savedAt: new Date().toISOString(), data },
+    cacheStore,
+  );
 }
 
 export async function cachedGradebook(

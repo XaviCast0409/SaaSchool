@@ -14,7 +14,14 @@ interface StaffLoad {
   withLoad: number;
   withoutLoad: number;
   rows: Array<{
-    teacher: { id: string; firstName: string; lastNamePaternal: string; lastNameMaternal: string | null; email: string | null; avatarUrl?: string | null };
+    teacher: {
+      id: string;
+      firstName: string;
+      lastNamePaternal: string;
+      lastNameMaternal: string | null;
+      email: string | null;
+      avatarUrl?: string | null;
+    };
     courses: number;
     classrooms: number;
     tutorOf: { educationLevel: string; grade: number; section: string } | null;
@@ -24,7 +31,9 @@ interface StaffLoad {
 
 const LEVEL: Record<string, string> = { INITIAL: 'Inicial', PRIMARY: 'Primaria', SECONDARY: 'Secundaria' };
 const room = (c: { educationLevel: string; grade: number; section: string }) =>
-  c.educationLevel === 'INITIAL' ? `${c.grade} años "${c.section}"` : `${c.grade}.° ${LEVEL[c.educationLevel]} "${c.section}"`;
+  c.educationLevel === 'INITIAL'
+    ? `${c.grade} años "${c.section}"`
+    : `${c.grade}.° ${LEVEL[c.educationLevel]} "${c.section}"`;
 
 /** Docentes del año que se está viendo: cursos asignados y tutoría en ese año. */
 export const StaffLoadPanel: React.FC = () => {
@@ -76,7 +85,11 @@ export const StaffLoadPanel: React.FC = () => {
               <tr key={r.teacher.id} className={r.hasLoad ? '' : 'text-muted-foreground'}>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2.5">
-                    <UserAvatar name={`${r.teacher.firstName} ${r.teacher.lastNamePaternal}`} src={r.teacher.avatarUrl} size="sm" />
+                    <UserAvatar
+                      name={`${r.teacher.firstName} ${r.teacher.lastNamePaternal}`}
+                      src={r.teacher.avatarUrl}
+                      size="sm"
+                    />
                     <div>
                       <div className="font-bold text-foreground">
                         {r.teacher.lastNamePaternal} {r.teacher.lastNameMaternal ?? ''}, {r.teacher.firstName}
@@ -88,7 +101,15 @@ export const StaffLoadPanel: React.FC = () => {
                 <td className="px-4 py-3 text-right font-mono">{r.courses || '—'}</td>
                 <td className="px-4 py-3 text-right font-mono">{r.classrooms || '—'}</td>
                 <td className="px-4 py-3">
-                  {r.tutorOf ? room(r.tutorOf) : !r.hasLoad ? <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-bold text-amber-700 dark:text-amber-400">Sin carga</span> : '—'}
+                  {r.tutorOf ? (
+                    room(r.tutorOf)
+                  ) : !r.hasLoad ? (
+                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-bold text-amber-700 dark:text-amber-400">
+                      Sin carga
+                    </span>
+                  ) : (
+                    '—'
+                  )}
                 </td>
               </tr>
             ))}
@@ -96,8 +117,8 @@ export const StaffLoadPanel: React.FC = () => {
         </table>
       </div>
       <p className="text-xs text-muted-foreground">
-        La carga se arma en Académico → Carga docente y la tutoría en Aulas, para el año elegido en la cabecera. Para pasar los cursos de un
-        docente a otro (renuncia o licencia) usa "Reemplazar" en el directorio.
+        La carga se arma en Académico → Carga docente y la tutoría en Aulas, para el año elegido en la cabecera. Para
+        pasar los cursos de un docente a otro (renuncia o licencia) usa "Reemplazar" en el directorio.
       </p>
       <ReplacementsList />
     </div>
@@ -130,12 +151,17 @@ const ReplacementsList: React.FC = () => {
                       : 'bg-secondary text-secondary-foreground'
                   }`}
                 >
-                  {r.kind === 'TEMPORARY' ? (r.status === 'ACTIVE' ? 'Suplencia en curso' : 'Suplencia finalizada') : 'Definitivo'}
+                  {r.kind === 'TEMPORARY'
+                    ? r.status === 'ACTIVE'
+                      ? 'Suplencia en curso'
+                      : 'Suplencia finalizada'
+                    : 'Definitivo'}
                 </span>
               </div>
               <div className="text-muted-foreground">
                 Desde {formatPeruShortDate(r.effectiveDate)}
-                {r.untilDate ? ` hasta ${formatPeruShortDate(r.untilDate)}` : ''} · {r.detail.assignmentIds.length} cursos
+                {r.untilDate ? ` hasta ${formatPeruShortDate(r.untilDate)}` : ''} · {r.detail.assignmentIds.length}{' '}
+                cursos
                 {r.detail.tutorClassroomIds.length ? ' y tutoría' : ''} · {r.reason}
               </div>
             </div>

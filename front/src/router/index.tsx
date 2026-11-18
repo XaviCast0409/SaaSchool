@@ -24,9 +24,7 @@ const StudentsPage = lazy(() =>
 const PaymentsPage = lazy(() =>
   import('@/features/payments/pages/PaymentsPage').then((m) => ({ default: m.PaymentsPage })),
 );
-const CashPage = lazy(() =>
-  import('@/features/payments/pages/CashPage').then((m) => ({ default: m.CashPage })),
-);
+const CashPage = lazy(() => import('@/features/payments/pages/CashPage').then((m) => ({ default: m.CashPage })));
 const FeeSchedulesPage = lazy(() =>
   import('@/features/payments/pages/FeeSchedulesPage').then((m) => ({ default: m.FeeSchedulesPage })),
 );
@@ -36,9 +34,7 @@ const BenefitsPage = lazy(() =>
 const FinanceReportsPage = lazy(() =>
   import('@/features/payments/pages/FinanceReportsPage').then((m) => ({ default: m.FinanceReportsPage })),
 );
-const GradesPage = lazy(() =>
-  import('@/features/grades/pages/GradesPage').then((m) => ({ default: m.GradesPage })),
-);
+const GradesPage = lazy(() => import('@/features/grades/pages/GradesPage').then((m) => ({ default: m.GradesPage })));
 const AttendancePage = lazy(() =>
   import('@/features/attendance/pages/AttendancePage').then((m) => ({ default: m.AttendancePage })),
 );
@@ -79,14 +75,14 @@ const SchoolDetailPage = lazy(() =>
   import('@/features/super-admin/pages/SchoolDetailPage').then((m) => ({ default: m.SchoolDetailPage })),
 );
 const PlatformAnnouncementsPage = lazy(() =>
-  import('@/features/super-admin/pages/PlatformAnnouncementsPage').then((m) => ({ default: m.PlatformAnnouncementsPage })),
+  import('@/features/super-admin/pages/PlatformAnnouncementsPage').then((m) => ({
+    default: m.PlatformAnnouncementsPage,
+  })),
 );
 const PlatformHealthPage = lazy(() =>
   import('@/features/super-admin/pages/PlatformHealthPage').then((m) => ({ default: m.PlatformHealthPage })),
 );
-const LeadsPage = lazy(() =>
-  import('@/features/super-admin/pages/LeadsPage').then((m) => ({ default: m.LeadsPage })),
-);
+const LeadsPage = lazy(() => import('@/features/super-admin/pages/LeadsPage').then((m) => ({ default: m.LeadsPage })));
 const LandingPage = lazy(() =>
   import('@/features/marketing/pages/LandingPage').then((m) => ({ default: m.LandingPage })),
 );
@@ -160,9 +156,7 @@ const QuickGradePage = lazy(() =>
 const InsightsPage = lazy(() =>
   import('@/features/insights/pages/InsightsPage').then((m) => ({ default: m.InsightsPage })),
 );
-const GatePage = lazy(() =>
-  import('@/features/family/pages/GatePage').then((m) => ({ default: m.GatePage })),
-);
+const GatePage = lazy(() => import('@/features/family/pages/GatePage').then((m) => ({ default: m.GatePage })));
 const SecretariatPage = lazy(() =>
   import('@/features/secretariat/pages/SecretariatPage').then((m) => ({ default: m.SecretariatPage })),
 );
@@ -173,7 +167,9 @@ const PublicAdmissionPage = lazy(() =>
   import('@/features/secretariat/pages/PublicAdmissionPage').then((m) => ({ default: m.PublicAdmissionPage })),
 );
 const PublicComplaintsBookPage = lazy(() =>
-  import('@/features/secretariat/pages/PublicComplaintsBookPage').then((m) => ({ default: m.PublicComplaintsBookPage })),
+  import('@/features/secretariat/pages/PublicComplaintsBookPage').then((m) => ({
+    default: m.PublicComplaintsBookPage,
+  })),
 );
 const AuditLogsPage = lazy(() =>
   import('@/features/audit-logs/pages/AuditLogsPage').then((m) => ({ default: m.AuditLogsPage })),
@@ -315,7 +311,9 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/announcements"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT']}>
+                <RoleGuard
+                  allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT']}
+                >
                   <AnnouncementsPage />
                 </RoleGuard>
               }
@@ -344,14 +342,8 @@ export const AppRouter: React.FC = () => {
                 </RoleGuard>
               }
             />
-            <Route
-              path="/curricular-areas"
-              element={<Navigate to="/academic/study-plan" replace />}
-            />
-            <Route
-              path="/teacher-assignments"
-              element={<TeacherAssignmentsRedirect />}
-            />
+            <Route path="/curricular-areas" element={<Navigate to="/academic/study-plan" replace />} />
+            <Route path="/teacher-assignments" element={<TeacherAssignmentsRedirect />} />
             <Route
               path="/academic"
               element={
@@ -445,10 +437,7 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/payments"
               element={
-                <RoleGuard
-                  allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'PARENT']}
-                  disallowStudents
-                >
+                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'PARENT']} disallowStudents>
                   <PaymentsPage />
                 </RoleGuard>
               }
@@ -516,7 +505,9 @@ export const AppRouter: React.FC = () => {
               <Route
                 path="/attendance"
                 element={
-                  <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT']}>
+                  <RoleGuard
+                    allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT']}
+                  >
                     <AttendancePage />
                   </RoleGuard>
                 }
@@ -572,7 +563,9 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/incidents"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT']}>
+                <RoleGuard
+                  allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT']}
+                >
                   <IncidentsPage />
                 </RoleGuard>
               }
@@ -632,7 +625,9 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/schedule"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT']}>
+                <RoleGuard
+                  allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT']}
+                >
                   <SchedulePage />
                 </RoleGuard>
               }
@@ -640,7 +635,9 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/calendar"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT']}>
+                <RoleGuard
+                  allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT']}
+                >
                   <CalendarPage />
                 </RoleGuard>
               }
@@ -648,7 +645,10 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/messages"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT']} disallowStudents>
+                <RoleGuard
+                  allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT']}
+                  disallowStudents
+                >
                   <MessagesPage />
                 </RoleGuard>
               }
@@ -672,7 +672,9 @@ export const AppRouter: React.FC = () => {
             <Route
               path="/notification-preferences"
               element={
-                <RoleGuard allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT']}>
+                <RoleGuard
+                  allowedRoles={['SUPER_ADMIN', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'TEACHER', 'PARENT', 'STUDENT']}
+                >
                   <NotificationPreferencesPage />
                 </RoleGuard>
               }

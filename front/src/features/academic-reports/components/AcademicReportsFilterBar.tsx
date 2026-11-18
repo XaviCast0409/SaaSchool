@@ -49,9 +49,7 @@ export const AcademicReportsFilterBar: React.FC<AcademicReportsFilterBarProps> =
   // Grados disponibles para el nivel seleccionado
   const availableGrades = useMemo(() => {
     const set = new Set<number>();
-    classrooms
-      .filter((c) => c.educationLevel === selectedLevel)
-      .forEach((c) => set.add(c.grade));
+    classrooms.filter((c) => c.educationLevel === selectedLevel).forEach((c) => set.add(c.grade));
     return Array.from(set).sort((a, b) => a - b);
   }, [classrooms, selectedLevel]);
 

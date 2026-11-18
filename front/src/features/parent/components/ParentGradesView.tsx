@@ -11,8 +11,7 @@ export const ParentGradesView: React.FC = () => {
   const { selectedChildId, setSelectedChildId } = useParentStore();
   const { data: children = [], isLoading: loadingChildren } = useGetMyChildren();
 
-  const activeChild =
-    children.find((c) => c.id === selectedChildId) || children[0] || null;
+  const activeChild = children.find((c) => c.id === selectedChildId) || children[0] || null;
   const enrollmentId = activeChild?.activeEnrollment?.id;
 
   if (loadingChildren) {
@@ -29,9 +28,7 @@ export const ParentGradesView: React.FC = () => {
       <div className="p-8 text-center bg-card border border-border rounded-2xl space-y-2 shadow-sm">
         <AlertCircle className="w-8 h-8 text-amber-500 mx-auto" />
         <h3 className="font-bold text-sm text-foreground">Sin estudiantes asignados</h3>
-        <p className="text-xs text-muted-foreground">
-          No hay alumnos vinculados a tu cuenta de usuario.
-        </p>
+        <p className="text-xs text-muted-foreground">No hay alumnos vinculados a tu cuenta de usuario.</p>
       </div>
     );
   }
@@ -62,11 +59,7 @@ export const ParentGradesView: React.FC = () => {
 
       {/* 2. Selector Multi-Hijo si aplica */}
       {children.length > 1 && (
-        <ChildSwitcher
-          childrenList={children}
-          selectedId={activeChild.id}
-          onSelect={setSelectedChildId}
-        />
+        <ChildSwitcher childrenList={children} selectedId={activeChild.id} onSelect={setSelectedChildId} />
       )}
 
       {/* 3. Libreta Oficial del Estudiante */}

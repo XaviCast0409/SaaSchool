@@ -39,7 +39,10 @@ const run = async (yearId: string, body: { dryRun: boolean; force: boolean }) =>
  * Calcula la situación final de cada estudiante con el consolidado final de notas y la guarda en su
  * matrícula. La re-matrícula la usa para proponer el grado (promovido → grado siguiente, permanece → repite).
  */
-export const FinalSituationModal: React.FC<{ year: { id: string; year: number } | null; onClose: () => void }> = ({ year, onClose }) => {
+export const FinalSituationModal: React.FC<{ year: { id: string; year: number } | null; onClose: () => void }> = ({
+  year,
+  onClose,
+}) => {
   const qc = useQueryClient();
   const [force, setForce] = useState(false);
   const preview = useMutation({ mutationFn: (yearId: string) => run(yearId, { dryRun: true, force: false }) });
@@ -47,7 +50,9 @@ export const FinalSituationModal: React.FC<{ year: { id: string; year: number } 
     mutationFn: (yearId: string) => run(yearId, { dryRun: false, force }),
     onSuccess: (r) => {
       qc.invalidateQueries({ queryKey: ['rollover-candidates'] });
-      toast.success(`Situación final de ${r.saved} estudiantes guardada${r.skippedClassrooms ? ` (${r.skippedClassrooms} aulas omitidas por notas incompletas)` : ''}.`);
+      toast.success(
+        `Situación final de ${r.saved} estudiantes guardada${r.skippedClassrooms ? ` (${r.skippedClassrooms} aulas omitidas por notas incompletas)` : ''}.`,
+      );
       onClose();
     },
     onError: (err: any) => toast.error(err?.response?.data?.message || 'No se pudo guardar.'),
@@ -63,7 +68,9 @@ export const FinalSituationModal: React.FC<{ year: { id: string; year: number } 
 
   const data = preview.data;
   const incomplete = data?.classrooms.filter((c) => c.missingGrades > 0).length ?? 0;
-  const toSave = data ? data.classrooms.filter((c) => force || c.missingGrades === 0).reduce((a, c) => a + c.students, 0) : 0;
+  const toSave = data
+    ? data.classrooms.filter((c) => force || c.missingGrades === 0).reduce((a, c) => a + c.students, 0)
+    : 0;
 
   return (
     <Modal
@@ -77,7 +84,12 @@ export const FinalSituationModal: React.FC<{ year: { id: string; year: number } 
           <Button variant="ghost" size="sm" onClick={onClose}>
             Cancelar
           </Button>
-          <Button size="sm" disabled={!data || toSave === 0} isLoading={save.isPending} onClick={() => year && save.mutate(year.id)}>
+          <Button
+            size="sm"
+            disabled={!data || toSave === 0}
+            isLoading={save.isPending}
+            onClick={() => year && save.mutate(year.id)}
+          >
             Guardar situación de {toSave} estudiantes
           </Button>
         </>
@@ -116,7 +128,9 @@ export const FinalSituationModal: React.FC<{ year: { id: string; year: number } 
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap">
                       {c.missingGrades > 0 ? (
-                        <span className="text-amber-700 dark:text-amber-400 font-semibold">{c.missingGrades} notas faltantes</span>
+                        <span className="text-amber-700 dark:text-amber-400 font-semibold">
+                          {c.missingGrades} notas faltantes
+                        </span>
                       ) : (
                         <span className="text-emerald-700 dark:text-emerald-400">Completas</span>
                       )}
@@ -128,10 +142,15 @@ export const FinalSituationModal: React.FC<{ year: { id: string; year: number } 
           </div>
           {incomplete > 0 && (
             <label className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 cursor-pointer text-amber-900 dark:text-amber-200">
-              <input type="checkbox" checked={force} onChange={(e) => setForce(e.target.checked)} className="w-4 h-4 mt-0.5 rounded" />
+              <input
+                type="checkbox"
+                checked={force}
+                onChange={(e) => setForce(e.target.checked)}
+                className="w-4 h-4 mt-0.5 rounded"
+              />
               <span>
-                {incomplete} aulas tienen notas incompletas y se omiten. Marca para guardarlas igual (situación provisional que tendrás que
-                recalcular cuando completen las notas).
+                {incomplete} aulas tienen notas incompletas y se omiten. Marca para guardarlas igual (situación
+                provisional que tendrás que recalcular cuando completen las notas).
               </span>
             </label>
           )}

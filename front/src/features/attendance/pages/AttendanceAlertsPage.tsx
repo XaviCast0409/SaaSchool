@@ -1,30 +1,12 @@
 import { useUrlFilters } from '@/lib/useUrlFilters';
 import React, { useState } from 'react';
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Calendar,
-  Loader2,
-  UserCheck,
-  CalendarPlus,
-  Play,
-  School,
-  X,
-} from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Calendar, Loader2, UserCheck, CalendarPlus, Play, School, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Pagination } from '@/components/ui/Pagination';
 import { useAuthStore } from '@/store/useAuthStore';
-import {
-  useAttendanceAlerts,
-  useAttendAlert,
-  useCiteFamily,
-  useEvaluateAlerts,
-} from '../api/useAttendanceAlerts';
-import {
-  RISK_REASON_LABELS,
-  type AttendanceAlert,
-} from '../types';
+import { useAttendanceAlerts, useAttendAlert, useCiteFamily, useEvaluateAlerts } from '../api/useAttendanceAlerts';
+import { RISK_REASON_LABELS, type AttendanceAlert } from '../types';
 import { formatPeruDate } from '@/lib/dateUtils';
 
 const LEVEL_LABELS: Record<string, string> = {
@@ -123,11 +105,10 @@ export const AttendanceAlertsPage: React.FC = () => {
               <AlertTriangle className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-2xl font-black text-foreground tracking-tight">
-                Alerta temprana de asistencia
-              </h1>
+              <h1 className="text-2xl font-black text-foreground tracking-tight">Alerta temprana de asistencia</h1>
               <p className="text-xs sm:text-sm text-muted-foreground">
-                Estudiantes con señales de ausentismo en los últimos 30 días. Atiéndelos a tiempo para prevenir la deserción escolar.
+                Estudiantes con señales de ausentismo en los últimos 30 días. Atiéndelos a tiempo para prevenir la
+                deserción escolar.
               </p>
             </div>
           </div>
@@ -140,11 +121,7 @@ export const AttendanceAlertsPage: React.FC = () => {
             disabled={isEvaluating}
             className="rounded-xl text-xs font-bold gap-1.5 shrink-0"
           >
-            {isEvaluating ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Play className="w-3.5 h-3.5" />
-            )}
+            {isEvaluating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
             <span>Evaluar ahora</span>
           </Button>
         )}
@@ -207,11 +184,7 @@ export const AttendanceAlertsPage: React.FC = () => {
               ? `${classroom.grade}° "${classroom.section}" - ${LEVEL_LABELS[classroom.educationLevel] || classroom.educationLevel}`
               : '—';
 
-            const { valueText, thresholdText } = formatMetric(
-              item.reason,
-              item.metricValue,
-              item.threshold,
-            );
+            const { valueText, thresholdText } = formatMetric(item.reason, item.metricValue, item.threshold);
 
             const triggerDateFormatted = formatPeruDate(item.triggeredOn, {
               day: '2-digit',
@@ -229,9 +202,7 @@ export const AttendanceAlertsPage: React.FC = () => {
                 <div className="space-y-2">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="font-extrabold text-base text-foreground leading-tight">
-                        {studentName}
-                      </h3>
+                      <h3 className="font-extrabold text-base text-foreground leading-tight">{studentName}</h3>
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
                         <School className="w-3.5 h-3.5 text-primary" />
                         <span>{classroomLabel}</span>
@@ -249,13 +220,9 @@ export const AttendanceAlertsPage: React.FC = () => {
                   {/* Métrica principal */}
                   <div className="flex items-baseline justify-between p-3 rounded-xl bg-muted/40 border border-border/60">
                     <div>
-                      <span className="text-xl font-black text-amber-600 dark:text-amber-400">
-                        {valueText}
-                      </span>
+                      <span className="text-xl font-black text-amber-600 dark:text-amber-400">{valueText}</span>
                     </div>
-                    <span className="text-xs text-muted-foreground font-semibold">
-                      {thresholdText}
-                    </span>
+                    <span className="text-xs text-muted-foreground font-semibold">{thresholdText}</span>
                   </div>
 
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -278,9 +245,7 @@ export const AttendanceAlertsPage: React.FC = () => {
                         )}
                       </div>
                       {item.attendedNote && (
-                        <p className="text-muted-foreground italic text-xs">
-                          "{item.attendedNote}"
-                        </p>
+                        <p className="text-muted-foreground italic text-xs">"{item.attendedNote}"</p>
                       )}
                     </div>
                   )}
@@ -340,12 +305,14 @@ export const AttendanceAlertsPage: React.FC = () => {
 
       {/* Modal: Marcar como Atendida */}
       {attendItem && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-150">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-150"
+        >
           <div className="w-full max-w-md rounded-2xl border border-border bg-card shadow-2xl p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-border pb-3">
-              <h3 className="text-base font-black text-foreground">
-                Atender Alerta de Asistencia
-              </h3>
+              <h3 className="text-base font-black text-foreground">Atender Alerta de Asistencia</h3>
               <button
                 onClick={() => setAttendItem(null)}
                 className="rounded-lg p-1 text-muted-foreground hover:bg-muted"
@@ -397,22 +364,22 @@ export const AttendanceAlertsPage: React.FC = () => {
 
       {/* Modal: Citar a la Familia */}
       {citeItem && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-150">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-150"
+        >
           <div className="w-full max-w-md rounded-2xl border border-border bg-card shadow-2xl p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-border pb-3">
-              <h3 className="text-base font-black text-foreground">
-                Citar a la Familia
-              </h3>
-              <button
-                onClick={() => setCiteItem(null)}
-                className="rounded-lg p-1 text-muted-foreground hover:bg-muted"
-              >
+              <h3 className="text-base font-black text-foreground">Citar a la Familia</h3>
+              <button onClick={() => setCiteItem(null)} className="rounded-lg p-1 text-muted-foreground hover:bg-muted">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <p className="text-xs text-muted-foreground">
-              Se creará una citación oficial en la agenda del estudiante y se notificará a los apoderados por la app y notificación push.
+              Se creará una citación oficial en la agenda del estudiante y se notificará a los apoderados por la app y
+              notificación push.
             </p>
 
             <div>

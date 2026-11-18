@@ -10,10 +10,24 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatPeruDateTime, getPeruToday } from '@/lib/dateUtils';
 import { useFinanceAccess } from '../api/usePayments';
-import { apiError, useCashiers, useCashSessions, useCurrentCash, useOpenCash, useVoidExpense, type CashSessionFilters } from '../api/useCash';
+import {
+  apiError,
+  useCashiers,
+  useCashSessions,
+  useCurrentCash,
+  useOpenCash,
+  useVoidExpense,
+  type CashSessionFilters,
+} from '../api/useCash';
 import { personName, type CashExpense, type CashSessionStatus } from '../types';
 import { ExpensesList, MethodTotals, PaymentsList, soles } from '../components/CashMovements';
-import { CashSessionDetailModal, CloseCashModal, DifferenceText, ExpenseModal, SESSION_STATUS } from '../components/CashDialogs';
+import {
+  CashSessionDetailModal,
+  CloseCashModal,
+  DifferenceText,
+  ExpenseModal,
+  SESSION_STATUS,
+} from '../components/CashDialogs';
 import { DailyCashCloseModal } from '../components/DailyCashCloseModal';
 import { ReasonDialog } from '../components/ReasonDialog';
 import { ReceiptModal } from '../components/ReceiptModal';
@@ -49,7 +63,8 @@ const MyCash: React.FC<{ canManage: boolean }> = ({ canManage }) => {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Antes de cobrar en efectivo, abre tu caja indicando el fondo inicial (sencillo para dar vuelto). Todo lo que cobres quedará a tu nombre.
+            Antes de cobrar en efectivo, abre tu caja indicando el fondo inicial (sencillo para dar vuelto). Todo lo que
+            cobres quedará a tu nombre.
           </p>
           {last && (
             <p className="text-xs text-muted-foreground">
@@ -65,11 +80,22 @@ const MyCash: React.FC<{ canManage: boolean }> = ({ canManage }) => {
           <div className="grid gap-3 sm:grid-cols-[180px_1fr_auto] sm:items-end">
             <label className="space-y-1 text-xs font-semibold">
               Fondo inicial (S/)
-              <Input type="number" step="0.01" min="0" value={fund} onChange={(e) => setFund(e.target.value)} placeholder="0.00" />
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={fund}
+                onChange={(e) => setFund(e.target.value)}
+                placeholder="0.00"
+              />
             </label>
             <label className="space-y-1 text-xs font-semibold">
               Nota (opcional)
-              <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ej: Fondo entregado por tesorería" />
+              <Input
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Ej: Fondo entregado por tesorería"
+              />
             </label>
             <Button
               isLoading={open.isPending}
@@ -130,7 +156,10 @@ const MyCash: React.FC<{ canManage: boolean }> = ({ canManage }) => {
             ['Egresos', soles(s.totals.expensesTotal)],
             ['Efectivo esperado', 'Se muestra al cerrar'],
           ].map(([label, value], i) => (
-            <div key={label} className={`rounded-lg border p-3 ${i === 3 ? 'border-primary/30 bg-primary/5' : 'border-border'}`}>
+            <div
+              key={label}
+              className={`rounded-lg border p-3 ${i === 3 ? 'border-primary/30 bg-primary/5' : 'border-border'}`}
+            >
               <p className="text-xs text-muted-foreground">{label}</p>
               <p className={i === 3 ? 'text-sm font-semibold text-muted-foreground' : 'text-lg font-bold'}>{value}</p>
             </div>
@@ -148,7 +177,12 @@ const MyCash: React.FC<{ canManage: boolean }> = ({ canManage }) => {
       </CardContent>
 
       <ExpenseModal open={expenseOpen} availableCash={s.totals.expectedCash} onClose={() => setExpenseOpen(false)} />
-      <CloseCashModal open={closeOpen} sessionId={s.id} expectedCash={s.totals.expectedCash} onClose={() => setCloseOpen(false)} />
+      <CloseCashModal
+        open={closeOpen}
+        sessionId={s.id}
+        expectedCash={s.totals.expectedCash}
+        onClose={() => setCloseOpen(false)}
+      />
       <ReasonDialog
         open={!!expenseToVoid}
         title={`Anular egreso ${expenseToVoid?.expenseNumber ?? ''}`}
@@ -208,16 +242,30 @@ const SessionsHistory: React.FC<{ canView: boolean; canManage: boolean; isAdmin:
         <div className="flex flex-wrap items-end gap-2">
           <label className="space-y-1 text-xs font-semibold text-muted-foreground">
             Desde
-            <input type="date" className={`${selectCls} block`} value={filters.startDate ?? ''} onChange={(e) => setFilters({ ...filters, startDate: e.target.value || undefined })} />
+            <input
+              type="date"
+              className={`${selectCls} block`}
+              value={filters.startDate ?? ''}
+              onChange={(e) => setFilters({ ...filters, startDate: e.target.value || undefined })}
+            />
           </label>
           <label className="space-y-1 text-xs font-semibold text-muted-foreground">
             Hasta
-            <input type="date" className={`${selectCls} block`} value={filters.endDate ?? ''} onChange={(e) => setFilters({ ...filters, endDate: e.target.value || undefined })} />
+            <input
+              type="date"
+              className={`${selectCls} block`}
+              value={filters.endDate ?? ''}
+              onChange={(e) => setFilters({ ...filters, endDate: e.target.value || undefined })}
+            />
           </label>
           {canView && (
             <label className="space-y-1 text-xs font-semibold text-muted-foreground">
               Cajero
-              <select className={`${selectCls} block`} value={filters.cashierId ?? ''} onChange={(e) => setFilters({ ...filters, cashierId: e.target.value || undefined })}>
+              <select
+                className={`${selectCls} block`}
+                value={filters.cashierId ?? ''}
+                onChange={(e) => setFilters({ ...filters, cashierId: e.target.value || undefined })}
+              >
                 <option value="">Todos</option>
                 {cashiers.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -232,7 +280,9 @@ const SessionsHistory: React.FC<{ canView: boolean; canManage: boolean; isAdmin:
             <select
               className={`${selectCls} block`}
               value={filters.status ?? ''}
-              onChange={(e) => setFilters({ ...filters, status: (e.target.value || undefined) as CashSessionStatus | undefined })}
+              onChange={(e) =>
+                setFilters({ ...filters, status: (e.target.value || undefined) as CashSessionStatus | undefined })
+              }
             >
               <option value="">Todos</option>
               <option value="OPEN">Abierta</option>
@@ -271,11 +321,19 @@ const SessionsHistory: React.FC<{ canView: boolean; canManage: boolean; isAdmin:
                     <td className="p-2 whitespace-nowrap">{formatPeruDateTime(s.openedAt)}</td>
                     <td className="p-2 whitespace-nowrap">{s.closedAt ? formatPeruDateTime(s.closedAt) : '—'}</td>
                     {/* Arqueo ciego: en la propia caja abierta no se muestran cobrado ni esperado */}
-                    <td className="p-2 text-right">{s.status === 'OPEN' && s.cashierId === userId ? '—' : soles(s.totals.totalCollected)}</td>
+                    <td className="p-2 text-right">
+                      {s.status === 'OPEN' && s.cashierId === userId ? '—' : soles(s.totals.totalCollected)}
+                    </td>
                     <td className="p-2 text-right">{soles(s.totals.expensesTotal)}</td>
-                    <td className="p-2 text-right">{s.status === 'OPEN' && s.cashierId === userId ? 'Al cerrar' : soles(s.status === 'OPEN' ? s.totals.expectedCash : s.expectedCash)}</td>
+                    <td className="p-2 text-right">
+                      {s.status === 'OPEN' && s.cashierId === userId
+                        ? 'Al cerrar'
+                        : soles(s.status === 'OPEN' ? s.totals.expectedCash : s.expectedCash)}
+                    </td>
                     <td className="p-2 text-right">{s.countedCash == null ? '—' : soles(s.countedCash)}</td>
-                    <td className="p-2 whitespace-nowrap">{s.status === 'OPEN' ? '—' : <DifferenceText value={s.difference} />}</td>
+                    <td className="p-2 whitespace-nowrap">
+                      {s.status === 'OPEN' ? '—' : <DifferenceText value={s.difference} />}
+                    </td>
                     <td className="p-2">
                       <Badge variant={SESSION_STATUS[s.status].variant}>{SESSION_STATUS[s.status].label}</Badge>
                     </td>
@@ -297,9 +355,13 @@ const SessionsHistory: React.FC<{ canView: boolean; canManage: boolean; isAdmin:
                   <td className="p-2" colSpan={2} />
                   <td className="p-2" colSpan={3}>
                     {/* Mientras alguna caja siga abierta no hay arqueo total que mostrar. */}
-                    {sessions.some((x) => x.difference == null)
-                      ? <span className="text-xs text-muted-foreground">{sessions.filter((x) => x.difference == null).length} caja(s) sin cerrar</span>
-                      : <DifferenceText value={Math.round(totals.diff * 100) / 100} />}
+                    {sessions.some((x) => x.difference == null) ? (
+                      <span className="text-xs text-muted-foreground">
+                        {sessions.filter((x) => x.difference == null).length} caja(s) sin cerrar
+                      </span>
+                    ) : (
+                      <DifferenceText value={Math.round(totals.diff * 100) / 100} />
+                    )}
                   </td>
                 </tr>
               </tfoot>
@@ -332,7 +394,10 @@ export const CashPage: React.FC = () => {
     <div className="space-y-6 pb-8">
       <div className="flex flex-col gap-3 border-b border-border pb-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <Link to="/payments" className="mb-1 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+          <Link
+            to="/payments"
+            className="mb-1 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+          >
             <ArrowLeft className="h-3 w-3" /> Pagos y cobranzas
           </Link>
           <div className="flex items-center gap-2">
@@ -353,9 +418,16 @@ export const CashPage: React.FC = () => {
 
       {can.collect && <MyCash canManage={can.manage} />}
       {(can.collect || can.view) && (
-        <SessionsHistory canView={can.view} canManage={can.manage} isAdmin={access.level === 'ADMIN'} userId={user?.id} />
+        <SessionsHistory
+          canView={can.view}
+          canManage={can.manage}
+          isAdmin={access.level === 'ADMIN'}
+          userId={user?.id}
+        />
       )}
-      {!can.collect && !can.view && <p className="text-sm text-muted-foreground">No tienes acceso a caja y tesorería.</p>}
+      {!can.collect && !can.view && (
+        <p className="text-sm text-muted-foreground">No tienes acceso a caja y tesorería.</p>
+      )}
 
       {dailyOpen && <DailyCashCloseModal isOpen={dailyOpen} onClose={() => setDailyOpen(false)} />}
     </div>

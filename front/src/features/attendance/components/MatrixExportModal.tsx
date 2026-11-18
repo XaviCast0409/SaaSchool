@@ -1,15 +1,5 @@
 import React, { useState } from 'react';
-import {
-  X,
-  FileSpreadsheet,
-  FileEdit,
-  Download,
-  Calendar,
-  School,
-  CheckCircle2,
-  Users,
-  Loader2,
-} from 'lucide-react';
+import { X, FileSpreadsheet, FileEdit, Download, Calendar, School, CheckCircle2, Users, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -78,7 +68,11 @@ export const MatrixExportModal: React.FC<MatrixExportModalProps> = ({
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-4 backdrop-blur-sm animate-in fade-in">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-4 backdrop-blur-sm animate-in fade-in"
+    >
       <div className="w-full max-w-2xl rounded-2xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border p-4 bg-muted/30">
@@ -114,9 +108,7 @@ export const MatrixExportModal: React.FC<MatrixExportModalProps> = ({
           <div className="flex items-center gap-2">
             <School className="w-4 h-4 text-primary shrink-0" />
             <span className="text-muted-foreground font-medium">Aula / Grado:</span>
-            <span className="font-bold text-foreground">
-              {classroomLabel || 'Todas las Secciones'}
-            </span>
+            <span className="font-bold text-foreground">{classroomLabel || 'Todas las Secciones'}</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -138,9 +130,7 @@ export const MatrixExportModal: React.FC<MatrixExportModalProps> = ({
                 <div className="p-2 rounded-xl bg-primary/10 text-primary">
                   <Users className="w-5 h-5" />
                 </div>
-                <Badge className="bg-primary text-primary-foreground font-bold text-xs">
-                  Nómina del Grado
-                </Badge>
+                <Badge className="bg-primary text-primary-foreground font-bold text-xs">Nómina del Grado</Badge>
               </div>
 
               <div>
@@ -148,7 +138,8 @@ export const MatrixExportModal: React.FC<MatrixExportModalProps> = ({
                   Con Asistencia de Alumnos Matriculados
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  Descarga la cuadrícula con los nombres de los <strong>{students.length} estudiantes</strong> matriculados en esta sección y sus asistencias registradas del mes.
+                  Descarga la cuadrícula con los nombres de los <strong>{students.length} estudiantes</strong>{' '}
+                  matriculados en esta sección y sus asistencias registradas del mes.
                 </p>
               </div>
 
@@ -195,7 +186,8 @@ export const MatrixExportModal: React.FC<MatrixExportModalProps> = ({
                   Totalmente Vacía para Llenado Manual
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  Plantilla en blanco con <strong>35 renglones numerados</strong> y casillas limpias listas para imprimir o registrar asistencias a mano con lapicero.
+                  Plantilla en blanco con <strong>35 renglones numerados</strong> y casillas limpias listas para
+                  imprimir o registrar asistencias a mano con lapicero.
                 </p>
               </div>
 

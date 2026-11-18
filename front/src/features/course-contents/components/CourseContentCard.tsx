@@ -56,15 +56,10 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
   const isMaterial = content.contentType === 'LESSON_MATERIAL';
 
   const isTeacherOrAdmin =
-    canManage ||
-    user?.role === 'TEACHER' ||
-    user?.role === 'SCHOOL_ADMIN' ||
-    user?.role === 'SUPER_ADMIN';
+    canManage || user?.role === 'TEACHER' || user?.role === 'SCHOOL_ADMIN' || user?.role === 'SUPER_ADMIN';
 
   // Solo consultar submissions si es de tipo tarea
-  const { data: submissionsData } = useGetHomeworkSubmissions(
-    isHomework ? content.id : null,
-  );
+  const { data: submissionsData } = useGetHomeworkSubmissions(isHomework ? content.id : null);
 
   const isDrive = isGoogleDriveUrl(content.fileUrl);
   const fileMeta = getFileMetadata(content.fileName, content.fileType);
@@ -79,9 +74,7 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
 
   // Datos de entrega del alumno / apoderado
   const studentSubmission =
-    submissionsData?.submission ||
-    (submissionsData?.submissions && submissionsData.submissions[0]) ||
-    null;
+    submissionsData?.submission || (submissionsData?.submissions && submissionsData.submissions[0]) || null;
   const isGraded = !!studentSubmission?.gradedAt;
 
   const handleOpenTeacherSubmissions = () => {
@@ -141,7 +134,8 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
               size="icon"
               onClick={() => onDelete(content.id)}
               className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
-              title="Eliminar publicación" aria-label="Eliminar publicación"
+              title="Eliminar publicación"
+              aria-label="Eliminar publicación"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </Button>
@@ -150,9 +144,7 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
 
         {/* Title & Description */}
         <div>
-          <h3 className="font-extrabold text-foreground text-sm sm:text-base leading-snug">
-            {content.title}
-          </h3>
+          <h3 className="font-extrabold text-foreground text-sm sm:text-base leading-snug">{content.title}</h3>
           {content.description && (
             <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed mt-1 text-xs">
               {content.description}
@@ -170,9 +162,7 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
                 <Calendar className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                 <span>Entrega: {dueDateStatus.formattedDate}</span>
               </div>
-              <Badge className={`text-xs font-bold ${dueDateStatus.urgencyBadge}`}>
-                {dueDateStatus.urgencyLabel}
-              </Badge>
+              <Badge className={`text-xs font-bold ${dueDateStatus.urgencyBadge}`}>{dueDateStatus.urgencyLabel}</Badge>
             </div>
           )}
 
@@ -186,8 +176,7 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
                     <span>
                       Calificado:{' '}
                       {studentSubmission?.literalScore ||
-                        (studentSubmission?.numericScore !== null &&
-                        studentSubmission?.numericScore !== undefined
+                        (studentSubmission?.numericScore !== null && studentSubmission?.numericScore !== undefined
                           ? `${studentSubmission.numericScore}/20`
                           : 'Revisada')}
                     </span>
@@ -231,8 +220,7 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
               <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
                 <Users className="w-4 h-4 text-primary" />
                 <span>
-                  {submissionsData?.submittedCount ?? 0} de{' '}
-                  {submissionsData?.totalStudents ?? 0} alumnos entregaron
+                  {submissionsData?.submittedCount ?? 0} de {submissionsData?.totalStudents ?? 0} alumnos entregaron
                 </span>
               </div>
               <Button
@@ -269,9 +257,7 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
                     <span>Enlace Cloud</span>
                   </span>
                 )}
-                {content.fileSize && (
-                  <span>• {formatFileSize(content.fileSize)}</span>
-                )}
+                {content.fileSize && <span>• {formatFileSize(content.fileSize)}</span>}
               </div>
             </div>
           </div>
@@ -340,11 +326,7 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
       />
 
       {/* Modal de Entrega (Estudiante / Apoderado) */}
-      <SubmitHomeworkModal
-        isOpen={isSubmitModalOpen}
-        onClose={() => setIsSubmitModalOpen(false)}
-        content={content}
-      />
+      <SubmitHomeworkModal isOpen={isSubmitModalOpen} onClose={() => setIsSubmitModalOpen(false)} content={content} />
     </div>
   );
 };

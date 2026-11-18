@@ -23,10 +23,11 @@ export const ParentPortalPage: React.FC = () => {
   const { user } = useAuthStore();
   const { selectedChildId, setSelectedChildId, viewMode, setViewMode } = useParentStore();
 
-  const isStudentUser = user?.role === 'STUDENT' || Boolean(
-    user?.email &&
-      (user.email.toLowerCase().includes('alumno') || user.email.toLowerCase().includes('estudiante')),
-  );
+  const isStudentUser =
+    user?.role === 'STUDENT' ||
+    Boolean(
+      user?.email && (user.email.toLowerCase().includes('alumno') || user.email.toLowerCase().includes('estudiante')),
+    );
 
   useEffect(() => {
     if (isStudentUser && viewMode !== 'STUDENT') {
@@ -96,9 +97,7 @@ export const ParentPortalPage: React.FC = () => {
           <AlertCircle className="w-6 h-6 text-amber-500" />
         </div>
         <div className="space-y-1">
-          <h2 className="text-lg font-bold text-foreground">
-            No se encontraron alumnos vinculados
-          </h2>
+          <h2 className="text-lg font-bold text-foreground">No se encontraron alumnos vinculados</h2>
           <p className="text-xs text-muted-foreground max-w-md mx-auto">
             Tu cuenta de usuario apoderado ({user?.email}) aún no tiene estudiantes registrados en el sistema escolar.
           </p>
@@ -113,11 +112,7 @@ export const ParentPortalPage: React.FC = () => {
       <div className="space-y-6">
         {/* Selector de hijos solo si el padre tiene varios y está explorando modo alumno */}
         {!isStudentUser && children.length > 1 && (
-          <ChildSwitcher
-            childrenList={children}
-            selectedId={activeChild.id}
-            onSelect={setSelectedChildId}
-          />
+          <ChildSwitcher childrenList={children} selectedId={activeChild.id} onSelect={setSelectedChildId} />
         )}
         <StudentDashboardView
           child={activeChild}
@@ -158,16 +153,10 @@ export const ParentPortalPage: React.FC = () => {
       </div>
 
       {/* Resumen familiar multi-hijo */}
-      {user?.role === 'PARENT' && children.length > 0 && (
-        <FamilySnapshotCard childrenList={children} />
-      )}
+      {user?.role === 'PARENT' && children.length > 0 && <FamilySnapshotCard childrenList={children} />}
 
       {/* Selector Multi-Hijo (si tiene 2 o más alumnos) */}
-      <ChildSwitcher
-        childrenList={children}
-        selectedId={activeChild?.id || ''}
-        onSelect={setSelectedChildId}
-      />
+      <ChildSwitcher childrenList={children} selectedId={activeChild?.id || ''} onSelect={setSelectedChildId} />
 
       {/* Tarjeta de Identidad y Aula del Alumno Seleccionado */}
       {activeChild && <ChildOverviewCard child={activeChild} />}
@@ -204,4 +193,3 @@ export const ParentPortalPage: React.FC = () => {
     </div>
   );
 };
-

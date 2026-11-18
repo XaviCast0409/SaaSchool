@@ -24,7 +24,10 @@ export default tseslint.config(
       // Dependencias de efectos: aviso (a veces se omiten a propósito)
       'react-hooks/exhaustive-deps': 'warn',
       'react-refresh/only-export-components': 'off',
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', ignoreRestSiblings: true }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', ignoreRestSiblings: true },
+      ],
       // Código existente con `any` en tipos de terceros: aviso, no bloquea
       '@typescript-eslint/no-explicit-any': 'warn',
       // Límites de tamaño y complejidad para componentes y funciones: aviso, no bloquea

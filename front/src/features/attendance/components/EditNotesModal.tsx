@@ -30,30 +30,27 @@ export const EditNotesModal: React.FC<EditNotesModalProps> = ({ record, onClose 
         status: record.status as AttendanceStatus,
         notes: notes.trim() || undefined,
       },
-      { onSuccess: onClose }
+      { onSuccess: onClose },
     );
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+    >
       <div className="w-full max-w-md rounded-xl border border-border bg-card shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border p-4">
           <div className="flex items-center gap-2">
             <MessageSquare className="w-5 h-5 text-primary" />
             <div>
-              <h2 className="font-bold text-sm text-foreground leading-none">
-                Observación / Justificación
-              </h2>
-              <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[260px]">
-                {studentName}
-              </p>
+              <h2 className="font-bold text-sm text-foreground leading-none">Observación / Justificación</h2>
+              <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[260px]">{studentName}</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted transition-colors"
-          >
+          <button onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -68,9 +65,7 @@ export const EditNotesModal: React.FC<EditNotesModalProps> = ({ record, onClose 
 
           {/* Campo de texto */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-foreground block">
-              Justificación / Observación
-            </label>
+            <label className="text-xs font-semibold text-foreground block">Justificación / Observación</label>
             <textarea
               autoFocus
               rows={4}
@@ -90,17 +85,8 @@ export const EditNotesModal: React.FC<EditNotesModalProps> = ({ record, onClose 
           <Button variant="ghost" size="sm" onClick={onClose} disabled={isPending}>
             Cancelar
           </Button>
-          <Button
-            size="sm"
-            onClick={handleSave}
-            disabled={isPending}
-            className="gap-2"
-          >
-            {isPending ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Save className="w-3.5 h-3.5" />
-            )}
+          <Button size="sm" onClick={handleSave} disabled={isPending} className="gap-2">
+            {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
             Guardar Observación
           </Button>
         </div>

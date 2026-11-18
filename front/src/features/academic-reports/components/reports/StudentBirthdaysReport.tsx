@@ -31,11 +31,7 @@ export const StudentBirthdaysReport: React.FC<StudentBirthdaysReportProps> = ({ 
       />
 
       <div className="bg-card border border-border p-4 sm:p-6 rounded-2xl shadow-sm max-w-4xl mx-auto print:border-none print:shadow-none print:p-0">
-        <ReportHeader
-          school={school}
-          title={title}
-          subtitle={subtitle}
-        />
+        <ReportHeader school={school} title={title} subtitle={subtitle} />
 
         <div className="flex items-center justify-between text-xs font-semibold mb-3 border-b border-border pb-2 text-foreground">
           <div>

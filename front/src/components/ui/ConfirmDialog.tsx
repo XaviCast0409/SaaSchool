@@ -1,11 +1,5 @@
 import React, { useEffect } from 'react';
-import {
-  AlertTriangle,
-  AlertCircle,
-  CheckCircle2,
-  Info,
-  X,
-} from 'lucide-react';
+import { AlertTriangle, AlertCircle, CheckCircle2, Info, X } from 'lucide-react';
 import { Button } from './button';
 
 export interface ConfirmDialogProps {
@@ -98,26 +92,18 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
         {/* Encabezado con Icono */}
         <div className="flex items-start gap-4">
-          <div
-            className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${iconBg}`}
-          >
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${iconBg}`}>
             {icon || defaultIcon}
           </div>
           <div className="space-y-1 pr-4">
-            <h3 className="text-base font-bold text-foreground leading-tight">
-              {title}
-            </h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              {description}
-            </p>
+            <h3 className="text-base font-bold text-foreground leading-tight">{title}</h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
           </div>
         </div>
 
         {/* Contenido / Detalles Adicionales opcionales */}
         {details && (
-          <div className="rounded-xl border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
-            {details}
-          </div>
+          <div className="rounded-xl border border-border bg-muted/30 p-3 text-xs text-muted-foreground">{details}</div>
         )}
 
         {/* Botones de Acción */}

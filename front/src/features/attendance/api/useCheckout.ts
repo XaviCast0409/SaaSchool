@@ -21,9 +21,7 @@ export const useCheckout = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (
-      payload: CheckoutPayload,
-    ): Promise<{ message: string; attendance: AttendanceRecord }> => {
+    mutationFn: async (payload: CheckoutPayload): Promise<{ message: string; attendance: AttendanceRecord }> => {
       const res = await api.post<{
         status: string;
         data: { message: string; attendance: AttendanceRecord };

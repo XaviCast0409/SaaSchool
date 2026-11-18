@@ -39,7 +39,9 @@ export const PublicAdmissionPage: React.FC = () => {
   const [done, setDone] = useState(false);
   const [captcha, setCaptcha] = useState<string | null>(null);
   const [captchaReset, setCaptchaReset] = useState(0);
-  const set = (k: keyof typeof empty) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const set =
+    (k: keyof typeof empty) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+      setForm((f) => ({ ...f, [k]: e.target.value }));
   const grades = useMemo(() => (form.educationLevel ? gradeOptions(form.educationLevel) : []), [form.educationLevel]);
 
   const submit = async (e: React.FormEvent) => {
@@ -60,12 +62,18 @@ export const PublicAdmissionPage: React.FC = () => {
   };
 
   return (
-    <PublicShell school={school} loading={isLoading} error={isError} title={`Admisión ${school?.admissionsYear ?? ''}`.trim()}>
+    <PublicShell
+      school={school}
+      loading={isLoading}
+      error={isError}
+      title={`Admisión ${school?.admissionsYear ?? ''}`.trim()}
+    >
       {school && !school.admissionsOpen ? (
         <div className="rounded-lg border bg-background p-8 text-center">
           <p className="font-medium">El proceso de admisión no está abierto en este momento.</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Para más información comuníquese con el colegio{school.phone ? ` al ${school.phone}` : ''}{school.email ? ` o escriba a ${school.email}` : ''}.
+            Para más información comuníquese con el colegio{school.phone ? ` al ${school.phone}` : ''}
+            {school.email ? ` o escriba a ${school.email}` : ''}.
           </p>
         </div>
       ) : done ? (
@@ -73,9 +81,18 @@ export const PublicAdmissionPage: React.FC = () => {
           <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-600" aria-hidden />
           <p className="mt-3 text-lg font-semibold">¡Postulación enviada!</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            La Secretaría revisará la información y se comunicará con usted{form.guardianEmail ? '. También le enviamos una confirmación por correo' : ''}.
+            La Secretaría revisará la información y se comunicará con usted
+            {form.guardianEmail ? '. También le enviamos una confirmación por correo' : ''}.
           </p>
-          <Button className="mt-5" variant="outline" onClick={() => { setForm(empty); setConsent(false); setDone(false); }}>
+          <Button
+            className="mt-5"
+            variant="outline"
+            onClick={() => {
+              setForm(empty);
+              setConsent(false);
+              setDone(false);
+            }}
+          >
             Postular a otro hijo(a)
           </Button>
         </div>
@@ -86,7 +103,9 @@ export const PublicAdmissionPage: React.FC = () => {
             {school?.admissionsMessage ? (
               <p className="mt-2 whitespace-pre-line text-sm text-muted-foreground">{school.admissionsMessage}</p>
             ) : (
-              <p className="mt-2 text-sm text-muted-foreground">Complete los datos y el colegio se comunicará con usted para los siguientes pasos.</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Complete los datos y el colegio se comunicará con usted para los siguientes pasos.
+              </p>
             )}
           </div>
 
@@ -94,15 +113,34 @@ export const PublicAdmissionPage: React.FC = () => {
             <h2 className="font-semibold">1. ¿A qué grado postula?</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Nivel" required>
-                <select className={fieldClass} value={form.educationLevel} onChange={(e) => setForm((f) => ({ ...f, educationLevel: e.target.value as Level, grade: '' }))} required>
+                <select
+                  className={fieldClass}
+                  value={form.educationLevel}
+                  onChange={(e) => setForm((f) => ({ ...f, educationLevel: e.target.value as Level, grade: '' }))}
+                  required
+                >
                   <option value="">Elija…</option>
-                  {school?.offeredLevels.map((l) => <option key={l} value={l}>{LEVEL_LABEL[l]}</option>)}
+                  {school?.offeredLevels.map((l) => (
+                    <option key={l} value={l}>
+                      {LEVEL_LABEL[l]}
+                    </option>
+                  ))}
                 </select>
               </Field>
               <Field label="Grado" required>
-                <select className={fieldClass} value={form.grade} onChange={set('grade')} required disabled={!form.educationLevel}>
+                <select
+                  className={fieldClass}
+                  value={form.grade}
+                  onChange={set('grade')}
+                  required
+                  disabled={!form.educationLevel}
+                >
                   <option value="">Elija…</option>
-                  {grades.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
+                  {grades.map((g) => (
+                    <option key={g.value} value={g.value}>
+                      {g.label}
+                    </option>
+                  ))}
                 </select>
               </Field>
             </div>
@@ -111,9 +149,32 @@ export const PublicAdmissionPage: React.FC = () => {
           <section className="space-y-4 rounded-lg border bg-background p-5">
             <h2 className="font-semibold">2. Datos del estudiante</h2>
             <div className="grid gap-4 sm:grid-cols-3">
-              <Field label="Nombres" required className="sm:col-span-1"><input className={fieldClass} value={form.studentFirstNames} onChange={set('studentFirstNames')} required maxLength={80} /></Field>
-              <Field label="Apellido paterno" required><input className={fieldClass} value={form.studentLastNamePaternal} onChange={set('studentLastNamePaternal')} required maxLength={60} /></Field>
-              <Field label="Apellido materno"><input className={fieldClass} value={form.studentLastNameMaternal} onChange={set('studentLastNameMaternal')} maxLength={60} /></Field>
+              <Field label="Nombres" required className="sm:col-span-1">
+                <input
+                  className={fieldClass}
+                  value={form.studentFirstNames}
+                  onChange={set('studentFirstNames')}
+                  required
+                  maxLength={80}
+                />
+              </Field>
+              <Field label="Apellido paterno" required>
+                <input
+                  className={fieldClass}
+                  value={form.studentLastNamePaternal}
+                  onChange={set('studentLastNamePaternal')}
+                  required
+                  maxLength={60}
+                />
+              </Field>
+              <Field label="Apellido materno">
+                <input
+                  className={fieldClass}
+                  value={form.studentLastNameMaternal}
+                  onChange={set('studentLastNameMaternal')}
+                  maxLength={60}
+                />
+              </Field>
               <Field label="Tipo de documento" required>
                 <select className={fieldClass} value={form.studentDocumentType} onChange={set('studentDocumentType')}>
                   <option value="DNI">DNI</option>
@@ -122,8 +183,25 @@ export const PublicAdmissionPage: React.FC = () => {
                   <option value="PNA">Partida de nacimiento</option>
                 </select>
               </Field>
-              <Field label="N.° de documento" required><input className={fieldClass} value={form.studentDocumentId} onChange={set('studentDocumentId')} required inputMode="numeric" maxLength={15} /></Field>
-              <Field label="Fecha de nacimiento" required><input type="date" className={fieldClass} value={form.studentBirthDate} onChange={set('studentBirthDate')} required /></Field>
+              <Field label="N.° de documento" required>
+                <input
+                  className={fieldClass}
+                  value={form.studentDocumentId}
+                  onChange={set('studentDocumentId')}
+                  required
+                  inputMode="numeric"
+                  maxLength={15}
+                />
+              </Field>
+              <Field label="Fecha de nacimiento" required>
+                <input
+                  type="date"
+                  className={fieldClass}
+                  value={form.studentBirthDate}
+                  onChange={set('studentBirthDate')}
+                  required
+                />
+              </Field>
               <Field label="Sexo" required>
                 <select className={fieldClass} value={form.studentGender} onChange={set('studentGender')} required>
                   <option value="">Elija…</option>
@@ -131,15 +209,39 @@ export const PublicAdmissionPage: React.FC = () => {
                   <option value="MALE">Hombre</option>
                 </select>
               </Field>
-              <Field label="Colegio de procedencia" className="sm:col-span-2"><input className={fieldClass} value={form.previousSchool} onChange={set('previousSchool')} maxLength={150} placeholder="Si viene de otro colegio" /></Field>
+              <Field label="Colegio de procedencia" className="sm:col-span-2">
+                <input
+                  className={fieldClass}
+                  value={form.previousSchool}
+                  onChange={set('previousSchool')}
+                  maxLength={150}
+                  placeholder="Si viene de otro colegio"
+                />
+              </Field>
             </div>
           </section>
 
           <section className="space-y-4 rounded-lg border bg-background p-5">
             <h2 className="font-semibold">3. Datos del padre, madre o apoderado</h2>
             <div className="grid gap-4 sm:grid-cols-3">
-              <Field label="Nombres" required><input className={fieldClass} value={form.guardianFirstName} onChange={set('guardianFirstName')} required maxLength={80} /></Field>
-              <Field label="Apellidos" required><input className={fieldClass} value={form.guardianLastNames} onChange={set('guardianLastNames')} required maxLength={120} /></Field>
+              <Field label="Nombres" required>
+                <input
+                  className={fieldClass}
+                  value={form.guardianFirstName}
+                  onChange={set('guardianFirstName')}
+                  required
+                  maxLength={80}
+                />
+              </Field>
+              <Field label="Apellidos" required>
+                <input
+                  className={fieldClass}
+                  value={form.guardianLastNames}
+                  onChange={set('guardianLastNames')}
+                  required
+                  maxLength={120}
+                />
+              </Field>
               <Field label="Parentesco" required>
                 <select className={fieldClass} value={form.guardianRelation} onChange={set('guardianRelation')}>
                   <option value="MADRE">Madre</option>
@@ -149,28 +251,84 @@ export const PublicAdmissionPage: React.FC = () => {
                   <option value="OTRO">Otro</option>
                 </select>
               </Field>
-              <Field label="DNI"><input className={fieldClass} value={form.guardianDocumentId} onChange={set('guardianDocumentId')} inputMode="numeric" maxLength={15} /></Field>
-              <Field label="Celular (WhatsApp)" required><input className={fieldClass} value={form.guardianPhone} onChange={set('guardianPhone')} required inputMode="tel" maxLength={20} placeholder="987654321" /></Field>
-              <Field label="Correo" hint="Le enviaremos la confirmación"><input type="email" className={fieldClass} value={form.guardianEmail} onChange={set('guardianEmail')} maxLength={150} /></Field>
+              <Field label="DNI">
+                <input
+                  className={fieldClass}
+                  value={form.guardianDocumentId}
+                  onChange={set('guardianDocumentId')}
+                  inputMode="numeric"
+                  maxLength={15}
+                />
+              </Field>
+              <Field label="Celular (WhatsApp)" required>
+                <input
+                  className={fieldClass}
+                  value={form.guardianPhone}
+                  onChange={set('guardianPhone')}
+                  required
+                  inputMode="tel"
+                  maxLength={20}
+                  placeholder="987654321"
+                />
+              </Field>
+              <Field label="Correo" hint="Le enviaremos la confirmación">
+                <input
+                  type="email"
+                  className={fieldClass}
+                  value={form.guardianEmail}
+                  onChange={set('guardianEmail')}
+                  maxLength={150}
+                />
+              </Field>
             </div>
-            <Field label="¿Algo que debamos saber?" hint="Necesidades educativas, hermanos en el colegio, horario para llamarle, etc.">
+            <Field
+              label="¿Algo que debamos saber?"
+              hint="Necesidades educativas, hermanos en el colegio, horario para llamarle, etc."
+            >
               <Textarea value={form.familyNotes} onChange={set('familyNotes')} rows={3} maxLength={1500} />
             </Field>
             {/* Campo trampa: invisible para personas, los bots lo rellenan */}
-            <input type="text" name="website" value={form.website} onChange={set('website')} tabIndex={-1} autoComplete="off" aria-hidden className="absolute left-[-9999px] h-0 w-0 opacity-0" />
+            <input
+              type="text"
+              name="website"
+              value={form.website}
+              onChange={set('website')}
+              tabIndex={-1}
+              autoComplete="off"
+              aria-hidden
+              className="absolute left-[-9999px] h-0 w-0 opacity-0"
+            />
           </section>
 
           <section className="space-y-3 rounded-lg border bg-background p-5">
             <label className="flex items-start gap-3 text-sm">
-              <input type="checkbox" className="mt-1 h-4 w-4" checked={consent} onChange={(e) => setConsent(e.target.checked)} required />
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4"
+                checked={consent}
+                onChange={(e) => setConsent(e.target.checked)}
+                required
+              />
               <span>
-                Autorizo a {school?.name} a usar estos datos solo para el proceso de admisión y para comunicarse conmigo, conforme a la Ley N.° 29733 de Protección de Datos
-                Personales. <Link to="/privacidad" className="underline" target="_blank">Ver política de privacidad</Link>.
+                Autorizo a {school?.name} a usar estos datos solo para el proceso de admisión y para comunicarse
+                conmigo, conforme a la Ley N.° 29733 de Protección de Datos Personales.{' '}
+                <Link to="/privacidad" className="underline" target="_blank">
+                  Ver política de privacidad
+                </Link>
+                .
               </span>
             </label>
-            {error && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">{error}</p>}
+            {error && (
+              <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
+                {error}
+              </p>
+            )}
             <TurnstileWidget onToken={setCaptcha} resetKey={captchaReset} />
-            <Button type="submit" className="w-full sm:w-auto" disabled={sending || !consent || (Boolean(TURNSTILE_SITE_KEY) && !captcha)}>
+            <Button
+              type="submit"
+              className="w-full sm:w-auto"
+              disabled={sending || !consent || (Boolean(TURNSTILE_SITE_KEY) && !captcha)}
+            >
               {sending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Enviar postulación
             </Button>

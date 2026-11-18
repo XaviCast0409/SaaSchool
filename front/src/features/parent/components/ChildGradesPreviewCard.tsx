@@ -43,7 +43,8 @@ export const ChildGradesPreviewCard: React.FC = () => {
             <span>Módulo Académico Plan PRO</span>
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Tu colegio opera actualmente con el <strong>Plan Básico (Fase 1)</strong>. La emisión de libretas de notas digitales se activa cuando la institución actualiza al Plan PRO.
+            Tu colegio opera actualmente con el <strong>Plan Básico (Fase 1)</strong>. La emisión de libretas de notas
+            digitales se activa cuando la institución actualiza al Plan PRO.
           </p>
         </div>
       ) : (

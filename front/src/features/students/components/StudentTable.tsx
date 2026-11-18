@@ -161,7 +161,9 @@ export const StudentTable: React.FC<StudentTableProps> = ({
     if (!ok) return;
     try {
       const data = await resetStudentPassword({ studentId: student.id });
-      setTempCredentials([{ name, login: student.studentCode || student.documentId, password: data.temporaryPassword }]);
+      setTempCredentials([
+        { name, login: student.studentCode || student.documentId, password: data.temporaryPassword },
+      ]);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || 'No se pudo restablecer la contraseña.');
     }
@@ -188,7 +190,12 @@ export const StudentTable: React.FC<StudentTableProps> = ({
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`Más acciones para ${student.firstNames}`}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            aria-label={`Más acciones para ${student.firstNames}`}
+          >
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
@@ -200,7 +207,11 @@ export const StudentTable: React.FC<StudentTableProps> = ({
             Ficha de matrícula SIAGIE
           </DropdownMenuItem>
           {onQuickEnroll && (
-            <DropdownMenuItem icon={Repeat2} hint="Sin volver a llenar la ficha" onSelect={() => onQuickEnroll(student)}>
+            <DropdownMenuItem
+              icon={Repeat2}
+              hint="Sin volver a llenar la ficha"
+              onSelect={() => onQuickEnroll(student)}
+            >
               {quickEnrollLabel}
             </DropdownMenuItem>
           )}
@@ -208,7 +219,11 @@ export const StudentTable: React.FC<StudentTableProps> = ({
           <DropdownMenuItem icon={QrCode} onSelect={() => setSelectedStudentForQr(student)}>
             Carnet con QR
           </DropdownMenuItem>
-          <DropdownMenuItem icon={FileCheck2} hint="Matrícula y no adeudo" onSelect={() => setSelectedStudentForCertificates(student)}>
+          <DropdownMenuItem
+            icon={FileCheck2}
+            hint="Matrícula y no adeudo"
+            onSelect={() => setSelectedStudentForCertificates(student)}
+          >
             Constancias
           </DropdownMenuItem>
           {student.documentId && (
@@ -272,7 +287,11 @@ export const StudentTable: React.FC<StudentTableProps> = ({
         title={missing ? 'Sin apoderado: la familia no recibe avisos ni puede ver notas' : 'Ver y vincular apoderados'}
       >
         {missing ? <AlertTriangle className="w-3.5 h-3.5" /> : <Users className="w-3.5 h-3.5" />}
-        {missing ? 'Sin apoderado' : guardians === undefined ? 'Apoderados' : `${guardians} apoderado${guardians === 1 ? '' : 's'}`}
+        {missing
+          ? 'Sin apoderado'
+          : guardians === undefined
+            ? 'Apoderados'
+            : `${guardians} apoderado${guardians === 1 ? '' : 's'}`}
         <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
     );
@@ -405,7 +424,9 @@ export const StudentTable: React.FC<StudentTableProps> = ({
           />
         )
       ) : (
-        <div className={`rounded-xl border border-border bg-card shadow-sm overflow-hidden transition-opacity ${isFetching ? 'opacity-70' : ''}`}>
+        <div
+          className={`rounded-xl border border-border bg-card shadow-sm overflow-hidden transition-opacity ${isFetching ? 'opacity-70' : ''}`}
+        >
           {/* Escritorio: tabla */}
           <div className="hidden md:block">
             <Table>
@@ -423,15 +444,9 @@ export const StudentTable: React.FC<StudentTableProps> = ({
                 {students.map((student) => (
                   <React.Fragment key={student.id}>
                     <TableRow className="hover:bg-muted/30">
-                      <TableCell className="py-3">
-                        {nameBlock(student)}
-                      </TableCell>
-                      <TableCell>
-                        {classroomCell(student)}
-                      </TableCell>
-                      <TableCell>
-                        {guardiansButton(student)}
-                      </TableCell>
+                      <TableCell className="py-3">{nameBlock(student)}</TableCell>
+                      <TableCell>{classroomCell(student)}</TableCell>
+                      <TableCell>{guardiansButton(student)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
                           <Button
@@ -473,7 +488,9 @@ export const StudentTable: React.FC<StudentTableProps> = ({
                   {guardiansButton(student)}
                 </div>
                 {expandedStudentId === student.id && (
-                  <div className="-mx-3 mt-3 border-t border-dashed border-border bg-muted/20">{parentsPanel(student)}</div>
+                  <div className="-mx-3 mt-3 border-t border-dashed border-border bg-muted/20">
+                    {parentsPanel(student)}
+                  </div>
                 )}
               </li>
             ))}

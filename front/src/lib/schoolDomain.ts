@@ -10,7 +10,23 @@ const ROOT_DOMAIN = String(import.meta.env.VITE_ROOT_DOMAIN ?? '')
   .replace(/^\.+/, '');
 
 /** Subdominios que nunca son de un colegio (coinciden con los códigos reservados del backend). */
-const RESERVED = new Set(['www', 'app', 'api', 'admin', 'administrador', 'staging', 'static', 'mail', 'soporte', 'support', 'demo', 'test', 'kipux', 'login', 'dashboard']);
+const RESERVED = new Set([
+  'www',
+  'app',
+  'api',
+  'admin',
+  'administrador',
+  'staging',
+  'static',
+  'mail',
+  'soporte',
+  'support',
+  'demo',
+  'test',
+  'kipux',
+  'login',
+  'dashboard',
+]);
 const SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]{1,38})[a-z0-9]$/;
 
 /** true si el código puede usarse como subdominio de colegio (formato válido y no reservado). */
@@ -23,7 +39,10 @@ export function schoolSlugFromHost(hostname: string, rootDomain: string = ROOT_D
   if (!rootDomain) return null;
   const host = hostname.toLowerCase().replace(/\.$/, '');
   if (host === rootDomain || !host.endsWith(`.${rootDomain}`)) return null;
-  const labels = host.slice(0, -(rootDomain.length + 1)).split('.').filter(Boolean);
+  const labels = host
+    .slice(0, -(rootDomain.length + 1))
+    .split('.')
+    .filter(Boolean);
   if (labels[0] === 'www') labels.shift();
   if (labels.length !== 1) return null;
   const slug = labels[0];
@@ -35,7 +54,9 @@ export function schoolSlugFromHost(hostname: string, rootDomain: string = ROOT_D
  * <colegio>.kipuxedu.com). Solo ahí se redirige entre subdominios; en localhost u otros nombres
  * todo sigue funcionando con /c/<código>.
  */
-export function onSchoolDomain(hostname: string = typeof window === 'undefined' ? '' : window.location.hostname): boolean {
+export function onSchoolDomain(
+  hostname: string = typeof window === 'undefined' ? '' : window.location.hostname,
+): boolean {
   if (!ROOT_DOMAIN) return false;
   const host = hostname.toLowerCase().replace(/\.$/, '');
   return host === ROOT_DOMAIN || host.endsWith(`.${ROOT_DOMAIN}`);

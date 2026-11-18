@@ -64,7 +64,8 @@ export const MfaSetupCard: React.FC = () => {
           <div className="space-y-1">
             <p className="text-sm font-semibold">Activa la verificación en dos pasos</p>
             <p className="text-xs text-muted-foreground">
-              Esta cuenta puede entrar a todos los colegios. Con la verificación en dos pasos, una contraseña robada no basta para ingresar.
+              Esta cuenta puede entrar a todos los colegios. Con la verificación en dos pasos, una contraseña robada no
+              basta para ingresar.
             </p>
           </div>
         </div>

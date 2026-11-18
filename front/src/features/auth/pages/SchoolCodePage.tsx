@@ -98,7 +98,10 @@ export const SchoolCodePage: React.FC = () => {
                 Código del colegio
               </label>
               <div className="relative">
-                <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden />
+                <KeyRound
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
+                  aria-hidden
+                />
                 <Input
                   id="school-code"
                   autoFocus
@@ -114,7 +117,9 @@ export const SchoolCodePage: React.FC = () => {
                 />
               </div>
               {error ? (
-                <p id="school-code-error" className="text-xs text-destructive">{error}</p>
+                <p id="school-code-error" className="text-xs text-destructive">
+                  {error}
+                </p>
               ) : (
                 <p id="school-code-help" className="text-xs text-muted-foreground">
                   Tu colegio te lo entrega junto con tus credenciales. También puedes abrir el enlace que te compartió.
@@ -122,7 +127,12 @@ export const SchoolCodePage: React.FC = () => {
               )}
             </div>
 
-            <Button type="submit" className="w-full h-10 font-bold text-sm gap-1.5" isLoading={checking} disabled={!code.trim()}>
+            <Button
+              type="submit"
+              className="w-full h-10 font-bold text-sm gap-1.5"
+              isLoading={checking}
+              disabled={!code.trim()}
+            >
               Continuar <ArrowRight className="w-4 h-4" aria-hidden />
             </Button>
           </form>

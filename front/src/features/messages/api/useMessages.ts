@@ -68,7 +68,10 @@ export interface StaffContact {
 
 export type ContactsResponse =
   | { kind: 'PARENT'; children: Array<{ student: { id: string; name: string }; contacts: StaffContact[] }> }
-  | { kind: 'STAFF'; students: Array<{ student: { id: string; name: string; classroom: string }; contacts: StaffContact[] }> };
+  | {
+      kind: 'STAFF';
+      students: Array<{ student: { id: string; name: string; classroom: string }; contacts: StaffContact[] }>;
+    };
 
 const KEY = ['messages'];
 
@@ -94,7 +97,8 @@ export const useConversation = (id: string | null) =>
   useQuery({
     queryKey: [...KEY, 'conversation', id],
     enabled: Boolean(id),
-    queryFn: async () => (await api.get<{ data: ConversationDetail }>(`/messages/conversations/${id}/messages`)).data.data,
+    queryFn: async () =>
+      (await api.get<{ data: ConversationDetail }>(`/messages/conversations/${id}/messages`)).data.data,
     refetchInterval: 10_000,
     refetchOnWindowFocus: true,
   });
@@ -102,7 +106,9 @@ export const useConversation = (id: string | null) =>
 /** Página anterior de mensajes (de 50 en 50), para «Ver mensajes anteriores». */
 export const fetchOlderMessages = async (conversationId: string, before: string) =>
   (
-    await api.get<{ data: ConversationDetail }>(`/messages/conversations/${conversationId}/messages`, { params: { before } })
+    await api.get<{ data: ConversationDetail }>(`/messages/conversations/${conversationId}/messages`, {
+      params: { before },
+    })
   ).data.data;
 
 export const useMessageContacts = (search: string, enabled: boolean) =>
@@ -145,7 +151,8 @@ export const useSendMessage = (conversationId: string | null) => {
 export const useMarkConversationRead = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (conversationId: string) => (await api.post(`/messages/conversations/${conversationId}/read`)).data,
+    mutationFn: async (conversationId: string) =>
+      (await api.post(`/messages/conversations/${conversationId}/read`)).data,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [...KEY, 'conversations'] });
       qc.invalidateQueries({ queryKey: [...KEY, 'unread'] });

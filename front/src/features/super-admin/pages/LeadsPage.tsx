@@ -35,7 +35,10 @@ const LeadRow: React.FC<{ lead: SalesLead }> = ({ lead }) => {
   const [expanded, setExpanded] = useState(false);
 
   const changeStatus = (status: LeadStatus) =>
-    mutate({ id: lead.id, status }, { onSuccess: () => toast.success(`Lead marcado como «${LEAD_STATUS_LABELS[status]}»`) });
+    mutate(
+      { id: lead.id, status },
+      { onSuccess: () => toast.success(`Lead marcado como «${LEAD_STATUS_LABELS[status]}»`) },
+    );
 
   const saveNotes = () =>
     mutate({ id: lead.id, notes: notes.trim() || null }, { onSuccess: () => toast.success('Notas guardadas') });
@@ -48,7 +51,12 @@ const LeadRow: React.FC<{ lead: SalesLead }> = ({ lead }) => {
             <div className="flex flex-wrap items-center gap-2">
               <p className="font-bold text-foreground">{lead.schoolName}</p>
               <Badge variant={STATUS_VARIANT[lead.status]}>{LEAD_STATUS_LABELS[lead.status]}</Badge>
-              <span className="text-xs font-semibold text-muted-foreground" title="Prioridad según cargo, tamaño y detalle">Prioridad {lead.score}/100</span>
+              <span
+                className="text-xs font-semibold text-muted-foreground"
+                title="Prioridad según cargo, tamaño y detalle"
+              >
+                Prioridad {lead.score}/100
+              </span>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
               {lead.contactName} · {lead.role}
@@ -68,10 +76,22 @@ const LeadRow: React.FC<{ lead: SalesLead }> = ({ lead }) => {
               </a>
             </Button>
             <Button asChild size="sm" variant="outline" className="gap-1.5">
-              <a href={`tel:${lead.phone}`}><Phone className="w-4 h-4" /> {lead.phone}</a>
+              <a href={`tel:${lead.phone}`}>
+                <Phone className="w-4 h-4" /> {lead.phone}
+              </a>
             </Button>
-            <Select value={lead.status} onChange={(event) => changeStatus(event.target.value as LeadStatus)} disabled={isPending} aria-label="Estado del lead" className="h-9 w-40 text-sm">
-              {STATUSES.map((status) => <option key={status} value={status}>{LEAD_STATUS_LABELS[status]}</option>)}
+            <Select
+              value={lead.status}
+              onChange={(event) => changeStatus(event.target.value as LeadStatus)}
+              disabled={isPending}
+              aria-label="Estado del lead"
+              className="h-9 w-40 text-sm"
+            >
+              {STATUSES.map((status) => (
+                <option key={status} value={status}>
+                  {LEAD_STATUS_LABELS[status]}
+                </option>
+              ))}
             </Select>
             <Button size="sm" variant="ghost" onClick={() => setExpanded((value) => !value)}>
               {expanded ? 'Ocultar' : 'Detalle'}
@@ -81,14 +101,33 @@ const LeadRow: React.FC<{ lead: SalesLead }> = ({ lead }) => {
         {expanded && (
           <div className="mt-4 pt-4 border-t border-border grid md:grid-cols-2 gap-4">
             <div className="space-y-2 text-sm">
-              <p><span className="text-muted-foreground">Correo:</span> {lead.email ? <a className="text-primary inline-flex items-center gap-1" href={`mailto:${lead.email}`}>{lead.email} <ExternalLink className="w-3 h-3" /></a> : '—'}</p>
+              <p>
+                <span className="text-muted-foreground">Correo:</span>{' '}
+                {lead.email ? (
+                  <a className="text-primary inline-flex items-center gap-1" href={`mailto:${lead.email}`}>
+                    {lead.email} <ExternalLink className="w-3 h-3" />
+                  </a>
+                ) : (
+                  '—'
+                )}
+              </p>
               <p className="text-muted-foreground">Mensaje:</p>
               <p className="whitespace-pre-wrap text-foreground">{lead.message || '—'}</p>
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-muted-foreground" htmlFor={`notes-${lead.id}`}>Notas internas</label>
-              <Textarea id={`notes-${lead.id}`} rows={4} value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Ej. Demo el jueves 10:00, le interesa cobranza" />
-              <Button size="sm" variant="outline" onClick={saveNotes} isLoading={isPending}>Guardar notas</Button>
+              <label className="text-sm text-muted-foreground" htmlFor={`notes-${lead.id}`}>
+                Notas internas
+              </label>
+              <Textarea
+                id={`notes-${lead.id}`}
+                rows={4}
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+                placeholder="Ej. Demo el jueves 10:00, le interesa cobranza"
+              />
+              <Button size="sm" variant="outline" onClick={saveNotes} isLoading={isPending}>
+                Guardar notas
+              </Button>
             </div>
           </div>
         )}
@@ -112,13 +151,22 @@ export const LeadsPage: React.FC = () => {
         <h1 className="text-2xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
           <Inbox className="w-6 h-6 text-primary" /> Leads de la web
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">Colegios que pidieron una demostración desde la página de inicio. Se actualiza cada minuto.</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          Colegios que pidieron una demostración desde la página de inicio. Se actualiza cada minuto.
+        </p>
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant={filter ? 'outline' : 'default'} onClick={() => setFilter(undefined)}>Todos ({total})</Button>
+        <Button size="sm" variant={filter ? 'outline' : 'default'} onClick={() => setFilter(undefined)}>
+          Todos ({total})
+        </Button>
         {STATUSES.map((status) => (
-          <Button key={status} size="sm" variant={filter === status ? 'default' : 'outline'} onClick={() => setFilter(status)}>
+          <Button
+            key={status}
+            size="sm"
+            variant={filter === status ? 'default' : 'outline'}
+            onClick={() => setFilter(status)}
+          >
             {LEAD_STATUS_LABELS[status]} ({data?.counts[status] ?? 0})
           </Button>
         ))}
@@ -134,14 +182,18 @@ export const LeadsPage: React.FC = () => {
         </div>
       ) : data && data.leads.length > 0 ? (
         <div className="space-y-3">
-          {data.leads.map((lead) => <LeadRow key={lead.id} lead={lead} />)}
+          {data.leads.map((lead) => (
+            <LeadRow key={lead.id} lead={lead} />
+          ))}
         </div>
       ) : (
         <Card>
           <CardContent className="py-14 text-center">
             <Inbox className="w-10 h-10 mx-auto text-muted-foreground" />
             <p className="mt-3 font-semibold text-foreground">Aún no hay leads {filter ? 'en este estado' : ''}</p>
-            <p className="text-sm text-muted-foreground mt-1">Cuando un colegio complete el formulario de la web aparecerá aquí y te llegará un correo.</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Cuando un colegio complete el formulario de la web aparecerá aquí y te llegará un correo.
+            </p>
           </CardContent>
         </Card>
       )}

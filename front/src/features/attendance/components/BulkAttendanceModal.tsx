@@ -19,7 +19,11 @@ interface BulkAttendanceModalProps {
 
 const STATUS_CONFIG: Array<{ value: AttendanceStatus; label: string; activeClass: string }> = [
   { value: 'PRESENT', label: 'Presente', activeClass: 'bg-emerald-600 text-white font-semibold shadow-sm' },
-  { value: 'ABSENT_UNJUSTIFIED', label: 'Falta Inj.', activeClass: 'bg-destructive text-destructive-foreground font-semibold shadow-sm' },
+  {
+    value: 'ABSENT_UNJUSTIFIED',
+    label: 'Falta Inj.',
+    activeClass: 'bg-destructive text-destructive-foreground font-semibold shadow-sm',
+  },
   { value: 'ABSENT_JUSTIFIED', label: 'Falta Just.', activeClass: 'bg-amber-600 text-white font-semibold shadow-sm' },
   { value: 'LATE_UNJUSTIFIED', label: 'Tardanza Inj.', activeClass: 'bg-amber-500 text-white font-semibold shadow-sm' },
   { value: 'LATE_JUSTIFIED', label: 'Tardanza Just.', activeClass: 'bg-sky-600 text-white font-semibold shadow-sm' },
@@ -40,7 +44,7 @@ export const BulkAttendanceModal: React.FC<BulkAttendanceModalProps> = ({
     : classrooms;
 
   const [selectedClassroomId, setSelectedClassroomId] = useState(
-    initialClassroomId || (availableClassrooms[0]?.id ?? '')
+    initialClassroomId || (availableClassrooms[0]?.id ?? ''),
   );
   const [selectedDate, setSelectedDate] = useState(initialDate);
 
@@ -115,30 +119,29 @@ export const BulkAttendanceModal: React.FC<BulkAttendanceModalProps> = ({
           const msg = err?.response?.data?.message || 'Error al guardar la asistencia masiva.';
           toast.error(msg);
         },
-      }
+      },
     );
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+    >
       <div className="w-full max-w-3xl rounded-xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border p-4 bg-card shrink-0">
           <div className="flex items-center gap-2">
             <UserCheck className="w-5 h-5 text-primary" />
             <div>
-              <h2 className="font-bold text-base text-foreground leading-none">
-                Toma de Asistencia Masiva por Aula
-              </h2>
+              <h2 className="font-bold text-base text-foreground leading-none">Toma de Asistencia Masiva por Aula</h2>
               <p className="text-xs text-muted-foreground mt-1">
                 Registra la asistencia completa de la sección en un solo paso.
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted transition-colors"
-          >
+          <button onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -161,8 +164,13 @@ export const BulkAttendanceModal: React.FC<BulkAttendanceModalProps> = ({
                 )}
                 {availableClassrooms.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.grade}° "{c.section}" ({c.educationLevel === 'PRIMARY' ? 'Primaria' : c.educationLevel === 'SECONDARY' ? 'Secundaria' : 'Inicial'})
-                    {isTeacher ? ' • Su Aula Tutoriada' : ''}
+                    {c.grade}° "{c.section}" (
+                    {c.educationLevel === 'PRIMARY'
+                      ? 'Primaria'
+                      : c.educationLevel === 'SECONDARY'
+                        ? 'Secundaria'
+                        : 'Inicial'}
+                    ){isTeacher ? ' • Su Aula Tutoriada' : ''}
                   </option>
                 ))}
               </select>
@@ -241,14 +249,10 @@ export const BulkAttendanceModal: React.FC<BulkAttendanceModalProps> = ({
                     className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border border-border bg-card hover:bg-muted/20 transition-colors gap-3"
                   >
                     <div className="flex items-center gap-3">
-                      <span className="w-6 text-xs font-bold text-muted-foreground text-center">
-                        {index + 1}
-                      </span>
+                      <span className="w-6 text-xs font-bold text-muted-foreground text-center">{index + 1}</span>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-sm text-foreground">
-                            {student.studentName}
-                          </span>
+                          <span className="font-semibold text-sm text-foreground">{student.studentName}</span>
                           {student.origin === 'QR_SCAN' && (
                             <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-xs font-mono gap-1 py-0">
                               <QrCode className="w-2.5 h-2.5" />
@@ -292,9 +296,7 @@ export const BulkAttendanceModal: React.FC<BulkAttendanceModalProps> = ({
         {/* Footer */}
         <div className="p-4 border-t border-border bg-card flex items-center justify-between shrink-0">
           <span className="text-xs text-muted-foreground font-medium">
-            {students.length > 0
-              ? `${students.length} alumnos listos para registrar`
-              : 'Selecciona una sección'}
+            {students.length > 0 ? `${students.length} alumnos listos para registrar` : 'Selecciona una sección'}
           </span>
 
           <div className="flex items-center gap-2">

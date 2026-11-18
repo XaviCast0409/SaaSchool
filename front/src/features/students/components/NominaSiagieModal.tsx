@@ -13,14 +13,10 @@ interface NominaSiagieModalProps {
   initialClassroomId?: string;
 }
 
-export const NominaSiagieModal: React.FC<NominaSiagieModalProps> = ({
-  isOpen,
-  onClose,
-  initialClassroomId,
-}) => {
+export const NominaSiagieModal: React.FC<NominaSiagieModalProps> = ({ isOpen, onClose, initialClassroomId }) => {
   const { data: classrooms = [] } = useClassrooms();
   const [selectedClassroomId, setSelectedClassroomId] = useState<string>(
-    initialClassroomId || (classrooms[0]?.id ?? '')
+    initialClassroomId || (classrooms[0]?.id ?? ''),
   );
   const [isExporting, setIsExporting] = useState(false);
 
@@ -33,10 +29,11 @@ export const NominaSiagieModal: React.FC<NominaSiagieModalProps> = ({
     }
   }, [initialClassroomId, classrooms]);
 
-  const { data: nominaData, isLoading, isError } = useNominaMatricula(
-    selectedClassroomId,
-    isOpen && Boolean(selectedClassroomId)
-  );
+  const {
+    data: nominaData,
+    isLoading,
+    isError,
+  } = useNominaMatricula(selectedClassroomId, isOpen && Boolean(selectedClassroomId));
 
   if (!isOpen) return null;
 
@@ -54,7 +51,11 @@ export const NominaSiagieModal: React.FC<NominaSiagieModalProps> = ({
   const countFemales = nominaData?.students.filter((s) => s.gender === 'FEMALE').length || 0;
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+    >
       <div className="bg-card w-full max-w-2xl rounded-2xl shadow-2xl border border-border overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-border bg-muted/30">
@@ -63,9 +64,7 @@ export const NominaSiagieModal: React.FC<NominaSiagieModalProps> = ({
               <FileSpreadsheet className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-foreground">
-                Nómina Oficial de Matrícula SIAGIE
-              </h2>
+              <h2 className="text-lg font-bold text-foreground">Nómina Oficial de Matrícula SIAGIE</h2>
               <p className="text-xs text-muted-foreground">
                 Genera la hoja oficial de matrícula (.xlsx) con los estándares requeridos por el MINEDU.
               </p>
@@ -83,9 +82,7 @@ export const NominaSiagieModal: React.FC<NominaSiagieModalProps> = ({
         <div className="p-5 space-y-4 overflow-y-auto">
           {/* Selector de Aula */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-foreground">
-              Seleccionar Aula / Grado y Sección:
-            </label>
+            <label className="text-xs font-semibold text-foreground">Seleccionar Aula / Grado y Sección:</label>
             <select
               value={selectedClassroomId}
               onChange={(e) => setSelectedClassroomId(e.target.value)}
@@ -122,9 +119,7 @@ export const NominaSiagieModal: React.FC<NominaSiagieModalProps> = ({
                 </div>
                 <div className="p-3 rounded-xl border border-border bg-background/50">
                   <span className="text-xs text-muted-foreground block font-medium">Varones (M)</span>
-                  <span className="text-xl font-bold text-blue-600 dark:text-blue-400 mt-0.5 block">
-                    {countMales}
-                  </span>
+                  <span className="text-xl font-bold text-blue-600 dark:text-blue-400 mt-0.5 block">{countMales}</span>
                 </div>
                 <div className="p-3 rounded-xl border border-border bg-background/50">
                   <span className="text-xs text-muted-foreground block font-medium">Mujeres (F)</span>
@@ -142,7 +137,9 @@ export const NominaSiagieModal: React.FC<NominaSiagieModalProps> = ({
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Código Modular:</span>
-                  <span className="font-mono font-medium text-foreground">{nominaData.school.modularCode || 'Sin registrar'}</span>
+                  <span className="font-mono font-medium text-foreground">
+                    {nominaData.school.modularCode || 'Sin registrar'}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Tutor Asignado:</span>
@@ -208,11 +205,7 @@ export const NominaSiagieModal: React.FC<NominaSiagieModalProps> = ({
             disabled={!nominaData || nominaData.students.length === 0 || isExporting}
             className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
           >
-            {isExporting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4" />
-            )}
+            {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
             <span>Descargar Nómina Oficial (.xlsx)</span>
           </Button>
         </div>

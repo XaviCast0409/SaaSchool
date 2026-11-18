@@ -37,11 +37,19 @@ export const LeadModalProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     <LeadModalContext.Provider value={{ openLead }}>
       {children}
       {state && (
-        <div className="kx fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-0 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="lead-modal-title">
+        <div
+          className="kx fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-0 sm:p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="lead-modal-title"
+        >
           <div className="absolute inset-0 bg-[#0b1530]/80 backdrop-blur-sm transition-opacity" onClick={close} />
           <div className="relative w-full sm:max-w-3xl max-h-[94vh] overflow-y-auto rounded-t-[28px] sm:rounded-[28px] bg-[#fbf8f3] text-[#121a33] shadow-2xl border border-[#e6e3dc] kx-panel-enter grid md:grid-cols-[0.9fr_1.1fr] z-10">
             <aside className="hidden md:flex flex-col justify-between p-8 bg-[#0b1530] text-white rounded-l-[28px] relative overflow-hidden border-r border-[#1c2d52]">
-              <div className="kx-orb" style={{ width: 260, height: 260, right: -90, top: -80, background: 'var(--kx-purple)' }} />
+              <div
+                className="kx-orb"
+                style={{ width: 260, height: 260, right: -90, top: -80, background: 'var(--kx-purple)' }}
+              />
               <div className="relative">
                 <span className="kx-eyebrow">Demostración</span>
                 <h2 id="lead-modal-title" className="mt-4 text-3xl font-extrabold leading-tight text-white">
@@ -49,9 +57,17 @@ export const LeadModalProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 </h2>
               </div>
               <ul className="relative space-y-4 text-sm text-[#c3cadc]">
-                <li className="flex gap-3"><CalendarCheck className="w-5 h-5 shrink-0 text-[var(--kx-coral)]" /> Agendamos en el horario que prefieras.</li>
-                <li className="flex gap-3"><Sparkles className="w-5 h-5 shrink-0 text-[var(--kx-coral)]" /> Te mostramos los módulos que más te importan.</li>
-                <li className="flex gap-3"><Clock className="w-5 h-5 shrink-0 text-[var(--kx-coral)]" /> Sin compromiso y por videollamada.</li>
+                <li className="flex gap-3">
+                  <CalendarCheck className="w-5 h-5 shrink-0 text-[var(--kx-coral)]" /> Agendamos en el horario que
+                  prefieras.
+                </li>
+                <li className="flex gap-3">
+                  <Sparkles className="w-5 h-5 shrink-0 text-[var(--kx-coral)]" /> Te mostramos los módulos que más te
+                  importan.
+                </li>
+                <li className="flex gap-3">
+                  <Clock className="w-5 h-5 shrink-0 text-[var(--kx-coral)]" /> Sin compromiso y por videollamada.
+                </li>
               </ul>
             </aside>
             <div className="p-6 sm:p-8 bg-[#fbf8f3] text-[#121a33]">
@@ -61,7 +77,11 @@ export const LeadModalProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                   <h2 className="mt-2 text-2xl font-extrabold text-[#121a33]">Solicita tu demostración</h2>
                 </div>
                 <p className="hidden md:block text-sm text-[#5b6480]">Completa en menos de un minuto.</p>
-                <button onClick={close} className="shrink-0 w-10 h-10 rounded-full grid place-items-center text-[#5b6480] hover:text-[#121a33] hover:bg-black/5 transition-colors" aria-label="Cerrar">
+                <button
+                  onClick={close}
+                  className="shrink-0 w-10 h-10 rounded-full grid place-items-center text-[#5b6480] hover:text-[#121a33] hover:bg-black/5 transition-colors"
+                  aria-label="Cerrar"
+                >
                   <X className="w-5 h-5" />
                 </button>
               </div>

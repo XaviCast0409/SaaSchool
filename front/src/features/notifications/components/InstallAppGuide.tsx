@@ -39,22 +39,26 @@ const Steps: React.FC<{ platform: Platform }> = ({ platform }) => {
     return (
       <ol className="space-y-2 text-sm text-foreground">
         <li className="flex items-start gap-2">
-          <span className="font-bold text-primary">1.</span> Abre esta página en <strong>Safari</strong> (en otros navegadores del iPhone no se puede instalar).
+          <span className="font-bold text-primary">1.</span> Abre esta página en <strong>Safari</strong> (en otros
+          navegadores del iPhone no se puede instalar).
         </li>
         <li className="flex items-start gap-2">
           <span className="font-bold text-primary">2.</span>
           <span>
-            Toca el botón <Share className="inline h-4 w-4 align-text-bottom" aria-label="Compartir" /> <strong>Compartir</strong> (abajo, al centro).
+            Toca el botón <Share className="inline h-4 w-4 align-text-bottom" aria-label="Compartir" />{' '}
+            <strong>Compartir</strong> (abajo, al centro).
           </span>
         </li>
         <li className="flex items-start gap-2">
           <span className="font-bold text-primary">3.</span>
           <span>
-            Elige <PlusSquare className="inline h-4 w-4 align-text-bottom" aria-hidden /> <strong>Agregar a inicio</strong> y luego <strong>Agregar</strong>.
+            Elige <PlusSquare className="inline h-4 w-4 align-text-bottom" aria-hidden />{' '}
+            <strong>Agregar a inicio</strong> y luego <strong>Agregar</strong>.
           </span>
         </li>
         <li className="flex items-start gap-2">
-          <span className="font-bold text-primary">4.</span> Abre la app desde el ícono nuevo y activa las notificaciones en <strong>Mis notificaciones</strong>.
+          <span className="font-bold text-primary">4.</span> Abre la app desde el ícono nuevo y activa las
+          notificaciones en <strong>Mis notificaciones</strong>.
         </li>
       </ol>
     );
@@ -65,11 +69,13 @@ const Steps: React.FC<{ platform: Platform }> = ({ platform }) => {
         <li className="flex items-start gap-2">
           <span className="font-bold text-primary">1.</span>
           <span>
-            En Chrome, toca el menú <MoreVertical className="inline h-4 w-4 align-text-bottom" aria-label="Menú" /> (arriba a la derecha).
+            En Chrome, toca el menú <MoreVertical className="inline h-4 w-4 align-text-bottom" aria-label="Menú" />{' '}
+            (arriba a la derecha).
           </span>
         </li>
         <li className="flex items-start gap-2">
-          <span className="font-bold text-primary">2.</span> Elige <strong>Instalar aplicación</strong> o <strong>Agregar a la pantalla principal</strong>.
+          <span className="font-bold text-primary">2.</span> Elige <strong>Instalar aplicación</strong> o{' '}
+          <strong>Agregar a la pantalla principal</strong>.
         </li>
         <li className="flex items-start gap-2">
           <span className="font-bold text-primary">3.</span> Abre la app desde el ícono y acepta las notificaciones.
@@ -80,10 +86,13 @@ const Steps: React.FC<{ platform: Platform }> = ({ platform }) => {
   return (
     <ol className="space-y-2 text-sm text-foreground">
       <li className="flex items-start gap-2">
-        <span className="font-bold text-primary">1.</span> En Chrome o Edge, busca el ícono <Download className="inline h-4 w-4 align-text-bottom" aria-hidden /> <strong>Instalar</strong> en la barra de direcciones.
+        <span className="font-bold text-primary">1.</span> En Chrome o Edge, busca el ícono{' '}
+        <Download className="inline h-4 w-4 align-text-bottom" aria-hidden /> <strong>Instalar</strong> en la barra de
+        direcciones.
       </li>
       <li className="flex items-start gap-2">
-        <span className="font-bold text-primary">2.</span> Para tenerla en el celular, abre esta misma dirección desde el teléfono y sigue los pasos que aparecen ahí.
+        <span className="font-bold text-primary">2.</span> Para tenerla en el celular, abre esta misma dirección desde
+        el teléfono y sigue los pasos que aparecen ahí.
       </li>
     </ol>
   );
@@ -113,7 +122,8 @@ export const InstallAppGuide: React.FC = () => {
         <Smartphone className="h-5 w-5 text-primary" aria-hidden /> Instala la app en tu celular
       </p>
       <p className="mb-3 text-xs text-muted-foreground">
-        Así se abre con un toque y recibes los avisos aunque no la tengas abierta.{platform === 'IOS' ? ' En iPhone, las notificaciones solo funcionan con la app instalada.' : ''}
+        Así se abre con un toque y recibes los avisos aunque no la tengas abierta.
+        {platform === 'IOS' ? ' En iPhone, las notificaciones solo funcionan con la app instalada.' : ''}
       </p>
       {canPrompt ? (
         <Button
@@ -175,12 +185,23 @@ export const InstallAppBanner: React.FC = () => {
               <Steps platform={platform} />
             </div>
           ) : (
-            <Button size="sm" className="mt-2 h-8" onClick={() => (deferredPrompt ? deferredPrompt.prompt().then(() => setVisible(false)) : setExpanded(true))}>
+            <Button
+              size="sm"
+              className="mt-2 h-8"
+              onClick={() =>
+                deferredPrompt ? deferredPrompt.prompt().then(() => setVisible(false)) : setExpanded(true)
+              }
+            >
               Ver cómo
             </Button>
           )}
         </div>
-        <button type="button" onClick={dismiss} className="rounded p-1 text-muted-foreground hover:bg-muted" aria-label="Recordármelo más tarde">
+        <button
+          type="button"
+          onClick={dismiss}
+          className="rounded p-1 text-muted-foreground hover:bg-muted"
+          aria-label="Recordármelo más tarde"
+        >
           <X className="h-4 w-4" />
         </button>
       </div>

@@ -40,9 +40,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 export const useCourseAssignments = (options?: { enabled?: boolean }) => {
   const { user, impersonatedSchool } = useAuthStore();
   const currentSchoolId =
-    user?.role === 'SUPER_ADMIN' && impersonatedSchool?.id
-      ? impersonatedSchool.id
-      : user?.schoolId;
+    user?.role === 'SUPER_ADMIN' && impersonatedSchool?.id ? impersonatedSchool.id : user?.schoolId;
 
   return useQuery({
     queryKey: ['course-assignments', currentSchoolId],
@@ -58,9 +56,7 @@ export const useCourseAssignments = (options?: { enabled?: boolean }) => {
 export const useMyCourseAssignments = (options?: { enabled?: boolean }) => {
   const { user, impersonatedSchool } = useAuthStore();
   const currentSchoolId =
-    user?.role === 'SUPER_ADMIN' && impersonatedSchool?.id
-      ? impersonatedSchool.id
-      : user?.schoolId;
+    user?.role === 'SUPER_ADMIN' && impersonatedSchool?.id ? impersonatedSchool.id : user?.schoolId;
 
   return useQuery({
     queryKey: ['course-assignments', 'my-courses', user?.id, currentSchoolId],
@@ -71,4 +67,3 @@ export const useMyCourseAssignments = (options?: { enabled?: boolean }) => {
     enabled: options?.enabled ?? true,
   });
 };
-

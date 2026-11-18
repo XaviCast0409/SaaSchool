@@ -33,9 +33,7 @@ export const ForgotPasswordPage: React.FC = () => {
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <KeyRound className="h-6 w-6" aria-hidden />
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">
-            ¿Olvidaste tu contraseña?
-          </h1>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">¿Olvidaste tu contraseña?</h1>
           <p className="text-xs text-muted-foreground">
             Ingresa el correo registrado con tu cuenta para recibir un enlace de restablecimiento.
           </p>
@@ -47,7 +45,8 @@ export const ForgotPasswordPage: React.FC = () => {
               <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-600 dark:text-emerald-400" />
               <p className="text-sm font-semibold text-foreground">Revisa tu correo electrónico</p>
               <p className="text-xs text-muted-foreground">
-                Si el correo <strong>{email}</strong> está registrado, te enviamos un enlace para restablecer tu contraseña. Revisa también tu bandeja de spam.
+                Si el correo <strong>{email}</strong> está registrado, te enviamos un enlace para restablecer tu
+                contraseña. Revisa también tu bandeja de spam.
               </p>
             </div>
             <div className="rounded-xl border border-border bg-muted/30 p-3 text-xs text-muted-foreground text-center">
@@ -93,7 +92,10 @@ export const ForgotPasswordPage: React.FC = () => {
             </div>
 
             <div className="pt-2 border-t border-border text-center">
-              <Link to="/login" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+              <Link
+                to="/login"
+                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+              >
                 <ArrowLeft className="h-3.5 w-3.5" />
                 <span>Volver al inicio de sesión</span>
               </Link>
@@ -104,4 +106,3 @@ export const ForgotPasswordPage: React.FC = () => {
     </div>
   );
 };
-

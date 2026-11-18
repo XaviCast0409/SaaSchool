@@ -4,11 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { isMobileDevice, isPushSupported, subscribeUserToPush } from '../utils/push.util';
-import {
-  useGetVapidPublicKey,
-  useSavePushSubscription,
-  useSendTestPushNotification,
-} from '../api/useNotifications';
+import { useGetVapidPublicKey, useSavePushSubscription, useSendTestPushNotification } from '../api/useNotifications';
 
 const SNOOZE_KEY = 'saaschool_push_prompt_snoozed_until';
 
@@ -90,13 +86,8 @@ export const MobilePushBanner: React.FC = () => {
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <h4 className="text-xs font-bold text-foreground">
-                Notificaciones en tu celular
-              </h4>
-              <Badge
-                variant="default"
-                className="text-xs px-1.5 py-0 font-bold bg-primary text-primary-foreground"
-              >
+              <h4 className="text-xs font-bold text-foreground">Notificaciones en tu celular</h4>
+              <Badge variant="default" className="text-xs px-1.5 py-0 font-bold bg-primary text-primary-foreground">
                 2do Plano
               </Badge>
             </div>
@@ -116,12 +107,7 @@ export const MobilePushBanner: React.FC = () => {
       </div>
 
       <div className="flex items-center justify-end gap-2 mt-3 pt-2 border-t border-border/40">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleDismiss}
-          className="text-xs h-7 text-muted-foreground"
-        >
+        <Button variant="ghost" size="sm" onClick={handleDismiss} className="text-xs h-7 text-muted-foreground">
           Ahora no
         </Button>
         <Button
@@ -130,11 +116,7 @@ export const MobilePushBanner: React.FC = () => {
           disabled={isSubscribing}
           className="text-xs h-7 gap-1.5 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90"
         >
-          {isSubscribing ? (
-            <Loader2 className="w-3 h-3 animate-spin" />
-          ) : (
-            <BellRing className="w-3 h-3" />
-          )}
+          {isSubscribing ? <Loader2 className="w-3 h-3 animate-spin" /> : <BellRing className="w-3 h-3" />}
           <span>Activar en Celular</span>
         </Button>
       </div>

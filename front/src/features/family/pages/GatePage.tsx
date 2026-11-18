@@ -25,9 +25,11 @@ export const GatePage: React.FC = () => {
   const outRows = (data?.rows ?? []).filter(
     (r) => !term || `${r.student} ${r.pickedUpByName ?? ''} ${r.classroom}`.toLowerCase().includes(term),
   );
-  const inRows = (data?.inSchool ?? []).filter((r) => !term || `${r.student} ${r.classroom}`.toLowerCase().includes(term));
+  const inRows = (data?.inSchool ?? []).filter(
+    (r) => !term || `${r.student} ${r.classroom}`.toLowerCase().includes(term),
+  );
 
-  const stat = (value: number | undefined) => (isLoading ? '…' : value ?? 0);
+  const stat = (value: number | undefined) => (isLoading ? '…' : (value ?? 0));
 
   return (
     <div className="max-w-4xl">
@@ -75,7 +77,11 @@ export const GatePage: React.FC = () => {
 
       <Card className="p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div role="tablist" aria-label="Listas de portería" className="inline-flex rounded-lg border border-border p-0.5 text-xs">
+          <div
+            role="tablist"
+            aria-label="Listas de portería"
+            className="inline-flex rounded-lg border border-border p-0.5 text-xs"
+          >
             {(
               [
                 ['out', `Salidas de hoy (${data?.checkedOut ?? 0})`],
@@ -113,13 +119,19 @@ export const GatePage: React.FC = () => {
         ) : tab === 'out' ? (
           outRows.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              {term ? 'Nadie coincide con la búsqueda.' : data?.isSchoolDay === false ? 'Hoy no hay clases.' : 'Aún no hay salidas registradas hoy.'}
+              {term
+                ? 'Nadie coincide con la búsqueda.'
+                : data?.isSchoolDay === false
+                  ? 'Hoy no hay clases.'
+                  : 'Aún no hay salidas registradas hoy.'}
             </p>
           ) : (
             <ul className="divide-y divide-border">
               {outRows.map((r) => (
                 <li key={r.id} className="flex items-start gap-3 py-2.5 text-sm">
-                  <span className="w-[4.5rem] shrink-0 whitespace-nowrap font-mono text-xs text-muted-foreground">{formatPeruTime(r.checkOutTime)}</span>
+                  <span className="w-[4.5rem] shrink-0 whitespace-nowrap font-mono text-xs text-muted-foreground">
+                    {formatPeruTime(r.checkOutTime)}
+                  </span>
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-foreground">
                       {r.student} <span className="text-xs font-normal text-muted-foreground">· {r.classroom}</span>
@@ -147,7 +159,10 @@ export const GatePage: React.FC = () => {
           <ul className="divide-y divide-border">
             {inRows.map((r) => (
               <li key={r.id} className="flex items-center gap-3 py-2.5 text-sm">
-                <span className="w-[4.5rem] shrink-0 whitespace-nowrap font-mono text-xs text-muted-foreground" title="Hora de ingreso">
+                <span
+                  className="w-[4.5rem] shrink-0 whitespace-nowrap font-mono text-xs text-muted-foreground"
+                  title="Hora de ingreso"
+                >
                   {r.checkInTime ? formatPeruTime(r.checkInTime) : '—'}
                 </span>
                 <p className="min-w-0 flex-1 font-medium text-foreground">

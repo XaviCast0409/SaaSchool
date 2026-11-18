@@ -30,12 +30,8 @@ export const StudentCourseStats: React.FC<StudentCourseStatsProps> = ({
             <BookOpen className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <p className="text-xs sm:text-xs font-semibold text-muted-foreground truncate">
-              Materias de Clase
-            </p>
-            <p className="text-lg sm:text-2xl font-extrabold text-foreground tracking-tight">
-              {totalCourses}
-            </p>
+            <p className="text-xs sm:text-xs font-semibold text-muted-foreground truncate">Materias de Clase</p>
+            <p className="text-lg sm:text-2xl font-extrabold text-foreground tracking-tight">{totalCourses}</p>
           </div>
         </CardContent>
       </Card>
@@ -54,9 +50,7 @@ export const StudentCourseStats: React.FC<StudentCourseStatsProps> = ({
             <ClipboardCheck className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <p className="text-xs sm:text-xs font-semibold text-muted-foreground truncate">
-              Tareas Pendientes
-            </p>
+            <p className="text-xs sm:text-xs font-semibold text-muted-foreground truncate">Tareas Pendientes</p>
             <div className="flex items-center gap-1.5">
               <span className="text-lg sm:text-2xl font-extrabold text-foreground tracking-tight">
                 {totalPendingTasks}
@@ -85,13 +79,9 @@ export const StudentCourseStats: React.FC<StudentCourseStatsProps> = ({
             <MessageSquare className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <p className="text-xs sm:text-xs font-semibold text-muted-foreground truncate">
-              Foros de Debate
-            </p>
+            <p className="text-xs sm:text-xs font-semibold text-muted-foreground truncate">Foros de Debate</p>
             <div className="flex items-center gap-1.5">
-              <span className="text-lg sm:text-2xl font-extrabold text-foreground tracking-tight">
-                {totalForums}
-              </span>
+              <span className="text-lg sm:text-2xl font-extrabold text-foreground tracking-tight">{totalForums}</span>
               {totalForums > 0 && (
                 <span className="text-xs px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-500/20">
                   Activos
@@ -109,12 +99,8 @@ export const StudentCourseStats: React.FC<StudentCourseStatsProps> = ({
             <Sparkles className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <p className="text-xs sm:text-xs font-semibold text-muted-foreground truncate">
-              Recursos Publicados
-            </p>
-            <p className="text-lg sm:text-2xl font-extrabold text-foreground tracking-tight">
-              {totalPublications}
-            </p>
+            <p className="text-xs sm:text-xs font-semibold text-muted-foreground truncate">Recursos Publicados</p>
+            <p className="text-lg sm:text-2xl font-extrabold text-foreground tracking-tight">{totalPublications}</p>
           </div>
         </CardContent>
       </Card>

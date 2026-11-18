@@ -178,10 +178,10 @@ export const useRenewalPreview = (schoolId: string | null, months: number) => {
   return useQuery({
     queryKey: ['superadmin-renewal-preview', schoolId, months],
     queryFn: async () => {
-      const response = await api.get<{ status: string; data: { newExpiresAt: string; currentExpiresAt: string | null } }>(
-        `/schools/${schoolId}/subscription-payments/preview`,
-        { params: { months } },
-      );
+      const response = await api.get<{
+        status: string;
+        data: { newExpiresAt: string; currentExpiresAt: string | null };
+      }>(`/schools/${schoolId}/subscription-payments/preview`, { params: { months } });
       return response.data.data;
     },
     enabled: !!schoolId && months >= 1 && months <= 24,
@@ -216,10 +216,10 @@ export const useVoidSubscriptionPayment = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ schoolId, paymentId, reason }: { schoolId: string; paymentId: string; reason: string }) => {
-      const response = await api.post<{ status: string; data: { payment: SubscriptionPayment; expiryReverted: boolean } }>(
-        `/schools/${schoolId}/subscription-payments/${paymentId}/void`,
-        { reason },
-      );
+      const response = await api.post<{
+        status: string;
+        data: { payment: SubscriptionPayment; expiryReverted: boolean };
+      }>(`/schools/${schoolId}/subscription-payments/${paymentId}/void`, { reason });
       return response.data.data;
     },
     onSuccess: (_data, { schoolId }) => invalidateBilling(queryClient, schoolId),

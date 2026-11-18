@@ -16,7 +16,13 @@ import { SiagieExportPanel } from '../components/SiagieExportPanel';
 import { classroomLabel, type Level } from '../types';
 
 type Tab = 'consolidated' | 'report-cards' | 'siagie';
-const SITUATION: Record<string, string> = { PROMOTED: 'Promovido', RECOVERY: 'Recuperación', RETAINED: 'Permanece', TRANSFERRED: 'Trasladado', WITHDRAWN: 'Retirado' };
+const SITUATION: Record<string, string> = {
+  PROMOTED: 'Promovido',
+  RECOVERY: 'Recuperación',
+  RETAINED: 'Permanece',
+  TRANSFERRED: 'Trasladado',
+  WITHDRAWN: 'Retirado',
+};
 
 export const AcademicReportsPage: React.FC = () => {
   // Año que se edita: el elegido en la cabecera
@@ -27,18 +33,33 @@ export const AcademicReportsPage: React.FC = () => {
   const [showCourses, setShowCourses] = useState(true);
   const [classroomId, setClassroomId] = useState<string | null>(null);
   const [period, setPeriod] = useState<number | 'FINAL' | null>(null);
-  useEffect(() => { if (periods && period === null) setPeriod(currentPeriodNumber(periods.periods)); }, [periods, period]);
+  useEffect(() => {
+    if (periods && period === null) setPeriod(currentPeriodNumber(periods.periods));
+  }, [periods, period]);
   const [downloading, setDownloading] = useState(false);
-  useEffect(() => { if (!classroomId && classrooms.length) setClassroomId(classrooms[0].id); }, [classrooms, classroomId]);
-  const { data, isLoading } = useConsolidation(tab === 'report-cards' || period === null ? null : classroomId, period ?? 1);
-  const coursesOf = (areaCode: string) => (showCourses && data ? data.matrix.courses.filter((c) => c.officialCode === areaCode) : []);
-  const sorted = [...classrooms].sort((a, b) => a.educationLevel.localeCompare(b.educationLevel) || a.grade - b.grade || a.section.localeCompare(b.section));
+  useEffect(() => {
+    if (!classroomId && classrooms.length) setClassroomId(classrooms[0].id);
+  }, [classrooms, classroomId]);
+  const { data, isLoading } = useConsolidation(
+    tab === 'report-cards' || period === null ? null : classroomId,
+    period ?? 1,
+  );
+  const coursesOf = (areaCode: string) =>
+    showCourses && data ? data.matrix.courses.filter((c) => c.officialCode === areaCode) : [];
+  const sorted = [...classrooms].sort(
+    (a, b) =>
+      a.educationLevel.localeCompare(b.educationLevel) || a.grade - b.grade || a.section.localeCompare(b.section),
+  );
 
   const handleDownload = async () => {
     if (!classroomId || !data) return;
     setDownloading(true);
     try {
-      await downloadFile('/academic/consolidation/export', { classroomId, period }, `consolidado-${data.classroom.grade}${data.classroom.section}-${period}.xlsx`);
+      await downloadFile(
+        '/academic/consolidation/export',
+        { classroomId, period },
+        `consolidado-${data.classroom.grade}${data.classroom.section}-${period}.xlsx`,
+      );
     } finally {
       setDownloading(false);
     }
@@ -46,19 +67,38 @@ export const AcademicReportsPage: React.FC = () => {
 
   return (
     <div>
-      <PageHeader title={`Notas y libretas${viewedYear ? ` ${viewedYear}` : ''}`} description="Consolidado del aula, libretas para imprimir y archivo para el SIAGIE." />
+      <PageHeader
+        title={`Notas y libretas${viewedYear ? ` ${viewedYear}` : ''}`}
+        description="Consolidado del aula, libretas para imprimir y archivo para el SIAGIE."
+      />
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <Tabs<Tab> value={tab} onChange={setTab} items={[
-          { value: 'consolidated', label: 'Consolidado' },
-          { value: 'report-cards', label: 'Libretas' },
-          { value: 'siagie', label: 'SIAGIE' },
-        ]} />
+        <Tabs<Tab>
+          value={tab}
+          onChange={setTab}
+          items={[
+            { value: 'consolidated', label: 'Consolidado' },
+            { value: 'report-cards', label: 'Libretas' },
+            { value: 'siagie', label: 'SIAGIE' },
+          ]}
+        />
         <Select aria-label="Aula" value={classroomId ?? ''} onChange={(e) => setClassroomId(e.target.value)}>
-          {sorted.map((c) => <option key={c.id} value={c.id}>{classroomLabel({ educationLevel: c.educationLevel as Level, grade: c.grade, section: c.section })}</option>)}
+          {sorted.map((c) => (
+            <option key={c.id} value={c.id}>
+              {classroomLabel({ educationLevel: c.educationLevel as Level, grade: c.grade, section: c.section })}
+            </option>
+          ))}
         </Select>
         {tab !== 'report-cards' && (
-          <Select aria-label="Periodo" value={String(period ?? '')} onChange={(e) => setPeriod(e.target.value === 'FINAL' ? 'FINAL' : Number(e.target.value))}>
-            {periods?.periods.map((p) => <option key={p.periodNumber} value={p.periodNumber}>{p.name}</option>)}
+          <Select
+            aria-label="Periodo"
+            value={String(period ?? '')}
+            onChange={(e) => setPeriod(e.target.value === 'FINAL' ? 'FINAL' : Number(e.target.value))}
+          >
+            {periods?.periods.map((p) => (
+              <option key={p.periodNumber} value={p.periodNumber}>
+                {p.name}
+              </option>
+            ))}
             <option value="FINAL">Calificativo final</option>
           </Select>
         )}
@@ -66,97 +106,153 @@ export const AcademicReportsPage: React.FC = () => {
 
       {tab === 'report-cards' && classroomId && (
         <Card className="p-5">
-          <p className="text-sm">Genera las libretas de todos los estudiantes del aula en una sola vista lista para imprimir o guardar como PDF.</p>
+          <p className="text-sm">
+            Genera las libretas de todos los estudiantes del aula en una sola vista lista para imprimir o guardar como
+            PDF.
+          </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Button asChild><Link to={`/academic/report-cards/print?classroomId=${classroomId}`}>Abrir libretas del aula</Link></Button>
-            <Button asChild variant="outline"><Link to={`/academic/tutor-report?classroomId=${classroomId}`}>Conducta y comentarios del tutor</Link></Button>
+            <Button asChild>
+              <Link to={`/academic/report-cards/print?classroomId=${classroomId}`}>Abrir libretas del aula</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to={`/academic/tutor-report?classroomId=${classroomId}`}>Conducta y comentarios del tutor</Link>
+            </Button>
           </div>
         </Card>
       )}
 
-      {tab !== 'report-cards' && (isLoading || !data ? <Skeleton className="h-64 w-full" /> : tab === 'siagie' ? (
-        <Card className="p-5"><SiagieExportPanel data={data} /></Card>
-      ) : (
-        <>
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-3">
-              <p className="text-sm text-muted-foreground">
-                {data.summary.totalStudents} estudiantes · {data.summary.missingGrades} calificativos y {data.summary.missingConclusions} conclusiones pendientes
-              </p>
-              {data.matrix.courses.length > 0 && (
-                <label className="flex items-center gap-1.5 text-sm">
-                  <input type="checkbox" checked={showCourses} onChange={(e) => setShowCourses(e.target.checked)} />
-                  Ver cursos de cada área
-                </label>
-              )}
+      {tab !== 'report-cards' &&
+        (isLoading || !data ? (
+          <Skeleton className="h-64 w-full" />
+        ) : tab === 'siagie' ? (
+          <Card className="p-5">
+            <SiagieExportPanel data={data} />
+          </Card>
+        ) : (
+          <>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-sm text-muted-foreground">
+                  {data.summary.totalStudents} estudiantes · {data.summary.missingGrades} calificativos y{' '}
+                  {data.summary.missingConclusions} conclusiones pendientes
+                </p>
+                {data.matrix.courses.length > 0 && (
+                  <label className="flex items-center gap-1.5 text-sm">
+                    <input type="checkbox" checked={showCourses} onChange={(e) => setShowCourses(e.target.checked)} />
+                    Ver cursos de cada área
+                  </label>
+                )}
+              </div>
+              <Button variant="outline" size="sm" disabled={downloading} onClick={handleDownload}>
+                {downloading ? (
+                  <>
+                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                    Generando…
+                  </>
+                ) : (
+                  <>
+                    <Download className="mr-1 h-4 w-4" />
+                    Excel
+                  </>
+                )}
+              </Button>
             </div>
-            <Button variant="outline" size="sm" disabled={downloading} onClick={handleDownload}>
-              {downloading ? (
-                <>
-                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />Generando…
-                </>
-              ) : (
-                <>
-                  <Download className="mr-1 h-4 w-4" />Excel
-                </>
-              )}
-            </Button>
-          </div>
-          <Card className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-xs text-muted-foreground">
-                <tr>
-                  <th rowSpan={2} className="sticky left-0 bg-muted/40 px-3 py-2 text-left font-semibold">Estudiante</th>
-                  {data.matrix.consolidatedAreas?.map((a) => (
-                    <th key={a.code} colSpan={a.competences.length + coursesOf(a.code).length} className="border-l border-border px-2 py-1.5 text-center font-semibold">
-                      {a.name}{coursesOf(a.code).length > 0 && <span className="block text-xs font-normal">área madre · va al SIAGIE</span>}
+            <Card className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40 text-xs text-muted-foreground">
+                  <tr>
+                    <th rowSpan={2} className="sticky left-0 bg-muted/40 px-3 py-2 text-left font-semibold">
+                      Estudiante
                     </th>
-                  ))}
-                  {period === 'FINAL' && <th rowSpan={2} className="border-l border-border px-2 py-2 font-semibold">Situación</th>}
-                </tr>
-                <tr>
-                  {data.matrix.consolidatedAreas?.map((a) => [
-                    ...coursesOf(a.code).map((course, i) => (
-                      <th key={course.id} title={`Promedio de ${course.name} (${course.teacherName})`}
-                        className={`bg-primary/5 px-1 py-1.5 text-center font-medium italic ${i === 0 ? 'border-l border-border' : ''}`}>{course.name}</th>
-                    )),
-                    ...a.competences.map((c, i) => (
-                      <th key={c.id} title={c.name} className={`px-1 py-1.5 text-center font-medium ${i === 0 && coursesOf(a.code).length === 0 ? 'border-l border-border' : ''}`}>{c.shortName}</th>
-                    )),
-                  ])}
-                </tr>
-              </thead>
-              <tbody>
-                {data.matrix.students.map((s) => (
-                  <tr key={s.enrollmentId} className={`border-t border-border ${(s.activeInPeriod ?? s.enrollmentState === 'REGISTERED') ? '' : 'opacity-50'}`}>
-                    <td className="sticky left-0 whitespace-nowrap bg-card px-3 py-1.5">{s.fullName}</td>
+                    {data.matrix.consolidatedAreas?.map((a) => (
+                      <th
+                        key={a.code}
+                        colSpan={a.competences.length + coursesOf(a.code).length}
+                        className="border-l border-border px-2 py-1.5 text-center font-semibold"
+                      >
+                        {a.name}
+                        {coursesOf(a.code).length > 0 && (
+                          <span className="block text-xs font-normal">área madre · va al SIAGIE</span>
+                        )}
+                      </th>
+                    ))}
+                    {period === 'FINAL' && (
+                      <th rowSpan={2} className="border-l border-border px-2 py-2 font-semibold">
+                        Situación
+                      </th>
+                    )}
+                  </tr>
+                  <tr>
                     {data.matrix.consolidatedAreas?.map((a) => [
                       ...coursesOf(a.code).map((course, i) => (
-                        <td key={course.id} className={`bg-primary/5 px-1 py-1.5 text-center ${i === 0 ? 'border-l border-border' : ''}`}>
-                          <LetterBadge letter={s.courseGrades?.[course.id]?.letter} />
-                        </td>
+                        <th
+                          key={course.id}
+                          title={`Promedio de ${course.name} (${course.teacherName})`}
+                          className={`bg-primary/5 px-1 py-1.5 text-center font-medium italic ${i === 0 ? 'border-l border-border' : ''}`}
+                        >
+                          {course.name}
+                        </th>
                       )),
                       ...a.competences.map((c, i) => (
-                        <td key={c.id} className={`px-1 py-1.5 text-center ${i === 0 && coursesOf(a.code).length === 0 ? 'border-l border-border' : ''}`}>
-                          <LetterBadge letter={s.consolidatedGrades?.[a.code]?.competences?.[c.id]?.letter} />
-                        </td>
+                        <th
+                          key={c.id}
+                          title={c.name}
+                          className={`px-1 py-1.5 text-center font-medium ${i === 0 && coursesOf(a.code).length === 0 ? 'border-l border-border' : ''}`}
+                        >
+                          {c.shortName}
+                        </th>
                       )),
                     ])}
-                    {period === 'FINAL' && <td className="border-l border-border px-2 py-1.5 text-xs">{s.finalSituation ? SITUATION[s.finalSituation] : '—'} <span className="text-muted-foreground">(provisional)</span></td>}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
-          {data.issues.length > 0 && (
-            <details className="mt-4 rounded-lg border border-border p-3 text-sm">
-              <summary className="cursor-pointer font-medium">{data.issues.length} observaciones</summary>
-              <ul className="mt-2 list-disc space-y-0.5 pl-5 text-muted-foreground">{data.issues.map((i, idx) => <li key={idx}>{i.message}</li>)}</ul>
-            </details>
-          )}
-        </>
-      ))}
+                </thead>
+                <tbody>
+                  {data.matrix.students.map((s) => (
+                    <tr
+                      key={s.enrollmentId}
+                      className={`border-t border-border ${(s.activeInPeriod ?? s.enrollmentState === 'REGISTERED') ? '' : 'opacity-50'}`}
+                    >
+                      <td className="sticky left-0 whitespace-nowrap bg-card px-3 py-1.5">{s.fullName}</td>
+                      {data.matrix.consolidatedAreas?.map((a) => [
+                        ...coursesOf(a.code).map((course, i) => (
+                          <td
+                            key={course.id}
+                            className={`bg-primary/5 px-1 py-1.5 text-center ${i === 0 ? 'border-l border-border' : ''}`}
+                          >
+                            <LetterBadge letter={s.courseGrades?.[course.id]?.letter} />
+                          </td>
+                        )),
+                        ...a.competences.map((c, i) => (
+                          <td
+                            key={c.id}
+                            className={`px-1 py-1.5 text-center ${i === 0 && coursesOf(a.code).length === 0 ? 'border-l border-border' : ''}`}
+                          >
+                            <LetterBadge letter={s.consolidatedGrades?.[a.code]?.competences?.[c.id]?.letter} />
+                          </td>
+                        )),
+                      ])}
+                      {period === 'FINAL' && (
+                        <td className="border-l border-border px-2 py-1.5 text-xs">
+                          {s.finalSituation ? SITUATION[s.finalSituation] : '—'}{' '}
+                          <span className="text-muted-foreground">(provisional)</span>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Card>
+            {data.issues.length > 0 && (
+              <details className="mt-4 rounded-lg border border-border p-3 text-sm">
+                <summary className="cursor-pointer font-medium">{data.issues.length} observaciones</summary>
+                <ul className="mt-2 list-disc space-y-0.5 pl-5 text-muted-foreground">
+                  {data.issues.map((i, idx) => (
+                    <li key={idx}>{i.message}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </>
+        ))}
     </div>
   );
 };
-

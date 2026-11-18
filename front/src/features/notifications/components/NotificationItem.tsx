@@ -1,13 +1,5 @@
 import React from 'react';
-import {
-  CreditCard,
-  Megaphone,
-  CalendarCheck,
-  BookOpenCheck,
-  Bell,
-  Clock,
-  Check,
-} from 'lucide-react';
+import { CreditCard, Megaphone, CalendarCheck, BookOpenCheck, Bell, Clock, Check } from 'lucide-react';
 import type { AppNotification, NotificationType } from '../types';
 
 interface NotificationItemProps {
@@ -46,25 +38,18 @@ const formatTimeAgo = (dateString: string): string => {
   return date.toLocaleDateString('es-PE', { day: '2-digit', month: 'short', timeZone: 'America/Lima' });
 };
 
-export const NotificationItem: React.FC<NotificationItemProps> = ({
-  notification,
-  onRead,
-}) => {
+export const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onRead }) => {
   return (
     <div
       onClick={() => onRead(notification.id, notification.link)}
       className={`group relative flex items-start gap-3 p-3 text-left transition-colors cursor-pointer border-b border-border/50 last:border-b-0 ${
-        !notification.isRead
-          ? 'bg-primary/5 hover:bg-primary/10'
-          : 'hover:bg-secondary/50 opacity-80 hover:opacity-100'
+        !notification.isRead ? 'bg-primary/5 hover:bg-primary/10' : 'hover:bg-secondary/50 opacity-80 hover:opacity-100'
       }`}
     >
       {/* Icon Pill */}
       <div
         className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border transition-transform group-hover:scale-105 ${
-          !notification.isRead
-            ? 'bg-primary/10 border-primary/20'
-            : 'bg-muted border-border/60 text-muted-foreground'
+          !notification.isRead ? 'bg-primary/10 border-primary/20' : 'bg-muted border-border/60 text-muted-foreground'
         }`}
       >
         {getNotificationIcon(notification.type)}
@@ -75,9 +60,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
         <div className="flex items-center justify-between gap-1 mb-0.5">
           <h4
             className={`text-xs truncate ${
-              !notification.isRead
-                ? 'font-bold text-foreground'
-                : 'font-medium text-muted-foreground'
+              !notification.isRead ? 'font-bold text-foreground' : 'font-medium text-muted-foreground'
             }`}
           >
             {notification.title}
@@ -88,9 +71,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
           </span>
         </div>
 
-        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-          {notification.message}
-        </p>
+        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{notification.message}</p>
 
         {notification.link && (
           <span className="inline-block mt-1 text-xs font-semibold text-primary underline underline-offset-2">
@@ -101,10 +82,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
 
       {/* Unread Indicator */}
       {!notification.isRead ? (
-        <span
-          className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5 shadow-sm"
-          title="No leída"
-        />
+        <span className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5 shadow-sm" title="No leída" />
       ) : (
         <Check className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0 mt-1" />
       )}

@@ -81,9 +81,12 @@ function moveToYear(dateString: string, fromYear: number, toYear: number): strin
  * Al cambiar el número del año, el nombre y todas las fechas lo acompañan: así no se puede
  * guardar «2026» con nombre y periodos de 2027 por olvido.
  */
-function withYear<T extends { year: number; name: string; startDate: string; endDate: string; periodsConfig: PeriodDateConfig[] }>(form: T, nextYear: number): T {
+function withYear<
+  T extends { year: number; name: string; startDate: string; endDate: string; periodsConfig: PeriodDateConfig[] },
+>(form: T, nextYear: number): T {
   const prevYear = form.year;
-  if (!nextYear || nextYear < 2000 || nextYear > 2100 || !prevYear || nextYear === prevYear) return { ...form, year: nextYear };
+  if (!nextYear || nextYear < 2000 || nextYear > 2100 || !prevYear || nextYear === prevYear)
+    return { ...form, year: nextYear };
   const autoName = !form.name.trim() || /^Año Escolar \d{4}$/.test(form.name.trim());
   return {
     ...form,
@@ -160,14 +163,15 @@ export const AcademicYearsPage: React.FC = () => {
 
   const handleOpenEditModal = (ay: AcademicYear) => {
     const pType = ay.periodType || 'BIMESTER';
-    const periods = (ay.periodsConfig && ay.periodsConfig.length > 0)
-      ? ay.periodsConfig.map((p) => ({
-          periodNumber: p.periodNumber,
-          name: p.name,
-          startDate: formatDateInput(p.startDate),
-          endDate: formatDateInput(p.endDate),
-        }))
-      : getDefaultPeriods(pType, ay.year);
+    const periods =
+      ay.periodsConfig && ay.periodsConfig.length > 0
+        ? ay.periodsConfig.map((p) => ({
+            periodNumber: p.periodNumber,
+            name: p.name,
+            startDate: formatDateInput(p.startDate),
+            endDate: formatDateInput(p.endDate),
+          }))
+        : getDefaultPeriods(pType, ay.year);
 
     setEditingYear(ay);
     setFormData({
@@ -220,7 +224,13 @@ export const AcademicYearsPage: React.FC = () => {
   };
 
   const handleDelete = async (ay: AcademicYear) => {
-    if (await confirmDialog({ title: `¿Eliminar el Año Lectivo "${ay.name || ay.year}"?`, confirmText: 'Eliminar', variant: 'danger' })) {
+    if (
+      await confirmDialog({
+        title: `¿Eliminar el Año Lectivo "${ay.name || ay.year}"?`,
+        confirmText: 'Eliminar',
+        variant: 'danger',
+      })
+    ) {
       try {
         await deleteYear(ay.id);
         toast.success('Año Lectivo eliminado.');
@@ -254,9 +264,7 @@ export const AcademicYearsPage: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <Calendar className="w-6 h-6 text-primary" />
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Gestión de Años Lectivos
-            </h1>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Gestión de Años Lectivos</h1>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             Configuración de períodos lectivos, fechas de inicio y término del año escolar.
@@ -305,7 +313,9 @@ export const AcademicYearsPage: React.FC = () => {
             <Clock className="w-4 h-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className={`text-sm font-bold ${activeYearObj ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
+            <div
+              className={`text-sm font-bold ${activeYearObj ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}
+            >
               {activeYearObj
                 ? `${formatDateDisplay(activeYearObj.startDate)} ── ${formatDateDisplay(activeYearObj.endDate)}`
                 : 'Sin vigencia'}
@@ -334,7 +344,8 @@ export const AcademicYearsPage: React.FC = () => {
           <div className="space-y-1">
             <h3 className="font-bold text-base text-foreground">No hay Años Lectivos registrados</h3>
             <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-              Haz clic en <strong className="text-foreground">"Crear Año Lectivo"</strong> para habilitar matrículas y registros académicos para el nuevo período.
+              Haz clic en <strong className="text-foreground">"Crear Año Lectivo"</strong> para habilitar matrículas y
+              registros académicos para el nuevo período.
             </p>
           </div>
         </div>
@@ -345,17 +356,15 @@ export const AcademicYearsPage: React.FC = () => {
               <CardContent className="p-5 space-y-4">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-extrabold text-base ${
-                      ay.isActive
-                        ? 'bg-primary text-primary-foreground shadow-md'
-                        : 'bg-muted text-muted-foreground'
-                    }`}>
+                    <div
+                      className={`w-11 h-11 rounded-2xl flex items-center justify-center font-extrabold text-base ${
+                        ay.isActive ? 'bg-primary text-primary-foreground shadow-md' : 'bg-muted text-muted-foreground'
+                      }`}
+                    >
                       {ay.year}
                     </div>
                     <div>
-                      <h3 className="font-bold text-base text-foreground">
-                        {ay.name || `Año Escolar ${ay.year}`}
-                      </h3>
+                      <h3 className="font-bold text-base text-foreground">{ay.name || `Año Escolar ${ay.year}`}</h3>
                       <div className="flex items-center gap-2 mt-0.5">
                         <Badge
                           variant={ay.isActive ? 'default' : 'secondary'}
@@ -366,7 +375,10 @@ export const AcademicYearsPage: React.FC = () => {
                           {ay.isActive ? 'Vigente' : 'No vigente'}
                         </Badge>
                         {ay.enrollmentOpen && (
-                          <Badge variant="outline" className="text-xs font-bold border-indigo-500/40 text-indigo-600 dark:text-indigo-300">
+                          <Badge
+                            variant="outline"
+                            className="text-xs font-bold border-indigo-500/40 text-indigo-600 dark:text-indigo-300"
+                          >
                             Matrícula abierta
                           </Badge>
                         )}
@@ -399,21 +411,28 @@ export const AcademicYearsPage: React.FC = () => {
                 <div className="p-3 rounded-xl bg-muted/30 border border-border flex items-center justify-between text-xs text-muted-foreground">
                   <div className="flex items-center gap-1.5">
                     <Clock className="w-3.5 h-3.5 text-primary" />
-                    <span>Inicio: <strong className="text-foreground">{formatDateDisplay(ay.startDate)}</strong></span>
+                    <span>
+                      Inicio: <strong className="text-foreground">{formatDateDisplay(ay.startDate)}</strong>
+                    </span>
                   </div>
                   <span>──</span>
                   <div className="flex items-center gap-1.5">
-                    <span>Fin: <strong className="text-foreground">{formatDateDisplay(ay.endDate)}</strong></span>
+                    <span>
+                      Fin: <strong className="text-foreground">{formatDateDisplay(ay.endDate)}</strong>
+                    </span>
                   </div>
                 </div>
 
                 {ay.periodsConfig && ay.periodsConfig.length > 0 && (
                   <ul className="grid grid-cols-2 gap-1 text-[11px] text-muted-foreground">
-                    {[...ay.periodsConfig].sort((a, b) => a.periodNumber - b.periodNumber).map((p) => (
-                      <li key={p.periodNumber}>
-                        <span className="font-semibold text-foreground">{p.name}:</span> {formatDateDisplay(p.startDate)} – {formatDateDisplay(p.endDate)}
-                      </li>
-                    ))}
+                    {[...ay.periodsConfig]
+                      .sort((a, b) => a.periodNumber - b.periodNumber)
+                      .map((p) => (
+                        <li key={p.periodNumber}>
+                          <span className="font-semibold text-foreground">{p.name}:</span>{' '}
+                          {formatDateDisplay(p.startDate)} – {formatDateDisplay(p.endDate)}
+                        </li>
+                      ))}
                   </ul>
                 )}
 
@@ -442,7 +461,11 @@ export const AcademicYearsPage: React.FC = () => {
                       onClick={() => toggleEnrollment(ay)}
                       title="Permite matricular para este año sin dejar de operar el año vigente"
                     >
-                      {ay.enrollmentOpen ? <DoorClosed className="w-3.5 h-3.5" /> : <DoorOpen className="w-3.5 h-3.5" />}
+                      {ay.enrollmentOpen ? (
+                        <DoorClosed className="w-3.5 h-3.5" />
+                      ) : (
+                        <DoorOpen className="w-3.5 h-3.5" />
+                      )}
                       <span>{ay.enrollmentOpen ? 'Cerrar matrícula' : 'Abrir matrícula'}</span>
                     </Button>
                     <Button
@@ -464,7 +487,11 @@ export const AcademicYearsPage: React.FC = () => {
 
       {/* Modal Crear / Editar Año Lectivo */}
       {isModalOpen && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200"
+        >
           <div className="relative w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4">
             <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
               <Calendar className="w-5 h-5 text-primary" />
@@ -473,10 +500,14 @@ export const AcademicYearsPage: React.FC = () => {
 
             <form onSubmit={handleSave} className="space-y-4">
               <div>
-                <label htmlFor="academicyearspage-field-1" className="block text-xs font-bold text-muted-foreground uppercase mb-1">
+                <label
+                  htmlFor="academicyearspage-field-1"
+                  className="block text-xs font-bold text-muted-foreground uppercase mb-1"
+                >
                   Número de Año (Ej: 2026) *
                 </label>
-                <input id="academicyearspage-field-1"
+                <input
+                  id="academicyearspage-field-1"
                   type="number"
                   required
                   min={2000}
@@ -488,10 +519,14 @@ export const AcademicYearsPage: React.FC = () => {
               </div>
 
               <div>
-                <label htmlFor="academicyearspage-field-2" className="block text-xs font-bold text-muted-foreground uppercase mb-1">
+                <label
+                  htmlFor="academicyearspage-field-2"
+                  className="block text-xs font-bold text-muted-foreground uppercase mb-1"
+                >
                   Nombre del Año Lectivo *
                 </label>
-                <input id="academicyearspage-field-2"
+                <input
+                  id="academicyearspage-field-2"
                   type="text"
                   required
                   placeholder='Ej: "Año Escolar 2026"'
@@ -503,10 +538,14 @@ export const AcademicYearsPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor="academicyearspage-field-3" className="block text-xs font-bold text-muted-foreground uppercase mb-1">
+                  <label
+                    htmlFor="academicyearspage-field-3"
+                    className="block text-xs font-bold text-muted-foreground uppercase mb-1"
+                  >
                     Fecha Inicio *
                   </label>
-                  <input id="academicyearspage-field-3"
+                  <input
+                    id="academicyearspage-field-3"
                     type="date"
                     required
                     value={formData.startDate}
@@ -516,10 +555,14 @@ export const AcademicYearsPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="academicyearspage-field-4" className="block text-xs font-bold text-muted-foreground uppercase mb-1">
+                  <label
+                    htmlFor="academicyearspage-field-4"
+                    className="block text-xs font-bold text-muted-foreground uppercase mb-1"
+                  >
                     Fecha Término *
                   </label>
-                  <input id="academicyearspage-field-4"
+                  <input
+                    id="academicyearspage-field-4"
                     type="date"
                     required
                     value={formData.endDate}
@@ -532,10 +575,14 @@ export const AcademicYearsPage: React.FC = () => {
               {/* Régimen de Periodos y Modo de Cálculo Anual */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor="academicyearspage-field-5" className="block text-xs font-bold text-muted-foreground uppercase mb-1">
+                  <label
+                    htmlFor="academicyearspage-field-5"
+                    className="block text-xs font-bold text-muted-foreground uppercase mb-1"
+                  >
                     Régimen de Periodos
                   </label>
-                  <select id="academicyearspage-field-5"
+                  <select
+                    id="academicyearspage-field-5"
                     value={formData.periodType}
                     onChange={(e) => {
                       const newType = e.target.value as 'BIMESTER' | 'TRIMESTER';
@@ -553,10 +600,14 @@ export const AcademicYearsPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="academicyearspage-field-6" className="block text-xs font-bold text-muted-foreground uppercase mb-1">
+                  <label
+                    htmlFor="academicyearspage-field-6"
+                    className="block text-xs font-bold text-muted-foreground uppercase mb-1"
+                  >
                     Cálculo Anual SIAGIE
                   </label>
-                  <select id="academicyearspage-field-6"
+                  <select
+                    id="academicyearspage-field-6"
                     value={formData.annualCalculationMode}
                     onChange={(e) =>
                       setFormData({
@@ -580,9 +631,7 @@ export const AcademicYearsPage: React.FC = () => {
                 <div className="space-y-2">
                   {formData.periodsConfig.map((period, idx) => (
                     <div key={period.periodNumber} className="grid grid-cols-5 gap-2 items-center">
-                      <span className="col-span-1 text-xs font-bold text-muted-foreground truncate">
-                        {period.name}
-                      </span>
+                      <span className="col-span-1 text-xs font-bold text-muted-foreground truncate">{period.name}</span>
                       <div className="col-span-2">
                         <input
                           type="date"
@@ -614,7 +663,6 @@ export const AcademicYearsPage: React.FC = () => {
                 </div>
               </div>
 
-
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
                 <Button type="button" variant="ghost" size="sm" onClick={() => setIsModalOpen(false)}>
                   Cancelar
@@ -642,9 +690,14 @@ export const AcademicYearsPage: React.FC = () => {
               <ul className="space-y-1 text-foreground">
                 {impact.currentYear !== null && (
                   <li>
-                    <strong>{impact.willDeactivate}</strong> matrículas de {impact.currentYear} dejarán de estar vigentes
+                    <strong>{impact.willDeactivate}</strong> matrículas de {impact.currentYear} dejarán de estar
+                    vigentes
                     {impact.pendingObligationsOfCurrentYear > 0 && (
-                      <> (con <strong>{impact.pendingObligationsOfCurrentYear}</strong> cuotas pendientes que saldrán de moras y vencidas)</>
+                      <>
+                        {' '}
+                        (con <strong>{impact.pendingObligationsOfCurrentYear}</strong> cuotas pendientes que saldrán de
+                        moras y vencidas)
+                      </>
                     )}
                     .
                   </li>
@@ -655,8 +708,8 @@ export const AcademicYearsPage: React.FC = () => {
               </ul>
               {impact.isEarly && (
                 <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-amber-800 dark:text-amber-300">
-                  {impact.targetYear} aún no empieza. Si solo quieres matricular para {impact.targetYear}, usa <strong>Abrir matrícula</strong> y
-                  mantén {impact.currentYear} como vigente.
+                  {impact.targetYear} aún no empieza. Si solo quieres matricular para {impact.targetYear}, usa{' '}
+                  <strong>Abrir matrícula</strong> y mantén {impact.currentYear} como vigente.
                 </p>
               )}
             </div>

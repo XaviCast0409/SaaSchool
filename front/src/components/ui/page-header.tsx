@@ -15,4 +15,3 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ title, description, acti
     {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
   </div>
 );
-

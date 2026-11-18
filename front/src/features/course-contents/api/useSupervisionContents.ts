@@ -1,11 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
-import type {
-  SupervisionStats,
-  TeacherComplianceItem,
-  SupervisedFeedResponse,
-  SupervisionFeedFilters,
-} from '../types';
+import type { SupervisionStats, TeacherComplianceItem, SupervisedFeedResponse, SupervisionFeedFilters } from '../types';
 
 /**
  * Obtener estadísticas globales de adopción y uso del aula virtual

@@ -239,7 +239,7 @@ export const useNominaMatricula = (classroomId?: string, enabled = true) => {
     queryFn: async () => {
       if (!classroomId) throw new Error('ID de aula requerido');
       const response = await api.get<{ status: string; data: NominaMatriculaResponse }>(
-        `/students/nomina-matricula/${classroomId}`
+        `/students/nomina-matricula/${classroomId}`,
       );
       return response.data.data;
     },
@@ -254,7 +254,7 @@ export const useGetMyChildren = (enabled = true) => {
     queryKey: ['my-children'],
     queryFn: async () => {
       const { data } = await api.get<{ status: string; data: import('@/features/parent/types').ParentChildInfo[] }>(
-        '/students/my-children'
+        '/students/my-children',
       );
       return data.data;
     },

@@ -10,7 +10,15 @@ import { cn } from '@/lib/utils';
 import { api } from '@/lib/axios';
 import { useGradebook } from '../api';
 import { useAuthStore } from '@/store/useAuthStore';
-import { cacheGradebook, cachedGradebook, cellKey, clearSent, pendingFor, queueGrade, type PendingGrade } from '../offline/gradeQueue';
+import {
+  cacheGradebook,
+  cachedGradebook,
+  cellKey,
+  clearSent,
+  pendingFor,
+  queueGrade,
+  type PendingGrade,
+} from '../offline/gradeQueue';
 import { classroomLabel, type GradebookData, type ResultLetter } from '../types';
 
 const LETTERS: ResultLetter[] = ['AD', 'A', 'B', 'C'];
@@ -46,20 +54,30 @@ export const QuickGradePage: React.FC = () => {
   const [criterionId, setCriterionId] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>('letters');
   const [q, setQ] = useState('');
-  const [local, setLocal] = useState<Record<string, { numericScore: number | null; literalScore: ResultLetter | null }>>({});
+  const [local, setLocal] = useState<
+    Record<string, { numericScore: number | null; literalScore: ResultLetter | null }>
+  >({});
 
   // Guardar la libreta en el teléfono para abrirla sin señal
   useEffect(() => {
     if (live && ownerId) void cacheGradebook(ownerId, live);
   }, [live, ownerId]);
   useEffect(() => {
-    if (!live && ownerId && assignmentId && (error || !navigator.onLine)) void cachedGradebook(ownerId, assignmentId, period).then((c) => c && setOfflineData(c));
+    if (!live && ownerId && assignmentId && (error || !navigator.onLine))
+      void cachedGradebook(ownerId, assignmentId, period).then((c) => c && setOfflineData(c));
   }, [live, error, ownerId, assignmentId, period]);
 
   useEffect(() => {
-    if (data && (!competenceId || !data.competences.some((c) => c.id === competenceId))) setCompetenceId(data.competences[0]?.id ?? null);
-    if (data && (!criterionId || !data.criteria.some((c) => c.id === criterionId))) setCriterionId(data.criteria[0]?.id ?? null);
-    if (data && data.assignment.classroom.educationLevel === 'SECONDARY' && data.scores.some((s) => s.numericScore !== null)) setMode('numbers');
+    if (data && (!competenceId || !data.competences.some((c) => c.id === competenceId)))
+      setCompetenceId(data.competences[0]?.id ?? null);
+    if (data && (!criterionId || !data.criteria.some((c) => c.id === criterionId)))
+      setCriterionId(data.criteria[0]?.id ?? null);
+    if (
+      data &&
+      data.assignment.classroom.educationLevel === 'SECONDARY' &&
+      data.scores.some((s) => s.numericScore !== null)
+    )
+      setMode('numbers');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.assignment.id, data?.periodNumber]);
 
@@ -77,13 +95,20 @@ export const QuickGradePage: React.FC = () => {
       const send = (list: PendingGrade[]) =>
         api.put(`/academic/gradebook/${assignmentId}/scores`, {
           periodNumber: period,
-          items: list.map(({ enrollmentId, competenceId: c, criterionId: k, numericScore, literalScore }) => ({ enrollmentId, competenceId: c, criterionId: k, numericScore, literalScore })),
+          items: list.map(({ enrollmentId, competenceId: c, criterionId: k, numericScore, literalScore }) => ({
+            enrollmentId,
+            competenceId: c,
+            criterionId: k,
+            numericScore,
+            literalScore,
+          })),
         });
       const statusOf = (e: unknown) => (e as { response?: { status?: number } }).response?.status;
       const messageOf = (e: unknown) => (e as { response?: { data?: { message?: string } } }).response?.data?.message;
       // Rechazo definitivo (periodo cerrado, sin permiso, alumno retirado…): reintentar no sirve.
       // Sin respuesta, 5xx, sesión vencida o demasiadas peticiones: se reintenta luego.
-      const isPermanent = (status?: number) => !!status && status >= 400 && status < 500 && status !== 401 && status !== 408 && status !== 429;
+      const isPermanent = (status?: number) =>
+        !!status && status >= 400 && status < 500 && status !== 401 && status !== 408 && status !== 429;
       setSyncing(true);
       try {
         await send(items);
@@ -112,7 +137,9 @@ export const QuickGradePage: React.FC = () => {
             await clearSent(rejected);
             const keys = new Set(rejected.map((r) => cellKey(r)));
             setLocal((prev) => Object.fromEntries(Object.entries(prev).filter(([k]) => !keys.has(k))));
-            toast.error(`${rejected.length} nota(s) no se guardaron: ${reason ?? 'el servidor no las aceptó'}`, { duration: 10000 });
+            toast.error(`${rejected.length} nota(s) no se guardaron: ${reason ?? 'el servidor no las aceptó'}`, {
+              duration: 10000,
+            });
           }
           if (saved) toast.success(`${saved} nota(s) sincronizada(s)`);
         }
@@ -150,11 +177,19 @@ export const QuickGradePage: React.FC = () => {
   const valueOf = useCallback(
     (enrollmentId: string) => {
       if (!data || !competenceId || !criterionId) return undefined;
-      const key = cellKey({ assignmentId: data.assignment.id, periodNumber: period, enrollmentId, competenceId, criterionId });
+      const key = cellKey({
+        assignmentId: data.assignment.id,
+        periodNumber: period,
+        enrollmentId,
+        competenceId,
+        criterionId,
+      });
       if (local[key]) return local[key];
       const p = pending.find((x) => cellKey(x) === key);
       if (p) return p;
-      return data.scores.find((s) => s.enrollmentId === enrollmentId && s.competenceId === competenceId && s.criterionId === criterionId);
+      return data.scores.find(
+        (s) => s.enrollmentId === enrollmentId && s.competenceId === competenceId && s.criterionId === criterionId,
+      );
     },
     [data, competenceId, criterionId, period, local, pending],
   );
@@ -169,7 +204,10 @@ export const QuickGradePage: React.FC = () => {
   };
 
   const students = useMemo(
-    () => (data?.students ?? []).filter((s) => s.activeInPeriod && (!q || s.fullName.toLowerCase().includes(q.toLowerCase()))),
+    () =>
+      (data?.students ?? []).filter(
+        (s) => s.activeInPeriod && (!q || s.fullName.toLowerCase().includes(q.toLowerCase())),
+      ),
     [data, q],
   );
   const filled = students.filter((s) => {
@@ -178,20 +216,39 @@ export const QuickGradePage: React.FC = () => {
   }).length;
 
   if (isLoading && !offlineData) return <Skeleton className="h-96 w-full" />;
-  if (!data) return <p className="text-sm text-destructive">No se pudo abrir el curso{!online ? ' sin conexión: ábrelo una vez con señal para poder usarlo después sin internet.' : '.'}</p>;
+  if (!data)
+    return (
+      <p className="text-sm text-destructive">
+        No se pudo abrir el curso
+        {!online ? ' sin conexión: ábrelo una vez con señal para poder usarlo después sin internet.' : '.'}
+      </p>
+    );
   const competence = data.competences.find((c) => c.id === competenceId);
   const canEdit = data.canEdit;
 
   return (
     <div className="mx-auto max-w-2xl pb-24">
-      <Link to={`/gradebook/${data.assignment.id}?period=${period}`} className="mb-2 inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
+      <Link
+        to={`/gradebook/${data.assignment.id}?period=${period}`}
+        className="mb-2 inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
+      >
         <ArrowLeft className="mr-1 h-4 w-4" /> Registro completo
       </Link>
       <h1 className="text-lg font-semibold text-foreground">
-        {data.assignment.area.name} <span className="text-sm font-normal text-muted-foreground">· {classroomLabel(data.assignment.classroom)} · {data.periodNames?.[period - 1] ?? `periodo ${period}`}</span>
+        {data.assignment.area.name}{' '}
+        <span className="text-sm font-normal text-muted-foreground">
+          · {classroomLabel(data.assignment.classroom)} · {data.periodNames?.[period - 1] ?? `periodo ${period}`}
+        </span>
       </h1>
 
-      <div className={cn('mt-2 flex items-center gap-2 rounded-lg px-3 py-2 text-xs', online ? 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-200' : 'bg-amber-500/15 text-amber-800 dark:text-amber-200')}>
+      <div
+        className={cn(
+          'mt-2 flex items-center gap-2 rounded-lg px-3 py-2 text-xs',
+          online
+            ? 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-200'
+            : 'bg-amber-500/15 text-amber-800 dark:text-amber-200',
+        )}
+      >
         {online ? <Wifi className="h-4 w-4" aria-hidden /> : <CloudOff className="h-4 w-4" aria-hidden />}
         <span className="flex-1">
           {online
@@ -202,20 +259,41 @@ export const QuickGradePage: React.FC = () => {
           {offlineData && !live ? ` (Lista guardada el ${new Date(offlineData.savedAt).toLocaleString('es-PE')})` : ''}
         </span>
         {online && pending.length > 0 && (
-          <Button size="sm" variant="ghost" className="h-7 gap-1 px-2 text-xs" onClick={() => void sync()} disabled={syncing}>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 gap-1 px-2 text-xs"
+            onClick={() => void sync()}
+            disabled={syncing}
+          >
             {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />} Enviar
           </Button>
         )}
       </div>
 
-      {!canEdit && <p className="mt-2 rounded-lg bg-muted p-3 text-xs text-muted-foreground">El periodo no está abierto: solo puedes consultar las notas.</p>}
+      {!canEdit && (
+        <p className="mt-2 rounded-lg bg-muted p-3 text-xs text-muted-foreground">
+          El periodo no está abierto: solo puedes consultar las notas.
+        </p>
+      )}
 
       {/* Competencia y criterio */}
       <div className="sticky top-0 z-10 -mx-4 mt-3 space-y-2 border-b border-border bg-background/95 px-4 py-2 backdrop-blur md:mx-0 md:px-0">
         <div className="flex gap-1.5 overflow-x-auto pb-1">
           {data.competences.map((c) => (
-            <button key={c.id} type="button" onClick={() => setCompetenceId(c.id)} aria-pressed={competenceId === c.id} title={c.name}
-              className={cn('shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold', competenceId === c.id ? 'border-primary bg-primary text-primary-foreground' : 'border-border text-muted-foreground')}>
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => setCompetenceId(c.id)}
+              aria-pressed={competenceId === c.id}
+              title={c.name}
+              className={cn(
+                'shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold',
+                competenceId === c.id
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border text-muted-foreground',
+              )}
+            >
               {c.shortName}
             </button>
           ))}
@@ -223,8 +301,19 @@ export const QuickGradePage: React.FC = () => {
         {data.criteria.length > 1 && (
           <div className="flex gap-1.5 overflow-x-auto pb-1">
             {data.criteria.map((c) => (
-              <button key={c.id} type="button" onClick={() => setCriterionId(c.id)} aria-pressed={criterionId === c.id} title={c.name}
-                className={cn('shrink-0 rounded-md border px-2.5 py-1 text-xs', criterionId === c.id ? 'border-primary/60 bg-primary/10 text-primary' : 'border-border text-muted-foreground')}>
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => setCriterionId(c.id)}
+                aria-pressed={criterionId === c.id}
+                title={c.name}
+                className={cn(
+                  'shrink-0 rounded-md border px-2.5 py-1 text-xs',
+                  criterionId === c.id
+                    ? 'border-primary/60 bg-primary/10 text-primary'
+                    : 'border-border text-muted-foreground',
+                )}
+              >
                 {c.shortName}
               </button>
             ))}
@@ -233,11 +322,26 @@ export const QuickGradePage: React.FC = () => {
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" aria-hidden />
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar estudiante" className="h-9 pl-8" aria-label="Buscar estudiante" />
+            <Input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Buscar estudiante"
+              className="h-9 pl-8"
+              aria-label="Buscar estudiante"
+            />
           </div>
           <div className="inline-flex rounded-lg border border-border p-0.5 text-xs">
             {(['letters', 'numbers'] as Mode[]).map((m) => (
-              <button key={m} type="button" onClick={() => setMode(m)} aria-pressed={mode === m} className={cn('rounded-md px-2 py-1 font-semibold', mode === m ? 'bg-primary text-primary-foreground' : 'text-muted-foreground')}>
+              <button
+                key={m}
+                type="button"
+                onClick={() => setMode(m)}
+                aria-pressed={mode === m}
+                className={cn(
+                  'rounded-md px-2 py-1 font-semibold',
+                  mode === m ? 'bg-primary text-primary-foreground' : 'text-muted-foreground',
+                )}
+              >
                 {m === 'letters' ? 'AD–C' : '0–20'}
               </button>
             ))}
@@ -251,17 +355,27 @@ export const QuickGradePage: React.FC = () => {
       <ul className="mt-2 divide-y divide-border">
         {students.map((s, idx) => {
           const v = valueOf(s.enrollmentId);
-          const isPending = pending.some((p) => p.enrollmentId === s.enrollmentId && p.competenceId === competenceId && p.criterionId === criterionId);
+          const isPending = pending.some(
+            (p) =>
+              p.enrollmentId === s.enrollmentId && p.competenceId === competenceId && p.criterionId === criterionId,
+          );
           return (
             <li key={s.enrollmentId} className="flex items-center gap-3 py-2.5">
               <span className="w-5 shrink-0 text-right text-xs text-muted-foreground">{idx + 1}</span>
               <span className="min-w-0 flex-1 text-sm text-foreground">
                 {s.fullName}
                 {mode === 'letters' && v?.numericScore !== null && v?.numericScore !== undefined && (
-                  <span className="ml-1 rounded bg-muted px-1 text-xs font-semibold text-foreground" title="Nota numérica registrada">{v.numericScore}</span>
+                  <span
+                    className="ml-1 rounded bg-muted px-1 text-xs font-semibold text-foreground"
+                    title="Nota numérica registrada"
+                  >
+                    {v.numericScore}
+                  </span>
                 )}
                 {isPending && <span className="ml-1 text-xs text-amber-600">• por enviar</span>}
-                {!isPending && v && (v.literalScore || v.numericScore !== null) && <Check className="ml-1 inline h-3 w-3 text-emerald-600" aria-label="Guardada" />}
+                {!isPending && v && (v.literalScore || v.numericScore !== null) && (
+                  <Check className="ml-1 inline h-3 w-3 text-emerald-600" aria-label="Guardada" />
+                )}
               </span>
               {mode === 'letters' ? (
                 <div className="flex gap-1">
@@ -275,7 +389,10 @@ export const QuickGradePage: React.FC = () => {
                         onClick={() => void setScore(s.enrollmentId, null, active ? null : l)}
                         aria-pressed={active}
                         aria-label={`${l} para ${s.fullName}`}
-                        className={cn('h-10 w-11 rounded-lg border-2 text-sm font-bold transition-colors disabled:opacity-50', active ? LETTER_STYLE[l] : 'border-border bg-background text-muted-foreground')}
+                        className={cn(
+                          'h-10 w-11 rounded-lg border-2 text-sm font-bold transition-colors disabled:opacity-50',
+                          active ? LETTER_STYLE[l] : 'border-border bg-background text-muted-foreground',
+                        )}
                       >
                         {l}
                       </button>
@@ -298,8 +415,10 @@ export const QuickGradePage: React.FC = () => {
                     const raw = e.target.value.trim();
                     if (raw === '' && (v?.numericScore ?? null) === null) return;
                     const n = raw === '' ? null : Number(raw.replace(',', '.'));
-                    if (n !== null && (!Number.isFinite(n) || n < 0 || n > 20)) return toast.error('La nota debe estar entre 0 y 20.');
-                    if (n !== (v?.numericScore ?? null)) void setScore(s.enrollmentId, n === null ? null : Math.round(n * 10) / 10, null);
+                    if (n !== null && (!Number.isFinite(n) || n < 0 || n > 20))
+                      return toast.error('La nota debe estar entre 0 y 20.');
+                    if (n !== (v?.numericScore ?? null))
+                      void setScore(s.enrollmentId, n === null ? null : Math.round(n * 10) / 10, null);
                   }}
                 />
               )}

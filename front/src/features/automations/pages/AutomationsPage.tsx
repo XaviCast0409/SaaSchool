@@ -1,17 +1,6 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
-import {
-  Bot,
-  CalendarClock,
-  CheckCircle2,
-  History,
-  Lock,
-  Mail,
-  Play,
-  Users,
-  XCircle,
-  Loader2,
-} from 'lucide-react';
+import { Bot, CalendarClock, CheckCircle2, History, Lock, Mail, Play, Users, XCircle, Loader2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -67,7 +56,7 @@ const LastRun: React.FC<{ job: AutomationJob }> = ({ job }) => {
       {!ok && !failed && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />}
       <span>
         {formatPeruDateTime(run.startedAt)}
-        {run.triggeredById ? ' (manual)' : ''} · {failed ? 'Falló' : run.summary ?? 'En curso'}
+        {run.triggeredById ? ' (manual)' : ''} · {failed ? 'Falló' : (run.summary ?? 'En curso')}
       </span>
     </span>
   );
@@ -98,7 +87,8 @@ const RunsModal: React.FC<{ job: AutomationJob | null; onClose: () => void }> = 
               )}
               <div className="min-w-0">
                 <p className="font-medium text-foreground">
-                  {formatPeruDateTime(r.startedAt)} {r.triggeredById && <span className="text-xs text-muted-foreground">(manual)</span>}
+                  {formatPeruDateTime(r.startedAt)}{' '}
+                  {r.triggeredById && <span className="text-xs text-muted-foreground">(manual)</span>}
                 </p>
                 <p className="text-muted-foreground">{r.status === 'FAILED' ? r.error : r.summary}</p>
               </div>
@@ -147,7 +137,8 @@ export const AutomationsPage: React.FC = () => {
         <Card className="mb-4 p-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
           <span className="inline-flex items-center gap-2 text-muted-foreground">
             <Mail className="h-4 w-4" aria-hidden />
-            Correos enviados hoy: <strong className="text-foreground">{data.email.sentToday}</strong> de {data.email.dailyLimit}
+            Correos enviados hoy: <strong className="text-foreground">{data.email.sentToday}</strong> de{' '}
+            {data.email.dailyLimit}
           </span>
           {data.email.pending > 0 && <span className="text-muted-foreground">En cola: {data.email.pending}</span>}
           <span className="text-xs text-muted-foreground">
@@ -157,8 +148,7 @@ export const AutomationsPage: React.FC = () => {
       )}
 
       <div className="space-y-3">
-        {isLoading &&
-          [1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-32 w-full rounded-xl" />)}
+        {isLoading && [1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-32 w-full rounded-xl" />)}
 
         {data?.jobs.map((job) => {
           const locked = !job.availableInPlan;
@@ -204,7 +194,12 @@ export const AutomationsPage: React.FC = () => {
                       )}
                       Ejecutar ahora
                     </Button>
-                    <Button size="sm" variant="ghost" className="h-8 gap-1.5 text-xs" onClick={() => setHistoryJob(job)}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 gap-1.5 text-xs"
+                      onClick={() => setHistoryJob(job)}
+                    >
                       <History className="h-3.5 w-3.5" aria-hidden /> Historial
                     </Button>
                   </div>

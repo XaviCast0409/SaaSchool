@@ -50,7 +50,12 @@ export function fillTemplate(template: string, o: PaymentObligation, schoolName:
   return Object.entries(values).reduce((text, [k, v]) => text.split(k).join(v), template);
 }
 
-export function buildWhatsAppLink(o: PaymentObligation, template: string, schoolName: string, countryCode = '51'): string | null {
+export function buildWhatsAppLink(
+  o: PaymentObligation,
+  template: string,
+  schoolName: string,
+  countryCode = '51',
+): string | null {
   const phone = normalizePhone(pickContact(o)?.cellphone, countryCode);
   if (!phone) return null;
   return `https://wa.me/${phone}?text=${encodeURIComponent(fillTemplate(template, o, schoolName))}`;

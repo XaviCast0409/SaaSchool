@@ -36,7 +36,11 @@ export const DailyCashCloseDocument: React.FC<{
         <SchoolLetterhead
           className="border-b-2 border-black"
           title="Resumen de caja del día"
-          subtitle={<>Fecha: <strong>{selectedDate}</strong></>}
+          subtitle={
+            <>
+              Fecha: <strong>{selectedDate}</strong>
+            </>
+          }
         />
       )}
 
@@ -141,7 +145,11 @@ export const DailyCashCloseModal: React.FC<DailyCashCloseModalProps> = ({ isOpen
   if (!isOpen) return null;
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200"
+    >
       <div className="bg-card w-full max-w-3xl rounded-2xl border border-border shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-border bg-muted/40">
@@ -150,9 +158,7 @@ export const DailyCashCloseModal: React.FC<DailyCashCloseModalProps> = ({ isOpen
               <Receipt className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-black text-foreground">
-                Resumen del día (todas las cajas)
-              </h2>
+              <h2 className="text-base sm:text-lg font-black text-foreground">Resumen del día (todas las cajas)</h2>
               <p className="text-xs text-muted-foreground">
                 Cobros por medio de pago, egresos, anulados y estado de cada caja
               </p>
@@ -170,12 +176,7 @@ export const DailyCashCloseModal: React.FC<DailyCashCloseModalProps> = ({ isOpen
               <Printer className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Imprimir</span>
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="rounded-full h-8 w-8 hover:bg-muted"
-            >
+            <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full h-8 w-8 hover:bg-muted">
               <X className="w-4 h-4 text-muted-foreground" />
             </Button>
           </div>
@@ -237,4 +238,3 @@ export const DailyCashCloseModal: React.FC<DailyCashCloseModalProps> = ({ isOpen
     </div>
   );
 };
-

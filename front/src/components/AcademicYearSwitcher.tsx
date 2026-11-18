@@ -69,22 +69,23 @@ export const AcademicYearBanner: React.FC = () => {
   const switchYear = useSwitchYear();
   if (!enabled || !isOtherYear || !selected || !current) return null;
   return (
-        <div className="bg-indigo-500/10 border-b border-indigo-500/30 px-4 md:px-8 py-2 text-xs flex flex-wrap items-center justify-between gap-2 text-indigo-900 dark:text-indigo-200 print:hidden">
-          <span className="flex items-center gap-2">
-            <Eye className="w-4 h-4 shrink-0" />
-            <span>
-              Estás viendo <strong>{selected.year}</strong>
-              {selected.enrollmentOpen ? ' (matrícula abierta)' : ''}: estudiantes, aulas, personal, plan de estudios, carga docente,
-              avance de notas, libretas y cobranza muestran ese año. Asistencia, moras y analítica siguen con <strong>{current.year}</strong>, el año vigente.
-            </span>
-          </span>
-          <button
-            type="button"
-            onClick={() => switchYear(null)}
-            className="rounded-md border border-indigo-500/40 bg-background px-2 py-1 font-semibold text-foreground hover:bg-muted"
-          >
-            Volver a {current.year}
-          </button>
-        </div>
+    <div className="bg-indigo-500/10 border-b border-indigo-500/30 px-4 md:px-8 py-2 text-xs flex flex-wrap items-center justify-between gap-2 text-indigo-900 dark:text-indigo-200 print:hidden">
+      <span className="flex items-center gap-2">
+        <Eye className="w-4 h-4 shrink-0" />
+        <span>
+          Estás viendo <strong>{selected.year}</strong>
+          {selected.enrollmentOpen ? ' (matrícula abierta)' : ''}: estudiantes, aulas, personal, plan de estudios, carga
+          docente, avance de notas, libretas y cobranza muestran ese año. Asistencia, moras y analítica siguen con{' '}
+          <strong>{current.year}</strong>, el año vigente.
+        </span>
+      </span>
+      <button
+        type="button"
+        onClick={() => switchYear(null)}
+        className="rounded-md border border-indigo-500/40 bg-background px-2 py-1 font-semibold text-foreground hover:bg-muted"
+      >
+        Volver a {current.year}
+      </button>
+    </div>
   );
 };

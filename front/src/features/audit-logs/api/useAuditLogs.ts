@@ -55,12 +55,14 @@ export const useAuditLogs = (filters: AuditLogFilters = {}) => {
 export const useAuditCategories = () =>
   useQuery({
     queryKey: ['audit-logs', 'categories'],
-    queryFn: async () => (await api.get<{ data: Array<{ value: string; label: string }> }>('/audit-logs/categories')).data.data,
+    queryFn: async () =>
+      (await api.get<{ data: Array<{ value: string; label: string }> }>('/audit-logs/categories')).data.data,
     staleTime: Infinity,
   });
 
 export const useAuditActors = () =>
   useQuery({
     queryKey: ['audit-logs', 'actors'],
-    queryFn: async () => (await api.get<{ data: Array<{ id: string; name: string; role: string }> }>('/audit-logs/actors')).data.data,
+    queryFn: async () =>
+      (await api.get<{ data: Array<{ id: string; name: string; role: string }> }>('/audit-logs/actors')).data.data,
   });

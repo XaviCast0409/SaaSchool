@@ -1,11 +1,6 @@
 import React from 'react';
 import { UserAvatar } from '@/components/ui/user-avatar';
-import {
-  ChevronRight,
-  ClipboardList,
-  MessageSquare,
-  Sparkles,
-} from 'lucide-react';
+import { ChevronRight, ClipboardList, MessageSquare, Sparkles } from 'lucide-react';
 import type { StudentCourseAssignment } from '../types';
 import { getSubjectTheme } from '../utils/subjectThemes';
 import { Card, CardContent } from '@/components/ui/card';
@@ -53,7 +48,9 @@ export const StudentCourseCard: React.FC<StudentCourseCardProps> = ({
                 {pendingTasksCount > 0 && (
                   <Badge className="text-xs font-bold py-0 h-4 bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20 gap-1">
                     <ClipboardList className="w-2.5 h-2.5" />
-                    <span>{pendingTasksCount} tarea{pendingTasksCount > 1 ? 's' : ''}</span>
+                    <span>
+                      {pendingTasksCount} tarea{pendingTasksCount > 1 ? 's' : ''}
+                    </span>
                   </Badge>
                 )}
                 {activeForumsCount > 0 && (
@@ -66,9 +63,7 @@ export const StudentCourseCard: React.FC<StudentCourseCardProps> = ({
               <h3 className="text-sm sm:text-base font-bold text-foreground truncate mt-1 group-hover:text-primary transition-colors">
                 {assignment.area.name}
               </h3>
-              <p className="text-xs text-muted-foreground truncate">
-                Prof. {teacherFullName}
-              </p>
+              <p className="text-xs text-muted-foreground truncate">Prof. {teacherFullName}</p>
             </div>
           </div>
 
@@ -123,10 +118,13 @@ export const StudentCourseCard: React.FC<StudentCourseCardProps> = ({
 
           {/* Teacher metadata */}
           <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/50">
-            <UserAvatar name={teacherFullName} src={assignment.teacher?.avatarUrl} size="xs" className="h-6 w-6 border border-border" />
-            <p className="text-xs text-muted-foreground truncate font-medium">
-              Prof. {teacherFullName}
-            </p>
+            <UserAvatar
+              name={teacherFullName}
+              src={assignment.teacher?.avatarUrl}
+              size="xs"
+              className="h-6 w-6 border border-border"
+            />
+            <p className="text-xs text-muted-foreground truncate font-medium">Prof. {teacherFullName}</p>
           </div>
         </div>
 
@@ -136,7 +134,10 @@ export const StudentCourseCard: React.FC<StudentCourseCardProps> = ({
             {pendingTasksCount > 0 ? (
               <Badge className="text-xs font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20 gap-1">
                 <ClipboardList className="w-3 h-3" />
-                <span>{pendingTasksCount} tarea{pendingTasksCount > 1 ? 's' : ''} pendiente{pendingTasksCount > 1 ? 's' : ''}</span>
+                <span>
+                  {pendingTasksCount} tarea{pendingTasksCount > 1 ? 's' : ''} pendiente
+                  {pendingTasksCount > 1 ? 's' : ''}
+                </span>
               </Badge>
             ) : null}
             {activeForumsCount > 0 ? (

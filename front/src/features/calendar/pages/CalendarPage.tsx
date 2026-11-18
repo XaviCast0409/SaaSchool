@@ -57,15 +57,37 @@ const KIND_STYLE: Record<string, string> = {
   EVENT: 'bg-primary/10 text-primary',
   PERIOD: 'bg-indigo-500/15 text-indigo-800 dark:text-indigo-200',
 };
-const styleOf = (i: CalendarItem) => (i.kind === 'EVENT' && i.eventType === 'EXAM' ? KIND_STYLE.EXAM : KIND_STYLE[i.kind]);
+const styleOf = (i: CalendarItem) =>
+  i.kind === 'EVENT' && i.eventType === 'EXAM' ? KIND_STYLE.EXAM : KIND_STYLE[i.kind];
 
 const KindIcon: React.FC<{ item: CalendarItem; className?: string }> = ({ item, className }) => {
-  const Icon = item.kind === 'PERIOD' ? Flag : item.kind === 'HOLIDAY' ? PartyPopper : item.kind === 'HOMEWORK' ? BookOpen : item.kind === 'MEETING' ? UserRound : item.kind === 'PAYMENT' ? CreditCard : CalendarDays;
+  const Icon =
+    item.kind === 'PERIOD'
+      ? Flag
+      : item.kind === 'HOLIDAY'
+        ? PartyPopper
+        : item.kind === 'HOMEWORK'
+          ? BookOpen
+          : item.kind === 'MEETING'
+            ? UserRound
+            : item.kind === 'PAYMENT'
+              ? CreditCard
+              : CalendarDays;
   return <Icon className={className} aria-hidden />;
 };
 
 const kindLabel = (i: CalendarItem) =>
-  i.kind === 'PERIOD' ? 'Periodo académico' : i.kind === 'HOLIDAY' ? 'Feriado' : i.kind === 'HOMEWORK' ? 'Tarea' : i.kind === 'MEETING' ? 'Entrevista' : i.kind === 'PAYMENT' ? 'Pago' : EVENT_TYPE_LABEL[i.eventType ?? 'OTHER'];
+  i.kind === 'PERIOD'
+    ? 'Periodo académico'
+    : i.kind === 'HOLIDAY'
+      ? 'Feriado'
+      : i.kind === 'HOMEWORK'
+        ? 'Tarea'
+        : i.kind === 'MEETING'
+          ? 'Entrevista'
+          : i.kind === 'PAYMENT'
+            ? 'Pago'
+            : EVENT_TYPE_LABEL[i.eventType ?? 'OTHER'];
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const ymd = (y: number, m: number, d: number) => `${y}-${pad(m)}-${pad(d)}`;
@@ -82,7 +104,11 @@ function monthCells(year: number, month: number) {
   const start = addDaysStr(first, -firstWeekday);
   const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
   const total = Math.ceil((firstWeekday + daysInMonth) / 7) * 7;
-  return { start, end: addDaysStr(start, total - 1), cells: Array.from({ length: total }, (_, i) => addDaysStr(start, i)) };
+  return {
+    start,
+    end: addDaysStr(start, total - 1),
+    cells: Array.from({ length: total }, (_, i) => addDaysStr(start, i)),
+  };
 }
 
 /** Un evento de varios días aparece en cada día del rango. */
@@ -111,12 +137,28 @@ const emptyEvent = (date: string): EventInput => ({
   notifyFamilies: false,
 });
 
-const EventModal: React.FC<{ open: boolean; onClose: () => void; initial: EventInput; editingId?: string; isTeacher: boolean }> = ({ open, onClose, initial, editingId, isTeacher }) => {
+const EventModal: React.FC<{
+  open: boolean;
+  onClose: () => void;
+  initial: EventInput;
+  editingId?: string;
+  isTeacher: boolean;
+}> = ({ open, onClose, initial, editingId, isTeacher }) => {
   const [form, setForm] = useState<EventInput>(initial);
-  const [scope, setScope] = useState<string>(initial.classroomId ? `c:${initial.classroomId}` : initial.educationLevel ? `l:${initial.educationLevel}` : 'all');
+  const [scope, setScope] = useState<string>(
+    initial.classroomId ? `c:${initial.classroomId}` : initial.educationLevel ? `l:${initial.educationLevel}` : 'all',
+  );
   React.useEffect(() => {
     setForm(initial);
-    setScope(initial.classroomId ? `c:${initial.classroomId}` : initial.educationLevel ? `l:${initial.educationLevel}` : isTeacher ? '' : 'all');
+    setScope(
+      initial.classroomId
+        ? `c:${initial.classroomId}`
+        : initial.educationLevel
+          ? `l:${initial.educationLevel}`
+          : isTeacher
+            ? ''
+            : 'all',
+    );
   }, [initial, isTeacher]);
   const { data: classrooms = [] } = useClassrooms();
   const save = useSaveEvent();
@@ -154,7 +196,9 @@ const EventModal: React.FC<{ open: boolean; onClose: () => void; initial: EventI
       size="lg"
       footer={
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+          <Button variant="ghost" onClick={onClose}>
+            Cancelar
+          </Button>
           <Button type="submit" form="event-form" disabled={save.isPending} className="gap-2">
             {save.isPending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />} Guardar
           </Button>
@@ -164,19 +208,38 @@ const EventModal: React.FC<{ open: boolean; onClose: () => void; initial: EventI
       <form id="event-form" onSubmit={submit} className="grid grid-cols-2 gap-3">
         <label className="col-span-2 text-xs text-muted-foreground">
           Título
-          <Input className={field} required minLength={3} maxLength={150} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Ej.: Día del Logro" />
+          <Input
+            className={field}
+            required
+            minLength={3}
+            maxLength={150}
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+            placeholder="Ej.: Día del Logro"
+          />
         </label>
         <label className="text-xs text-muted-foreground">
           Tipo
-          <select className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm text-foreground" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as EventType })}>
+          <select
+            className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm text-foreground"
+            value={form.type}
+            onChange={(e) => setForm({ ...form, type: e.target.value as EventType })}
+          >
             {(Object.keys(EVENT_TYPE_LABEL) as EventType[]).map((t) => (
-              <option key={t} value={t}>{EVENT_TYPE_LABEL[t]}</option>
+              <option key={t} value={t}>
+                {EVENT_TYPE_LABEL[t]}
+              </option>
             ))}
           </select>
         </label>
         <label className="text-xs text-muted-foreground">
           Para
-          <select className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm text-foreground" value={scope} onChange={(e) => setScope(e.target.value)} required>
+          <select
+            className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm text-foreground"
+            value={scope}
+            onChange={(e) => setScope(e.target.value)}
+            required
+          >
             {isTeacher ? <option value="">Elige un aula…</option> : <option value="all">Todo el colegio</option>}
             {!isTeacher && (
               <>
@@ -187,42 +250,88 @@ const EventModal: React.FC<{ open: boolean; onClose: () => void; initial: EventI
             )}
             {classrooms.map((c) => (
               <option key={c.id} value={`c:${c.id}`}>
-                {c.educationLevel === 'INITIAL' ? `${c.grade} años` : `${c.grade}.°`} "{c.section}" · {c.educationLevel === 'INITIAL' ? 'Inicial' : c.educationLevel === 'PRIMARY' ? 'Primaria' : 'Secundaria'}
+                {c.educationLevel === 'INITIAL' ? `${c.grade} años` : `${c.grade}.°`} "{c.section}" ·{' '}
+                {c.educationLevel === 'INITIAL'
+                  ? 'Inicial'
+                  : c.educationLevel === 'PRIMARY'
+                    ? 'Primaria'
+                    : 'Secundaria'}
               </option>
             ))}
           </select>
         </label>
         <label className="text-xs text-muted-foreground">
           Desde
-          <Input type="date" className={field} required value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
+          <Input
+            type="date"
+            className={field}
+            required
+            value={form.startDate}
+            onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+          />
         </label>
         <label className="text-xs text-muted-foreground">
           Hasta (opcional)
-          <Input type="date" className={field} min={form.startDate} value={form.endDate ?? ''} onChange={(e) => setForm({ ...form, endDate: e.target.value || null })} />
+          <Input
+            type="date"
+            className={field}
+            min={form.startDate}
+            value={form.endDate ?? ''}
+            onChange={(e) => setForm({ ...form, endDate: e.target.value || null })}
+          />
         </label>
         <label className="text-xs text-muted-foreground">
           Hora de inicio (opcional)
-          <Input type="time" className={field} value={form.startTime ?? ''} onChange={(e) => setForm({ ...form, startTime: e.target.value || null })} />
+          <Input
+            type="time"
+            className={field}
+            value={form.startTime ?? ''}
+            onChange={(e) => setForm({ ...form, startTime: e.target.value || null })}
+          />
         </label>
         <label className="text-xs text-muted-foreground">
           Hora de fin
-          <Input type="time" className={field} disabled={!form.startTime} value={form.endTime ?? ''} onChange={(e) => setForm({ ...form, endTime: e.target.value || null })} />
+          <Input
+            type="time"
+            className={field}
+            disabled={!form.startTime}
+            value={form.endTime ?? ''}
+            onChange={(e) => setForm({ ...form, endTime: e.target.value || null })}
+          />
         </label>
         <label className="col-span-2 text-xs text-muted-foreground">
           Lugar (opcional)
-          <Input className={field} maxLength={200} value={form.location ?? ''} onChange={(e) => setForm({ ...form, location: e.target.value })} />
+          <Input
+            className={field}
+            maxLength={200}
+            value={form.location ?? ''}
+            onChange={(e) => setForm({ ...form, location: e.target.value })}
+          />
         </label>
         <label className="col-span-2 text-xs text-muted-foreground">
           Detalle (opcional)
-          <Textarea rows={3} maxLength={2000} value={form.description ?? ''} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          <Textarea
+            rows={3}
+            maxLength={2000}
+            value={form.description ?? ''}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+          />
         </label>
         <label className="col-span-2 flex items-center gap-2 text-sm text-foreground">
-          <input type="checkbox" checked={form.visibleToFamilies} onChange={(e) => setForm({ ...form, visibleToFamilies: e.target.checked })} />
+          <input
+            type="checkbox"
+            checked={form.visibleToFamilies}
+            onChange={(e) => setForm({ ...form, visibleToFamilies: e.target.checked })}
+          />
           Visible para las familias
         </label>
         {!editingId && form.visibleToFamilies && (
           <label className="col-span-2 flex items-center gap-2 text-sm text-foreground">
-            <input type="checkbox" checked={Boolean(form.notifyFamilies)} onChange={(e) => setForm({ ...form, notifyFamilies: e.target.checked })} />
+            <input
+              type="checkbox"
+              checked={Boolean(form.notifyFamilies)}
+              onChange={(e) => setForm({ ...form, notifyFamilies: e.target.checked })}
+            />
             Avisar ahora a las familias (notificación y push)
           </label>
         )}
@@ -242,9 +351,17 @@ const FeedModal: React.FC<{ open: boolean; onClose: () => void }> = ({ open, onC
     }
   };
   return (
-    <Modal open={open} onClose={onClose} title="Ver el calendario en tu celular" description="Se actualiza solo: los nuevos eventos, tareas y entrevistas aparecen automáticamente." size="md">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Ver el calendario en tu celular"
+      description="Se actualiza solo: los nuevos eventos, tareas y entrevistas aparecen automáticamente."
+      size="md"
+    >
       {isLoading || !data ? (
-        <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin" aria-label="Cargando" /></div>
+        <div className="flex justify-center py-6">
+          <Loader2 className="h-5 w-5 animate-spin" aria-label="Cargando" />
+        </div>
       ) : (
         <div className="space-y-4 text-sm">
           <div>
@@ -261,13 +378,21 @@ const FeedModal: React.FC<{ open: boolean; onClose: () => void }> = ({ open, onC
               <li>Pega el enlace y pulsa “Agregar calendario”.</li>
             </ol>
             <div className="mt-2 flex gap-2">
-              <Input readOnly value={data.httpsUrl} className="h-9 text-xs" onFocus={(e) => e.currentTarget.select()} aria-label="Enlace de suscripción" />
+              <Input
+                readOnly
+                value={data.httpsUrl}
+                className="h-9 text-xs"
+                onFocus={(e) => e.currentTarget.select()}
+                aria-label="Enlace de suscripción"
+              />
               <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={() => copy(data.httpsUrl)}>
                 <Copy className="h-3.5 w-3.5" aria-hidden /> Copiar
               </Button>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground">Este enlace es personal; no lo compartas. Deja de funcionar si cambias tu contraseña.</p>
+          <p className="text-xs text-muted-foreground">
+            Este enlace es personal; no lo compartas. Deja de funcionar si cambias tu contraseña.
+          </p>
         </div>
       )}
     </Modal>
@@ -277,7 +402,8 @@ const FeedModal: React.FC<{ open: boolean; onClose: () => void }> = ({ open, onC
 export const CalendarPage: React.FC = () => {
   const { user } = useAuthStore();
   const role = user?.role;
-  const canCreate = role === 'SCHOOL_ADMIN' || role === 'SUPER_ADMIN' || role === 'ADMINISTRATIVE' || role === 'TEACHER';
+  const canCreate =
+    role === 'SCHOOL_ADMIN' || role === 'SUPER_ADMIN' || role === 'ADMINISTRATIVE' || role === 'TEACHER';
   // Días sin clases propios del colegio (antes «Feriados» en Asistencia): Dirección y Secretaría
   const canManageHolidays = role === 'SCHOOL_ADMIN' || role === 'SUPER_ADMIN' || role === 'ADMINISTRATIVE';
   const [holidaysOpen, setHolidaysOpen] = useState(false);
@@ -295,12 +421,15 @@ export const CalendarPage: React.FC = () => {
   const { data: items = [], isLoading } = useCalendar(start, end);
   const byDay = useMemo(() => itemsByDay(items), [items]);
   const dayItems = byDay.get(selected) ?? [];
-  const monthTitle = new Intl.DateTimeFormat('es-PE', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(ym.y, ym.m - 1, 15)));
+  const monthTitle = new Intl.DateTimeFormat('es-PE', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(
+    new Date(Date.UTC(ym.y, ym.m - 1, 15)),
+  );
 
-  const move = (delta: number) => setYm(({ y, m }) => {
-    const n = m + delta;
-    return n < 1 ? { y: y - 1, m: 12 } : n > 12 ? { y: y + 1, m: 1 } : { y, m: n };
-  });
+  const move = (delta: number) =>
+    setYm(({ y, m }) => {
+      const n = m + delta;
+      return n < 1 ? { y: y - 1, m: 12 } : n > 12 ? { y: y + 1, m: 1 } : { y, m: n };
+    });
 
   const edit = (i: CalendarItem) =>
     setEditor({
@@ -336,11 +465,23 @@ export const CalendarPage: React.FC = () => {
                 className="gap-1.5"
                 disabled={importOfficial.isPending}
                 onClick={async () => {
-                  if (!(await confirmDialog({ title: '¿Agregar feriados y fechas cívicas?', description: 'Se agregarán los feriados nacionales (como días sin clases) y las fechas cívicas escolares del año lectivo. No se duplica lo que ya exista.', confirmText: 'Agregar', variant: 'info' }))) return;
+                  if (
+                    !(await confirmDialog({
+                      title: '¿Agregar feriados y fechas cívicas?',
+                      description:
+                        'Se agregarán los feriados nacionales (como días sin clases) y las fechas cívicas escolares del año lectivo. No se duplica lo que ya exista.',
+                      confirmText: 'Agregar',
+                      variant: 'info',
+                    }))
+                  )
+                    return;
                   importOfficial.mutate(
                     { holidays: true, civic: true },
                     {
-                      onSuccess: (r) => toast.success(`Listo: ${r.holidaysCreated} feriado(s) y ${r.civicCreated} fecha(s) cívica(s) agregados.`),
+                      onSuccess: (r) =>
+                        toast.success(
+                          `Listo: ${r.holidaysCreated} feriado(s) y ${r.civicCreated} fecha(s) cívica(s) agregados.`,
+                        ),
                       onError: (e) => toast.error(apiErrorMessage(e)),
                     },
                   );
@@ -369,13 +510,19 @@ export const CalendarPage: React.FC = () => {
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="p-3 lg:col-span-2">
           <div className="mb-3 flex items-center justify-between">
-            <Button variant="ghost" size="icon" onClick={() => move(-1)} aria-label="Mes anterior"><ChevronLeft className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" onClick={() => move(-1)} aria-label="Mes anterior">
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
             <h2 className="text-sm font-semibold text-foreground first-letter:uppercase">{monthTitle}</h2>
-            <Button variant="ghost" size="icon" onClick={() => move(1)} aria-label="Mes siguiente"><ChevronRight className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" onClick={() => move(1)} aria-label="Mes siguiente">
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
           <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg border border-border bg-border text-xs">
             {WEEKDAYS.map((w) => (
-              <div key={w} className="bg-muted/60 py-1.5 text-center font-semibold text-muted-foreground">{w}</div>
+              <div key={w} className="bg-muted/60 py-1.5 text-center font-semibold text-muted-foreground">
+                {w}
+              </div>
             ))}
             {cells.map((d) => {
               const inMonth = Number(d.slice(5, 7)) === ym.m;
@@ -395,21 +542,39 @@ export const CalendarPage: React.FC = () => {
                     selected === d && 'ring-2 ring-inset ring-primary',
                   )}
                 >
-                  <span className={cn('inline-flex h-5 w-5 items-center justify-center rounded-full text-xs', d === today && 'bg-primary font-bold text-primary-foreground')}>
+                  <span
+                    className={cn(
+                      'inline-flex h-5 w-5 items-center justify-center rounded-full text-xs',
+                      d === today && 'bg-primary font-bold text-primary-foreground',
+                    )}
+                  >
                     {Number(d.slice(8, 10))}
                   </span>
                   <div className="mt-0.5 space-y-0.5">
                     {list.slice(0, 2).map((i) => (
-                      <p key={`${i.kind}-${i.id}`} className={cn('hidden truncate rounded px-1 text-xs sm:block', styleOf(i))}>{i.title}</p>
+                      <p
+                        key={`${i.kind}-${i.id}`}
+                        className={cn('hidden truncate rounded px-1 text-xs sm:block', styleOf(i))}
+                      >
+                        {i.title}
+                      </p>
                     ))}
                     {list.length > 0 && (
                       <p className="flex gap-0.5 sm:hidden">
                         {list.slice(0, 4).map((i) => (
-                          <span key={`${i.kind}-${i.id}`} className={cn('h-1.5 w-1.5 rounded-full', styleOf(i).split(' ')[0].replace('/10', '').replace('/15', ''))} />
+                          <span
+                            key={`${i.kind}-${i.id}`}
+                            className={cn(
+                              'h-1.5 w-1.5 rounded-full',
+                              styleOf(i).split(' ')[0].replace('/10', '').replace('/15', ''),
+                            )}
+                          />
                         ))}
                       </p>
                     )}
-                    {list.length > 2 && <p className="hidden text-xs text-muted-foreground sm:block">+{list.length - 2} más</p>}
+                    {list.length > 2 && (
+                      <p className="hidden text-xs text-muted-foreground sm:block">+{list.length - 2} más</p>
+                    )}
                   </div>
                 </button>
               );
@@ -427,7 +592,9 @@ export const CalendarPage: React.FC = () => {
               {dayItems.map((i) => (
                 <li key={`${i.kind}-${i.id}`} className="rounded-lg border border-border p-3">
                   <div className="flex items-start gap-2">
-                    <span className={cn('mt-0.5 rounded-md p-1', styleOf(i))}><KindIcon item={i} className="h-3.5 w-3.5" /></span>
+                    <span className={cn('mt-0.5 rounded-md p-1', styleOf(i))}>
+                      <KindIcon item={i} className="h-3.5 w-3.5" />
+                    </span>
                     <div className="min-w-0 flex-1">
                       <p className="text-xs text-muted-foreground">
                         {kindLabel(i)}
@@ -436,24 +603,49 @@ export const CalendarPage: React.FC = () => {
                         {i.studentName ? ` · ${i.studentName}` : ''}
                       </p>
                       <p className="text-sm font-medium text-foreground">
-                        {i.link ? <Link to={i.link} className="hover:underline">{i.title}</Link> : i.title}
+                        {i.link ? (
+                          <Link to={i.link} className="hover:underline">
+                            {i.title}
+                          </Link>
+                        ) : (
+                          i.title
+                        )}
                       </p>
                       {i.location && (
-                        <p className="flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="h-3 w-3" aria-hidden /> {i.location}</p>
+                        <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <MapPin className="h-3 w-3" aria-hidden /> {i.location}
+                        </p>
                       )}
-                      {i.description && <p className="mt-1 whitespace-pre-line text-xs text-muted-foreground">{i.description}</p>}
+                      {i.description && (
+                        <p className="mt-1 whitespace-pre-line text-xs text-muted-foreground">{i.description}</p>
+                      )}
                     </div>
                     {i.kind === 'EVENT' && i.editable && (
                       <div className="flex shrink-0 gap-0.5">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => edit(i)} aria-label="Editar evento"><Pencil className="h-3.5 w-3.5" /></Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => edit(i)}
+                          aria-label="Editar evento"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7"
                           aria-label="Eliminar evento"
                           onClick={async () =>
-                            (await confirmDialog({ title: '¿Eliminar este evento?', confirmText: 'Eliminar', variant: 'danger' })) &&
-                            del.mutate(i.id, { onSuccess: () => toast.success('Evento eliminado'), onError: (e) => toast.error(apiErrorMessage(e)) })
+                            (await confirmDialog({
+                              title: '¿Eliminar este evento?',
+                              confirmText: 'Eliminar',
+                              variant: 'danger',
+                            })) &&
+                            del.mutate(i.id, {
+                              onSuccess: () => toast.success('Evento eliminado'),
+                              onError: (e) => toast.error(apiErrorMessage(e)),
+                            })
                           }
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -466,14 +658,27 @@ export const CalendarPage: React.FC = () => {
             </ul>
           )}
           {canCreate && (
-            <Button variant="outline" size="sm" className="mt-3 w-full gap-1.5" onClick={() => setEditor({ initial: emptyEvent(selected) })}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3 w-full gap-1.5"
+              onClick={() => setEditor({ initial: emptyEvent(selected) })}
+            >
               <CalendarPlus className="h-4 w-4" aria-hidden /> Agregar evento este día
             </Button>
           )}
         </Card>
       </div>
 
-      {editor && <EventModal open onClose={() => setEditor(null)} initial={editor.initial} editingId={editor.id} isTeacher={role === 'TEACHER'} />}
+      {editor && (
+        <EventModal
+          open
+          onClose={() => setEditor(null)}
+          initial={editor.initial}
+          editingId={editor.id}
+          isTeacher={role === 'TEACHER'}
+        />
+      )}
       <FeedModal open={feedOpen} onClose={() => setFeedOpen(false)} />
       {holidaysOpen && (
         <HolidaysModal

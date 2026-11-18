@@ -133,7 +133,9 @@ export const SchoolLoginPage: React.FC<{ codeOverride?: string }> = ({ codeOverr
               ? `El código «${code}» no corresponde a ningún colegio activo. Verifícalo con tu colegio.`
               : 'Revisa tu conexión e inténtalo de nuevo.'}
           </p>
-          <Button className="w-full" onClick={changeSchool}>Ingresar otro código</Button>
+          <Button className="w-full" onClick={changeSchool}>
+            Ingresar otro código
+          </Button>
         </div>
       </div>
     );
@@ -161,16 +163,23 @@ export const SchoolLoginPage: React.FC<{ codeOverride?: string }> = ({ codeOverr
       ) : (
         <div
           className="absolute inset-0"
-          style={{ background: `radial-gradient(circle at 20% 20%, ${brand}cc, transparent 55%), linear-gradient(135deg, ${brand}, #0f172a)` }}
+          style={{
+            background: `radial-gradient(circle at 20% 20%, ${brand}cc, transparent 55%), linear-gradient(135deg, ${brand}, #0f172a)`,
+          }}
           aria-hidden
         />
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/40 to-black/25 lg:bg-gradient-to-r" aria-hidden />
+      <div
+        className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/40 to-black/25 lg:bg-gradient-to-r"
+        aria-hidden
+      />
 
       <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col items-center justify-center gap-8 px-4 py-10 lg:flex-row lg:justify-between lg:gap-12">
         {/* Mensaje del colegio */}
         <section className="w-full max-w-xl text-white text-center lg:text-left space-y-4">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight drop-shadow-sm [text-wrap:balance]">{title}</h1>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight drop-shadow-sm [text-wrap:balance]">
+            {title}
+          </h1>
           {page.loginMessage && (
             <p className="text-base sm:text-lg text-white/90 whitespace-pre-line drop-shadow-sm">{page.loginMessage}</p>
           )}
@@ -191,17 +200,28 @@ export const SchoolLoginPage: React.FC<{ codeOverride?: string }> = ({ codeOverr
           </div>
 
           {schoolOptions && (
-            <SchoolChooser options={schoolOptions} onPick={pickSchool} onCancel={cancelPick} pendingSchoolId={pendingPick} />
+            <SchoolChooser
+              options={schoolOptions}
+              onPick={pickSchool}
+              onCancel={cancelPick}
+              pendingSchoolId={pendingPick}
+            />
           )}
           <form onSubmit={handleSubmit(onSubmit)} className={schoolOptions ? 'hidden' : 'space-y-3.5'} noValidate>
             {errorMessage && (
-              <div role="alert" className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs font-semibold">
+              <div
+                role="alert"
+                className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs font-semibold"
+              >
                 {errorMessage}
               </div>
             )}
 
             <div className="space-y-1">
-              <label htmlFor="school-login-user" className="text-xs font-semibold text-foreground tracking-wide uppercase">
+              <label
+                htmlFor="school-login-user"
+                className="text-xs font-semibold text-foreground tracking-wide uppercase"
+              >
                 Usuario
               </label>
               <Input
@@ -217,7 +237,10 @@ export const SchoolLoginPage: React.FC<{ codeOverride?: string }> = ({ codeOverr
 
             <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <label htmlFor="school-login-password" className="text-xs font-semibold text-foreground tracking-wide uppercase">
+                <label
+                  htmlFor="school-login-password"
+                  className="text-xs font-semibold text-foreground tracking-wide uppercase"
+                >
                   Contraseña
                 </label>
                 <Link to="/olvide-contrasena" className="text-xs text-primary hover:underline font-medium">
@@ -246,19 +269,25 @@ export const SchoolLoginPage: React.FC<{ codeOverride?: string }> = ({ codeOverr
 
             <p className="text-center text-xs text-muted-foreground">
               Al ingresar aceptas nuestros{' '}
-              <Link to="/terminos" target="_blank" className="text-primary hover:underline font-medium">Términos</Link> y la{' '}
-              <Link to="/privacidad" target="_blank" className="text-primary hover:underline font-medium">Política de Privacidad</Link>.
+              <Link to="/terminos" target="_blank" className="text-primary hover:underline font-medium">
+                Términos
+              </Link>{' '}
+              y la{' '}
+              <Link to="/privacidad" target="_blank" className="text-primary hover:underline font-medium">
+                Política de Privacidad
+              </Link>
+              .
             </p>
           </form>
 
           {!codeOverride && (
-          <button
-            type="button"
-            onClick={changeSchool}
-            className="mt-4 flex w-full items-center justify-center gap-1.5 border-t border-border/60 pt-3 text-xs text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden /> ¿No es tu colegio? Cambiar de colegio
-          </button>
+            <button
+              type="button"
+              onClick={changeSchool}
+              className="mt-4 flex w-full items-center justify-center gap-1.5 border-t border-border/60 pt-3 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden /> ¿No es tu colegio? Cambiar de colegio
+            </button>
           )}
 
           <div className="mt-3 flex items-center justify-center gap-2 text-xs text-muted-foreground">

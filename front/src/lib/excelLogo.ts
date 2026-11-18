@@ -24,7 +24,10 @@ const toDataUrl = (blob: Blob): Promise<string> =>
  * Pone el logo del colegio en la esquina superior derecha de cada hoja, justo a la derecha de la
  * tabla, para no tapar ningún dato. Si no hay logo o no se puede descargar, el Excel sale igual.
  */
-export async function addSchoolLogoToWorkbook(workbook: ExcelJS.Workbook, logoUrl: string | null = activeSchoolLogoUrl()): Promise<void> {
+export async function addSchoolLogoToWorkbook(
+  workbook: ExcelJS.Workbook,
+  logoUrl: string | null = activeSchoolLogoUrl(),
+): Promise<void> {
   if (!logoUrl) return;
   try {
     const res = await fetch(logoUrl);

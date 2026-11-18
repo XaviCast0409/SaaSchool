@@ -45,7 +45,13 @@ export const ReasonDialog: React.FC<ReasonDialogProps> = ({
           <Button variant="ghost" size="sm" onClick={onClose}>
             Cancelar
           </Button>
-          <Button variant="destructive" size="sm" disabled={!valid} isLoading={isPending} onClick={() => onConfirm(reason.trim())}>
+          <Button
+            variant="destructive"
+            size="sm"
+            disabled={!valid}
+            isLoading={isPending}
+            onClick={() => onConfirm(reason.trim())}
+          >
             {confirmLabel}
           </Button>
         </>

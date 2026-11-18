@@ -53,7 +53,13 @@ export interface Scholarship {
   deactivationReason?: string | null;
   enrollment: {
     id: string;
-    student: { id: string; firstNames: string; lastNamePaternal: string; lastNameMaternal: string; documentId: string | null };
+    student: {
+      id: string;
+      firstNames: string;
+      lastNamePaternal: string;
+      lastNameMaternal: string;
+      documentId: string | null;
+    };
     classroom: { grade: number; section: string; educationLevel: string };
   };
   _count: { adjustments: number };
@@ -95,7 +101,16 @@ export interface StatementObligation extends StatementTotals {
   status: 'PENDING' | 'PARTIAL' | 'PAID' | 'CANCELLED';
   cancelReason?: string | null;
   daysOverdue: number;
-  adjustments: Array<{ id: string; number: string; type: AdjustmentType; amount: number; reason: string; status: 'ACTIVE' | 'VOIDED'; createdAt: string; voidReason?: string | null }>;
+  adjustments: Array<{
+    id: string;
+    number: string;
+    type: AdjustmentType;
+    amount: number;
+    reason: string;
+    status: 'ACTIVE' | 'VOIDED';
+    createdAt: string;
+    voidReason?: string | null;
+  }>;
   payments: Array<{
     id: string;
     receiptNumber: string | null;
@@ -110,8 +125,24 @@ export interface StatementObligation extends StatementTotals {
 }
 
 export interface StudentStatement {
-  student: { id: string; fullName: string; documentId: string | null; studentCode: string | null; classroom: string | null; year: number | null };
-  guardians: Array<{ id: string; firstName: string; lastNamePaternal: string; lastNameMaternal: string; cellphone: string | null; email: string | null; relationshipType: string; isFinancialResponsible: boolean }>;
+  student: {
+    id: string;
+    fullName: string;
+    documentId: string | null;
+    studentCode: string | null;
+    classroom: string | null;
+    year: number | null;
+  };
+  guardians: Array<{
+    id: string;
+    firstName: string;
+    lastNamePaternal: string;
+    lastNameMaternal: string;
+    cellphone: string | null;
+    email: string | null;
+    relationshipType: string;
+    isFinancialResponsible: boolean;
+  }>;
   obligations: StatementObligation[];
   totals: StatementTotals;
   generatedAt: string;
@@ -142,7 +173,10 @@ export interface CollectionsReport {
     obligation: {
       title: string;
       concept: string;
-      enrollment: { student: { firstNames: string; lastNamePaternal: string; lastNameMaternal: string; documentId: string | null }; classroom: { grade: number; section: string } };
+      enrollment: {
+        student: { firstNames: string; lastNamePaternal: string; lastNameMaternal: string; documentId: string | null };
+        classroom: { grade: number; section: string };
+      };
     };
   }>;
   total: number;
@@ -197,10 +231,19 @@ export interface MonthlyReport {
   totals: Omit<MonthlyRow, 'month'>;
 }
 
-const get = async <T,>(url: string, params?: Record<string, unknown>) => (await api.get<{ data: T }>(url, { params })).data.data;
+const get = async <T>(url: string, params?: Record<string, unknown>) =>
+  (await api.get<{ data: T }>(url, { params })).data.data;
 
 const invalidateAll = (qc: ReturnType<typeof useQueryClient>) => {
-  for (const key of ['payments-obligations', 'payment-obligation', 'financial-summary', 'scholarships', 'late-fees', 'adjustments', 'statement']) {
+  for (const key of [
+    'payments-obligations',
+    'payment-obligation',
+    'financial-summary',
+    'scholarships',
+    'late-fees',
+    'adjustments',
+    'statement',
+  ]) {
     qc.invalidateQueries({ queryKey: [key] });
   }
 };
@@ -209,8 +252,12 @@ const invalidateAll = (qc: ReturnType<typeof useQueryClient>) => {
 export const useCreateAdjustment = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: { obligationId: string; type: 'DISCOUNT' | 'LATE_FEE' | 'CREDIT_NOTE'; amount: number; reason: string }) =>
-      (await api.post<{ data: ObligationAdjustment }>('/payments/adjustments', body)).data.data,
+    mutationFn: async (body: {
+      obligationId: string;
+      type: 'DISCOUNT' | 'LATE_FEE' | 'CREDIT_NOTE';
+      amount: number;
+      reason: string;
+    }) => (await api.post<{ data: ObligationAdjustment }>('/payments/adjustments', body)).data.data,
     onSuccess: () => invalidateAll(qc),
   });
 };
@@ -218,17 +265,28 @@ export const useCreateAdjustment = () => {
 export const useVoidAdjustment = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, reason }: { id: string; reason: string }) => (await api.post(`/payments/adjustments/${id}/void`, { reason })).data.data,
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) =>
+      (await api.post(`/payments/adjustments/${id}/void`, { reason })).data.data,
     onSuccess: () => invalidateAll(qc),
   });
 };
 
-export const useAdjustments = (filters: { startDate?: string; endDate?: string; type?: AdjustmentType }, enabled = true) =>
-  useQuery({ queryKey: ['adjustments', filters], queryFn: () => get<ObligationAdjustment[]>('/payments/adjustments', filters), enabled });
+export const useAdjustments = (
+  filters: { startDate?: string; endDate?: string; type?: AdjustmentType },
+  enabled = true,
+) =>
+  useQuery({
+    queryKey: ['adjustments', filters],
+    queryFn: () => get<ObligationAdjustment[]>('/payments/adjustments', filters),
+    enabled,
+  });
 
 // ── Becas ─────────────────────────────────────────────────────────
 export const useScholarships = (activeOnly: boolean) =>
-  useQuery({ queryKey: ['scholarships', activeOnly], queryFn: () => get<Scholarship[]>('/payments/scholarships', { activeOnly: String(activeOnly) }) });
+  useQuery({
+    queryKey: ['scholarships', activeOnly],
+    queryFn: () => get<Scholarship[]>('/payments/scholarships', { activeOnly: String(activeOnly) }),
+  });
 
 export interface CreateScholarshipBody {
   studentId: string;
@@ -254,7 +312,9 @@ export const useCreateScholarship = () => {
 export const useApplyScholarship = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => (await api.post<{ data: { applied: number; skipped: number } }>(`/payments/scholarships/${id}/apply`, {})).data.data,
+    mutationFn: async (id: string) =>
+      (await api.post<{ data: { applied: number; skipped: number } }>(`/payments/scholarships/${id}/apply`, {})).data
+        .data,
     onSuccess: () => invalidateAll(qc),
   });
 };
@@ -263,18 +323,25 @@ export const useDeactivateScholarship = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, reason, revertPending }: { id: string; reason: string; revertPending: boolean }) =>
-      (await api.post<{ data: { reverted: number } }>(`/payments/scholarships/${id}/deactivate`, { reason, revertPending })).data.data,
+      (
+        await api.post<{ data: { reverted: number } }>(`/payments/scholarships/${id}/deactivate`, {
+          reason,
+          revertPending,
+        })
+      ).data.data,
     onSuccess: () => invalidateAll(qc),
   });
 };
 
 // ── Moras ─────────────────────────────────────────────────────────
-export const useFinanceSettings = () => useQuery({ queryKey: ['late-fees', 'settings'], queryFn: () => get<FinanceSettings>('/payments/finance-settings') });
+export const useFinanceSettings = () =>
+  useQuery({ queryKey: ['late-fees', 'settings'], queryFn: () => get<FinanceSettings>('/payments/finance-settings') });
 
 export const useUpdateFinanceSettings = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: FinanceSettings) => (await api.put<{ data: FinanceSettings }>('/payments/finance-settings', body)).data.data,
+    mutationFn: async (body: FinanceSettings) =>
+      (await api.put<{ data: FinanceSettings }>('/payments/finance-settings', body)).data.data,
     onSuccess: () => invalidateAll(qc),
   });
 };
@@ -290,20 +357,33 @@ export const useApplyLateFees = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (obligationIds: string[]) =>
-      (await api.post<{ data: { applied: number; total: number } }>('/payments/late-fees/apply', { obligationIds })).data.data,
+      (await api.post<{ data: { applied: number; total: number } }>('/payments/late-fees/apply', { obligationIds }))
+        .data.data,
     onSuccess: () => invalidateAll(qc),
   });
 };
 
 // ── Estados de cuenta ─────────────────────────────────────────────
 export const useStudentStatement = (studentId: string | null) =>
-  useQuery({ queryKey: ['statement', 'student', studentId], queryFn: () => get<StudentStatement>(`/payments/statements/student/${studentId}`), enabled: !!studentId });
+  useQuery({
+    queryKey: ['statement', 'student', studentId],
+    queryFn: () => get<StudentStatement>(`/payments/statements/student/${studentId}`),
+    enabled: !!studentId,
+  });
 
 export const useFamilyStatement = (userId: string | null) =>
-  useQuery({ queryKey: ['statement', 'family', userId], queryFn: () => get<FamilyStatement>(`/payments/statements/family/${userId}`), enabled: !!userId });
+  useQuery({
+    queryKey: ['statement', 'family', userId],
+    queryFn: () => get<FamilyStatement>(`/payments/statements/family/${userId}`),
+    enabled: !!userId,
+  });
 
 export const useMyStatement = (enabled: boolean) =>
-  useQuery({ queryKey: ['statement', 'mine'], queryFn: () => get<FamilyStatement>('/payments/statements/mine'), enabled });
+  useQuery({
+    queryKey: ['statement', 'mine'],
+    queryFn: () => get<FamilyStatement>('/payments/statements/mine'),
+    enabled,
+  });
 
 export interface GuardianOption {
   id: string;
@@ -322,11 +402,26 @@ export const useGuardianSearch = (search: string) =>
   });
 
 // ── Reportes ──────────────────────────────────────────────────────
-export const useCollectionsReport = (f: { startDate?: string; endDate?: string; cashierId?: string; method?: string; concept?: string }) =>
-  useQuery({ queryKey: ['report', 'collections', f], queryFn: () => get<CollectionsReport>('/payments/reports/collections', f) });
+export const useCollectionsReport = (f: {
+  startDate?: string;
+  endDate?: string;
+  cashierId?: string;
+  method?: string;
+  concept?: string;
+}) =>
+  useQuery({
+    queryKey: ['report', 'collections', f],
+    queryFn: () => get<CollectionsReport>('/payments/reports/collections', f),
+  });
 
 export const useAgingReport = (classroomId?: string) =>
-  useQuery({ queryKey: ['report', 'aging', classroomId], queryFn: () => get<AgingReport>('/payments/reports/aging', { classroomId }) });
+  useQuery({
+    queryKey: ['report', 'aging', classroomId],
+    queryFn: () => get<AgingReport>('/payments/reports/aging', { classroomId }),
+  });
 
 export const useMonthlyReport = (year: number) =>
-  useQuery({ queryKey: ['report', 'monthly', year], queryFn: () => get<MonthlyReport>('/payments/reports/monthly', { year }) });
+  useQuery({
+    queryKey: ['report', 'monthly', year],
+    queryFn: () => get<MonthlyReport>('/payments/reports/monthly', { year }),
+  });

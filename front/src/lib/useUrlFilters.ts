@@ -10,9 +10,7 @@ type FilterValue = string | number | boolean;
  * Los valores iguales al valor por defecto no se escriben, para que la URL quede limpia.
  * `set` acepta varios campos a la vez (p. ej. cambiar el filtro y volver a la página 1).
  */
-export function useUrlFilters<T extends Record<string, FilterValue>>(
-  defaults: T,
-): [T, (patch: Partial<T>) => void] {
+export function useUrlFilters<T extends Record<string, FilterValue>>(defaults: T): [T, (patch: Partial<T>) => void] {
   const location = useLocation();
   const navigate = useNavigate();
   // Los valores por defecto se fijan en el primer render (suelen ser literales)

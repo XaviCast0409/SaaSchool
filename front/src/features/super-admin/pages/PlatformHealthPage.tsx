@@ -28,7 +28,9 @@ export const PlatformHealthPage: React.FC = () => {
             <Activity className="w-6 h-6 text-primary" /> Salud del sistema
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {health ? `Revisado ${formatPeruDateTime(health.checkedAt)} · se actualiza cada minuto` : 'Estado del servidor y sus procesos'}
+            {health
+              ? `Revisado ${formatPeruDateTime(health.checkedAt)} · se actualiza cada minuto`
+              : 'Estado del servidor y sus procesos'}
           </p>
         </div>
         <Button size="sm" variant="outline" className="gap-2 text-xs" onClick={() => refetch()} isLoading={isFetching}>
@@ -70,7 +72,11 @@ export const PlatformHealthPage: React.FC = () => {
               icon={<Workflow className="w-4 h-4" />}
               title="Automatizaciones (24 h)"
               ok={health.automations.last24h.failed === 0 && health.automations.stuck === 0}
-              value={health.server.automationsEnabled ? `${health.automations.last24h.success} correctas` : 'Desactivadas en este servidor'}
+              value={
+                health.server.automationsEnabled
+                  ? `${health.automations.last24h.success} correctas`
+                  : 'Desactivadas en este servidor'
+              }
               lines={[
                 `${health.automations.last24h.failed} con error · ${health.automations.last24h.running} en curso`,
                 health.automations.stuck > 0 ? `${health.automations.stuck} colgadas (más de 1 h)` : 'Ninguna colgada',
@@ -83,7 +89,9 @@ export const PlatformHealthPage: React.FC = () => {
               value={`${health.storage.totalMb} MB`}
               lines={[
                 `${health.storage.files} archivos`,
-                health.storage.byStorage.map((s) => `${STORAGE_LABELS[s.storage] ?? s.storage}: ${s.mb} MB`).join(' · ') || 'Sin archivos',
+                health.storage.byStorage
+                  .map((s) => `${STORAGE_LABELS[s.storage] ?? s.storage}: ${s.mb} MB`)
+                  .join(' · ') || 'Sin archivos',
               ]}
             />
           </div>
@@ -132,7 +140,9 @@ export const PlatformHealthPage: React.FC = () => {
                       {health.recentErrors.length}
                     </Badge>
                   </CardTitle>
-                  <p className="text-xs text-muted-foreground">Últimos errores internos desde que arrancó el servidor (se borran al reiniciar).</p>
+                  <p className="text-xs text-muted-foreground">
+                    Últimos errores internos desde que arrancó el servidor (se borran al reiniciar).
+                  </p>
                 </CardHeader>
                 <CardContent>
                   {!health.recentErrors.length ? (

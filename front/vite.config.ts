@@ -21,8 +21,12 @@ export default defineConfig(({ mode }) => ({
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           'vendor-data': ['@tanstack/react-query', '@tanstack/react-table', 'axios', 'zustand'],
           'vendor-ui': [
-            '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select',
-            '@radix-ui/react-toast', 'lucide-react', 'sonner',
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-select',
+            '@radix-ui/react-toast',
+            'lucide-react',
+            'sonner',
           ],
           // Cada librería de Excel en su paquete: se descargan solo al generar un archivo
           'vendor-exceljs': ['exceljs'],

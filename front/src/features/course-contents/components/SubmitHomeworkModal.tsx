@@ -16,11 +16,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  useGetHomeworkSubmissions,
-  useSubmitHomework,
-  useUploadMaterial,
-} from '../api/useCourseContents';
+import { useGetHomeworkSubmissions, useSubmitHomework, useUploadMaterial } from '../api/useCourseContents';
 import { openFile } from '../utils/fileUrls';
 import type { CourseContent } from '../types';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -33,11 +29,7 @@ interface SubmitHomeworkModalProps {
   content: CourseContent | null;
 }
 
-export const SubmitHomeworkModal: React.FC<SubmitHomeworkModalProps> = ({
-  isOpen,
-  onClose,
-  content,
-}) => {
+export const SubmitHomeworkModal: React.FC<SubmitHomeworkModalProps> = ({ isOpen, onClose, content }) => {
   const { data, isLoading, refetch } = useGetHomeworkSubmissions(content?.id);
   const uploadMutation = useUploadMaterial();
   const submitMutation = useSubmitHomework();
@@ -80,10 +72,7 @@ export const SubmitHomeworkModal: React.FC<SubmitHomeworkModalProps> = ({
         fileSize = uploaded.fileSize;
       }
 
-      const resolvedStudentId =
-        user?.role === 'STUDENT'
-          ? (user.studentId || user.id)
-          : (selectedChildId || undefined);
+      const resolvedStudentId = user?.role === 'STUDENT' ? user.studentId || user.id : selectedChildId || undefined;
 
       await submitMutation.mutateAsync({
         courseContentId: content.id,
@@ -108,7 +97,11 @@ export const SubmitHomeworkModal: React.FC<SubmitHomeworkModalProps> = ({
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200"
+    >
       <div className="bg-card w-full max-w-lg rounded-2xl border border-border shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-border bg-muted/40">
@@ -117,13 +110,9 @@ export const SubmitHomeworkModal: React.FC<SubmitHomeworkModalProps> = ({
               <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
                 <ClipboardList className="w-5 h-5" />
               </div>
-              <h2 className="text-base sm:text-lg font-bold text-foreground">
-                Entrega de Tarea
-              </h2>
+              <h2 className="text-base sm:text-lg font-bold text-foreground">Entrega de Tarea</h2>
             </div>
-            <p className="text-xs text-muted-foreground truncate max-w-sm">
-              {content.title}
-            </p>
+            <p className="text-xs text-muted-foreground truncate max-w-sm">{content.title}</p>
           </div>
 
           <Button
@@ -142,9 +131,7 @@ export const SubmitHomeworkModal: React.FC<SubmitHomeworkModalProps> = ({
           <div className="p-3.5 rounded-xl bg-muted/30 border border-border space-y-2">
             <h3 className="font-bold text-foreground text-sm">{content.title}</h3>
             {content.description && (
-              <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                {content.description}
-              </p>
+              <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">{content.description}</p>
             )}
 
             {content.dueDate && (
@@ -207,9 +194,7 @@ export const SubmitHomeworkModal: React.FC<SubmitHomeworkModalProps> = ({
                 <div className="p-2.5 rounded-lg bg-muted/40 border border-border flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 truncate">
                     <FileText className="w-4 h-4 text-primary shrink-0" />
-                    <span className="font-bold text-foreground truncate">
-                      {currentSubmission.fileName}
-                    </span>
+                    <span className="font-bold text-foreground truncate">{currentSubmission.fileName}</span>
                   </div>
                   <button
                     type="button"
@@ -239,8 +224,7 @@ export const SubmitHomeworkModal: React.FC<SubmitHomeworkModalProps> = ({
                       </div>
                       <Badge className="text-xs font-mono font-extrabold px-2 py-0.5">
                         {currentSubmission.literalScore ||
-                          (currentSubmission.numericScore !== null &&
-                          currentSubmission.numericScore !== undefined
+                          (currentSubmission.numericScore !== null && currentSubmission.numericScore !== undefined
                             ? `${currentSubmission.numericScore} / 20`
                             : 'Revisada')}
                       </Badge>
@@ -251,9 +235,7 @@ export const SubmitHomeworkModal: React.FC<SubmitHomeworkModalProps> = ({
                         <span className="font-semibold text-muted-foreground block text-xs uppercase tracking-wide">
                           Comentario del Profesor:
                         </span>
-                        <p className="mt-0.5 leading-relaxed">
-                          {currentSubmission.teacherFeedback}
-                        </p>
+                        <p className="mt-0.5 leading-relaxed">{currentSubmission.teacherFeedback}</p>
                       </div>
                     )}
                   </div>
@@ -292,9 +274,7 @@ export const SubmitHomeworkModal: React.FC<SubmitHomeworkModalProps> = ({
                       <span className="font-bold text-foreground text-xs">{selectedFile.name}</span>
                     ) : (
                       <>
-                        <span className="font-semibold text-xs text-foreground">
-                          Haz clic para elegir un archivo
-                        </span>
+                        <span className="font-semibold text-xs text-foreground">Haz clic para elegir un archivo</span>
                         <span className="text-xs">Límite máximo: 15 MB</span>
                       </>
                     )}
@@ -349,4 +329,3 @@ export const SubmitHomeworkModal: React.FC<SubmitHomeworkModalProps> = ({
     </div>
   );
 };
-

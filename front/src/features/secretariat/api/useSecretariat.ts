@@ -138,12 +138,17 @@ export interface Complaint {
 const KEY = ['secretariat'];
 
 export const useSecretariatSettings = (enabled = true) =>
-  useQuery({ queryKey: [...KEY, 'settings'], enabled, queryFn: async () => (await api.get<{ data: SecretariatSettings }>('/secretariat/settings')).data.data });
+  useQuery({
+    queryKey: [...KEY, 'settings'],
+    enabled,
+    queryFn: async () => (await api.get<{ data: SecretariatSettings }>('/secretariat/settings')).data.data,
+  });
 
 export const useSaveSecretariatSettings = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: Omit<SecretariatSettings, 'pending' | 'blockCertificatesOnOverdue'>) => (await api.put('/secretariat/settings', input)).data.data,
+    mutationFn: async (input: Omit<SecretariatSettings, 'pending' | 'blockCertificatesOnOverdue'>) =>
+      (await api.put('/secretariat/settings', input)).data.data,
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 };
@@ -151,14 +156,26 @@ export const useSaveSecretariatSettings = () => {
 export const useAdmissions = (filters: { year?: number; q?: string }) =>
   useQuery({
     queryKey: [...KEY, 'admissions', filters],
-    queryFn: async () => (await api.get<{ data: { rows: AdmissionApplication[]; years: number[] } }>('/secretariat/admissions', { params: filters })).data.data,
+    queryFn: async () =>
+      (
+        await api.get<{ data: { rows: AdmissionApplication[]; years: number[] } }>('/secretariat/admissions', {
+          params: filters,
+        })
+      ).data.data,
   });
 
 export const useUpdateAdmission = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...input }: { id: string; status?: AdmissionStatus; staffNotes?: string | null; interviewAt?: string | null }) =>
-      (await api.patch(`/secretariat/admissions/${id}`, input)).data.data,
+    mutationFn: async ({
+      id,
+      ...input
+    }: {
+      id: string;
+      status?: AdmissionStatus;
+      staffNotes?: string | null;
+      interviewAt?: string | null;
+    }) => (await api.patch(`/secretariat/admissions/${id}`, input)).data.data,
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 };
@@ -166,7 +183,12 @@ export const useUpdateAdmission = () => {
 export const useConvertAdmission = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => (await api.post<{ data: { studentId: string; linkedExisting: boolean } }>(`/secretariat/admissions/${id}/convert`)).data.data,
+    mutationFn: async (id: string) =>
+      (
+        await api.post<{ data: { studentId: string; linkedExisting: boolean } }>(
+          `/secretariat/admissions/${id}/convert`,
+        )
+      ).data.data,
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 };
@@ -174,24 +196,35 @@ export const useConvertAdmission = () => {
 export const useRatifications = () =>
   useQuery({
     queryKey: [...KEY, 'ratifications'],
-    queryFn: async () => (await api.get<{ data: { targetYear: number | null; rows: RatificationRow[] } }>('/secretariat/ratifications')).data.data,
+    queryFn: async () =>
+      (await api.get<{ data: { targetYear: number | null; rows: RatificationRow[] } }>('/secretariat/ratifications'))
+        .data.data,
   });
 
 export const useRemindRatification = () =>
-  useMutation({ mutationFn: async () => (await api.post<{ data: { families: number; students: number } }>('/secretariat/ratifications/remind')).data.data });
+  useMutation({
+    mutationFn: async () =>
+      (await api.post<{ data: { families: number; students: number } }>('/secretariat/ratifications/remind')).data.data,
+  });
 
 export const useDocumentRequests = (status?: DocumentStatus) =>
   useQuery({
     queryKey: [...KEY, 'documents', status],
-    queryFn: async () => (await api.get<{ data: DocumentRequestRow[] }>('/secretariat/documents', { params: { status } })).data.data,
+    queryFn: async () =>
+      (await api.get<{ data: DocumentRequestRow[] }>('/secretariat/documents', { params: { status } })).data.data,
   });
 
 /** Trámite pedido en ventanilla (lo registra Secretaría en nombre de la familia). */
 export const useCreateDocumentAtDesk = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { studentId: string; type: DocumentType; purpose?: string; copies: number; requesterName: string }) =>
-      (await api.post<{ data: DocumentRequestRow }>('/secretariat/documents', input)).data.data,
+    mutationFn: async (input: {
+      studentId: string;
+      type: DocumentType;
+      purpose?: string;
+      copies: number;
+      requesterName: string;
+    }) => (await api.post<{ data: DocumentRequestRow }>('/secretariat/documents', input)).data.data,
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 };
@@ -199,19 +232,32 @@ export const useCreateDocumentAtDesk = () => {
 export const useUpdateDocument = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...input }: { id: string; status?: DocumentStatus; staffNote?: string | null; fileUrl?: string | null; releaseHold?: boolean }) =>
-      (await api.patch(`/secretariat/documents/${id}`, input)).data.data,
+    mutationFn: async ({
+      id,
+      ...input
+    }: {
+      id: string;
+      status?: DocumentStatus;
+      staffNote?: string | null;
+      fileUrl?: string | null;
+      releaseHold?: boolean;
+    }) => (await api.patch(`/secretariat/documents/${id}`, input)).data.data,
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 };
 
 export const useComplaints = (enabled = true) =>
-  useQuery({ queryKey: [...KEY, 'complaints'], enabled, queryFn: async () => (await api.get<{ data: Complaint[] }>('/secretariat/complaints')).data.data });
+  useQuery({
+    queryKey: [...KEY, 'complaints'],
+    enabled,
+    queryFn: async () => (await api.get<{ data: Complaint[] }>('/secretariat/complaints')).data.data,
+  });
 
 export const useRespondComplaint = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, response }: { id: string; response: string }) => (await api.post(`/secretariat/complaints/${id}/respond`, { response })).data.data,
+    mutationFn: async ({ id, response }: { id: string; response: string }) =>
+      (await api.post(`/secretariat/complaints/${id}/respond`, { response })).data.data,
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 };
@@ -220,17 +266,25 @@ export const useRespondComplaint = () => {
 
 export interface FamilyProcedures {
   ratification: { open: boolean; year: number | null; deadline: string | null };
-  children: Array<{ studentId: string; name: string; ratification: { decision: 'CONFIRMED' | 'DECLINED'; comment: string | null; updatedAt: string } | null }>;
+  children: Array<{
+    studentId: string;
+    name: string;
+    ratification: { decision: 'CONFIRMED' | 'DECLINED'; comment: string | null; updatedAt: string } | null;
+  }>;
   requests: DocumentRequestRow[];
 }
 
 export const useFamilyProcedures = () =>
-  useQuery({ queryKey: [...KEY, 'family'], queryFn: async () => (await api.get<{ data: FamilyProcedures }>('/secretariat/family')).data.data });
+  useQuery({
+    queryKey: [...KEY, 'family'],
+    queryFn: async () => (await api.get<{ data: FamilyProcedures }>('/secretariat/family')).data.data,
+  });
 
 export const useRatify = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { studentId: string; decision: 'CONFIRMED' | 'DECLINED'; comment?: string }) => (await api.post('/secretariat/family/ratify', input)).data.data,
+    mutationFn: async (input: { studentId: string; decision: 'CONFIRMED' | 'DECLINED'; comment?: string }) =>
+      (await api.post('/secretariat/family/ratify', input)).data.data,
     onSuccess: () => qc.invalidateQueries({ queryKey: [...KEY, 'family'] }),
   });
 };
@@ -268,17 +322,28 @@ const PUBLIC_BASE = `${(import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '
 
 /** Fetch sin token ni interceptores: estas páginas las abre gente sin cuenta. */
 async function publicFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${PUBLIC_BASE}${path}`, { ...init, headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) } });
+  const res = await fetch(`${PUBLIC_BASE}${path}`, {
+    ...init,
+    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+  });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body?.message ?? 'No se pudo completar la solicitud. Intente nuevamente.');
   return body.data as T;
 }
 
 export const usePublicSchool = (schoolId: string | undefined) =>
-  useQuery({ queryKey: ['public-school', schoolId], enabled: Boolean(schoolId), retry: false, queryFn: () => publicFetch<PublicSchool>(`/${schoolId}`) });
+  useQuery({
+    queryKey: ['public-school', schoolId],
+    enabled: Boolean(schoolId),
+    retry: false,
+    queryFn: () => publicFetch<PublicSchool>(`/${schoolId}`),
+  });
 
 export const submitAdmission = (schoolId: string, payload: Record<string, unknown>) =>
   publicFetch<{ received: boolean }>(`/${schoolId}/admissions`, { method: 'POST', body: JSON.stringify(payload) });
 
 export const submitComplaint = (schoolId: string, payload: Record<string, unknown>) =>
-  publicFetch<{ code: string; dueDate: string }>(`/${schoolId}/complaints`, { method: 'POST', body: JSON.stringify(payload) });
+  publicFetch<{ code: string; dueDate: string }>(`/${schoolId}/complaints`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });

@@ -15,8 +15,18 @@ export interface MarkedMatrixExportParams {
 }
 
 const SPANISH_MONTHS = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Setiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  'Enero',
+  'Febrero',
+  'Marzo',
+  'Abril',
+  'Mayo',
+  'Junio',
+  'Julio',
+  'Agosto',
+  'Setiembre',
+  'Octubre',
+  'Noviembre',
+  'Diciembre',
 ];
 
 const SPANISH_DAYS_SHORT = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
@@ -52,32 +62,32 @@ function colLetter(colIdx: number): string {
 }
 
 const PALETTE = {
-  navyDark: 'FF0F172A',        // Slate 900
-  navyBlue: 'FF1E3A8A',        // Blue 900
-  iceBlue: 'FFEFF6FF',         // Blue 50
-  slateLight: 'FFF8FAFC',      // Slate 50
-  slateBorder: 'FFCBD5E1',     // Slate 300
+  navyDark: 'FF0F172A', // Slate 900
+  navyBlue: 'FF1E3A8A', // Blue 900
+  iceBlue: 'FFEFF6FF', // Blue 50
+  slateLight: 'FFF8FAFC', // Slate 50
+  slateBorder: 'FFCBD5E1', // Slate 300
   slateBorderDark: 'FF94A3B8', // Slate 400
-  headerDayBg: 'FF334155',     // Slate 700
-  headerDayText: 'FFFFFFFF',   // Blanco
+  headerDayBg: 'FF334155', // Slate 700
+  headerDayText: 'FFFFFFFF', // Blanco
   headerSummaryBg: 'FF0F766E', // Teal 700
   headerSummarySubBg: 'FF115E59', // Teal 800
 
   // Estados Asistencia
-  presentBg: 'FFDCFCE7',       // Emerald 100
-  presentText: 'FF166534',     // Emerald 800
-  lateInjBg: 'FFFFEDD5',       // Orange 100
-  lateInjText: 'FF9A3412',     // Orange 800
-  lateJustBg: 'FFE0F2FE',      // Sky 100
-  lateJustText: 'FF075985',     // Sky 800
-  absentInjBg: 'FFFEE2E2',     // Red 100
-  absentInjText: 'FF991B1B',   // Red 800
-  absentJustBg: 'FFFEF3C7',    // Amber 100
-  absentJustText: 'FF92400E',   // Amber 800
+  presentBg: 'FFDCFCE7', // Emerald 100
+  presentText: 'FF166534', // Emerald 800
+  lateInjBg: 'FFFFEDD5', // Orange 100
+  lateInjText: 'FF9A3412', // Orange 800
+  lateJustBg: 'FFE0F2FE', // Sky 100
+  lateJustText: 'FF075985', // Sky 800
+  absentInjBg: 'FFFEE2E2', // Red 100
+  absentInjText: 'FF991B1B', // Red 800
+  absentJustBg: 'FFFEF3C7', // Amber 100
+  absentJustText: 'FF92400E', // Amber 800
 
   // Fines de semana
-  weekendBg: 'FFE2E8F0',       // Slate 200
-  weekendText: 'FF64748B',     // Slate 500
+  weekendBg: 'FFE2E8F0', // Slate 200
+  weekendText: 'FF64748B', // Slate 500
 
   // Resumen
   summaryP: 'FFECFDF5',
@@ -112,7 +122,7 @@ function applyStyle(
     border?: Partial<ExcelJS.Borders>;
     alignment?: Partial<ExcelJS.Alignment>;
     numFmt?: string;
-  }
+  },
 ) {
   if (options.font) cell.font = { name: 'Segoe UI', ...options.font };
   if (options.fillBg) {
@@ -149,14 +159,7 @@ const saveWorkbook = async (workbook: ExcelJS.Workbook, filename: string): Promi
  * congelamiento de paneles y preparación para impresión oficial horizontal.
  */
 export async function exportWellMarkedMatrixExcel(params: MarkedMatrixExportParams): Promise<void> {
-  const {
-    students,
-    monthStr,
-    daysInMonth,
-    classroomLabel,
-    schoolName = 'INSTITUCIÓN EDUCATIVA',
-    mode,
-  } = params;
+  const { students, monthStr, daysInMonth, classroomLabel, schoolName = 'INSTITUCIÓN EDUCATIVA', mode } = params;
 
   const [yearNum, monthNum] = monthStr.split('-').map(Number);
   const periodText = formatMonthSpanish(monthStr);
@@ -209,7 +212,7 @@ export async function exportWellMarkedMatrixExcel(params: MarkedMatrixExportPara
   });
 
   // Configurar anchos de columna base
-  ws.getColumn(1).width = 5.5;  // N°
+  ws.getColumn(1).width = 5.5; // N°
   ws.getColumn(2).width = 33.0; // Estudiante
   ws.getColumn(3).width = 13.0; // DNI
   ws.getColumn(4).width = 11.0; // Aula
@@ -219,7 +222,7 @@ export async function exportWellMarkedMatrixExcel(params: MarkedMatrixExportPara
   }
 
   const summaryStartCol = 5 + daysInMonth;
-  ws.getColumn(summaryStartCol).width = 8.5;     // P
+  ws.getColumn(summaryStartCol).width = 8.5; // P
   ws.getColumn(summaryStartCol + 1).width = 8.5; // FJ
   ws.getColumn(summaryStartCol + 2).width = 8.5; // FI
   ws.getColumn(summaryStartCol + 3).width = 9.0; // T
@@ -264,7 +267,12 @@ export async function exportWellMarkedMatrixExcel(params: MarkedMatrixExportPara
   row3.height = 22;
   const cell3 = ws.getCell(3, 1);
   const now = new Date();
-  const emissionDate = now.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Lima' });
+  const emissionDate = now.toLocaleDateString('es-PE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'America/Lima',
+  });
   cell3.value = `I.E.: ${schoolName.toUpperCase()}   |   AULA / SECCIÓN: ${(classroomLabel || 'TODAS LAS SECCIONES').toUpperCase()}   |   MES: ${periodText}   |   EMISIÓN: ${emissionDate}   |   ESTUDIANTES: ${students.length}`;
   applyStyle(cell3, {
     font: { bold: true, size: 9, color: { argb: PALETTE.navyDark } },
@@ -602,11 +610,12 @@ export async function exportWellMarkedMatrixExcel(params: MarkedMatrixExportPara
         formula: `IF(${pctColLet}${r}>=0.85,"NORMAL",IF(${pctColLet}${r}>=0.70,"ALERTA","CRÍTICO"))`,
         result: student.riskLevel === 'NORMAL' ? 'NORMAL' : student.riskLevel === 'WARNING' ? 'ALERTA' : 'CRÍTICO',
       };
-      const riskBg = student.riskLevel === 'NORMAL'
-        ? PALETTE.summaryRiskNormal
-        : student.riskLevel === 'WARNING'
-        ? PALETTE.summaryRiskWarning
-        : PALETTE.summaryRiskCritical;
+      const riskBg =
+        student.riskLevel === 'NORMAL'
+          ? PALETTE.summaryRiskNormal
+          : student.riskLevel === 'WARNING'
+            ? PALETTE.summaryRiskWarning
+            : PALETTE.summaryRiskCritical;
 
       applyStyle(cellRisk, {
         font: { bold: true, size: 8, color: { argb: PALETTE.navyDark } },

@@ -131,7 +131,11 @@ export const JustifyAbsenceModal: React.FC<JustifyAbsenceModalProps> = ({
 
       if (selectedFile) {
         setIsUploading(true);
-        const uploadResult = await uploadMutation.mutateAsync({ file: selectedFile, purpose: 'ATTENDANCE_JUSTIFICATION', enrollmentId });
+        const uploadResult = await uploadMutation.mutateAsync({
+          file: selectedFile,
+          purpose: 'ATTENDANCE_JUSTIFICATION',
+          enrollmentId,
+        });
         uploadedUrl = uploadResult.url;
         uploadedName = uploadResult.fileName;
         setIsUploading(false);
@@ -157,7 +161,11 @@ export const JustifyAbsenceModal: React.FC<JustifyAbsenceModalProps> = ({
   const currentFileName = watch('fileName') || selectedFile?.name;
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-150">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-150"
+    >
       <div className="w-full max-w-lg rounded-2xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border p-4 sm:p-5">
@@ -166,12 +174,8 @@ export const JustifyAbsenceModal: React.FC<JustifyAbsenceModalProps> = ({
               <FileText className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="font-black text-base text-foreground leading-none">
-                Justificar Inasistencia
-              </h2>
-              <p className="text-xs text-muted-foreground mt-1 truncate max-w-[280px]">
-                {studentName}
-              </p>
+              <h2 className="font-black text-base text-foreground leading-none">Justificar Inasistencia</h2>
+              <p className="text-xs text-muted-foreground mt-1 truncate max-w-[280px]">{studentName}</p>
             </div>
           </div>
           <button
@@ -197,9 +201,7 @@ export const JustifyAbsenceModal: React.FC<JustifyAbsenceModalProps> = ({
                 className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
               {errors.dateFrom && (
-                <p className="text-xs text-destructive mt-1 font-semibold">
-                  {errors.dateFrom.message}
-                </p>
+                <p className="text-xs text-destructive mt-1 font-semibold">{errors.dateFrom.message}</p>
               )}
             </div>
 
@@ -212,11 +214,7 @@ export const JustifyAbsenceModal: React.FC<JustifyAbsenceModalProps> = ({
                 {...register('dateTo')}
                 className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
-              {errors.dateTo && (
-                <p className="text-xs text-destructive mt-1 font-semibold">
-                  {errors.dateTo.message}
-                </p>
-              )}
+              {errors.dateTo && <p className="text-xs text-destructive mt-1 font-semibold">{errors.dateTo.message}</p>}
             </div>
           </div>
 
@@ -235,11 +233,7 @@ export const JustifyAbsenceModal: React.FC<JustifyAbsenceModalProps> = ({
                 </option>
               ))}
             </select>
-            {errors.reason && (
-              <p className="text-xs text-destructive mt-1 font-semibold">
-                {errors.reason.message}
-              </p>
-            )}
+            {errors.reason && <p className="text-xs text-destructive mt-1 font-semibold">{errors.reason.message}</p>}
           </div>
 
           {/* Descripción */}
@@ -254,20 +248,14 @@ export const JustifyAbsenceModal: React.FC<JustifyAbsenceModalProps> = ({
               className="w-full rounded-xl border border-border bg-background p-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
             />
             {errors.description && (
-              <p className="text-xs text-destructive mt-1 font-semibold">
-                {errors.description.message}
-              </p>
+              <p className="text-xs text-destructive mt-1 font-semibold">{errors.description.message}</p>
             )}
           </div>
 
           {/* Adjuntar sustento */}
           <div>
-            <label className="text-xs font-bold text-foreground block mb-1">
-              Adjuntar sustento (opcional)
-            </label>
-            <p className="text-xs text-muted-foreground mb-2">
-              Formatos: PDF, JPG o PNG. Máximo 15 MB.
-            </p>
+            <label className="text-xs font-bold text-foreground block mb-1">Adjuntar sustento (opcional)</label>
+            <p className="text-xs text-muted-foreground mb-2">Formatos: PDF, JPG o PNG. Máximo 15 MB.</p>
 
             {currentFileName ? (
               <div className="flex items-center justify-between p-2.5 rounded-xl border border-border bg-secondary/50 text-xs">
@@ -316,9 +304,7 @@ export const JustifyAbsenceModal: React.FC<JustifyAbsenceModalProps> = ({
               disabled={isSubmitting || isUploading || isSaving}
               className="rounded-xl text-xs font-bold gap-1.5"
             >
-              {(isSubmitting || isUploading || isSaving) && (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              )}
+              {(isSubmitting || isUploading || isSaving) && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               <span>{isUploading ? 'Subiendo archivo...' : 'Enviar justificación'}</span>
             </Button>
           </div>

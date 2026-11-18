@@ -27,13 +27,33 @@ import {
   type AdjustmentType,
   type GroupRow,
 } from '../api/useFinance';
-import { EXPENSE_CATEGORY_LABEL, PAYMENT_METHODS, PAYMENT_METHOD_LABEL, methodLabel, personName, type CashExpense } from '../types';
+import {
+  EXPENSE_CATEGORY_LABEL,
+  PAYMENT_METHODS,
+  PAYMENT_METHOD_LABEL,
+  methodLabel,
+  personName,
+  type CashExpense,
+} from '../types';
 import { formatEducationLevel } from '@/lib/utils';
 import { ExpensesList, soles } from '../components/CashMovements';
 import { StatementView } from '../components/StatementView';
 import { exportFinanceExcel, type ExcelSheet } from '../utils/financeExcel';
 
-const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Setiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const MONTHS = [
+  'Enero',
+  'Febrero',
+  'Marzo',
+  'Abril',
+  'Mayo',
+  'Junio',
+  'Julio',
+  'Agosto',
+  'Setiembre',
+  'Octubre',
+  'Noviembre',
+  'Diciembre',
+];
 const CONCEPTS: Record<string, string> = {
   PENSION: 'Pensión',
   MATRICULA: 'Matrícula',
@@ -46,7 +66,8 @@ const CONCEPTS: Record<string, string> = {
 };
 const sel = 'rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground';
 const monthStart = () => `${getPeruToday().slice(0, 8)}01`;
-const studentName = (s: { firstNames: string; lastNamePaternal: string; lastNameMaternal?: string | null }) => `${s.lastNamePaternal} ${s.lastNameMaternal ?? ''}, ${s.firstNames}`;
+const studentName = (s: { firstNames: string; lastNamePaternal: string; lastNameMaternal?: string | null }) =>
+  `${s.lastNamePaternal} ${s.lastNameMaternal ?? ''}, ${s.firstNames}`;
 
 const useSchoolName = () => useGetActiveSchool().data?.name ?? 'Institución educativa';
 
@@ -56,7 +77,11 @@ const ExcelButton: React.FC<{ onClick: () => void; disabled?: boolean }> = ({ on
   </Button>
 );
 
-const DateRange: React.FC<{ start: string; end: string; onChange: (s: string, e: string) => void }> = ({ start, end, onChange }) => (
+const DateRange: React.FC<{ start: string; end: string; onChange: (s: string, e: string) => void }> = ({
+  start,
+  end,
+  onChange,
+}) => (
   <>
     <label className="space-y-1 text-xs font-semibold text-muted-foreground">
       Desde
@@ -69,9 +94,16 @@ const DateRange: React.FC<{ start: string; end: string; onChange: (s: string, e:
   </>
 );
 
-const GroupTable: React.FC<{ title: string; rows: GroupRow[]; label?: (k: string) => string; total: number }> = ({ title, rows, label, total }) => (
+const GroupTable: React.FC<{ title: string; rows: GroupRow[]; label?: (k: string) => string; total: number }> = ({
+  title,
+  rows,
+  label,
+  total,
+}) => (
   <div className="rounded-lg border border-border">
-    <p className="border-b border-border bg-muted/40 px-3 py-1.5 text-xs font-bold uppercase text-muted-foreground">{title}</p>
+    <p className="border-b border-border bg-muted/40 px-3 py-1.5 text-xs font-bold uppercase text-muted-foreground">
+      {title}
+    </p>
     <table className="w-full text-xs">
       <tbody>
         {rows.map((r) => (
@@ -79,7 +111,9 @@ const GroupTable: React.FC<{ title: string; rows: GroupRow[]; label?: (k: string
             <td className="p-2">{label ? label(r.key) : r.key}</td>
             <td className="p-2 text-right text-muted-foreground">{r.count}</td>
             <td className="p-2 text-right font-semibold">{soles(r.total)}</td>
-            <td className="p-2 text-right text-muted-foreground">{total ? `${((r.total / total) * 100).toFixed(1)} %` : ''}</td>
+            <td className="p-2 text-right text-muted-foreground">
+              {total ? `${((r.total / total) * 100).toFixed(1)} %` : ''}
+            </td>
           </tr>
         ))}
       </tbody>
@@ -92,7 +126,10 @@ const StatementTab: React.FC = () => {
   const [mode, setMode] = useState<'student' | 'family'>('student');
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
-  const { data: studentsData } = useStudents({ page: 1, limit: 20, search: search || undefined, scope: 'all' }, mode === 'student' && search.trim().length >= 2);
+  const { data: studentsData } = useStudents(
+    { page: 1, limit: 20, search: search || undefined, scope: 'all' },
+    mode === 'student' && search.trim().length >= 2,
+  );
   const { data: guardians = [] } = useGuardianSearch(mode === 'family' ? search : '');
   const student = useStudentStatement(mode === 'student' ? selected : null);
   const family = useFamilyStatement(mode === 'family' ? selected : null);
@@ -100,7 +137,10 @@ const StatementTab: React.FC = () => {
   const loading = mode === 'student' ? student.isLoading : family.isLoading;
   const options =
     mode === 'student'
-      ? (studentsData?.data ?? []).map((s) => ({ id: s.id, label: `${studentName(s)}${s.documentId ? ` — ${s.documentId}` : ''}` }))
+      ? (studentsData?.data ?? []).map((s) => ({
+          id: s.id,
+          label: `${studentName(s)}${s.documentId ? ` — ${s.documentId}` : ''}`,
+        }))
       : guardians.map((g) => ({
           id: g.id,
           label: `${g.lastNamePaternal} ${g.lastNameMaternal}, ${g.firstName} — hijos: ${g.familyRelations.map((r) => `${r.student.firstNames} ${r.student.lastNamePaternal}`).join(', ')}`,
@@ -127,7 +167,11 @@ const StatementTab: React.FC = () => {
         </div>
         <div className="min-w-[260px] flex-1 space-y-1">
           <Input
-            placeholder={mode === 'student' ? 'Buscar alumno por apellido o DNI' : 'Buscar apoderado por apellido, DNI o apellido del hijo'}
+            placeholder={
+              mode === 'student'
+                ? 'Buscar alumno por apellido o DNI'
+                : 'Buscar apoderado por apellido, DNI o apellido del hijo'
+            }
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -137,7 +181,11 @@ const StatementTab: React.FC = () => {
         <ul className="max-h-56 divide-y divide-border overflow-y-auto rounded-lg border border-border text-sm">
           {options.map((o) => (
             <li key={o.id}>
-              <button type="button" className="w-full px-3 py-2 text-left hover:bg-muted" onClick={() => setSelected(o.id)}>
+              <button
+                type="button"
+                className="w-full px-3 py-2 text-left hover:bg-muted"
+                onClick={() => setSelected(o.id)}
+              >
                 {o.label}
               </button>
             </li>
@@ -150,7 +198,11 @@ const StatementTab: React.FC = () => {
         </Button>
       )}
       {selected && (loading || !data ? <Skeleton className="h-64 w-full" /> : <StatementView data={data} showVoided />)}
-      {!selected && <p className="text-sm text-muted-foreground">Busca un alumno o un apoderado para ver su estado de cuenta (cuotas, descuentos, moras, pagos y saldo).</p>}
+      {!selected && (
+        <p className="text-sm text-muted-foreground">
+          Busca un alumno o un apoderado para ver su estado de cuenta (cuotas, descuentos, moras, pagos y saldo).
+        </p>
+      )}
     </div>
   );
 };
@@ -158,14 +210,25 @@ const StatementTab: React.FC = () => {
 // ── Ingresos ──────────────────────────────────────────────────────
 const CollectionsTab: React.FC = () => {
   const schoolName = useSchoolName();
-  const [f, setF] = useState({ startDate: monthStart(), endDate: getPeruToday(), cashierId: '', method: '', concept: '' });
+  const [f, setF] = useState({
+    startDate: monthStart(),
+    endDate: getPeruToday(),
+    cashierId: '',
+    method: '',
+    concept: '',
+  });
   const { data: cashiers = [] } = useCashiers();
   const { data, isLoading } = useCollectionsReport(f);
   const subtitle = `${formatPeruShortDate(f.startDate)} al ${formatPeruShortDate(f.endDate)}`;
 
   const exportExcel = () => {
     if (!data) return;
-    const group = (name: string, title: string, rows: GroupRow[], label?: (k: string) => string): ExcelSheet<GroupRow> => ({
+    const group = (
+      name: string,
+      title: string,
+      rows: GroupRow[],
+      label?: (k: string) => string,
+    ): ExcelSheet<GroupRow> => ({
       name,
       title,
       subtitle,
@@ -186,12 +249,20 @@ const CollectionsTab: React.FC = () => {
           { header: 'Recibo', width: 12, value: (r) => r.receiptNumber },
           { header: 'Alumno', width: 32, value: (r) => studentName(r.obligation.enrollment.student) },
           { header: 'DNI', width: 11, value: (r) => r.obligation.enrollment.student.documentId },
-          { header: 'Aula', width: 8, value: (r) => `${r.obligation.enrollment.classroom.grade}° ${r.obligation.enrollment.classroom.section}` },
+          {
+            header: 'Aula',
+            width: 8,
+            value: (r) => `${r.obligation.enrollment.classroom.grade}° ${r.obligation.enrollment.classroom.section}`,
+          },
           { header: 'Cuota', width: 26, value: (r) => r.obligation.title },
           { header: 'Concepto', width: 16, value: (r) => CONCEPTS[r.obligation.concept] ?? r.obligation.concept },
           { header: 'Medio', width: 13, value: (r) => methodLabel(r.paymentMethod) },
           { header: 'N° operación', width: 16, value: (r) => r.operationNumber },
-          { header: 'Cobró', width: 20, value: (r) => (r.collectedBy ? personName(r.collectedBy) : 'Voucher validado') },
+          {
+            header: 'Cobró',
+            width: 20,
+            value: (r) => (r.collectedBy ? personName(r.collectedBy) : 'Voucher validado'),
+          },
           { header: 'Monto', type: 'money', total: true, value: (r) => r.amountPaid },
         ],
         rows: data.rows,
@@ -209,7 +280,11 @@ const CollectionsTab: React.FC = () => {
         <DateRange start={f.startDate} end={f.endDate} onChange={(s, e) => setF({ ...f, startDate: s, endDate: e })} />
         <label className="space-y-1 text-xs font-semibold text-muted-foreground">
           Cajero
-          <select className={`${sel} block`} value={f.cashierId} onChange={(e) => setF({ ...f, cashierId: e.target.value })}>
+          <select
+            className={`${sel} block`}
+            value={f.cashierId}
+            onChange={(e) => setF({ ...f, cashierId: e.target.value })}
+          >
             <option value="">Todos</option>
             {cashiers.map((c) => (
               <option key={c.id} value={c.id}>
@@ -231,7 +306,11 @@ const CollectionsTab: React.FC = () => {
         </label>
         <label className="space-y-1 text-xs font-semibold text-muted-foreground">
           Concepto
-          <select className={`${sel} block`} value={f.concept} onChange={(e) => setF({ ...f, concept: e.target.value })}>
+          <select
+            className={`${sel} block`}
+            value={f.concept}
+            onChange={(e) => setF({ ...f, concept: e.target.value })}
+          >
             <option value="">Todos</option>
             {Object.entries(CONCEPTS).map(([k, v]) => (
               <option key={k} value={k}>
@@ -300,7 +379,12 @@ const AgingTab: React.FC = () => {
           { header: 'Correo', width: 26, value: (r) => r.email },
           { header: 'Cuotas vencidas', type: 'number', width: 10, total: true, value: (r) => r.cuotas },
           { header: 'Días (máx.)', type: 'number', width: 9, value: (r) => r.maxDays },
-          ...AGING_BUCKETS.map((b) => ({ header: `${b} días`, type: 'money' as const, total: true, value: (r: (typeof data.rows)[number]) => r.buckets[b] })),
+          ...AGING_BUCKETS.map((b) => ({
+            header: `${b} días`,
+            type: 'money' as const,
+            total: true,
+            value: (r: (typeof data.rows)[number]) => r.buckets[b],
+          })),
           { header: 'Total vencido', type: 'money', total: true, value: (r) => r.total },
         ],
         rows: data.rows,
@@ -318,7 +402,14 @@ const AgingTab: React.FC = () => {
           { header: 'Saldo', type: 'money', total: true, value: (r) => r.balance },
         ],
         rows: data.rows.flatMap((r) => r.items.map((i) => ({ ...i, student: r.student, classroom: r.classroom }))),
-      } as ExcelSheet<{ student: string; classroom: string; title: string; dueDate: string; days: number; balance: number }>,
+      } as ExcelSheet<{
+        student: string;
+        classroom: string;
+        title: string;
+        dueDate: string;
+        days: number;
+        balance: number;
+      }>,
     ]);
 
   return (
@@ -353,7 +444,9 @@ const AgingTab: React.FC = () => {
               <div key={b} className="rounded-xl border border-border p-3">
                 <p className="text-xs font-bold uppercase text-muted-foreground">{b} días</p>
                 <p className="text-lg font-black">{soles(data.buckets[b])}</p>
-                <p className="text-xs text-muted-foreground">{data.total ? ((data.buckets[b] / data.total) * 100).toFixed(1) : '0'} %</p>
+                <p className="text-xs text-muted-foreground">
+                  {data.total ? ((data.buckets[b] / data.total) * 100).toFixed(1) : '0'} %
+                </p>
               </div>
             ))}
           </div>
@@ -376,7 +469,10 @@ const AgingTab: React.FC = () => {
               <tbody>
                 {data.rows.map((r) => (
                   <React.Fragment key={r.studentId}>
-                    <tr className="cursor-pointer border-t border-border hover:bg-muted/30" onClick={() => setOpen(open === r.studentId ? null : r.studentId)}>
+                    <tr
+                      className="cursor-pointer border-t border-border hover:bg-muted/30"
+                      onClick={() => setOpen(open === r.studentId ? null : r.studentId)}
+                    >
                       <td className="p-2">
                         <span className="font-medium">{r.student}</span>
                         <span className="block text-xs text-muted-foreground">{r.classroom}</span>
@@ -442,7 +538,13 @@ const MonthlyTab: React.FC = () => {
         subtitle: `Año ${year} (emitido por mes de vencimiento; ingresos y egresos por fecha real)`,
         columns: [
           { header: 'Mes', width: 12, value: (r) => MONTHS[r.month - 1] },
-          ...cols.map(([k, label]) => ({ header: label, type: 'money' as const, total: true, width: 16, value: (r: (typeof data.months)[number]) => r[k] })),
+          ...cols.map(([k, label]) => ({
+            header: label,
+            type: 'money' as const,
+            total: true,
+            width: 16,
+            value: (r: (typeof data.months)[number]) => r[k],
+          })),
         ],
         rows: data.months,
       } as ExcelSheet<(typeof data.months)[number]>,
@@ -462,7 +564,8 @@ const MonthlyTab: React.FC = () => {
           </select>
         </label>
         <p className="text-xs text-muted-foreground">
-          Lo emitido se agrupa por mes de vencimiento; "Ingresó en el mes" y los egresos, por la fecha real del movimiento.
+          Lo emitido se agrupa por mes de vencimiento; "Ingresó en el mes" y los egresos, por la fecha real del
+          movimiento.
         </p>
         <div className="ml-auto">
           <ExcelButton onClick={exportExcel} disabled={!data} />
@@ -505,7 +608,9 @@ const MonthlyTab: React.FC = () => {
                     {soles(data.totals[k])}
                   </td>
                 ))}
-                <td className="p-2 text-right">{data.totals.net ? `${((data.totals.paid / data.totals.net) * 100).toFixed(1)} %` : '—'}</td>
+                <td className="p-2 text-right">
+                  {data.totals.net ? `${((data.totals.paid / data.totals.net) * 100).toFixed(1)} %` : '—'}
+                </td>
               </tr>
             </tfoot>
           </table>
@@ -518,8 +623,16 @@ const MonthlyTab: React.FC = () => {
 // ── Descuentos, becas, moras y notas de crédito ───────────────────
 const AdjustmentsTab: React.FC = () => {
   const schoolName = useSchoolName();
-  const [f, setF] = useState<{ startDate: string; endDate: string; type: '' | AdjustmentType }>({ startDate: `${getPeruToday().slice(0, 4)}-01-01`, endDate: getPeruToday(), type: '' });
-  const { data = [], isLoading } = useAdjustments({ startDate: f.startDate, endDate: f.endDate, type: f.type || undefined });
+  const [f, setF] = useState<{ startDate: string; endDate: string; type: '' | AdjustmentType }>({
+    startDate: `${getPeruToday().slice(0, 4)}-01-01`,
+    endDate: getPeruToday(),
+    type: '',
+  });
+  const { data = [], isLoading } = useAdjustments({
+    startDate: f.startDate,
+    endDate: f.endDate,
+    type: f.type || undefined,
+  });
   const active = data.filter((a) => a.status === 'ACTIVE');
   const sum = (t: AdjustmentType) => active.filter((a) => a.type === t).reduce((s, a) => s + Number(a.amount), 0);
 
@@ -533,12 +646,26 @@ const AdjustmentsTab: React.FC = () => {
           { header: 'N°', width: 11, value: (r) => r.number },
           { header: 'Fecha', type: 'datetime', width: 16, value: (r) => r.createdAt },
           { header: 'Tipo', width: 15, value: (r) => ADJUSTMENT_LABEL[r.type] },
-          { header: 'Alumno', width: 30, value: (r) => (r.obligation ? studentName(r.obligation.enrollment.student) : '') },
+          {
+            header: 'Alumno',
+            width: 30,
+            value: (r) => (r.obligation ? studentName(r.obligation.enrollment.student) : ''),
+          },
           { header: 'Cuota', width: 24, value: (r) => r.obligation?.title },
           { header: 'Motivo', width: 40, value: (r) => r.reason },
           { header: 'Registró', width: 18, value: (r) => personName(r.createdBy) },
-          { header: 'Efecto en deuda', type: 'money', total: true, value: (r) => (r.status === 'ACTIVE' ? (r.type === 'LATE_FEE' ? 1 : -1) * Number(r.amount) : 0) },
-          { header: 'Estado', width: 26, value: (r) => (r.status === 'ACTIVE' ? 'Vigente' : `Anulado por ${personName(r.voidedBy)}: ${r.voidReason ?? ''}`) },
+          {
+            header: 'Efecto en deuda',
+            type: 'money',
+            total: true,
+            value: (r) => (r.status === 'ACTIVE' ? (r.type === 'LATE_FEE' ? 1 : -1) * Number(r.amount) : 0),
+          },
+          {
+            header: 'Estado',
+            width: 26,
+            value: (r) =>
+              r.status === 'ACTIVE' ? 'Vigente' : `Anulado por ${personName(r.voidedBy)}: ${r.voidReason ?? ''}`,
+          },
         ],
         rows: data,
       } as ExcelSheet<(typeof data)[number]>,
@@ -550,7 +677,11 @@ const AdjustmentsTab: React.FC = () => {
         <DateRange start={f.startDate} end={f.endDate} onChange={(s, e) => setF({ ...f, startDate: s, endDate: e })} />
         <label className="space-y-1 text-xs font-semibold text-muted-foreground">
           Tipo
-          <select className={`${sel} block`} value={f.type} onChange={(e) => setF({ ...f, type: e.target.value as '' | AdjustmentType })}>
+          <select
+            className={`${sel} block`}
+            value={f.type}
+            onChange={(e) => setF({ ...f, type: e.target.value as '' | AdjustmentType })}
+          >
             <option value="">Todos</option>
             {Object.entries(ADJUSTMENT_LABEL).map(([k, v]) => (
               <option key={k} value={k}>
@@ -593,10 +724,17 @@ const AdjustmentsTab: React.FC = () => {
               {data.map((a) => {
                 const voided = a.status === 'VOIDED';
                 return (
-                  <tr key={a.id} className={`border-t border-border align-top ${voided ? 'bg-destructive/5 text-muted-foreground' : ''}`}>
+                  <tr
+                    key={a.id}
+                    className={`border-t border-border align-top ${voided ? 'bg-destructive/5 text-muted-foreground' : ''}`}
+                  >
                     <td className="p-2 font-mono whitespace-nowrap">
                       <span className={voided ? 'line-through' : ''}>{a.number}</span>
-                      {voided && <Badge variant="destructive" className="ml-1 text-xs">Anulado</Badge>}
+                      {voided && (
+                        <Badge variant="destructive" className="ml-1 text-xs">
+                          Anulado
+                        </Badge>
+                      )}
                     </td>
                     <td className="p-2 whitespace-nowrap">{formatPeruDateTime(a.createdAt)}</td>
                     <td className="p-2">{ADJUSTMENT_LABEL[a.type]}</td>
@@ -634,7 +772,10 @@ const ExpensesTab: React.FC = () => {
   const active = data.filter((e) => e.status === 'ACTIVE');
   const total = active.reduce((s, e) => s + Number(e.amount), 0);
   const byCategory = Object.entries(
-    active.reduce<Record<string, number>>((acc, e) => ({ ...acc, [e.category]: (acc[e.category] ?? 0) + Number(e.amount) }), {}),
+    active.reduce<Record<string, number>>(
+      (acc, e) => ({ ...acc, [e.category]: (acc[e.category] ?? 0) + Number(e.amount) }),
+      {},
+    ),
   ).sort((a, b) => b[1] - a[1]);
 
   const exportExcel = () =>
@@ -653,7 +794,11 @@ const ExpensesTab: React.FC = () => {
           { header: 'N° comprobante', width: 15, value: (e) => e.documentNumber },
           { header: 'Caja de', width: 18, value: (e) => personName(e.cashSession?.cashier) },
           { header: 'Monto', type: 'money', total: true, value: (e) => (e.status === 'ACTIVE' ? Number(e.amount) : 0) },
-          { header: 'Estado', width: 24, value: (e) => (e.status === 'ACTIVE' ? 'Vigente' : `Anulado: ${e.voidReason ?? ''}`) },
+          {
+            header: 'Estado',
+            width: 24,
+            value: (e) => (e.status === 'ACTIVE' ? 'Vigente' : `Anulado: ${e.voidReason ?? ''}`),
+          },
         ],
         rows: data,
       } as ExcelSheet<CashExpense>,
@@ -707,7 +852,10 @@ export const FinanceReportsPage: React.FC = () => {
   return (
     <div className="space-y-6 pb-8">
       <div className="border-b border-border pb-4">
-        <Link to="/payments" className="mb-1 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+        <Link
+          to="/payments"
+          className="mb-1 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+        >
           <ArrowLeft className="h-3 w-3" /> Pagos y cobranzas
         </Link>
         <div className="flex items-center gap-2">
@@ -715,11 +863,18 @@ export const FinanceReportsPage: React.FC = () => {
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Reportes financieros</h1>
           <Badge variant="outline">{access.label}</Badge>
         </div>
-        <p className="mt-1 text-sm text-muted-foreground">Estados de cuenta, ingresos, morosidad y resúmenes para el contador, exportables a Excel.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Estados de cuenta, ingresos, morosidad y resúmenes para el contador, exportables a Excel.
+        </p>
       </div>
       <div className="flex flex-wrap gap-1 rounded-lg border border-border p-0.5 text-sm">
         {visible.map(([k, label]) => (
-          <button key={k} type="button" onClick={() => setTab(k)} className={`rounded-md px-3 py-1.5 font-semibold ${tab === k ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}>
+          <button
+            key={k}
+            type="button"
+            onClick={() => setTab(k)}
+            className={`rounded-md px-3 py-1.5 font-semibold ${tab === k ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}
+          >
             {label}
           </button>
         ))}

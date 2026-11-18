@@ -1,18 +1,10 @@
 import React from 'react';
 import { formatEducationLevel } from '@/lib/utils';
-import {
-  X,
-  User,
-  AlertTriangle,
-  Calendar as CalendarIcon,
-  MessageSquare,
-  Award,
-} from 'lucide-react';
+import { X, User, AlertTriangle, Calendar as CalendarIcon, MessageSquare, Award } from 'lucide-react';
 import { useStudentAttendanceDetail } from '../api/useAttendance';
 import { AttendanceStatusBadge } from './AttendanceStatusBadge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-
 
 interface StudentAttendanceModalProps {
   enrollmentId: string;
@@ -20,17 +12,15 @@ interface StudentAttendanceModalProps {
   onClose: () => void;
 }
 
-
-
-export const StudentAttendanceModal: React.FC<StudentAttendanceModalProps> = ({
-  enrollmentId,
-  month,
-  onClose,
-}) => {
+export const StudentAttendanceModal: React.FC<StudentAttendanceModalProps> = ({ enrollmentId, month, onClose }) => {
   const { data: detail, isLoading, isError } = useStudentAttendanceDetail(enrollmentId, month);
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200"
+    >
       <div className="w-full max-w-2xl rounded-2xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border p-4 bg-muted/30 shrink-0">
@@ -39,18 +29,11 @@ export const StudentAttendanceModal: React.FC<StudentAttendanceModalProps> = ({
               <User className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="font-bold text-base text-foreground leading-tight">
-                Expediente Individual de Asistencia
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                Resumen analítico y récord mensual del alumno ({month})
-              </p>
+              <h2 className="font-bold text-base text-foreground leading-tight">Expediente Individual de Asistencia</h2>
+              <p className="text-xs text-muted-foreground">Resumen analítico y récord mensual del alumno ({month})</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted transition-colors"
-          >
+          <button onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -110,9 +93,7 @@ export const StudentAttendanceModal: React.FC<StudentAttendanceModalProps> = ({
                     <Award className="w-4 h-4" />
                     <div>
                       <div>Asistencia Óptima</div>
-                      <div className="text-xs font-normal opacity-90">
-                        {detail.attendanceRate}% de permanencia
-                      </div>
+                      <div className="text-xs font-normal opacity-90">{detail.attendanceRate}% de permanencia</div>
                     </div>
                   </div>
                 )}
@@ -127,9 +108,7 @@ export const StudentAttendanceModal: React.FC<StudentAttendanceModalProps> = ({
                   <span className="text-xs text-muted-foreground font-medium">Presentes</span>
                 </div>
                 <div className="p-3 rounded-xl border border-border bg-destructive/5 text-center">
-                  <span className="text-2xl font-bold text-destructive block">
-                    {detail.counts.ABSENT_UNJUSTIFIED}
-                  </span>
+                  <span className="text-2xl font-bold text-destructive block">{detail.counts.ABSENT_UNJUSTIFIED}</span>
                   <span className="text-xs text-muted-foreground font-medium">Faltas Injust.</span>
                 </div>
                 <div className="p-3 rounded-xl border border-border bg-amber-500/5 text-center">

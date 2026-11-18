@@ -62,4 +62,6 @@ export const DropdownMenuLabel: React.FC<{ children: React.ReactNode }> = ({ chi
   </DropdownMenuPrimitive.Label>
 );
 
-export const DropdownMenuSeparator: React.FC = () => <DropdownMenuPrimitive.Separator className="-mx-1 my-1 h-px bg-border" />;
+export const DropdownMenuSeparator: React.FC = () => (
+  <DropdownMenuPrimitive.Separator className="-mx-1 my-1 h-px bg-border" />
+);

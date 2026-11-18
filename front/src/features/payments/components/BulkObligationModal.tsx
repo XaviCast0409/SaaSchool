@@ -72,7 +72,11 @@ export const BulkObligationModal: React.FC<BulkObligationModalProps> = ({ onClos
   const onSubmit = (data: BulkCreateObligationsFormData) => {
     const scopeValue = data.classroomId?.trim() || '';
     const amountsByLevel = data.byLevel
-      ? { INITIAL: data.amountInitial ?? null, PRIMARY: data.amountPrimary ?? null, SECONDARY: data.amountSecondary ?? null }
+      ? {
+          INITIAL: data.amountInitial ?? null,
+          PRIMARY: data.amountPrimary ?? null,
+          SECONDARY: data.amountSecondary ?? null,
+        }
       : null;
     if (data.byLevel ? !Object.values(amountsByLevel!).some((v) => v) : !data.amountDue) {
       toast.error(data.byLevel ? 'Ingresa el monto de al menos un nivel.' : 'Ingresa el monto a cobrar.');
@@ -94,7 +98,7 @@ export const BulkObligationModal: React.FC<BulkObligationModalProps> = ({ onClos
         toast.success(
           `✨ Cronograma generado: Se emitieron ${count} pensiones correctamente${
             skipped > 0 ? ` (${skipped} omitidas por ya estar al día)` : ''
-          }.`
+          }.`,
         );
         onClose();
       },
@@ -105,25 +109,24 @@ export const BulkObligationModal: React.FC<BulkObligationModalProps> = ({ onClos
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+    >
       <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border p-4 bg-card shrink-0">
           <div className="flex items-center gap-2">
             <Layers className="w-5 h-5 text-primary" />
             <div>
-              <h2 className="font-bold text-base text-foreground leading-none">
-                Generar Cronograma Masivo de Pagos
-              </h2>
+              <h2 className="font-bold text-base text-foreground leading-none">Generar Cronograma Masivo de Pagos</h2>
               <p className="text-xs text-muted-foreground mt-1">
                 Selecciona la pensión del mes correspondiente para emitirla masivamente.
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted transition-colors"
-          >
+          <button onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -139,11 +142,15 @@ export const BulkObligationModal: React.FC<BulkObligationModalProps> = ({ onClos
 
           {/* Selector de Mes / Pensión Predeterminada */}
           <div className="space-y-1">
-            <label htmlFor="bulkobligationmodal-field-1" className="text-xs font-semibold uppercase tracking-wide text-foreground flex items-center gap-1">
+            <label
+              htmlFor="bulkobligationmodal-field-1"
+              className="text-xs font-semibold uppercase tracking-wide text-foreground flex items-center gap-1"
+            >
               <Calendar className="w-3.5 h-3.5 text-primary" />
               <span>Seleccionar Mes / Pensión a Cobrar</span>
             </label>
-            <select id="bulkobligationmodal-field-1"
+            <select
+              id="bulkobligationmodal-field-1"
               value={selectedPreset}
               onChange={(e) => handlePresetChange(e.target.value)}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer shadow-sm"
@@ -158,11 +165,15 @@ export const BulkObligationModal: React.FC<BulkObligationModalProps> = ({ onClos
 
           {/* Alcance / Sección */}
           <div className="space-y-1">
-            <label htmlFor="bulkobligationmodal-classroomId" className="text-xs font-semibold uppercase tracking-wide text-foreground flex items-center gap-1">
+            <label
+              htmlFor="bulkobligationmodal-classroomId"
+              className="text-xs font-semibold uppercase tracking-wide text-foreground flex items-center gap-1"
+            >
               <School className="w-3.5 h-3.5 text-primary" />
               <span>Alcance del Cobro</span>
             </label>
-            <select id="bulkobligationmodal-classroomId"
+            <select
+              id="bulkobligationmodal-classroomId"
               {...register('classroomId')}
               className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-xs font-medium text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
             >
@@ -182,18 +193,34 @@ export const BulkObligationModal: React.FC<BulkObligationModalProps> = ({ onClos
           {selectedPreset === 'CUSTOM' ? (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label htmlFor="bulkobligationmodal-title" className="text-xs font-semibold uppercase tracking-wide text-foreground">
+                <label
+                  htmlFor="bulkobligationmodal-title"
+                  className="text-xs font-semibold uppercase tracking-wide text-foreground"
+                >
                   Título del Cobro Personalizado
                 </label>
-                <Input id="bulkobligationmodal-title" placeholder="Ej: Talleres de Verano" {...register('title')} className="h-9 text-xs" />
+                <Input
+                  id="bulkobligationmodal-title"
+                  placeholder="Ej: Talleres de Verano"
+                  {...register('title')}
+                  className="h-9 text-xs"
+                />
                 {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
               </div>
 
               <div className="space-y-1">
-                <label htmlFor="bulkobligationmodal-concept" className="text-xs font-semibold uppercase tracking-wide text-foreground">
+                <label
+                  htmlFor="bulkobligationmodal-concept"
+                  className="text-xs font-semibold uppercase tracking-wide text-foreground"
+                >
                   Concepto
                 </label>
-                <Input id="bulkobligationmodal-concept" placeholder="Ej: TALLER" {...register('concept')} className="h-9 text-xs" />
+                <Input
+                  id="bulkobligationmodal-concept"
+                  placeholder="Ej: TALLER"
+                  {...register('concept')}
+                  className="h-9 text-xs"
+                />
                 {errors.concept && <p className="text-xs text-destructive">{errors.concept.message}</p>}
               </div>
             </div>
@@ -218,11 +245,23 @@ export const BulkObligationModal: React.FC<BulkObligationModalProps> = ({ onClos
                 ] as const
               ).map(([field, label]) => (
                 <div key={field} className="space-y-1">
-                  <label htmlFor="bulkobligationmodal-field-5" className="text-xs font-semibold text-foreground">{label} (S/)</label>
-                  <Input id="bulkobligationmodal-field-5" type="number" step="0.01" min="0" placeholder="No cobrar" {...register(field)} className="h-9 text-xs font-mono font-bold" />
+                  <label htmlFor="bulkobligationmodal-field-5" className="text-xs font-semibold text-foreground">
+                    {label} (S/)
+                  </label>
+                  <Input
+                    id="bulkobligationmodal-field-5"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="No cobrar"
+                    {...register(field)}
+                    className="h-9 text-xs font-mono font-bold"
+                  />
                 </div>
               ))}
-              <p className="col-span-3 text-xs text-muted-foreground">Deja vacío un nivel para no cobrarle este concepto.</p>
+              <p className="col-span-3 text-xs text-muted-foreground">
+                Deja vacío un nivel para no cobrarle este concepto.
+              </p>
             </div>
           )}
 
@@ -230,16 +269,28 @@ export const BulkObligationModal: React.FC<BulkObligationModalProps> = ({ onClos
           <div className="grid grid-cols-2 gap-3">
             {!(byLevel && !scope) && (
               <div className="space-y-1">
-                <label htmlFor="bulkobligationmodal-amountDue" className="text-xs font-semibold uppercase tracking-wide text-foreground">
+                <label
+                  htmlFor="bulkobligationmodal-amountDue"
+                  className="text-xs font-semibold uppercase tracking-wide text-foreground"
+                >
                   Monto a Cobrar (S/)
                 </label>
-                <Input id="bulkobligationmodal-amountDue" type="number" step="0.01" {...register('amountDue')} className="h-9 text-sm font-bold text-primary" />
+                <Input
+                  id="bulkobligationmodal-amountDue"
+                  type="number"
+                  step="0.01"
+                  {...register('amountDue')}
+                  className="h-9 text-sm font-bold text-primary"
+                />
                 {errors.amountDue && <p className="text-xs text-destructive">{errors.amountDue.message}</p>}
               </div>
             )}
 
             <div className="space-y-1">
-              <label htmlFor="bulkobligationmodal-dueDate" className="text-xs font-semibold uppercase tracking-wide text-foreground">
+              <label
+                htmlFor="bulkobligationmodal-dueDate"
+                className="text-xs font-semibold uppercase tracking-wide text-foreground"
+              >
                 Fecha Vencimiento
               </label>
               <Input id="bulkobligationmodal-dueDate" type="date" {...register('dueDate')} className="h-9 text-xs" />

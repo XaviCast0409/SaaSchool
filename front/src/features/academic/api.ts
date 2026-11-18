@@ -2,12 +2,34 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/axios';
 import type {
-  Catalog, ConsolidationResponse, PreuniversityCatalog, Phrase, PhrasesForAssignment, PhrasesManage, Letter, GradebookData, GradebookResult, Level, MyCourse, PeriodsResponse, PeriodState,
-  ProgressResponse, ReportCard, ResultLetter, SetupStatus, StudyPlan, TeachingLoad, TutorReport,
+  Catalog,
+  ConsolidationResponse,
+  PreuniversityCatalog,
+  Phrase,
+  PhrasesForAssignment,
+  PhrasesManage,
+  Letter,
+  GradebookData,
+  GradebookResult,
+  Level,
+  MyCourse,
+  PeriodsResponse,
+  PeriodState,
+  ProgressResponse,
+  ReportCard,
+  ResultLetter,
+  SetupStatus,
+  StudyPlan,
+  TeachingLoad,
+  TutorReport,
 } from './types';
 
-interface Envelope<T> { status: string; data: T }
-const get = async <T,>(url: string, params?: Record<string, unknown>) => (await api.get<Envelope<T>>(url, { params })).data.data;
+interface Envelope<T> {
+  status: string;
+  data: T;
+}
+const get = async <T>(url: string, params?: Record<string, unknown>) =>
+  (await api.get<Envelope<T>>(url, { params })).data.data;
 
 export const apiErrorMessage = (e: unknown, fallback = 'No se pudo completar la acción.') => {
   const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -20,9 +42,15 @@ const useInvalidate = () => {
 };
 
 // ── Catálogo y plan de estudios
-export const useCatalog = () => useQuery({ queryKey: ['academic', 'catalog'], queryFn: () => get<Catalog>('/academic/catalog'), staleTime: Infinity });
+export const useCatalog = () =>
+  useQuery({
+    queryKey: ['academic', 'catalog'],
+    queryFn: () => get<Catalog>('/academic/catalog'),
+    staleTime: Infinity,
+  });
 
-export const useSetupStatus = () => useQuery({ queryKey: ['academic', 'setup'], queryFn: () => get<SetupStatus>('/academic/setup-status') });
+export const useSetupStatus = () =>
+  useQuery({ queryKey: ['academic', 'setup'], queryFn: () => get<SetupStatus>('/academic/setup-status') });
 
 export const useStudyPlan = (level: Level, grade: number | null) =>
   useQuery({
@@ -31,24 +59,33 @@ export const useStudyPlan = (level: Level, grade: number | null) =>
     enabled: grade !== null,
   });
 
-const planMutation = <V,>(fn: (v: V) => Promise<unknown>, success: string) => () => {
-   
-  const invalidate = useInvalidate();
-   
-  return useMutation({
-    mutationFn: fn,
-    onSuccess: () => { invalidate('plan', 'setup', 'load'); toast.success(success); },
-    onError: (e) => toast.error(apiErrorMessage(e)),
-  });
-};
+const planMutation =
+  <V>(fn: (v: V) => Promise<unknown>, success: string) =>
+  () => {
+    const invalidate = useInvalidate();
+
+    return useMutation({
+      mutationFn: fn,
+      onSuccess: () => {
+        invalidate('plan', 'setup', 'load');
+        toast.success(success);
+      },
+      onError: (e) => toast.error(apiErrorMessage(e)),
+    });
+  };
 
 export const useApplyTemplate = planMutation(
-  (v: { level: Level; grades: number[]; includeOptional: string[] }) => api.post('/academic/study-plan/apply-template', v),
+  (v: { level: Level; grades: number[]; includeOptional: string[] }) =>
+    api.post('/academic/study-plan/apply-template', v),
   'Plantilla aplicada',
 );
 export const useCreateSubcourses = planMutation(
-  (v: { level: Level; grades: number[]; officialAreaCode: string; subcourses: Array<{ name: string; cnebNumbers: number[]; weight?: number }> }) =>
-    api.post('/academic/study-plan/subcourses', v),
+  (v: {
+    level: Level;
+    grades: number[];
+    officialAreaCode: string;
+    subcourses: Array<{ name: string; cnebNumbers: number[]; weight?: number }>;
+  }) => api.post('/academic/study-plan/subcourses', v),
   'Área dividida en cursos',
 );
 export const usePreuniversityCatalog = (level: Level, grade: number | null, enabled = true) =>
@@ -63,15 +100,23 @@ export const useConfigurePreuniversity = planMutation(
   'Cursos del área actualizados',
 );
 export const useAddWorkshop = planMutation(
-  (v: { level: Level; grades: number[]; name: string; weeklyHours?: number | null }) => api.post('/academic/study-plan/workshops', v),
+  (v: { level: Level; grades: number[]; name: string; weeklyHours?: number | null }) =>
+    api.post('/academic/study-plan/workshops', v),
   'Taller agregado',
 );
-export const useRemovePlanCourse = planMutation((planCourseId: string) => api.delete(`/academic/study-plan/courses/${planCourseId}`), 'Curso quitado del plan');
+export const useRemovePlanCourse = planMutation(
+  (planCourseId: string) => api.delete(`/academic/study-plan/courses/${planCourseId}`),
+  'Curso quitado del plan',
+);
 export const useUpdateCourseCompetences = planMutation(
-  (v: { areaId: string; competences: Array<{ cnebNumber: number; weight?: number }> }) => api.put(`/academic/courses/${v.areaId}/competences`, { competences: v.competences }),
+  (v: { areaId: string; competences: Array<{ cnebNumber: number; weight?: number }> }) =>
+    api.put(`/academic/courses/${v.areaId}/competences`, { competences: v.competences }),
   'Competencias actualizadas',
 );
-export const useCopyPlan = planMutation((v: { fromAcademicYearId: string; toAcademicYearId: string }) => api.post('/academic/study-plan/copy', v), 'Plan copiado');
+export const useCopyPlan = planMutation(
+  (v: { fromAcademicYearId: string; toAcademicYearId: string }) => api.post('/academic/study-plan/copy', v),
+  'Plan copiado',
+);
 
 export const useUpdatePlanCourse = () => {
   const invalidate = useInvalidate();
@@ -85,10 +130,14 @@ export const useUpdatePlanCourse = () => {
 
 // ── Carga docente
 export const useTeachingLoad = (level: Level) =>
-  useQuery({ queryKey: ['academic', 'load', level], queryFn: () => get<TeachingLoad>('/academic/teaching-load', { level }) });
+  useQuery({
+    queryKey: ['academic', 'load', level],
+    queryFn: () => get<TeachingLoad>('/academic/teaching-load', { level }),
+  });
 
 export const useSaveTeachingLoad = planMutation(
-  (changes: Array<{ classroomId: string; areaId: string; teacherId: string | null }>) => api.put('/academic/teaching-load', { changes }),
+  (changes: Array<{ classroomId: string; areaId: string; teacherId: string | null }>) =>
+    api.put('/academic/teaching-load', { changes }),
   'Carga docente guardada',
 );
 export const useAssignWholeClassroom = planMutation(
@@ -101,17 +150,33 @@ export const useCopyTeachingLoad = planMutation(
 );
 
 export const useMyCourses = () =>
-  useQuery({ queryKey: ['academic', 'my-courses'], queryFn: () => get<{ courses: MyCourse[]; tutorClassrooms?: MyCourse['classroom'][]; academicYearId: string | null }>('/academic/my-courses') });
+  useQuery({
+    queryKey: ['academic', 'my-courses'],
+    queryFn: () =>
+      get<{ courses: MyCourse[]; tutorClassrooms?: MyCourse['classroom'][]; academicYearId: string | null }>(
+        '/academic/my-courses',
+      ),
+  });
 
 // ── Periodos y avance
-export const usePeriods = () => useQuery({ queryKey: ['academic', 'periods'], queryFn: () => get<PeriodsResponse>('/academic/periods') });
+export const usePeriods = () =>
+  useQuery({ queryKey: ['academic', 'periods'], queryFn: () => get<PeriodsResponse>('/academic/periods') });
 
 export const useSetPeriodStatus = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (v: { periodNumber: number; status: PeriodState; reason?: string | null; gradingDeadline?: string | null; force?: boolean; classroomId?: string | null }) =>
-      api.put('/academic/periods/status', v),
-    onSuccess: () => { invalidate('periods', 'progress', 'gradebook'); toast.success('Periodo actualizado'); },
+    mutationFn: (v: {
+      periodNumber: number;
+      status: PeriodState;
+      reason?: string | null;
+      gradingDeadline?: string | null;
+      force?: boolean;
+      classroomId?: string | null;
+    }) => api.put('/academic/periods/status', v),
+    onSuccess: () => {
+      invalidate('periods', 'progress', 'gradebook');
+      toast.success('Periodo actualizado');
+    },
   });
 };
 
@@ -131,7 +196,8 @@ export const useMyProgress = (periodNumber: number | null) =>
 
 export const useRemindPending = () =>
   useMutation({
-    mutationFn: (periodNumber: number) => api.post<Envelope<{ notified: number }>>('/academic/progress/remind', { periodNumber }),
+    mutationFn: (periodNumber: number) =>
+      api.post<Envelope<{ notified: number }>>('/academic/progress/remind', { periodNumber }),
     onSuccess: (r) => toast.success(`Recordatorio enviado a ${r.data.data.notified} docentes`),
     onError: (e) => toast.error(apiErrorMessage(e)),
   });
@@ -147,18 +213,30 @@ export const useGradebook = (assignmentId: string | undefined, periodNumber: num
     refetchOnWindowFocus: false,
   });
 
-export interface ScoreInput { enrollmentId: string; competenceId: string; criterionId: string; numericScore: number | null; literalScore: ResultLetter | null }
+export interface ScoreInput {
+  enrollmentId: string;
+  competenceId: string;
+  criterionId: string;
+  numericScore: number | null;
+  literalScore: ResultLetter | null;
+}
 
 export const useSaveScores = (assignmentId: string) => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (v: { periodNumber: number; items: ScoreInput[]; reason?: string | null }) =>
-      (await api.put<Envelope<{ saved: number; results: GradebookResult[] }>>(`/academic/gradebook/${assignmentId}/scores`, v)).data.data,
+      (
+        await api.put<Envelope<{ saved: number; results: GradebookResult[] }>>(
+          `/academic/gradebook/${assignmentId}/scores`,
+          v,
+        )
+      ).data.data,
     // Lo guardado pasa a la caché: al volver a la pestaña o a otra competencia se ve lo último, sin volver a pedirlo
     onSuccess: (res, v) => {
       qc.setQueryData<GradebookData>(['academic', 'gradebook', assignmentId, v.periodNumber], (old) => {
         if (!old) return old;
-        const keyOf = (x: { enrollmentId: string; competenceId: string; criterionId: string }) => `${x.enrollmentId}|${x.competenceId}|${x.criterionId}`;
+        const keyOf = (x: { enrollmentId: string; competenceId: string; criterionId: string }) =>
+          `${x.enrollmentId}|${x.competenceId}|${x.criterionId}`;
         const scores = new Map(old.scores.map((sc) => [keyOf(sc), sc]));
         v.items.forEach((it) => {
           if (it.numericScore === null && it.literalScore === null) scores.delete(keyOf(it));
@@ -177,8 +255,13 @@ export const useSaveScores = (assignmentId: string) => {
 export const useSetFinalLetter = (assignmentId: string) => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (v: { periodNumber: number; enrollmentId: string; competenceId: string; finalLetter: ResultLetter | null; reason?: string | null }) =>
-      api.put(`/academic/gradebook/${assignmentId}/final-letter`, v),
+    mutationFn: (v: {
+      periodNumber: number;
+      enrollmentId: string;
+      competenceId: string;
+      finalLetter: ResultLetter | null;
+      reason?: string | null;
+    }) => api.put(`/academic/gradebook/${assignmentId}/final-letter`, v),
     onSuccess: () => invalidate('gradebook'),
     onError: (e) => toast.error(apiErrorMessage(e)),
   });
@@ -187,8 +270,11 @@ export const useSetFinalLetter = (assignmentId: string) => {
 export const useSaveConclusions = (assignmentId: string) => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (v: { periodNumber: number; items: Array<{ enrollmentId: string; competenceId: string; conclusion: string }>; reason?: string | null }) =>
-      api.put(`/academic/gradebook/${assignmentId}/conclusions`, v),
+    mutationFn: (v: {
+      periodNumber: number;
+      items: Array<{ enrollmentId: string; competenceId: string; conclusion: string }>;
+      reason?: string | null;
+    }) => api.put(`/academic/gradebook/${assignmentId}/conclusions`, v),
     onSuccess: () => invalidate('gradebook'),
     onError: (e) => toast.error(apiErrorMessage(e)),
   });
@@ -197,8 +283,12 @@ export const useSaveConclusions = (assignmentId: string) => {
 export const useSetCourseCriteria = (assignmentId: string) => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (criteria: Array<{ criterionId: string; weight?: number | null }>) => api.put(`/academic/gradebook/${assignmentId}/criteria`, { criteria }),
-    onSuccess: () => { invalidate('gradebook'); toast.success('Criterios del curso guardados'); },
+    mutationFn: (criteria: Array<{ criterionId: string; weight?: number | null }>) =>
+      api.put(`/academic/gradebook/${assignmentId}/criteria`, { criteria }),
+    onSuccess: () => {
+      invalidate('gradebook');
+      toast.success('Criterios del curso guardados');
+    },
     onError: (e) => toast.error(apiErrorMessage(e)),
   });
 };
@@ -206,8 +296,12 @@ export const useSetCourseCriteria = (assignmentId: string) => {
 export const useImportHomework = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (v: { courseAssignmentId: string; periodNumber: number }) => api.post('/grades/matrix/sync-homework', v),
-    onSuccess: () => { invalidate('gradebook'); toast.success('Notas de tareas importadas'); },
+    mutationFn: (v: { courseAssignmentId: string; periodNumber: number }) =>
+      api.post('/grades/matrix/sync-homework', v),
+    onSuccess: () => {
+      invalidate('gradebook');
+      toast.success('Notas de tareas importadas');
+    },
     onError: (e) => toast.error(apiErrorMessage(e)),
   });
 };
@@ -252,13 +346,16 @@ export async function downloadFile(url: string, params: Record<string, unknown>,
     let message: string | undefined;
     const data = (e as { response?: { data?: unknown } })?.response?.data;
     if (data instanceof Blob) {
-      try { message = JSON.parse(await data.text())?.message; } catch { /* respuesta no JSON */ }
+      try {
+        message = JSON.parse(await data.text())?.message;
+      } catch {
+        /* respuesta no JSON */
+      }
     }
     toast.error(message || apiErrorMessage(e, 'No se pudo descargar el archivo.'));
     return false;
   }
 }
-
 
 // ── Banco de frases de conclusiones
 export const usePhrases = (assignmentId: string | null) =>
@@ -272,16 +369,26 @@ export const usePhrases = (assignmentId: string | null) =>
 export const usePhrasesManage = (level: Level, cnebNumber: number | null, courseKey: string | null) =>
   useQuery({
     queryKey: ['academic', 'phrases', 'manage', level, cnebNumber, courseKey],
-    queryFn: () => get<PhrasesManage>('/academic/phrases/manage', { level, cnebNumber, courseKey: courseKey ?? undefined }),
+    queryFn: () =>
+      get<PhrasesManage>('/academic/phrases/manage', { level, cnebNumber, courseKey: courseKey ?? undefined }),
     enabled: cnebNumber !== null,
   });
 
 export const useCreatePhrase = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: async (v: { scope: 'MINE' | 'SCHOOL'; cnebNumber: number; letter?: Letter | null; level?: Level | null; courseKey?: string | null; text: string }) =>
-      (await api.post<Envelope<Phrase>>('/academic/phrases', v)).data.data,
-    onSuccess: () => { invalidate('phrases'); toast.success('Frase guardada'); },
+    mutationFn: async (v: {
+      scope: 'MINE' | 'SCHOOL';
+      cnebNumber: number;
+      letter?: Letter | null;
+      level?: Level | null;
+      courseKey?: string | null;
+      text: string;
+    }) => (await api.post<Envelope<Phrase>>('/academic/phrases', v)).data.data,
+    onSuccess: () => {
+      invalidate('phrases');
+      toast.success('Frase guardada');
+    },
     onError: (e) => toast.error(apiErrorMessage(e)),
   });
 };
@@ -289,7 +396,8 @@ export const useCreatePhrase = () => {
 export const useUpdatePhrase = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (v: { id: string; text?: string; letter?: Letter | null }) => api.patch(`/academic/phrases/${v.id}`, { text: v.text, letter: v.letter }),
+    mutationFn: (v: { id: string; text?: string; letter?: Letter | null }) =>
+      api.patch(`/academic/phrases/${v.id}`, { text: v.text, letter: v.letter }),
     onSuccess: () => invalidate('phrases'),
     onError: (e) => toast.error(apiErrorMessage(e)),
   });
@@ -327,10 +435,20 @@ export const useSaveTutorReport = () => {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: (v: {
-      classroomId: string; periodNumber: number;
-      rows: Array<{ enrollmentId: string; conductScore: number | null; conductLetter: Letter | null; conductComment: string; tutorComment: string }>;
+      classroomId: string;
+      periodNumber: number;
+      rows: Array<{
+        enrollmentId: string;
+        conductScore: number | null;
+        conductLetter: Letter | null;
+        conductComment: string;
+        tutorComment: string;
+      }>;
     }) => api.put('/academic/tutor-report', v),
-    onSuccess: () => { invalidate('tutor-report', 'report-card', 'report-cards'); toast.success('Libreta guardada'); },
+    onSuccess: () => {
+      invalidate('tutor-report', 'report-card', 'report-cards');
+      toast.success('Libreta guardada');
+    },
     onError: (e) => toast.error(apiErrorMessage(e)),
   });
 };

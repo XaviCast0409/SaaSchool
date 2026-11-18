@@ -21,16 +21,30 @@ import { isPushSupported, subscribeUserToPush } from '../utils/push.util';
 import { InstallAppGuide } from '../components/InstallAppGuide';
 
 const KINDS: Array<{ value: NotificationKind; label: string; hint: string; roles?: string[] }> = [
-  { value: 'PAYMENT', label: 'Pagos y pensiones', hint: 'Vencimientos y saldos pendientes', roles: ['PARENT', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'] },
+  {
+    value: 'PAYMENT',
+    label: 'Pagos y pensiones',
+    hint: 'Vencimientos y saldos pendientes',
+    roles: ['PARENT', 'SCHOOL_ADMIN', 'ADMINISTRATIVE'],
+  },
   { value: 'ATTENDANCE', label: 'Asistencia', hint: 'Entradas, salidas y faltas' },
   { value: 'ACADEMIC', label: 'Notas y tareas', hint: 'Tareas por vencer, notas y cierres de periodo' },
   { value: 'ANNOUNCEMENT', label: 'Comunicados', hint: 'Avisos del colegio y del aula' },
-  { value: 'MESSAGE', label: 'Mensajes', hint: 'Mensajes privados con familias o docentes', roles: ['PARENT', 'TEACHER', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'SUPER_ADMIN'] },
+  {
+    value: 'MESSAGE',
+    label: 'Mensajes',
+    hint: 'Mensajes privados con familias o docentes',
+    roles: ['PARENT', 'TEACHER', 'SCHOOL_ADMIN', 'ADMINISTRATIVE', 'SUPER_ADMIN'],
+  },
   { value: 'INCIDENT', label: 'Convivencia', hint: 'Incidencias y citaciones' },
   { value: 'GENERAL', label: 'Otros avisos', hint: 'Resúmenes, cumpleaños y novedades' },
 ];
 
-const Check: React.FC<{ checked: boolean; onChange: (v: boolean) => void; label: string }> = ({ checked, onChange, label }) => (
+const Check: React.FC<{ checked: boolean; onChange: (v: boolean) => void; label: string }> = ({
+  checked,
+  onChange,
+  label,
+}) => (
   <input
     type="checkbox"
     checked={checked}
@@ -43,7 +57,7 @@ const Check: React.FC<{ checked: boolean; onChange: (v: boolean) => void; label:
 export const NotificationPreferencesPage: React.FC = () => {
   const { user } = useAuthStore();
   const isStudent = Boolean(user?.studentId);
-  const role = isStudent ? 'STUDENT' : user?.role ?? 'PARENT';
+  const role = isStudent ? 'STUDENT' : (user?.role ?? 'PARENT');
   const { data, isLoading } = useNotificationPreferences();
   const save = useSaveNotificationPreferences();
   const [prefs, setPrefs] = useState<NotificationPreferences | null>(null);
@@ -133,8 +147,18 @@ export const NotificationPreferencesPage: React.FC = () => {
             </p>
           </div>
           {pushPermission !== 'granted' && pushPermission !== 'denied' && (
-            <Button size="sm" variant="outline" onClick={handleActivatePush} disabled={activatingPush} className="gap-2">
-              {activatingPush ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <BellRing className="h-4 w-4" aria-hidden />}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleActivatePush}
+              disabled={activatingPush}
+              className="gap-2"
+            >
+              {activatingPush ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              ) : (
+                <BellRing className="h-4 w-4" aria-hidden />
+              )}
               Activar
             </Button>
           )}
@@ -149,9 +173,17 @@ export const NotificationPreferencesPage: React.FC = () => {
         <table className="w-full text-sm">
           <thead className="bg-muted/40 text-xs text-muted-foreground">
             <tr>
-              <th scope="col" className="text-left font-medium px-4 py-2">Tipo de aviso</th>
-              <th scope="col" className="font-medium px-3 py-2 w-24 text-center">Push</th>
-              {showEmail && <th scope="col" className="font-medium px-3 py-2 w-24 text-center">Correo</th>}
+              <th scope="col" className="text-left font-medium px-4 py-2">
+                Tipo de aviso
+              </th>
+              <th scope="col" className="font-medium px-3 py-2 w-24 text-center">
+                Push
+              </th>
+              {showEmail && (
+                <th scope="col" className="font-medium px-3 py-2 w-24 text-center">
+                  Correo
+                </th>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -209,7 +241,9 @@ export const NotificationPreferencesPage: React.FC = () => {
               En este horario no sonarán avisos push. Igual los verás en la campanita al entrar a la app.
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <label className="text-xs text-muted-foreground" htmlFor="quiet-from">Desde</label>
+              <label className="text-xs text-muted-foreground" htmlFor="quiet-from">
+                Desde
+              </label>
               <Input
                 id="quiet-from"
                 type="time"
@@ -217,7 +251,9 @@ export const NotificationPreferencesPage: React.FC = () => {
                 value={prefs.quietFrom ?? ''}
                 onChange={(e) => setPrefs({ ...prefs, quietFrom: e.target.value || null })}
               />
-              <label className="text-xs text-muted-foreground" htmlFor="quiet-to">hasta</label>
+              <label className="text-xs text-muted-foreground" htmlFor="quiet-to">
+                hasta
+              </label>
               <Input
                 id="quiet-to"
                 type="time"
@@ -226,12 +262,20 @@ export const NotificationPreferencesPage: React.FC = () => {
                 onChange={(e) => setPrefs({ ...prefs, quietTo: e.target.value || null })}
               />
               {(prefs.quietFrom || prefs.quietTo) && (
-                <Button size="sm" variant="ghost" onClick={() => setPrefs({ ...prefs, quietFrom: null, quietTo: null })}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setPrefs({ ...prefs, quietFrom: null, quietTo: null })}
+                >
                   Quitar
                 </Button>
               )}
               {!prefs.quietFrom && !prefs.quietTo && (
-                <Button size="sm" variant="outline" onClick={() => setPrefs({ ...prefs, quietFrom: '21:00', quietTo: '07:00' })}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPrefs({ ...prefs, quietFrom: '21:00', quietTo: '07:00' })}
+                >
                   Usar 9:00 p. m. a 7:00 a. m.
                 </Button>
               )}

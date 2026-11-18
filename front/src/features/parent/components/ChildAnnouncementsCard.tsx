@@ -51,23 +51,22 @@ export const ChildAnnouncementsCard: React.FC = () => {
               className="p-3 rounded-xl bg-secondary/20 hover:bg-secondary/50 border border-border/40 transition-colors cursor-pointer space-y-1.5"
             >
               <div className="flex items-center justify-between gap-2">
-                <h4 className="text-xs font-bold text-foreground truncate max-w-[220px]">
-                  {item.title}
-                </h4>
+                <h4 className="text-xs font-bold text-foreground truncate max-w-[220px]">{item.title}</h4>
                 {item.priority === 'URGENT' ? (
                   <Badge variant="destructive" className="text-xs px-1.5 py-0 font-bold shrink-0">
                     Urgente
                   </Badge>
                 ) : item.priority === 'IMPORTANT' ? (
-                  <Badge variant="outline" className="text-xs px-1.5 py-0 font-bold border-amber-500/40 text-amber-600 shrink-0">
+                  <Badge
+                    variant="outline"
+                    className="text-xs px-1.5 py-0 font-bold border-amber-500/40 text-amber-600 shrink-0"
+                  >
                     Importante
                   </Badge>
                 ) : null}
               </div>
 
-              <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                {item.content}
-              </p>
+              <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{item.content}</p>
 
               <div className="flex items-center gap-1 text-xs text-muted-foreground pt-0.5">
                 <Calendar className="w-2.5 h-2.5" />

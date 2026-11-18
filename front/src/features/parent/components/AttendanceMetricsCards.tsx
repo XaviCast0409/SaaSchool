@@ -25,12 +25,8 @@ export const AttendanceMetricsCards: React.FC<AttendanceMetricsCardsProps> = ({ 
           </div>
           <div>
             <p className="text-xs font-bold text-muted-foreground uppercase">Tasa Asistencia</p>
-            <p className="text-xl sm:text-2xl font-black text-emerald-700 dark:text-emerald-300">
-              {percentage}%
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Total: {summary?.totalRecorded ?? 0} días
-            </p>
+            <p className="text-xl sm:text-2xl font-black text-emerald-700 dark:text-emerald-300">{percentage}%</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Total: {summary?.totalRecorded ?? 0} días</p>
           </div>
         </CardContent>
       </Card>
@@ -43,9 +39,7 @@ export const AttendanceMetricsCards: React.FC<AttendanceMetricsCardsProps> = ({ 
           </div>
           <div>
             <p className="text-xs font-bold text-muted-foreground uppercase">Asistencias</p>
-            <p className="text-xl sm:text-2xl font-black text-foreground">
-              {summary?.presentCount ?? 0}
-            </p>
+            <p className="text-xl sm:text-2xl font-black text-foreground">{summary?.presentCount ?? 0}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Puntual a clases</p>
           </div>
         </CardContent>
@@ -75,9 +69,7 @@ export const AttendanceMetricsCards: React.FC<AttendanceMetricsCardsProps> = ({ 
           </div>
           <div>
             <p className="text-xs font-bold text-muted-foreground uppercase">Inasistencias</p>
-            <p className="text-xl sm:text-2xl font-black text-destructive">
-              {summary?.absentCount ?? 0}
-            </p>
+            <p className="text-xl sm:text-2xl font-black text-destructive">{summary?.absentCount ?? 0}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Faltas registradas</p>
           </div>
         </CardContent>

@@ -53,10 +53,7 @@ export const TeacherCourseContentsModal: React.FC<TeacherCourseContentsModalProp
   const [initialContentType, setInitialContentType] = useState<ContentType>('LESSON_MATERIAL');
   const [activeForumContent, setActiveForumContent] = useState<CourseContent | null>(null);
 
-  const { data: rawContents, isLoading } = useGetCourseContents(
-    assignment?.id,
-    selectedBimester,
-  );
+  const { data: rawContents, isLoading } = useGetCourseContents(assignment?.id, selectedBimester);
   const contents = useMemo(() => (Array.isArray(rawContents) ? rawContents : []), [rawContents]);
   const { mutateAsync: deleteContent } = useDeleteCourseContent();
 
@@ -96,7 +93,14 @@ export const TeacherCourseContentsModal: React.FC<TeacherCourseContentsModalProp
   };
 
   const handleDelete = async (id: string) => {
-    if (!(await confirmDialog({ title: '¿Eliminar esta publicación del aula virtual?', confirmText: 'Eliminar', variant: 'danger' }))) return;
+    if (
+      !(await confirmDialog({
+        title: '¿Eliminar esta publicación del aula virtual?',
+        confirmText: 'Eliminar',
+        variant: 'danger',
+      }))
+    )
+      return;
     try {
       await deleteContent({ id, courseAssignmentId: assignment.id });
       toast.success('Publicación eliminada correctamente');
@@ -180,7 +184,9 @@ export const TeacherCourseContentsModal: React.FC<TeacherCourseContentsModalProp
                         : 'bg-card text-muted-foreground border-border hover:bg-muted'
                     }`}
                   >
-                    <span>{bim}° {periodLabel}</span>
+                    <span>
+                      {bim}° {periodLabel}
+                    </span>
                     {selectedBimester === bim && (
                       <Badge
                         variant="secondary"
@@ -200,11 +206,17 @@ export const TeacherCourseContentsModal: React.FC<TeacherCourseContentsModalProp
                   <BookOpen className="w-3 h-3 text-primary" />
                   <span>{materialsCount} Clases</span>
                 </Badge>
-                <Badge variant="outline" className="text-xs font-semibold gap-1 bg-card text-amber-700 dark:text-amber-300">
+                <Badge
+                  variant="outline"
+                  className="text-xs font-semibold gap-1 bg-card text-amber-700 dark:text-amber-300"
+                >
                   <ClipboardList className="w-3 h-3 text-amber-600" />
                   <span>{homeworksCount} Tareas</span>
                 </Badge>
-                <Badge variant="outline" className="text-xs font-semibold gap-1 bg-card text-emerald-700 dark:text-emerald-300">
+                <Badge
+                  variant="outline"
+                  className="text-xs font-semibold gap-1 bg-card text-emerald-700 dark:text-emerald-300"
+                >
                   <MessageSquare className="w-3 h-3 text-emerald-600" />
                   <span>{forumsCount} Foros</span>
                 </Badge>
@@ -300,7 +312,8 @@ export const TeacherCourseContentsModal: React.FC<TeacherCourseContentsModalProp
                     Aún no hay publicaciones en el {selectedBimester}° {periodLabel}
                   </h3>
                   <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-                    Comienza a nutrir tu aula virtual. Los estudiantes podrán acceder a tus materiales digitales, entregar tareas y participar en foros.
+                    Comienza a nutrir tu aula virtual. Los estudiantes podrán acceder a tus materiales digitales,
+                    entregar tareas y participar en foros.
                   </p>
                 </div>
 

@@ -27,7 +27,9 @@ export const useClassrooms = (enabled = true, includeClosed = false) => {
     queryKey: ['classrooms', { includeClosed }],
     enabled,
     queryFn: async () => {
-      const response = await api.get<ClassroomsResponse>('/classrooms', { params: includeClosed ? { includeClosed: 'true' } : undefined });
+      const response = await api.get<ClassroomsResponse>('/classrooms', {
+        params: includeClosed ? { includeClosed: 'true' } : undefined,
+      });
       return response.data.data;
     },
   });
@@ -37,8 +39,15 @@ export const useClassrooms = (enabled = true, includeClosed = false) => {
 export const useSetClassroomYear = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, academicYearId, body }: { id: string; academicYearId: string; body: { open: boolean; capacity?: number; tutorTeacherId?: string | null } }) =>
-      (await api.put(`/classrooms/${id}/years/${academicYearId}`, body)).data.data,
+    mutationFn: async ({
+      id,
+      academicYearId,
+      body,
+    }: {
+      id: string;
+      academicYearId: string;
+      body: { open: boolean; capacity?: number; tutorTeacherId?: string | null };
+    }) => (await api.put(`/classrooms/${id}/years/${academicYearId}`, body)).data.data,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['classrooms'] });
       queryClient.invalidateQueries({ queryKey: ['rollover-candidates'] });
@@ -108,7 +117,10 @@ export const useBulkCreateClassrooms = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (payload: BulkCreateClassroomsPayload) => {
-      const response = await api.post<{ status: string; data: { created: string[]; skipped: string[] } }>('/classrooms/bulk', payload);
+      const response = await api.post<{ status: string; data: { created: string[]; skipped: string[] } }>(
+        '/classrooms/bulk',
+        payload,
+      );
       return response.data.data;
     },
     onSuccess: () => {
@@ -123,5 +135,6 @@ export const useClassroomsForYear = (academicYearId?: string) =>
     queryKey: ['classrooms', 'year', academicYearId],
     enabled: !!academicYearId,
     queryFn: async () =>
-      (await api.get<ClassroomsResponse>('/classrooms', { headers: { 'x-academic-year-id': academicYearId! } })).data.data,
+      (await api.get<ClassroomsResponse>('/classrooms', { headers: { 'x-academic-year-id': academicYearId! } })).data
+        .data,
   });

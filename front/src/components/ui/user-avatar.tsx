@@ -43,7 +43,13 @@ export const UserAvatar: React.FC<Props> = ({ name, src, size = 'md', className,
       aria-hidden={alt ? undefined : true}
     >
       {showImage ? (
-        <img src={src!} alt={alt ?? ''} loading="lazy" className="h-full w-full object-cover" onError={() => setFailed(true)} />
+        <img
+          src={src!}
+          alt={alt ?? ''}
+          loading="lazy"
+          className="h-full w-full object-cover"
+          onError={() => setFailed(true)}
+        />
       ) : (
         initialsOf(name)
       )}

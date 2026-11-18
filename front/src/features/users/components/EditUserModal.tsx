@@ -29,7 +29,8 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ user, isOpen, onCl
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   useEffect(() => setAvatarUrl(user?.avatarUrl ?? null), [user]);
   // Dirección puede poner o cambiar la foto de su personal (docentes, secretaría, dirección)
-  const canEditPhoto = (currentRole === 'SCHOOL_ADMIN' || currentRole === 'SUPER_ADMIN') && !!user && STAFF_ROLES.includes(user.role);
+  const canEditPhoto =
+    (currentRole === 'SCHOOL_ADMIN' || currentRole === 'SUPER_ADMIN') && !!user && STAFF_ROLES.includes(user.role);
 
   const {
     register,
@@ -72,12 +73,16 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ user, isOpen, onCl
         onError: (err: any) => {
           toast.error(err?.response?.data?.message || 'Error al actualizar usuario.');
         },
-      }
+      },
     );
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-150"
+    >
       <div className="w-full max-w-lg rounded-2xl border border-border bg-card shadow-2xl overflow-y-auto max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border p-5 sticky top-0 bg-card z-10">
@@ -118,8 +123,11 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ user, isOpen, onCl
           {/* Role */}
           {allowRoleChange ? (
             <div className="space-y-1">
-              <label htmlFor="editusermodal-role" className="text-xs font-medium text-foreground">Rol del Usuario *</label>
-              <select id="editusermodal-role"
+              <label htmlFor="editusermodal-role" className="text-xs font-medium text-foreground">
+                Rol del Usuario *
+              </label>
+              <select
+                id="editusermodal-role"
                 {...register('role')}
                 className="flex h-9 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
@@ -143,18 +151,39 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ user, isOpen, onCl
           {/* Nombres y Apellidos */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label htmlFor="editusermodal-firstName" className="text-xs font-medium text-foreground">Nombre(s) *</label>
-              <Input id="editusermodal-firstName" placeholder="Ej: Luis Alberto" {...register('firstName')} className="h-9 text-xs" />
+              <label htmlFor="editusermodal-firstName" className="text-xs font-medium text-foreground">
+                Nombre(s) *
+              </label>
+              <Input
+                id="editusermodal-firstName"
+                placeholder="Ej: Luis Alberto"
+                {...register('firstName')}
+                className="h-9 text-xs"
+              />
               {errors.firstName && <p className="text-xs text-destructive">{errors.firstName.message}</p>}
             </div>
             <div className="space-y-1">
-              <label htmlFor="editusermodal-lastNamePaternal" className="text-xs font-medium text-foreground">Apellido Paterno *</label>
-              <Input id="editusermodal-lastNamePaternal" placeholder="Ej: García" {...register('lastNamePaternal')} className="h-9 text-xs" />
+              <label htmlFor="editusermodal-lastNamePaternal" className="text-xs font-medium text-foreground">
+                Apellido Paterno *
+              </label>
+              <Input
+                id="editusermodal-lastNamePaternal"
+                placeholder="Ej: García"
+                {...register('lastNamePaternal')}
+                className="h-9 text-xs"
+              />
               {errors.lastNamePaternal && <p className="text-xs text-destructive">{errors.lastNamePaternal.message}</p>}
             </div>
             <div className="space-y-1 sm:col-span-2">
-              <label htmlFor="editusermodal-lastNameMaternal" className="text-xs font-medium text-foreground">Apellido Materno *</label>
-              <Input id="editusermodal-lastNameMaternal" placeholder="Ej: Torres" {...register('lastNameMaternal')} className="h-9 text-xs" />
+              <label htmlFor="editusermodal-lastNameMaternal" className="text-xs font-medium text-foreground">
+                Apellido Materno *
+              </label>
+              <Input
+                id="editusermodal-lastNameMaternal"
+                placeholder="Ej: Torres"
+                {...register('lastNameMaternal')}
+                className="h-9 text-xs"
+              />
               {errors.lastNameMaternal && <p className="text-xs text-destructive">{errors.lastNameMaternal.message}</p>}
             </div>
           </div>
@@ -162,8 +191,11 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ user, isOpen, onCl
           {/* Documento */}
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1">
-              <label htmlFor="editusermodal-documentType" className="text-xs font-medium text-foreground">Tipo Doc.</label>
-              <select id="editusermodal-documentType"
+              <label htmlFor="editusermodal-documentType" className="text-xs font-medium text-foreground">
+                Tipo Doc.
+              </label>
+              <select
+                id="editusermodal-documentType"
                 {...register('documentType')}
                 className="flex h-9 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
@@ -174,21 +206,43 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ user, isOpen, onCl
               </select>
             </div>
             <div className="space-y-1 col-span-2">
-              <label htmlFor="editusermodal-documentId" className="text-xs font-medium text-foreground">N° Documento</label>
-              <Input id="editusermodal-documentId" placeholder="Ej: 47812345" {...register('documentId')} className="h-9 text-xs" />
+              <label htmlFor="editusermodal-documentId" className="text-xs font-medium text-foreground">
+                N° Documento
+              </label>
+              <Input
+                id="editusermodal-documentId"
+                placeholder="Ej: 47812345"
+                {...register('documentId')}
+                className="h-9 text-xs"
+              />
             </div>
           </div>
 
           {/* Contacto */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label htmlFor="editusermodal-email" className="text-xs font-medium text-foreground">Correo Electrónico *</label>
-              <Input id="editusermodal-email" type="email" placeholder="correo@ejemplo.com" {...register('email')} className="h-9 text-xs" />
+              <label htmlFor="editusermodal-email" className="text-xs font-medium text-foreground">
+                Correo Electrónico *
+              </label>
+              <Input
+                id="editusermodal-email"
+                type="email"
+                placeholder="correo@ejemplo.com"
+                {...register('email')}
+                className="h-9 text-xs"
+              />
               {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
             </div>
             <div className="space-y-1">
-              <label htmlFor="editusermodal-cellphone" className="text-xs font-medium text-foreground">Celular</label>
-              <Input id="editusermodal-cellphone" placeholder="Ej: 987654321" {...register('cellphone')} className="h-9 text-xs font-mono" />
+              <label htmlFor="editusermodal-cellphone" className="text-xs font-medium text-foreground">
+                Celular
+              </label>
+              <Input
+                id="editusermodal-cellphone"
+                placeholder="Ej: 987654321"
+                {...register('cellphone')}
+                className="h-9 text-xs font-mono"
+              />
             </div>
           </div>
 

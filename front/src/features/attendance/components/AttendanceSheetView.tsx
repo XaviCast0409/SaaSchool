@@ -70,13 +70,14 @@ const STATUS_OPTS: Array<{
   },
 ];
 
-export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
-  classroomId,
-  date,
-  canWrite = true,
-}) => {
+export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({ classroomId, date, canWrite = true }) => {
   const navigate = useNavigate();
-  const { data: sheetData, isLoading, isError, refetch } = useAttendanceSheet({
+  const {
+    data: sheetData,
+    isLoading,
+    isError,
+    refetch,
+  } = useAttendanceSheet({
     classroomId,
     date,
   });
@@ -85,9 +86,7 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
   const { mutate: closeAttendance, isPending: isClosing } = useCloseAttendance();
 
   // Estado local para edición rápida (enrollmentId -> { status, notes })
-  const [draftState, setDraftState] = useState<
-    Record<string, { status: AttendanceStatus | null; notes: string }>
-  >({});
+  const [draftState, setDraftState] = useState<Record<string, { status: AttendanceStatus | null; notes: string }>>({});
   const [hasChanges, setHasChanges] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
   const [activeTabFilter, setActiveTabFilter] = useState<'ALL' | 'UNRECORDED' | 'PRESENT' | 'LATE' | 'ABSENT'>('ALL');
@@ -108,9 +107,7 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
   const isNonSchoolDay = Boolean(sheetData?.isSchoolDay === false || isWeekend);
   const nonSchoolDayMessage =
     sheetData?.nonSchoolDayReason ||
-    (isWeekend
-      ? 'No se puede registrar asistencia en fin de semana (sábado y domingo).'
-      : 'Día no lectivo.');
+    (isWeekend ? 'No se puede registrar asistencia en fin de semana (sábado y domingo).' : 'Día no lectivo.');
 
   // Sincronizar datos iniciales del backend
   useEffect(() => {
@@ -182,7 +179,7 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
           const msg = err?.response?.data?.message || 'Error al ejecutar cierre de asistencia.';
           toast.error(msg);
         },
-      }
+      },
     );
   };
 
@@ -232,7 +229,7 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
           const msg = err?.response?.data?.message || 'Error al guardar la asistencia.';
           toast.error(msg);
         },
-      }
+      },
     );
   };
 
@@ -328,7 +325,8 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
               )}
             </div>
             <p className="text-xs text-muted-foreground">
-              Haz clic en el estado de cada estudiante. Los ingresos marcados en portería por lector QR se conservan automáticamente.
+              Haz clic en el estado de cada estudiante. Los ingresos marcados en portería por lector QR se conservan
+              automáticamente.
             </p>
           </div>
 
@@ -406,7 +404,8 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
           <div className="flex items-center gap-2.5 p-3 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-xs font-medium">
             <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
             <span>
-              <strong>Día no lectivo:</strong> {nonSchoolDayMessage} No se permite registrar ni modificar asistencia en esta fecha.
+              <strong>Día no lectivo:</strong> {nonSchoolDayMessage} No se permite registrar ni modificar asistencia en
+              esta fecha.
             </span>
           </div>
         )}
@@ -521,7 +520,10 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
                         <span className="text-[11px] font-mono font-bold text-muted-foreground">#{idx + 1}</span>
                         <span className="font-semibold text-foreground text-sm">{student.studentName}</span>
                         {student.withdrawnOn && (
-                          <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 font-semibold" title="Se retiró después de esta fecha: su asistencia de este día se puede registrar.">
+                          <span
+                            className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 font-semibold"
+                            title="Se retiró después de esta fecha: su asistencia de este día se puede registrar."
+                          >
                             Retirado el {new Date(`${student.withdrawnOn}T12:00:00`).toLocaleDateString('es-PE')}
                           </span>
                         )}
@@ -539,7 +541,10 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
                           <span>QR {student.checkInTime ? formatPeruTime(student.checkInTime) : ''}</span>
                         </Badge>
                       ) : student.origin === 'AUTO_CLOSE' ? (
-                        <Badge variant="outline" className="border-destructive/30 bg-destructive/10 text-destructive text-[10px] font-bold">
+                        <Badge
+                          variant="outline"
+                          className="border-destructive/30 bg-destructive/10 text-destructive text-[10px] font-bold"
+                        >
                           Auto-Cierre
                         </Badge>
                       ) : student.checkInTime ? (
@@ -548,7 +553,10 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
                           <span>{formatPeruTime(student.checkInTime)}</span>
                         </Badge>
                       ) : !student.status ? (
-                        <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[10px] font-semibold gap-1">
+                        <Badge
+                          variant="outline"
+                          className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[10px] font-semibold gap-1"
+                        >
                           <AlertTriangle className="w-3 h-3 text-amber-500" />
                           <span>No pasó QR</span>
                         </Badge>
@@ -559,8 +567,12 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
                   {/* Salida si existe */}
                   {student.checkOutTime && (
                     <div className="text-[11px] text-muted-foreground bg-muted/40 rounded px-2 py-1">
-                      Salida: <span className="font-semibold text-foreground">{formatPeruTime(student.checkOutTime)}</span>
-                      <span> ({student.pickedUpByName ? `Retirado por: ${student.pickedUpByName}` : 'Salió por su cuenta'})</span>
+                      Salida:{' '}
+                      <span className="font-semibold text-foreground">{formatPeruTime(student.checkOutTime)}</span>
+                      <span>
+                        {' '}
+                        ({student.pickedUpByName ? `Retirado por: ${student.pickedUpByName}` : 'Salió por su cuenta'})
+                      </span>
                     </div>
                   )}
 
@@ -602,7 +614,11 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
                       }`}
                     >
                       <MessageSquare className="w-3.5 h-3.5" />
-                      <span>{currentNotes ? 'Obs: ' + currentNotes.slice(0, 20) + (currentNotes.length > 20 ? '...' : '') : 'Agregar nota'}</span>
+                      <span>
+                        {currentNotes
+                          ? 'Obs: ' + currentNotes.slice(0, 20) + (currentNotes.length > 20 ? '...' : '')
+                          : 'Agregar nota'}
+                      </span>
                     </button>
 
                     <Button
@@ -630,13 +646,27 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
           <table className="w-full text-xs text-left border-collapse min-w-[700px]">
             <thead>
               <tr className="bg-muted/50 border-b border-border text-muted-foreground font-bold uppercase text-[11px]">
-                <th scope="col" className="p-3 w-12 text-center">#</th>
-                <th scope="col" className="p-3">Apellidos y Nombres</th>
-                <th scope="col" className="p-3 w-40 text-center">Portería / QR</th>
-                <th scope="col" className="p-3 w-32 text-center">Salida</th>
-                <th scope="col" className="p-3 text-center min-w-[280px]">Pase de Lista (1 Clic)</th>
-                <th scope="col" className="p-3 w-24 text-center">Obs.</th>
-                <th scope="col" className="p-3 w-28 text-center">Incidencia</th>
+                <th scope="col" className="p-3 w-12 text-center">
+                  #
+                </th>
+                <th scope="col" className="p-3">
+                  Apellidos y Nombres
+                </th>
+                <th scope="col" className="p-3 w-40 text-center">
+                  Portería / QR
+                </th>
+                <th scope="col" className="p-3 w-32 text-center">
+                  Salida
+                </th>
+                <th scope="col" className="p-3 text-center min-w-[280px]">
+                  Pase de Lista (1 Clic)
+                </th>
+                <th scope="col" className="p-3 w-24 text-center">
+                  Obs.
+                </th>
+                <th scope="col" className="p-3 w-28 text-center">
+                  Incidencia
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -655,22 +685,20 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
                   const currentNotes = currentDraft?.notes ?? student.notes;
 
                   return (
-                    <tr
-                      key={student.enrollmentId}
-                      className="hover:bg-muted/20 transition-colors"
-                    >
-                      <td className="p-3 text-center font-bold text-muted-foreground font-mono">
-                        {idx + 1}
-                      </td>
+                    <tr key={student.enrollmentId} className="hover:bg-muted/20 transition-colors">
+                      <td className="p-3 text-center font-bold text-muted-foreground font-mono">{idx + 1}</td>
 
                       <td className="p-3">
                         <div className="font-semibold text-foreground text-sm">
                           {student.studentName}
                           {student.withdrawnOn && (
-                          <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 font-semibold" title="Se retiró después de esta fecha: su asistencia de este día se puede registrar.">
-                            Retirado el {new Date(`${student.withdrawnOn}T12:00:00`).toLocaleDateString('es-PE')}
-                          </span>
-                        )}
+                            <span
+                              className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 font-semibold"
+                              title="Se retiró después de esta fecha: su asistencia de este día se puede registrar."
+                            >
+                              Retirado el {new Date(`${student.withdrawnOn}T12:00:00`).toLocaleDateString('es-PE')}
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground">
                           <span>DNI: {student.documentId}</span>
@@ -688,13 +716,13 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
                         {student.origin === 'QR_SCAN' ? (
                           <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 text-[10px] font-bold gap-1">
                             <QrCode className="w-3 h-3 text-emerald-600" />
-                            <span>
-                              QR{' '}
-                              {student.checkInTime ? formatPeruTime(student.checkInTime) : ''}
-                            </span>
+                            <span>QR {student.checkInTime ? formatPeruTime(student.checkInTime) : ''}</span>
                           </Badge>
                         ) : student.origin === 'AUTO_CLOSE' ? (
-                          <Badge variant="outline" className="border-destructive/30 bg-destructive/10 text-destructive text-[10px] font-bold">
+                          <Badge
+                            variant="outline"
+                            className="border-destructive/30 bg-destructive/10 text-destructive text-[10px] font-bold"
+                          >
                             Auto-Cierre
                           </Badge>
                         ) : student.checkInTime ? (
@@ -703,7 +731,10 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
                             <span>{formatPeruTime(student.checkInTime)}</span>
                           </Badge>
                         ) : !student.status ? (
-                          <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[10px] font-semibold gap-1">
+                          <Badge
+                            variant="outline"
+                            className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[10px] font-semibold gap-1"
+                          >
                             <AlertTriangle className="w-3 h-3 text-amber-500" />
                             <span>No pasó QR</span>
                           </Badge>
@@ -771,9 +802,7 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
                           title={currentNotes || 'Agregar observación o justificación'}
                         >
                           <MessageSquare className="w-3.5 h-3.5" />
-                          <span className="max-w-[70px] truncate text-[11px]">
-                            {currentNotes ? 'Nota' : '+'}
-                          </span>
+                          <span className="max-w-[70px] truncate text-[11px]">{currentNotes ? 'Nota' : '+'}</span>
                         </button>
                       </td>
 
@@ -824,16 +853,16 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
 
       {/* Modal para Observación / Nota del Alumno */}
       {editingNoteStudent && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-150">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-150"
+        >
           <div className="w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-border pb-3">
               <div>
-                <h3 className="font-bold text-sm text-foreground">
-                  Observación de Asistencia
-                </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {editingNoteStudent.studentName}
-                </p>
+                <h3 className="font-bold text-sm text-foreground">Observación de Asistencia</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">{editingNoteStudent.studentName}</p>
               </div>
               <button
                 type="button"
@@ -858,12 +887,7 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setEditingNoteStudent(null)}
-              >
+              <Button type="button" variant="ghost" size="sm" onClick={() => setEditingNoteStudent(null)}>
                 Cancelar
               </Button>
               <Button type="button" size="sm" onClick={handleSaveNote}>

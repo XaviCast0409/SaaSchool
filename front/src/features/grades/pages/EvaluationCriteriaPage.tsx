@@ -99,9 +99,7 @@ export const EvaluationCriteriaPage: React.FC = () => {
       weight: Number(values.weight),
       order: Number(values.order),
       educationLevel:
-        values.educationLevel === 'ALL'
-          ? null
-          : (values.educationLevel as 'INITIAL' | 'PRIMARY' | 'SECONDARY'),
+        values.educationLevel === 'ALL' ? null : (values.educationLevel as 'INITIAL' | 'PRIMARY' | 'SECONDARY'),
     };
 
     if (editingCriterion) {
@@ -202,7 +200,8 @@ export const EvaluationCriteriaPage: React.FC = () => {
               Criterios de Calificación por Competencia
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground max-w-3xl leading-relaxed">
-              Configura los rubros y categorías que cada docente califica en el día a día para cada competencia (ej. Práctica Mensual, Examen Mensual, Revisión de Cuaderno, Examen Bimestral, etc.).
+              Configura los rubros y categorías que cada docente califica en el día a día para cada competencia (ej.
+              Práctica Mensual, Examen Mensual, Revisión de Cuaderno, Examen Bimestral, etc.).
             </p>
           </div>
 
@@ -218,10 +217,7 @@ export const EvaluationCriteriaPage: React.FC = () => {
               <span>{isApplyingPreset ? 'Cargando...' : 'Cargar Plantilla Particular'}</span>
             </Button>
 
-            <Button
-              onClick={handleOpenCreate}
-              className="gap-2 text-xs font-bold shadow-md"
-            >
+            <Button onClick={handleOpenCreate} className="gap-2 text-xs font-bold shadow-md">
               <Plus className="w-4 h-4" />
               <span>Nuevo Criterio Evaluativo</span>
             </Button>
@@ -235,9 +231,7 @@ export const EvaluationCriteriaPage: React.FC = () => {
               <Layers className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Criterios Activos
-              </p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Criterios Activos</p>
               <p className="text-xl font-black text-foreground">{activeCriteria.length}</p>
             </div>
           </Card>
@@ -247,12 +241,8 @@ export const EvaluationCriteriaPage: React.FC = () => {
               <Scale className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Suma de Pesos
-              </p>
-              <p className="text-xl font-black text-foreground font-mono">
-                {totalWeight.toFixed(1)}
-              </p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Suma de Pesos</p>
+              <p className="text-xl font-black text-foreground font-mono">{totalWeight.toFixed(1)}</p>
             </div>
           </Card>
 
@@ -261,9 +251,7 @@ export const EvaluationCriteriaPage: React.FC = () => {
               <CheckCircle2 className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Estado del Sistema
-              </p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Estado del Sistema</p>
               <p className="text-xs font-bold text-foreground">Sincronizado con Matriz</p>
             </div>
           </Card>
@@ -273,17 +261,16 @@ export const EvaluationCriteriaPage: React.FC = () => {
         <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 flex items-start gap-3.5 text-xs text-muted-foreground leading-relaxed shadow-sm">
           <HelpCircle className="w-5 h-5 text-primary shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <h4 className="font-bold text-foreground">
-              ¿Cómo se aplican estos criterios en las notas y boletas?
-            </h4>
+            <h4 className="font-bold text-foreground">¿Cómo se aplican estos criterios en las notas y boletas?</h4>
             <p>
-              1. <strong>Cada Competencia Curricular</strong> (definida por el MINEDU) se subdivide en estos criterios institucionales durante el bimestre.
+              1. <strong>Cada Competencia Curricular</strong> (definida por el MINEDU) se subdivide en estos criterios
+              institucionales durante el bimestre.
             </p>
+            <p>2. El docente ingresa la calificación vigesimal (0 a 20) en cada criterio.</p>
             <p>
-              2. El docente ingresa la calificación vigesimal (0 a 20) en cada criterio.
-            </p>
-            <p>
-              3. El sistema calcula automáticamente el <strong>Promedio de la Competencia</strong> utilizando la ponderación definida aquí y realiza la conversión inmediata a la escala oficial (<strong>AD</strong>, <strong>A</strong>, <strong>B</strong>, <strong>C</strong>).
+              3. El sistema calcula automáticamente el <strong>Promedio de la Competencia</strong> utilizando la
+              ponderación definida aquí y realiza la conversión inmediata a la escala oficial (<strong>AD</strong>,{' '}
+              <strong>A</strong>, <strong>B</strong>, <strong>C</strong>).
             </p>
           </div>
         </div>
@@ -295,7 +282,9 @@ export const EvaluationCriteriaPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <SlidersHorizontal className="w-4 h-4 text-primary" />
                 <h3 className="text-sm font-bold text-foreground">
-                  {editingCriterion ? `Editar Criterio: ${editingCriterion.name}` : 'Registrar Nuevo Criterio Evaluativo'}
+                  {editingCriterion
+                    ? `Editar Criterio: ${editingCriterion.name}`
+                    : 'Registrar Nuevo Criterio Evaluativo'}
                 </h3>
               </div>
               <Button
@@ -313,24 +302,18 @@ export const EvaluationCriteriaPage: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                 {/* Nombre */}
                 <div className="space-y-1 sm:col-span-2">
-                  <label className="text-xs font-semibold text-foreground">
-                    Nombre Completo del Criterio *
-                  </label>
+                  <label className="text-xs font-semibold text-foreground">Nombre Completo del Criterio *</label>
                   <Input
                     {...register('name', { required: 'El nombre es obligatorio' })}
                     placeholder="Ej: Práctica Calificada, Revisión de Cuaderno, Conducta"
                     className="h-8 text-xs bg-background"
                   />
-                  {errors.name && (
-                    <span className="text-xs text-destructive">{errors.name.message}</span>
-                  )}
+                  {errors.name && <span className="text-xs text-destructive">{errors.name.message}</span>}
                 </div>
 
                 {/* Abreviatura */}
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">
-                    Abreviatura (Cabecera) *
-                  </label>
+                  <label className="text-xs font-semibold text-foreground">Abreviatura (Cabecera) *</label>
                   <Input
                     {...register('shortName', {
                       required: 'La abreviatura es obligatoria',
@@ -339,16 +322,12 @@ export const EvaluationCriteriaPage: React.FC = () => {
                     placeholder="Ej: PC, COND, RC, EB, EXP"
                     className="h-8 text-xs font-mono uppercase bg-background"
                   />
-                  {errors.shortName && (
-                    <span className="text-xs text-destructive">{errors.shortName.message}</span>
-                  )}
+                  {errors.shortName && <span className="text-xs text-destructive">{errors.shortName.message}</span>}
                 </div>
 
                 {/* Nivel Educativo */}
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">
-                    Nivel Educativo
-                  </label>
+                  <label className="text-xs font-semibold text-foreground">Nivel Educativo</label>
                   <select
                     {...register('educationLevel')}
                     className="w-full h-8 px-2.5 rounded-md border border-input bg-background text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
@@ -362,9 +341,7 @@ export const EvaluationCriteriaPage: React.FC = () => {
 
                 {/* Peso */}
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">
-                    Peso / Ponderación *
-                  </label>
+                  <label className="text-xs font-semibold text-foreground">Peso / Ponderación *</label>
                   <Input
                     type="number"
                     step="0.1"
@@ -375,44 +352,27 @@ export const EvaluationCriteriaPage: React.FC = () => {
                     })}
                     className="h-8 text-xs font-mono bg-background"
                   />
-                  <span className="text-xs text-muted-foreground">
-                    1.0 = ponderación estándar
-                  </span>
+                  <span className="text-xs text-muted-foreground">1.0 = ponderación estándar</span>
                 </div>
 
                 {/* Orden */}
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">
-                    Orden de Columna
-                  </label>
+                  <label className="text-xs font-semibold text-foreground">Orden de Columna</label>
                   <Input
                     type="number"
                     min="1"
                     {...register('order', { valueAsNumber: true })}
                     className="h-8 text-xs font-mono bg-background"
                   />
-                  <span className="text-xs text-muted-foreground">
-                    1, 2, 3... de izquierda a derecha
-                  </span>
+                  <span className="text-xs text-muted-foreground">1, 2, 3... de izquierda a derecha</span>
                 </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-2 border-t border-primary/20">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCloseForm}
-                  className="h-8 text-xs"
-                >
+                <Button type="button" variant="outline" size="sm" onClick={handleCloseForm} className="h-8 text-xs">
                   Cancelar
                 </Button>
-                <Button
-                  type="submit"
-                  size="sm"
-                  disabled={isSaving}
-                  className="h-8 text-xs font-bold gap-1.5 shadow-sm"
-                >
+                <Button type="submit" size="sm" disabled={isSaving} className="h-8 text-xs font-bold gap-1.5 shadow-sm">
                   <Check className="w-3.5 h-3.5" />
                   <span>{editingCriterion ? 'Guardar Cambios' : 'Crear Criterio'}</span>
                 </Button>
@@ -441,19 +401,16 @@ export const EvaluationCriteriaPage: React.FC = () => {
           ) : isError ? (
             <div className="p-8 text-center text-muted-foreground space-y-2">
               <AlertCircle className="w-8 h-8 text-destructive mx-auto" />
-              <p className="text-xs font-semibold text-foreground">
-                Error al cargar los criterios evaluativos
-              </p>
+              <p className="text-xs font-semibold text-foreground">Error al cargar los criterios evaluativos</p>
             </div>
           ) : criteria.length === 0 ? (
             <div className="p-12 text-center text-muted-foreground space-y-3">
               <Layers className="w-10 h-10 text-muted-foreground/50 mx-auto" />
-              <p className="text-sm font-semibold text-foreground">
-                No hay criterios configurados aún
-              </p>
+              <p className="text-sm font-semibold text-foreground">No hay criterios configurados aún</p>
               <p className="text-xs max-w-md mx-auto">
-                Mientras no haya criterios, cada docente registra directamente el calificativo de cada competencia (AD, A, B o C).
-                Si tu colegio califica por rubros (prácticas, exámenes, cuaderno), agrega tus criterios o carga la plantilla estándar.
+                Mientras no haya criterios, cada docente registra directamente el calificativo de cada competencia (AD,
+                A, B o C). Si tu colegio califica por rubros (prácticas, exámenes, cuaderno), agrega tus criterios o
+                carga la plantilla estándar.
               </p>
               <Button type="button" variant="outline" size="sm" onClick={handleApplyPreset} disabled={isSaving}>
                 Cargar plantilla estándar
@@ -477,28 +434,20 @@ export const EvaluationCriteriaPage: React.FC = () => {
                   {criteria.map((c) => (
                     <tr
                       key={c.id}
-                      className={`hover:bg-muted/30 transition-colors ${!c.isActive ? 'opacity-50 bg-muted/20' : ''
-                        }`}
+                      className={`hover:bg-muted/30 transition-colors ${!c.isActive ? 'opacity-50 bg-muted/20' : ''}`}
                     >
                       {/* Orden */}
-                      <td className="p-3 text-center font-mono font-bold text-muted-foreground">
-                        #{c.order}
-                      </td>
+                      <td className="p-3 text-center font-mono font-bold text-muted-foreground">#{c.order}</td>
 
                       {/* Abreviatura */}
                       <td className="p-3 text-center">
-                        <Badge
-                          variant="secondary"
-                          className="font-mono font-bold text-xs px-2 py-0.5"
-                        >
+                        <Badge variant="secondary" className="font-mono font-bold text-xs px-2 py-0.5">
                           {c.shortName}
                         </Badge>
                       </td>
 
                       {/* Nombre */}
-                      <td className="p-3 font-semibold text-foreground">
-                        {c.name}
-                      </td>
+                      <td className="p-3 font-semibold text-foreground">{c.name}</td>
 
                       {/* Nivel */}
                       <td className="p-3 text-center">
@@ -518,9 +467,7 @@ export const EvaluationCriteriaPage: React.FC = () => {
                       </td>
 
                       {/* Peso */}
-                      <td className="p-3 text-center font-mono font-bold text-foreground">
-                        {c.weight.toFixed(1)}x
-                      </td>
+                      <td className="p-3 text-center font-mono font-bold text-foreground">{c.weight.toFixed(1)}x</td>
 
                       {/* Estado */}
                       <td className="p-3 text-center">
@@ -586,7 +533,8 @@ export const EvaluationCriteriaPage: React.FC = () => {
         variant="danger"
         details={
           <p className="text-xs text-muted-foreground">
-            El criterio ya no aparecerá en las nuevas cuadrículas de calificaciones. Las notas históricas previas se mantendrán registradas para el cálculo de actas.
+            El criterio ya no aparecerá en las nuevas cuadrículas de calificaciones. Las notas históricas previas se
+            mantendrán registradas para el cálculo de actas.
           </p>
         }
       />

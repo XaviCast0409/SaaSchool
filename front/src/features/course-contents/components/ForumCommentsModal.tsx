@@ -16,11 +16,7 @@ interface ForumCommentsModalProps {
   content: CourseContent | null;
 }
 
-export const ForumCommentsModal: React.FC<ForumCommentsModalProps> = ({
-  isOpen,
-  onClose,
-  content,
-}) => {
+export const ForumCommentsModal: React.FC<ForumCommentsModalProps> = ({ isOpen, onClose, content }) => {
   const { label: periodLabel } = usePeriods();
   const [newComment, setNewComment] = useState('');
   const { data: comments = [], isLoading } = useGetForumComments(content?.id);
@@ -47,7 +43,11 @@ export const ForumCommentsModal: React.FC<ForumCommentsModalProps> = ({
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4"
+    >
       <div className="w-full max-w-2xl bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[85vh]">
         {/* Header */}
         <div className="p-4 border-b border-border flex items-center justify-between bg-muted/20">
@@ -57,7 +57,9 @@ export const ForumCommentsModal: React.FC<ForumCommentsModalProps> = ({
             </div>
             <div>
               <h2 className="text-sm font-bold text-foreground line-clamp-1">{content.title}</h2>
-              <p className="text-xs text-muted-foreground">{content.bimester}° {periodLabel} • Foro de Debate</p>
+              <p className="text-xs text-muted-foreground">
+                {content.bimester}° {periodLabel} • Foro de Debate
+              </p>
             </div>
           </div>
           <Button variant="ghost" size="icon" aria-label="Cerrar modal" onClick={onClose} className="rounded-full">
@@ -97,9 +99,7 @@ export const ForumCommentsModal: React.FC<ForumCommentsModalProps> = ({
                 <div
                   key={comment.id}
                   className={`p-3 rounded-xl border text-xs space-y-1.5 transition-colors ${
-                    isTeacherOrAdmin
-                      ? 'bg-primary/5 border-primary/20'
-                      : 'bg-background border-border'
+                    isTeacherOrAdmin ? 'bg-primary/5 border-primary/20' : 'bg-background border-border'
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -108,11 +108,14 @@ export const ForumCommentsModal: React.FC<ForumCommentsModalProps> = ({
                       <span>
                         {comment.user.firstName} {comment.user.lastNamePaternal}
                       </span>
-                      <Badge
-                        variant={isTeacherOrAdmin ? 'default' : 'outline'}
-                        className="text-xs px-1.5 py-0 h-4"
-                      >
-                        {comment.user.role === 'TEACHER' ? 'Docente' : comment.user.role === 'PARENT' ? 'Familia' : comment.user.role === 'STUDENT' ? 'Alumno' : comment.user.role}
+                      <Badge variant={isTeacherOrAdmin ? 'default' : 'outline'} className="text-xs px-1.5 py-0 h-4">
+                        {comment.user.role === 'TEACHER'
+                          ? 'Docente'
+                          : comment.user.role === 'PARENT'
+                            ? 'Familia'
+                            : comment.user.role === 'STUDENT'
+                              ? 'Alumno'
+                              : comment.user.role}
                       </Badge>
                     </div>
                     <span className="text-xs text-muted-foreground">
@@ -124,9 +127,7 @@ export const ForumCommentsModal: React.FC<ForumCommentsModalProps> = ({
                       })}
                     </span>
                   </div>
-                  <p className="text-foreground whitespace-pre-wrap leading-relaxed pl-5">
-                    {comment.content}
-                  </p>
+                  <p className="text-foreground whitespace-pre-wrap leading-relaxed pl-5">{comment.content}</p>
                 </div>
               );
             })

@@ -51,9 +51,7 @@ export const useAcknowledgeIncident = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const response = await api.patch<{ status: string; data: StudentIncident }>(
-        `/incidents/${id}/acknowledge`,
-      );
+      const response = await api.patch<{ status: string; data: StudentIncident }>(`/incidents/${id}/acknowledge`);
       return response.data.data;
     },
     onSuccess: () => {
@@ -68,10 +66,9 @@ export const useRegisterSiseve = () => {
 
   return useMutation({
     mutationFn: async ({ id, siseveCode }: { id: string; siseveCode: string }) => {
-      const response = await api.patch<{ status: string; data: StudentIncident }>(
-        `/incidents/${id}/siseve`,
-        { siseveCode },
-      );
+      const response = await api.patch<{ status: string; data: StudentIncident }>(`/incidents/${id}/siseve`, {
+        siseveCode,
+      });
       return response.data.data;
     },
     onSuccess: () => {
@@ -79,4 +76,3 @@ export const useRegisterSiseve = () => {
     },
   });
 };
-

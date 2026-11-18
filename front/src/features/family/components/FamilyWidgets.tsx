@@ -15,7 +15,13 @@ import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { formatPeruDate, formatPeruTime, getPeruToday } from '@/lib/dateUtils';
-import { useFamilyOverview, useFamilyTimeline, type ChildOverview, type Light, type TimelineItem } from '../api/useFamily';
+import {
+  useFamilyOverview,
+  useFamilyTimeline,
+  type ChildOverview,
+  type Light,
+  type TimelineItem,
+} from '../api/useFamily';
 
 const LIGHT_STYLE: Record<Light, { dot: string; bg: string; label: string }> = {
   GREEN: { dot: 'bg-emerald-500', bg: 'bg-emerald-500/10', label: 'Bien' },
@@ -24,7 +30,12 @@ const LIGHT_STYLE: Record<Light, { dot: string; bg: string; label: string }> = {
   GRAY: { dot: 'bg-muted-foreground/40', bg: 'bg-muted', label: 'Sin datos' },
 };
 
-const LINK_OF: Record<string, string> = { Asistencia: '/attendance', Notas: '/grades', Tareas: '/virtual-classroom', Pagos: '/payments' };
+const LINK_OF: Record<string, string> = {
+  Asistencia: '/attendance',
+  Notas: '/grades',
+  Tareas: '/virtual-classroom',
+  Pagos: '/payments',
+};
 
 /** Semáforo del hijo: cuatro indicadores de un vistazo. */
 export const ChildLights: React.FC<{ child: ChildOverview }> = ({ child }) => (
@@ -32,7 +43,12 @@ export const ChildLights: React.FC<{ child: ChildOverview }> = ({ child }) => (
     {child.lights.map((l) => {
       const st = LIGHT_STYLE[l.light];
       return (
-        <Link key={l.label} to={LINK_OF[l.label] ?? '/dashboard'} className={cn('rounded-xl p-3 transition-shadow hover:shadow-sm', st.bg)} aria-label={`${l.label}: ${st.label}. ${l.detail}`}>
+        <Link
+          key={l.label}
+          to={LINK_OF[l.label] ?? '/dashboard'}
+          className={cn('rounded-xl p-3 transition-shadow hover:shadow-sm', st.bg)}
+          aria-label={`${l.label}: ${st.label}. ${l.detail}`}
+        >
           <p className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
             <span className={cn('h-2.5 w-2.5 rounded-full', st.dot)} aria-hidden /> {l.label}
           </p>
@@ -77,13 +93,16 @@ export const BadgesCard: React.FC<{ studentId: string | null }> = ({ studentId }
           <li
             key={b.id}
             title={b.description}
-            className={cn('rounded-xl border p-3 text-center', b.earned ? 'border-amber-400/50 bg-amber-500/10' : 'border-dashed border-border opacity-70')}
+            className={cn(
+              'rounded-xl border p-3 text-center',
+              b.earned ? 'border-amber-400/50 bg-amber-500/10' : 'border-dashed border-border opacity-70',
+            )}
           >
             <div className={cn('text-2xl', !b.earned && 'grayscale')} aria-hidden>
               {b.emoji}
             </div>
             <p className="mt-1 text-xs font-semibold text-foreground">{b.title}</p>
-            <p className="text-xs text-muted-foreground">{b.earned ? '¡Conseguida!' : b.progress ?? b.description}</p>
+            <p className="text-xs text-muted-foreground">{b.earned ? '¡Conseguida!' : (b.progress ?? b.description)}</p>
           </li>
         ))}
       </ul>
@@ -130,16 +149,31 @@ const Row: React.FC<{ item: TimelineItem; showDate?: boolean }> = ({ item, showD
         <p className="text-sm font-medium text-foreground">{item.title}</p>
         {item.detail && <p className="text-xs text-muted-foreground">{item.detail}</p>}
         <p className="mt-0.5 text-xs text-muted-foreground">
-          {showDate ? formatPeruDate(item.at, { weekday: 'short', day: 'numeric', month: 'short' }) : formatPeruTime(item.at)}
+          {showDate
+            ? formatPeruDate(item.at, { weekday: 'short', day: 'numeric', month: 'short' })
+            : formatPeruTime(item.at)}
         </p>
       </div>
     </div>
   );
-  return <li>{item.link ? <Link to={item.link} className="block rounded-lg hover:bg-muted/40">{body}</Link> : body}</li>;
+  return (
+    <li>
+      {item.link ? (
+        <Link to={item.link} className="block rounded-lg hover:bg-muted/40">
+          {body}
+        </Link>
+      ) : (
+        body
+      )}
+    </li>
+  );
 };
 
 /** Línea de tiempo del hijo: lo que pasó y lo que viene, como un feed. */
-export const FamilyTimeline: React.FC<{ studentId: string | null; title?: string }> = ({ studentId, title = 'Lo último de tu hijo(a)' }) => {
+export const FamilyTimeline: React.FC<{ studentId: string | null; title?: string }> = ({
+  studentId,
+  title = 'Lo último de tu hijo(a)',
+}) => {
   const [days, setDays] = useState(7);
   const { data, isLoading } = useFamilyTimeline(studentId, days);
   if (!studentId) return null;
@@ -155,13 +189,21 @@ export const FamilyTimeline: React.FC<{ studentId: string | null; title?: string
     <Card className="p-4">
       <h2 className="mb-3 text-sm font-semibold text-foreground">{title}</h2>
       {isLoading ? (
-        <div className="space-y-3">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
       ) : (
         <div className="space-y-4">
           {(data?.upcoming.length ?? 0) > 0 && (
             <div>
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Próximamente</p>
-              <ul className="space-y-2">{data!.upcoming.slice(0, 5).map((it) => <Row key={it.id} item={it} showDate />)}</ul>
+              <ul className="space-y-2">
+                {data!.upcoming.slice(0, 5).map((it) => (
+                  <Row key={it.id} item={it} showDate />
+                ))}
+              </ul>
             </div>
           )}
           {groups.length === 0 ? (
@@ -170,12 +212,20 @@ export const FamilyTimeline: React.FC<{ studentId: string | null; title?: string
             groups.map((g) => (
               <div key={g.day}>
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{g.day}</p>
-                <ul className="space-y-2">{g.items.map((it) => <Row key={it.id} item={it} />)}</ul>
+                <ul className="space-y-2">
+                  {g.items.map((it) => (
+                    <Row key={it.id} item={it} />
+                  ))}
+                </ul>
               </div>
             ))
           )}
           {days < 30 && (
-            <button type="button" onClick={() => setDays(days === 7 ? 14 : 30)} className="text-xs font-medium text-primary hover:underline">
+            <button
+              type="button"
+              onClick={() => setDays(days === 7 ? 14 : 30)}
+              className="text-xs font-medium text-primary hover:underline"
+            >
               Ver más días
             </button>
           )}

@@ -53,7 +53,8 @@ export const GradingScaleCard: React.FC = () => {
                 Escala de Conversión Vigesimal a Literal CNEB
               </h2>
               <p className="text-xs text-muted-foreground">
-                Configura los umbrales numéricos mínimos para la asignación de letras (AD, A, B y C) en actas y libretas.
+                Configura los umbrales numéricos mínimos para la asignación de letras (AD, A, B y C) en actas y
+                libretas.
               </p>
             </div>
           </div>
@@ -159,15 +160,12 @@ export const GradingScaleCard: React.FC = () => {
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Info className="w-4 h-4 text-primary shrink-0" />
               <span>
-                <strong>C (En Inicio):</strong> Se asigna automáticamente a cualquier calificación por debajo del mínimo de B (&lt; {b}).
+                <strong>C (En Inicio):</strong> Se asigna automáticamente a cualquier calificación por debajo del mínimo
+                de B (&lt; {b}).
               </span>
             </div>
 
-            <Button
-              type="submit"
-              disabled={updateMutation.isPending}
-              className="gap-2 shrink-0 w-full sm:w-auto"
-            >
+            <Button type="submit" disabled={updateMutation.isPending} className="gap-2 shrink-0 w-full sm:w-auto">
               <Save className="w-4 h-4" />
               <span>{updateMutation.isPending ? 'Guardando...' : 'Guardar escala'}</span>
             </Button>

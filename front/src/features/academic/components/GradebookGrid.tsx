@@ -15,7 +15,8 @@ interface Props {
 }
 
 /** Celda: alumno + competencia + criterio (lo escrito se conserva al cambiar de competencia) */
-const keyOf = (enrollmentId: string, competenceId: string, criterionId: string) => `${enrollmentId}|${competenceId}|${criterionId}`;
+const keyOf = (enrollmentId: string, competenceId: string, criterionId: string) =>
+  `${enrollmentId}|${competenceId}|${criterionId}`;
 
 export const GradebookGrid: React.FC<Props> = ({ data, competenceId, reason, onNeedReason, onStatus }) => {
   const saveScores = useSaveScores(data.assignment.id);
@@ -38,20 +39,30 @@ export const GradebookGrid: React.FC<Props> = ({ data, competenceId, reason, onN
   // Datos del servidor: se toman todos menos las celdas que se están editando (no se pisa lo escrito)
   useEffect(() => {
     const server: Record<string, string> = {};
-    data.scores.forEach((sc) => { server[keyOf(sc.enrollmentId, sc.competenceId, sc.criterionId)] = formatCell(sc); });
+    data.scores.forEach((sc) => {
+      server[keyOf(sc.enrollmentId, sc.competenceId, sc.criterionId)] = formatCell(sc);
+    });
     setDrafts((prev) => {
       const next: Record<string, string> = { ...server };
-      dirtyRef.current.forEach((k) => { if (k in prev) next[k] = prev[k]; });
+      dirtyRef.current.forEach((k) => {
+        if (k in prev) next[k] = prev[k];
+      });
       return next;
     });
     setResults(data.results);
   }, [data]);
 
   const flush = useCallback(async () => {
-    if (inFlight.current) { again.current = true; return; }
+    if (inFlight.current) {
+      again.current = true;
+      return;
+    }
     const pending = dirtyRef.current;
     if (pending.size === 0) return;
-    if (data.requiresReason && !reason) { onNeedReason(); return; }
+    if (data.requiresReason && !reason) {
+      onNeedReason();
+      return;
+    }
     const current = draftsRef.current;
     const items: ScoreInput[] = [];
     const sent = new Map<string, string>();
@@ -61,7 +72,10 @@ export const GradebookGrid: React.FC<Props> = ({ data, competenceId, reason, onN
       const [enrollmentId, compId, criterionId] = k.split('|');
       const raw = current[k] ?? '';
       const parsed = parseCell(raw);
-      if (parsed === 'invalid') { bad.add(k); return; }
+      if (parsed === 'invalid') {
+        bad.add(k);
+        return;
+      }
       items.push({ enrollmentId, competenceId: compId, criterionId, ...parsed });
       sent.set(k, raw);
       shown.set(k, formatCell(parsed));
@@ -84,7 +98,9 @@ export const GradebookGrid: React.FC<Props> = ({ data, competenceId, reason, onN
       const saved = [...sent].filter(([k, value]) => (draftsRef.current[k] ?? '') === value).map(([k]) => k);
       setDrafts((prev) => {
         const next = { ...prev };
-        saved.forEach((k) => { if ((prev[k] ?? '') === sent.get(k)) next[k] = shown.get(k) ?? ''; });
+        saved.forEach((k) => {
+          if ((prev[k] ?? '') === sent.get(k)) next[k] = shown.get(k) ?? '';
+        });
         return next;
       });
       setDirty((prev) => {
@@ -97,10 +113,16 @@ export const GradebookGrid: React.FC<Props> = ({ data, competenceId, reason, onN
       onStatus('error', apiErrorMessage(e, 'No se pudieron guardar las notas.'), bad.size);
       // Sin conexión o falla del servidor: se reintenta solo (un rechazo, p. ej. periodo cerrado, no)
       const status = (e as { response?: { status?: number } }).response?.status;
-      if (!status || status >= 500) window.setTimeout(() => { void flushRef.current(); }, 5000);
+      if (!status || status >= 500)
+        window.setTimeout(() => {
+          void flushRef.current();
+        }, 5000);
     } finally {
       inFlight.current = false;
-      if (again.current) { again.current = false; void flushRef.current(); }
+      if (again.current) {
+        again.current = false;
+        void flushRef.current();
+      }
     }
   }, [data.periodNumber, data.requiresReason, reason, saveScores, onNeedReason, onStatus]);
 
@@ -110,12 +132,19 @@ export const GradebookGrid: React.FC<Props> = ({ data, competenceId, reason, onN
   // Guardado automático 1,2 s después del último cambio
   useEffect(() => {
     if (dirty.size === 0) return;
-    const t = setTimeout(() => { void flushRef.current(); }, 1200);
+    const t = setTimeout(() => {
+      void flushRef.current();
+    }, 1200);
     return () => clearTimeout(t);
   }, [dirty, drafts]);
 
   // Al salir de la grilla (otra pestaña, otro periodo, otra pantalla) se guarda lo pendiente
-  useEffect(() => () => { void flushRef.current(); }, []);
+  useEffect(
+    () => () => {
+      void flushRef.current();
+    },
+    [],
+  );
 
   // Cerrar o recargar la pestaña del navegador con notas sin guardar: el navegador pregunta
   useEffect(() => {
@@ -146,14 +175,17 @@ export const GradebookGrid: React.FC<Props> = ({ data, competenceId, reason, onN
     if (!text.includes('\t') && !text.includes('\n')) return;
     e.preventDefault();
     const matrix = parseClipboard(text);
-    matrix.forEach((cells, r) => cells.forEach((value, c) => {
-      const student = activeStudents[row + r];
-      const criterion = data.criteria[col + c];
-      if (student && criterion) setCell(keyOf(student.enrollmentId, competenceId, criterion.id), value);
-    }));
+    matrix.forEach((cells, r) =>
+      cells.forEach((value, c) => {
+        const student = activeStudents[row + r];
+        const criterion = data.criteria[col + c];
+        if (student && criterion) setCell(keyOf(student.enrollmentId, competenceId, criterion.id), value);
+      }),
+    );
   };
 
-  const resultOf = (enrollmentId: string) => results.find((r) => r.enrollmentId === enrollmentId && r.competenceId === competenceId);
+  const resultOf = (enrollmentId: string) =>
+    results.find((r) => r.enrollmentId === enrollmentId && r.competenceId === competenceId);
 
   return (
     <div className="overflow-x-auto rounded-lg border border-border">
@@ -163,7 +195,9 @@ export const GradebookGrid: React.FC<Props> = ({ data, competenceId, reason, onN
             <th className="w-10 px-2 py-2 text-left font-semibold">N.°</th>
             <th className="sticky left-0 bg-muted/40 px-2 py-2 text-left font-semibold">Estudiante</th>
             {data.criteria.map((c) => (
-              <th key={c.id} className="px-1 py-2 text-center font-semibold" title={`${c.name} · peso ${c.weight}`}>{c.shortName}</th>
+              <th key={c.id} className="px-1 py-2 text-center font-semibold" title={`${c.name} · peso ${c.weight}`}>
+                {c.shortName}
+              </th>
             ))}
             {data.criteria.length > 0 && <th className="px-2 py-2 text-center font-semibold">Sugerido</th>}
             <th className="px-2 py-2 text-center font-semibold">Final</th>
@@ -182,10 +216,16 @@ export const GradebookGrid: React.FC<Props> = ({ data, competenceId, reason, onN
                   {s.state !== 'REGISTERED' && (
                     <span
                       className="ml-2 text-xs text-muted-foreground"
-                      title={active ? 'Completó este periodo antes de irse: sus notas se registran y se suben al SIAGIE.' : 'Se fue antes de terminar este periodo: no recibe notas.'}
+                      title={
+                        active
+                          ? 'Completó este periodo antes de irse: sus notas se registran y se suben al SIAGIE.'
+                          : 'Se fue antes de terminar este periodo: no recibe notas.'
+                      }
                     >
                       {s.state === 'WITHDRAWN' ? 'Retirado' : 'Trasladado'}
-                      {s.withdrawalDate ? ` el ${new Date(`${s.withdrawalDate}T12:00:00`).toLocaleDateString('es-PE')}` : ''}
+                      {s.withdrawalDate
+                        ? ` el ${new Date(`${s.withdrawalDate}T12:00:00`).toLocaleDateString('es-PE')}`
+                        : ''}
                     </span>
                   )}
                 </td>
@@ -203,14 +243,22 @@ export const GradebookGrid: React.FC<Props> = ({ data, competenceId, reason, onN
                         onBlur={() => {
                           const v = drafts[k] ?? '';
                           if (v.trim() !== '' && parseCell(v) === 'invalid') {
-                            toast.warning(`«${v}» no es una nota válida. Ingresa un número de 0 a 20 o AD, A, B, C, EXO.`);
+                            toast.warning(
+                              `«${v}» no es una nota válida. Ingresa un número de 0 a 20 o AD, A, B, C, EXO.`,
+                            );
                           }
                           void flushRef.current();
                         }}
                         onPaste={(e) => onPaste(e, row, col)}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === 'ArrowDown') { e.preventDefault(); focusCell(row + 1, col); }
-                          if (e.key === 'ArrowUp') { e.preventDefault(); focusCell(row - 1, col); }
+                          if (e.key === 'Enter' || e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            focusCell(row + 1, col);
+                          }
+                          if (e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            focusCell(row - 1, col);
+                          }
                         }}
                         className={cn(
                           'h-8 w-14 rounded border border-transparent bg-transparent text-center tabular-nums focus:border-primary focus:bg-background focus:outline-none disabled:cursor-not-allowed',
@@ -223,7 +271,14 @@ export const GradebookGrid: React.FC<Props> = ({ data, competenceId, reason, onN
                 })}
                 {data.criteria.length > 0 && (
                   <td className="px-2 py-1 text-center">
-                    <LetterBadge letter={r?.suggestedLetter} title={r?.computedScore !== null && r?.computedScore !== undefined ? `Promedio ${r.computedScore}` : undefined} />
+                    <LetterBadge
+                      letter={r?.suggestedLetter}
+                      title={
+                        r?.computedScore !== null && r?.computedScore !== undefined
+                          ? `Promedio ${r.computedScore}`
+                          : undefined
+                      }
+                    />
                   </td>
                 )}
                 <td className="px-2 py-1 text-center">
@@ -231,19 +286,39 @@ export const GradebookGrid: React.FC<Props> = ({ data, competenceId, reason, onN
                     <select
                       aria-label={`Calificativo final de ${s.fullName}`}
                       disabled={!active || !editable || setFinal.isPending}
-                      value={r?.isOverridden ? r.finalLetter ?? '' : ''}
+                      value={r?.isOverridden ? (r.finalLetter ?? '') : ''}
                       onChange={(e) => {
-                        if (data.requiresReason && !reason) { onNeedReason(); return; }
+                        if (data.requiresReason && !reason) {
+                          onNeedReason();
+                          return;
+                        }
                         const v = (e.target.value || null) as ResultLetter | null;
-                        setFinal.mutate({ periodNumber: data.periodNumber, enrollmentId: s.enrollmentId, competenceId, finalLetter: v, reason });
+                        setFinal.mutate({
+                          periodNumber: data.periodNumber,
+                          enrollmentId: s.enrollmentId,
+                          competenceId,
+                          finalLetter: v,
+                          reason,
+                        });
                       }}
                       className="h-8 rounded border border-input bg-background px-1 text-sm"
                     >
                       <option value="">{r?.suggestedLetter ? `Usar ${r.suggestedLetter}` : '—'}</option>
-                      {(['AD', 'A', 'B', 'C', 'EXO'] as const).map((l) => <option key={l} value={l}>{l}</option>)}
+                      {(['AD', 'A', 'B', 'C', 'EXO'] as const).map((l) => (
+                        <option key={l} value={l}>
+                          {l}
+                        </option>
+                      ))}
                     </select>
                     <LetterBadge letter={r?.finalLetter} />
-                    {r?.isOverridden && data.criteria.length > 0 && <span className="text-[10px] text-muted-foreground" title="El docente eligió este calificativo en lugar del sugerido por los criterios">elegido a mano</span>}
+                    {r?.isOverridden && data.criteria.length > 0 && (
+                      <span
+                        className="text-[10px] text-muted-foreground"
+                        title="El docente eligió este calificativo en lugar del sugerido por los criterios"
+                      >
+                        elegido a mano
+                      </span>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -254,4 +329,3 @@ export const GradebookGrid: React.FC<Props> = ({ data, competenceId, reason, onN
     </div>
   );
 };
-

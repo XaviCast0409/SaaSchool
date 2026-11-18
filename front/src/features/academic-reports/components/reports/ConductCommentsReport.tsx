@@ -45,12 +45,7 @@ export const ConductCommentsReport: React.FC<ConductCommentsReportProps> = ({ da
       />
 
       <div className="bg-card border border-border p-4 sm:p-6 rounded-2xl shadow-sm max-w-4xl mx-auto print:border-none print:shadow-none print:p-0">
-        <ReportHeader
-          school={school}
-          title={title}
-          subtitle={subtitle}
-          tutorTeacher={classroom.tutorTeacher}
-        />
+        <ReportHeader school={school} title={title} subtitle={subtitle} tutorTeacher={classroom.tutorTeacher} />
 
         <div className="overflow-x-auto">
           <table className="w-full border-collapse border border-foreground/50 text-xs">
@@ -67,10 +62,16 @@ export const ConductCommentsReport: React.FC<ConductCommentsReportProps> = ({ da
               {students.map((student) => (
                 <tr key={student.enrollmentId} className="hover:bg-muted/30 transition-colors">
                   <td className="border border-foreground/50 p-1.5 text-center font-mono">{student.index}</td>
-                  <td className="border border-foreground/50 p-1.5 text-center font-mono text-muted-foreground">{student.documentId}</td>
+                  <td className="border border-foreground/50 p-1.5 text-center font-mono text-muted-foreground">
+                    {student.documentId}
+                  </td>
                   <td className="border border-foreground/50 p-1.5 font-medium uppercase">{student.fullName}</td>
-                  <td className="border border-foreground/50 p-1.5 text-center font-mono font-bold text-foreground">{student.conductScore}</td>
-                  <td className="border border-foreground/50 p-1.5 text-muted-foreground leading-snug">{student.comments}</td>
+                  <td className="border border-foreground/50 p-1.5 text-center font-mono font-bold text-foreground">
+                    {student.conductScore}
+                  </td>
+                  <td className="border border-foreground/50 p-1.5 text-muted-foreground leading-snug">
+                    {student.comments}
+                  </td>
                 </tr>
               ))}
             </tbody>

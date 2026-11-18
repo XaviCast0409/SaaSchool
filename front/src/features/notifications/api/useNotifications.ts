@@ -27,9 +27,7 @@ export const useMarkNotificationRead = () => {
 
   return useMutation({
     mutationFn: async (id: string): Promise<AppNotification> => {
-      const response = await api.patch<{ status: string; data: AppNotification }>(
-        `/notifications/${id}/read`,
-      );
+      const response = await api.patch<{ status: string; data: AppNotification }>(`/notifications/${id}/read`);
       return response.data.data;
     },
     onSuccess: () => {
@@ -43,9 +41,7 @@ export const useMarkAllNotificationsRead = () => {
 
   return useMutation({
     mutationFn: async (): Promise<{ count: number }> => {
-      const response = await api.patch<{ status: string; data: { count: number } }>(
-        '/notifications/read-all',
-      );
+      const response = await api.patch<{ status: string; data: { count: number } }>('/notifications/read-all');
       return response.data.data;
     },
     onSuccess: () => {
@@ -59,9 +55,7 @@ export const useDeleteNotification = () => {
 
   return useMutation({
     mutationFn: async (id: string): Promise<AppNotification> => {
-      const response = await api.delete<{ status: string; data: AppNotification }>(
-        `/notifications/${id}`,
-      );
+      const response = await api.delete<{ status: string; data: AppNotification }>(`/notifications/${id}`);
       return response.data.data;
     },
     onSuccess: () => {
@@ -85,11 +79,7 @@ export const useGetVapidPublicKey = () => {
 
 export const useSavePushSubscription = () => {
   return useMutation({
-    mutationFn: async (payload: {
-      endpoint: string;
-      keys: { p256dh: string; auth: string };
-      userAgent?: string;
-    }) => {
+    mutationFn: async (payload: { endpoint: string; keys: { p256dh: string; auth: string }; userAgent?: string }) => {
       const response = await api.post('/notifications/push-subscription', payload);
       return response.data;
     },
@@ -107,7 +97,8 @@ export const useSendTestPushNotification = () => {
 
 // ===== Preferencias de notificación =====
 
-export type NotificationKind = 'PAYMENT' | 'ATTENDANCE' | 'ANNOUNCEMENT' | 'ACADEMIC' | 'INCIDENT' | 'GENERAL' | 'MESSAGE';
+export type NotificationKind =
+  'PAYMENT' | 'ATTENDANCE' | 'ANNOUNCEMENT' | 'ACADEMIC' | 'INCIDENT' | 'GENERAL' | 'MESSAGE';
 
 export interface NotificationPreferences {
   mutedPush: NotificationKind[];
@@ -122,8 +113,7 @@ const PREFS_KEY = ['notification-preferences'];
 export const useNotificationPreferences = () =>
   useQuery({
     queryKey: PREFS_KEY,
-    queryFn: async () =>
-      (await api.get<{ data: NotificationPreferences }>('/notifications/preferences')).data.data,
+    queryFn: async () => (await api.get<{ data: NotificationPreferences }>('/notifications/preferences')).data.data,
   });
 
 export const useSaveNotificationPreferences = () => {

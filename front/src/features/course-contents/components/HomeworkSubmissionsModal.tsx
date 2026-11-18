@@ -14,15 +14,9 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  useGetHomeworkSubmissions,
-  useGradeHomeworkSubmission,
-} from '../api/useCourseContents';
+import { useGetHomeworkSubmissions, useGradeHomeworkSubmission } from '../api/useCourseContents';
 import { openFile } from '../utils/fileUrls';
-import type {
-  CourseContent,
-  HomeworkTeacherSubmissionItem,
-} from '../types';
+import type { CourseContent, HomeworkTeacherSubmissionItem } from '../types';
 import { formatPeruDateTime } from '@/lib/dateUtils';
 
 interface HomeworkSubmissionsModalProps {
@@ -37,11 +31,7 @@ interface GradeRowState {
   teacherFeedback: string;
 }
 
-export const HomeworkSubmissionsModal: React.FC<HomeworkSubmissionsModalProps> = ({
-  isOpen,
-  onClose,
-  content,
-}) => {
+export const HomeworkSubmissionsModal: React.FC<HomeworkSubmissionsModalProps> = ({ isOpen, onClose, content }) => {
   const { data, isLoading, refetch } = useGetHomeworkSubmissions(content?.id);
   const gradeMutation = useGradeHomeworkSubmission();
 
@@ -60,20 +50,13 @@ export const HomeworkSubmissionsModal: React.FC<HomeworkSubmissionsModalProps> =
     }
     const sub = item.submission;
     return {
-      numericScore:
-        sub?.numericScore !== null && sub?.numericScore !== undefined
-          ? String(sub.numericScore)
-          : '',
+      numericScore: sub?.numericScore !== null && sub?.numericScore !== undefined ? String(sub.numericScore) : '',
       literalScore: sub?.literalScore || '',
       teacherFeedback: sub?.teacherFeedback || '',
     };
   };
 
-  const handleFieldChange = (
-    enrollmentId: string,
-    field: keyof GradeRowState,
-    value: string,
-  ) => {
+  const handleFieldChange = (enrollmentId: string, field: keyof GradeRowState, value: string) => {
     setRowGrades((prev) => ({
       ...prev,
       [enrollmentId]: {
@@ -94,10 +77,7 @@ export const HomeworkSubmissionsModal: React.FC<HomeworkSubmissionsModalProps> =
     }
 
     const currentState = getRowState(item);
-    const num =
-      currentState.numericScore.trim() !== ''
-        ? parseFloat(currentState.numericScore)
-        : null;
+    const num = currentState.numericScore.trim() !== '' ? parseFloat(currentState.numericScore) : null;
 
     if (num !== null && (isNaN(num) || num < 0 || num > 20)) {
       toast.error('La calificación vigesimal debe estar entre 0 y 20.');
@@ -110,10 +90,7 @@ export const HomeworkSubmissionsModal: React.FC<HomeworkSubmissionsModalProps> =
         courseContentId: content.id,
         payload: {
           numericScore: num,
-          literalScore:
-            currentState.literalScore !== ''
-              ? currentState.literalScore
-              : null,
+          literalScore: currentState.literalScore !== '' ? currentState.literalScore : null,
           teacherFeedback: currentState.teacherFeedback.trim() || undefined,
         },
       });
@@ -126,7 +103,11 @@ export const HomeworkSubmissionsModal: React.FC<HomeworkSubmissionsModalProps> =
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200"
+    >
       <div className="bg-card w-full max-w-4xl max-h-[90vh] rounded-2xl border border-border shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-border bg-muted/40">
@@ -135,9 +116,7 @@ export const HomeworkSubmissionsModal: React.FC<HomeworkSubmissionsModalProps> =
               <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
                 <ClipboardList className="w-5 h-5" />
               </div>
-              <h2 className="text-base sm:text-lg font-bold text-foreground">
-                Entregas de Tarea: {content.title}
-              </h2>
+              <h2 className="text-base sm:text-lg font-bold text-foreground">Entregas de Tarea: {content.title}</h2>
             </div>
             <p className="text-xs text-muted-foreground">
               {content.dueDate
@@ -172,18 +151,14 @@ export const HomeworkSubmissionsModal: React.FC<HomeworkSubmissionsModalProps> =
             <Clock className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             <div>
               <span className="text-muted-foreground block text-xs">Entregaron</span>
-              <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">
-                {submittedCount}
-              </span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">{submittedCount}</span>
             </div>
           </div>
           <div className="p-2.5 rounded-xl bg-card border border-border flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
             <div>
               <span className="text-muted-foreground block text-xs">Pendientes</span>
-              <span className="font-bold text-amber-600 dark:text-amber-400 text-sm">
-                {pendingCount}
-              </span>
+              <span className="font-bold text-amber-600 dark:text-amber-400 text-sm">{pendingCount}</span>
             </div>
           </div>
         </div>
@@ -199,16 +174,15 @@ export const HomeworkSubmissionsModal: React.FC<HomeworkSubmissionsModalProps> =
           ) : items.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground space-y-2">
               <FileText className="w-10 h-10 mx-auto opacity-30" />
-              <p className="text-sm font-semibold text-foreground">
-                No hay alumnos registrados en esta sección
-              </p>
+              <p className="text-sm font-semibold text-foreground">No hay alumnos registrados en esta sección</p>
             </div>
           ) : (
             <div className="space-y-3">
               {items.map((item) => {
                 const sub = item.submission;
                 const state = getRowState(item);
-                const fullName = `${item.student.lastNamePaternal} ${item.student.lastNameMaternal || ''}, ${item.student.firstNames}`.trim();
+                const fullName =
+                  `${item.student.lastNamePaternal} ${item.student.lastNameMaternal || ''}, ${item.student.firstNames}`.trim();
 
                 return (
                   <div
@@ -218,14 +192,9 @@ export const HomeworkSubmissionsModal: React.FC<HomeworkSubmissionsModalProps> =
                     {/* Info Alumno */}
                     <div className="min-w-0 md:w-1/3">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-foreground text-sm truncate">
-                          {fullName}
-                        </span>
+                        <span className="font-bold text-foreground text-sm truncate">{fullName}</span>
                         {sub?.isLate ? (
-                          <Badge
-                            variant="destructive"
-                            className="text-xs uppercase font-bold px-1.5 py-0"
-                          >
+                          <Badge variant="destructive" className="text-xs uppercase font-bold px-1.5 py-0">
                             Fuera de fecha
                           </Badge>
                         ) : sub ? (
@@ -236,10 +205,7 @@ export const HomeworkSubmissionsModal: React.FC<HomeworkSubmissionsModalProps> =
                             A tiempo
                           </Badge>
                         ) : (
-                          <Badge
-                            variant="outline"
-                            className="text-xs font-bold px-1.5 py-0 text-muted-foreground"
-                          >
+                          <Badge variant="outline" className="text-xs font-bold px-1.5 py-0 text-muted-foreground">
                             Pendiente
                           </Badge>
                         )}
@@ -294,13 +260,7 @@ export const HomeworkSubmissionsModal: React.FC<HomeworkSubmissionsModalProps> =
                             max="20"
                             step="0.5"
                             value={state.numericScore}
-                            onChange={(e) =>
-                              handleFieldChange(
-                                item.enrollmentId,
-                                'numericScore',
-                                e.target.value,
-                              )
-                            }
+                            onChange={(e) => handleFieldChange(item.enrollmentId, 'numericScore', e.target.value)}
                             placeholder="0-20"
                             className="w-full h-8 px-2 text-center font-mono font-bold text-xs rounded-lg border border-input bg-background focus:outline-none focus:ring-1 focus:ring-primary"
                           />
@@ -308,17 +268,11 @@ export const HomeworkSubmissionsModal: React.FC<HomeworkSubmissionsModalProps> =
 
                         {/* Nota Literal (AD, A, B, C, EXO) */}
                         <div className="w-24">
-                          <label className="text-xs font-semibold text-muted-foreground block mb-0.5">
-                            SIAGIE
-                          </label>
+                          <label className="text-xs font-semibold text-muted-foreground block mb-0.5">SIAGIE</label>
                           <select
                             value={state.literalScore}
                             onChange={(e) =>
-                              handleFieldChange(
-                                item.enrollmentId,
-                                'literalScore',
-                                e.target.value as any,
-                              )
+                              handleFieldChange(item.enrollmentId, 'literalScore', e.target.value as any)
                             }
                             className="w-full h-8 px-1.5 font-bold text-xs rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                           >
@@ -340,13 +294,7 @@ export const HomeworkSubmissionsModal: React.FC<HomeworkSubmissionsModalProps> =
                             <input
                               type="text"
                               value={state.teacherFeedback}
-                              onChange={(e) =>
-                                handleFieldChange(
-                                  item.enrollmentId,
-                                  'teacherFeedback',
-                                  e.target.value,
-                                )
-                              }
+                              onChange={(e) => handleFieldChange(item.enrollmentId, 'teacherFeedback', e.target.value)}
                               placeholder="Buen trabajo / Revisar punto 2..."
                               className="w-full h-8 px-2 text-xs rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                             />
@@ -368,9 +316,7 @@ export const HomeworkSubmissionsModal: React.FC<HomeworkSubmissionsModalProps> =
                         </div>
                       </div>
                     ) : (
-                      <div className="text-right text-xs text-muted-foreground italic py-2">
-                        Sin entrega registrada
-                      </div>
+                      <div className="text-right text-xs text-muted-foreground italic py-2">Sin entrega registrada</div>
                     )}
                   </div>
                 );
@@ -389,4 +335,3 @@ export const HomeworkSubmissionsModal: React.FC<HomeworkSubmissionsModalProps> =
     </div>
   );
 };
-

@@ -14,7 +14,10 @@ export const ParentPaymentReportsCard: React.FC = () => {
         <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold text-foreground">
           <QrCode className="h-4 w-4 text-primary" aria-hidden /> Paga desde tu celular
         </h2>
-        <p className="mb-3 text-xs text-muted-foreground">Paga con Yape, Plin o transferencia y luego pulsa “Reportar pago” en la cuota. Tesorería lo valida y recibes tu recibo sin ir al colegio.</p>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Paga con Yape, Plin o transferencia y luego pulsa “Reportar pago” en la cuota. Tesorería lo valida y recibes
+          tu recibo sin ir al colegio.
+        </p>
         <SchoolPaymentInfo />
       </Card>
       <Card className="p-4">
@@ -37,12 +40,23 @@ export const ParentPaymentReportsCard: React.FC = () => {
                     {r.obligation.title} · S/ {Number(r.amount).toFixed(2)}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {METHOD_LABEL[r.method]} · op. {r.operationNumber} · pagado el {formatPeruShortDate(r.paidOn.slice(0, 10))}
+                    {METHOD_LABEL[r.method]} · op. {r.operationNumber} · pagado el{' '}
+                    {formatPeruShortDate(r.paidOn.slice(0, 10))}
                   </p>
                   <p className="text-xs">
-                    {r.status === 'APPROVED' && <span className="text-emerald-700 dark:text-emerald-300">Validado{r.transaction?.receiptNumber ? ` · Recibo ${r.transaction.receiptNumber}` : ''}</span>}
-                    {r.status === 'REJECTED' && <span className="text-destructive">No validado: {r.rejectionReason}</span>}
-                    {r.status === 'PENDING' && <span className="text-amber-700 dark:text-amber-300">Por validar · enviado {formatPeruDateTime(r.createdAt)}</span>}
+                    {r.status === 'APPROVED' && (
+                      <span className="text-emerald-700 dark:text-emerald-300">
+                        Validado{r.transaction?.receiptNumber ? ` · Recibo ${r.transaction.receiptNumber}` : ''}
+                      </span>
+                    )}
+                    {r.status === 'REJECTED' && (
+                      <span className="text-destructive">No validado: {r.rejectionReason}</span>
+                    )}
+                    {r.status === 'PENDING' && (
+                      <span className="text-amber-700 dark:text-amber-300">
+                        Por validar · enviado {formatPeruDateTime(r.createdAt)}
+                      </span>
+                    )}
                   </p>
                 </div>
               </li>

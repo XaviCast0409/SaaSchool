@@ -30,16 +30,51 @@ interface AttendanceMatrixGridProps {
 }
 
 const STATUS_CODES: Record<AttendanceStatus, { code: string; bg: string; text: string; label: string }> = {
-  PRESENT: { code: 'P', bg: 'bg-emerald-500/20 border-emerald-500/40', text: 'text-emerald-700 dark:text-emerald-300 font-bold', label: 'Presente' },
-  ABSENT_UNJUSTIFIED: { code: 'FI', bg: 'bg-destructive/25 border-destructive/50', text: 'text-destructive font-black', label: 'Falta Injustificada' },
-  ABSENT_JUSTIFIED: { code: 'FJ', bg: 'bg-amber-500/20 border-amber-500/40', text: 'text-amber-700 dark:text-amber-300 font-bold', label: 'Falta Justificada' },
-  LATE_UNJUSTIFIED: { code: 'TI', bg: 'bg-amber-500/15 border-amber-500/30', text: 'text-amber-600 dark:text-amber-400 font-bold', label: 'Tardanza Injustificada' },
-  LATE_JUSTIFIED: { code: 'TJ', bg: 'bg-sky-500/20 border-sky-500/40', text: 'text-sky-700 dark:text-sky-300 font-bold', label: 'Tardanza Justificada' },
+  PRESENT: {
+    code: 'P',
+    bg: 'bg-emerald-500/20 border-emerald-500/40',
+    text: 'text-emerald-700 dark:text-emerald-300 font-bold',
+    label: 'Presente',
+  },
+  ABSENT_UNJUSTIFIED: {
+    code: 'FI',
+    bg: 'bg-destructive/25 border-destructive/50',
+    text: 'text-destructive font-black',
+    label: 'Falta Injustificada',
+  },
+  ABSENT_JUSTIFIED: {
+    code: 'FJ',
+    bg: 'bg-amber-500/20 border-amber-500/40',
+    text: 'text-amber-700 dark:text-amber-300 font-bold',
+    label: 'Falta Justificada',
+  },
+  LATE_UNJUSTIFIED: {
+    code: 'TI',
+    bg: 'bg-amber-500/15 border-amber-500/30',
+    text: 'text-amber-600 dark:text-amber-400 font-bold',
+    label: 'Tardanza Injustificada',
+  },
+  LATE_JUSTIFIED: {
+    code: 'TJ',
+    bg: 'bg-sky-500/20 border-sky-500/40',
+    text: 'text-sky-700 dark:text-sky-300 font-bold',
+    label: 'Tardanza Justificada',
+  },
 };
 
 const SPANISH_MONTHS = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Setiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  'Enero',
+  'Febrero',
+  'Marzo',
+  'Abril',
+  'Mayo',
+  'Junio',
+  'Julio',
+  'Agosto',
+  'Setiembre',
+  'Octubre',
+  'Noviembre',
+  'Diciembre',
 ];
 
 const SPANISH_DAYS_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -118,8 +153,7 @@ export const AttendanceMatrixGrid: React.FC<AttendanceMatrixGridProps> = ({
   // Filtrado compuesto por nombre/DNI + Semáforo de Riesgo
   const filteredStudents = students.filter((s) => {
     const matchesSearch =
-      s.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.documentId.includes(searchQuery);
+      s.studentName.toLowerCase().includes(searchQuery.toLowerCase()) || s.documentId.includes(searchQuery);
 
     const matchesRisk = riskFilter === 'ALL' || s.riskLevel === riskFilter;
 
@@ -137,7 +171,8 @@ export const AttendanceMatrixGrid: React.FC<AttendanceMatrixGridProps> = ({
             <AlertTriangle className="w-5 h-5 shrink-0 animate-bounce text-destructive" />
             <div>
               <span>
-                Atención Director: Se detectaron <strong>{criticalCount} estudiante(s)</strong> con RIESGO CRÍTICO de inasistencia/deserción este mes.
+                Atención Director: Se detectaron <strong>{criticalCount} estudiante(s)</strong> con RIESGO CRÍTICO de
+                inasistencia/deserción este mes.
               </span>
               <p className="text-[11px] opacity-90 font-normal">
                 Han acumulado 3 o más faltas injustificadas. Haz clic para filtrar e iniciar la citación de apoderados.
@@ -337,7 +372,8 @@ export const AttendanceMatrixGrid: React.FC<AttendanceMatrixGridProps> = ({
           <div className="space-y-1">
             <h3 className="font-bold text-base text-foreground">Selecciona una Sección Educativa</h3>
             <p className="text-xs text-muted-foreground max-w-md mx-auto">
-              Para optimizar el rendimiento y evitar consumo masivo de datos, por favor selecciona un Aula/Sección en la barra de filtros para consultar la sábana de asistencia.
+              Para optimizar el rendimiento y evitar consumo masivo de datos, por favor selecciona un Aula/Sección en la
+              barra de filtros para consultar la sábana de asistencia.
             </p>
           </div>
         </div>
@@ -363,19 +399,28 @@ export const AttendanceMatrixGrid: React.FC<AttendanceMatrixGridProps> = ({
               <thead>
                 {/* Header Row 1: Days of Week */}
                 <tr className="bg-muted/80 border-b border-border text-muted-foreground font-bold uppercase text-[10px]">
-                  <th scope="col" className="p-1.5 w-10 text-center sticky left-0 bg-muted/90 backdrop-blur z-10 border-r border-border">
+                  <th
+                    scope="col"
+                    className="p-1.5 w-10 text-center sticky left-0 bg-muted/90 backdrop-blur z-10 border-r border-border"
+                  >
                     #
                   </th>
-                  <th scope="col" className="p-1.5 min-w-[200px] sticky left-10 bg-muted/90 backdrop-blur z-10 border-r border-border">
+                  <th
+                    scope="col"
+                    className="p-1.5 min-w-[200px] sticky left-10 bg-muted/90 backdrop-blur z-10 border-r border-border"
+                  >
                     Estudiante
                   </th>
-                  <th scope="col" className="p-1.5 w-14 text-center border-r border-border">Sec.</th>
+                  <th scope="col" className="p-1.5 w-14 text-center border-r border-border">
+                    Sec.
+                  </th>
 
                   {daysArray.map((day) => {
                     const dayName = getDayOfWeekShort(yearNum, monthNum, day);
                     const weekend = isWeekend(yearNum, monthNum, day);
                     return (
-                      <th scope="col"
+                      <th
+                        scope="col"
                         key={`dayname-${day}`}
                         className={`p-1 w-7 text-center border-r border-border text-[9px] font-bold ${
                           weekend ? 'bg-muted/90 text-muted-foreground/60' : 'text-primary'
@@ -389,23 +434,34 @@ export const AttendanceMatrixGrid: React.FC<AttendanceMatrixGridProps> = ({
                   <th scope="col" colSpan={4} className="p-1 text-center bg-muted/90 border-r border-border">
                     Totales Mes
                   </th>
-                  <th scope="col" className="p-1 text-center bg-muted/90">Exp.</th>
+                  <th scope="col" className="p-1 text-center bg-muted/90">
+                    Exp.
+                  </th>
                 </tr>
 
                 {/* Header Row 2: Date Numbers */}
                 <tr className="bg-muted/40 border-b border-border text-muted-foreground font-bold text-[10px]">
-                  <th scope="col" className="p-1.5 text-center sticky left-0 bg-muted/70 backdrop-blur z-10 border-r border-border">
+                  <th
+                    scope="col"
+                    className="p-1.5 text-center sticky left-0 bg-muted/70 backdrop-blur z-10 border-r border-border"
+                  >
                     N°
                   </th>
-                  <th scope="col" className="p-1.5 sticky left-10 bg-muted/70 backdrop-blur z-10 border-r border-border">
+                  <th
+                    scope="col"
+                    className="p-1.5 sticky left-10 bg-muted/70 backdrop-blur z-10 border-r border-border"
+                  >
                     Apellidos y Nombres
                   </th>
-                  <th scope="col" className="p-1.5 text-center border-r border-border">Aula</th>
+                  <th scope="col" className="p-1.5 text-center border-r border-border">
+                    Aula
+                  </th>
 
                   {daysArray.map((day) => {
                     const weekend = isWeekend(yearNum, monthNum, day);
                     return (
-                      <th scope="col"
+                      <th
+                        scope="col"
                         key={`daynum-${day}`}
                         className={`p-1 w-7 text-center border-r border-border text-[10px] font-mono ${
                           weekend ? 'bg-muted/60 text-muted-foreground/50' : 'text-foreground'
@@ -416,11 +472,21 @@ export const AttendanceMatrixGrid: React.FC<AttendanceMatrixGridProps> = ({
                     );
                   })}
 
-                  <th scope="col" className="p-1.5 w-10 text-center text-emerald-600 dark:text-emerald-400">P</th>
-                  <th scope="col" className="p-1.5 w-10 text-center text-destructive">FI</th>
-                  <th scope="col" className="p-1.5 w-10 text-center text-amber-600">FJ</th>
-                  <th scope="col" className="p-1.5 w-14 text-center font-bold">% Asist</th>
-                  <th scope="col" className="p-1.5 w-10 text-center">Ver</th>
+                  <th scope="col" className="p-1.5 w-10 text-center text-emerald-600 dark:text-emerald-400">
+                    P
+                  </th>
+                  <th scope="col" className="p-1.5 w-10 text-center text-destructive">
+                    FI
+                  </th>
+                  <th scope="col" className="p-1.5 w-10 text-center text-amber-600">
+                    FJ
+                  </th>
+                  <th scope="col" className="p-1.5 w-14 text-center font-bold">
+                    % Asist
+                  </th>
+                  <th scope="col" className="p-1.5 w-10 text-center">
+                    Ver
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -433,8 +499,8 @@ export const AttendanceMatrixGrid: React.FC<AttendanceMatrixGridProps> = ({
                         s.riskLevel === 'CRITICAL'
                           ? 'bg-destructive/5'
                           : s.riskLevel === 'WARNING'
-                          ? 'bg-amber-500/5'
-                          : ''
+                            ? 'bg-amber-500/5'
+                            : ''
                       }`}
                     >
                       <td className="p-2 text-center font-mono text-muted-foreground sticky left-0 bg-card z-10 border-r border-border font-bold">
@@ -443,9 +509,7 @@ export const AttendanceMatrixGrid: React.FC<AttendanceMatrixGridProps> = ({
 
                       <td className="p-2 sticky left-10 bg-card z-10 border-r border-border">
                         <div className="flex items-center justify-between gap-1">
-                          <span className="font-semibold text-foreground truncate max-w-[180px]">
-                            {s.studentName}
-                          </span>
+                          <span className="font-semibold text-foreground truncate max-w-[180px]">{s.studentName}</span>
                           {s.riskLevel === 'CRITICAL' ? (
                             <span
                               title="Riesgo Crítico de Inasistencia (3+ faltas acumuladas)"
@@ -465,7 +529,8 @@ export const AttendanceMatrixGrid: React.FC<AttendanceMatrixGridProps> = ({
                       </td>
 
                       <td className="p-2 text-center font-mono text-muted-foreground border-r border-border">
-                        {s.grade}{s.section}
+                        {s.grade}
+                        {s.section}
                       </td>
 
                       {/* Daily Cells con indicador visual de nota/justificación */}
@@ -519,8 +584,8 @@ export const AttendanceMatrixGrid: React.FC<AttendanceMatrixGridProps> = ({
                             s.attendanceRate >= 90
                               ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                               : s.attendanceRate >= 80
-                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                              : 'bg-destructive/10 text-destructive'
+                                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                : 'bg-destructive/10 text-destructive'
                           }`}
                         >
                           {s.attendanceRate}%

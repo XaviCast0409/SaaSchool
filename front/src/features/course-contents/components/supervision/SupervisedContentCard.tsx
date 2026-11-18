@@ -1,13 +1,5 @@
 import React, { useState } from 'react';
-import {
-  MessageSquare,
-  Trash2,
-  Clock,
-  User,
-  Paperclip,
-  Eye,
-  Download,
-} from 'lucide-react';
+import { MessageSquare, Trash2, Clock, User, Paperclip, Eye, Download } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -31,11 +23,7 @@ function formatBytes(bytes?: number | null): string {
   return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
 }
 
-export const SupervisedContentCard: React.FC<SupervisedContentCardProps> = ({
-  item,
-  onDelete,
-  isDeleting,
-}) => {
+export const SupervisedContentCard: React.FC<SupervisedContentCardProps> = ({ item, onDelete, isDeleting }) => {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const theme = getSubjectTheme(item.courseAssignment.area.name);
 
@@ -78,13 +66,9 @@ export const SupervisedContentCard: React.FC<SupervisedContentCardProps> = ({
 
         {/* Título y Descripción */}
         <div>
-          <h4 className="text-sm font-bold text-foreground leading-snug line-clamp-1">
-            {item.title}
-          </h4>
+          <h4 className="text-sm font-bold text-foreground leading-snug line-clamp-1">{item.title}</h4>
           {item.description && (
-            <p className="text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed">
-              {item.description}
-            </p>
+            <p className="text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed">{item.description}</p>
           )}
         </div>
 
@@ -93,13 +77,14 @@ export const SupervisedContentCard: React.FC<SupervisedContentCardProps> = ({
           <div className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border/80">
             <div className="flex items-center gap-2 min-w-0">
               <Paperclip className="w-3.5 h-3.5 text-primary shrink-0" />
-              <span className="text-xs font-semibold text-foreground truncate max-w-[200px]" title={item.fileName || 'Archivo adjunto'}>
+              <span
+                className="text-xs font-semibold text-foreground truncate max-w-[200px]"
+                title={item.fileName || 'Archivo adjunto'}
+              >
                 {item.fileName || 'Archivo adjunto'}
               </span>
               {item.fileSize && (
-                <span className="text-xs text-muted-foreground shrink-0">
-                  ({formatBytes(item.fileSize)})
-                </span>
+                <span className="text-xs text-muted-foreground shrink-0">({formatBytes(item.fileSize)})</span>
               )}
             </div>
 
@@ -149,9 +134,7 @@ export const SupervisedContentCard: React.FC<SupervisedContentCardProps> = ({
           <span className="truncate font-semibold text-foreground">
             Prof. {item.teacher.lastNamePaternal} {item.teacher.firstName}
           </span>
-          <span className="text-xs text-muted-foreground shrink-0">
-            • {formatPeruShortDate(item.createdAt)}
-          </span>
+          <span className="text-xs text-muted-foreground shrink-0">• {formatPeruShortDate(item.createdAt)}</span>
         </div>
 
         <Button

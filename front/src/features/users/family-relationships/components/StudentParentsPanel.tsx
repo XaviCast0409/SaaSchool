@@ -50,7 +50,10 @@ export const StudentParentsPanel: React.FC<StudentParentsPanelProps> = ({ studen
   const fullName = (rel: FamilyRelationship) =>
     [rel.user?.firstName, rel.user?.lastNamePaternal, rel.user?.lastNameMaternal].filter(Boolean).join(' ');
 
-  const update = (rel: FamilyRelationship, patch: Partial<Record<Flag, boolean>> & { relationshipType?: RelationshipType }) =>
+  const update = (
+    rel: FamilyRelationship,
+    patch: Partial<Record<Flag, boolean>> & { relationshipType?: RelationshipType },
+  ) =>
     updateRelationship(
       { id: rel.id, ...patch },
       { onError: (err: any) => toast.error(err?.response?.data?.message || 'No se pudo guardar el cambio.') },
@@ -142,7 +145,10 @@ export const StudentParentsPanel: React.FC<StudentParentsPanelProps> = ({ studen
                     </div>
                     <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                       {rel.user?.cellphone ? (
-                        <a href={`tel:${rel.user.cellphone}`} className="inline-flex items-center gap-1 hover:text-foreground">
+                        <a
+                          href={`tel:${rel.user.cellphone}`}
+                          className="inline-flex items-center gap-1 hover:text-foreground"
+                        >
                           <Phone className="w-3 h-3" />
                           {rel.user.cellphone}
                         </a>
@@ -153,7 +159,10 @@ export const StudentParentsPanel: React.FC<StudentParentsPanelProps> = ({ studen
                         </span>
                       )}
                       {rel.user?.email && (
-                        <a href={`mailto:${rel.user.email}`} className="inline-flex min-w-0 items-center gap-1 hover:text-foreground">
+                        <a
+                          href={`mailto:${rel.user.email}`}
+                          className="inline-flex min-w-0 items-center gap-1 hover:text-foreground"
+                        >
                           <Mail className="w-3 h-3 shrink-0" />
                           <span className="truncate">{rel.user.email}</span>
                         </a>

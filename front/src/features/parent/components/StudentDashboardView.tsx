@@ -128,9 +128,7 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
                     <p className="text-xs font-bold text-foreground group-hover:text-primary transition-colors truncate">
                       {s.title}
                     </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {s.desc}
-                    </p>
+                    <p className="text-xs text-muted-foreground truncate">{s.desc}</p>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0 hidden sm:block" />

@@ -55,7 +55,13 @@ const DetailModal: React.FC<{ app: AdmissionApplication | null; onClose: () => v
   const move = (status: AdmissionStatus) =>
     update.mutate(
       { id: app.id, status, staffNotes: notes || null, interviewAt: interview ? `${interview}:00-05:00` : null },
-      { onSuccess: () => { toast.success(`Movido a «${ADMISSION_LABEL[status]}»`); onClose(); }, onError: (e) => toast.error(apiErrorMessage(e)) },
+      {
+        onSuccess: () => {
+          toast.success(`Movido a «${ADMISSION_LABEL[status]}»`);
+          onClose();
+        },
+        onError: (e) => toast.error(apiErrorMessage(e)),
+      },
     );
   const save = () =>
     update.mutate(
@@ -65,7 +71,11 @@ const DetailModal: React.FC<{ app: AdmissionApplication | null; onClose: () => v
   const doConvert = () =>
     convert.mutate(app.id, {
       onSuccess: (r) => {
-        toast.success(r.linkedExisting ? 'Ya existía un alumno con ese documento; quedó vinculado.' : 'Estudiante registrado. Completa su matrícula en aula y su apoderado.');
+        toast.success(
+          r.linkedExisting
+            ? 'Ya existía un alumno con ese documento; quedó vinculado.'
+            : 'Estudiante registrado. Completa su matrícula en aula y su apoderado.',
+        );
         onClose();
         navigate(`/students?q=${encodeURIComponent(app.studentDocumentId)}`);
       },
@@ -74,7 +84,10 @@ const DetailModal: React.FC<{ app: AdmissionApplication | null; onClose: () => v
 
   const next: Array<{ to: AdmissionStatus; label: string; variant?: 'outline' | 'destructive' }> =
     app.status === 'NEW'
-      ? [{ to: 'INTERVIEW', label: 'Programar entrevista' }, { to: 'ADMITTED', label: 'Admitir', variant: 'outline' }]
+      ? [
+          { to: 'INTERVIEW', label: 'Programar entrevista' },
+          { to: 'ADMITTED', label: 'Admitir', variant: 'outline' },
+        ]
       : app.status === 'INTERVIEW'
         ? [{ to: 'ADMITTED', label: 'Admitir' }]
         : app.status === 'REJECTED' || app.status === 'WITHDRAWN'
@@ -82,27 +95,48 @@ const DetailModal: React.FC<{ app: AdmissionApplication | null; onClose: () => v
           : [];
 
   return (
-    <Modal open onClose={onClose} title={`${app.studentFirstNames} ${app.studentLastNamePaternal} ${app.studentLastNameMaternal ?? ''}`} description={`${app.gradeLabel} · ${app.targetYear} · ${ADMISSION_LABEL[app.status]}`} size="lg"
+    <Modal
+      open
+      onClose={onClose}
+      title={`${app.studentFirstNames} ${app.studentLastNamePaternal} ${app.studentLastNameMaternal ?? ''}`}
+      description={`${app.gradeLabel} · ${app.targetYear} · ${ADMISSION_LABEL[app.status]}`}
+      size="lg"
       footer={
         <div className="flex w-full flex-wrap items-center justify-between gap-2">
           <div className="flex gap-2">
             {!['ENROLLED', 'REJECTED', 'WITHDRAWN'].includes(app.status) && (
               <>
-                <Button variant="ghost" size="sm" onClick={() => move('REJECTED')} disabled={update.isPending}>No admitir</Button>
-                <Button variant="ghost" size="sm" onClick={() => move('WITHDRAWN')} disabled={update.isPending}>Desistió</Button>
+                <Button variant="ghost" size="sm" onClick={() => move('REJECTED')} disabled={update.isPending}>
+                  No admitir
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => move('WITHDRAWN')} disabled={update.isPending}>
+                  Desistió
+                </Button>
               </>
             )}
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={save} disabled={update.isPending}>Guardar notas</Button>
+            <Button variant="outline" onClick={save} disabled={update.isPending}>
+              Guardar notas
+            </Button>
             {next.map((n) => (
-              <Button key={n.to} variant={n.variant} onClick={() => move(n.to)} disabled={update.isPending || (n.to === 'INTERVIEW' && !interview)} title={n.to === 'INTERVIEW' && !interview ? 'Elige la fecha y hora de la entrevista' : undefined}>
+              <Button
+                key={n.to}
+                variant={n.variant}
+                onClick={() => move(n.to)}
+                disabled={update.isPending || (n.to === 'INTERVIEW' && !interview)}
+                title={n.to === 'INTERVIEW' && !interview ? 'Elige la fecha y hora de la entrevista' : undefined}
+              >
                 {n.label}
               </Button>
             ))}
             {app.status === 'ADMITTED' && (
               <Button onClick={doConvert} disabled={convert.isPending} className="gap-2">
-                {convert.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" aria-hidden />}
+                {convert.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <UserPlus className="h-4 w-4" aria-hidden />
+                )}
                 Registrar como estudiante
               </Button>
             )}
@@ -113,16 +147,38 @@ const DetailModal: React.FC<{ app: AdmissionApplication | null; onClose: () => v
       <div className="grid gap-4 text-sm sm:grid-cols-2">
         <div className="space-y-1">
           <p className="text-xs font-medium uppercase text-muted-foreground">Estudiante</p>
-          <p>{app.studentDocumentType} {app.studentDocumentId}</p>
-          <p>Nació el {formatPeruShortDate(app.studentBirthDate.slice(0, 10))} · {app.studentGender === 'FEMALE' ? 'Mujer' : 'Hombre'}</p>
+          <p>
+            {app.studentDocumentType} {app.studentDocumentId}
+          </p>
+          <p>
+            Nació el {formatPeruShortDate(app.studentBirthDate.slice(0, 10))} ·{' '}
+            {app.studentGender === 'FEMALE' ? 'Mujer' : 'Hombre'}
+          </p>
           {app.previousSchool && <p>Procede de: {app.previousSchool}</p>}
         </div>
         <div className="space-y-1">
-          <p className="text-xs font-medium uppercase text-muted-foreground">Apoderado ({app.guardianRelation.toLowerCase()})</p>
-          <p>{app.guardianFirstName} {app.guardianLastNames}{app.guardianDocumentId ? ` · DNI ${app.guardianDocumentId}` : ''}</p>
+          <p className="text-xs font-medium uppercase text-muted-foreground">
+            Apoderado ({app.guardianRelation.toLowerCase()})
+          </p>
+          <p>
+            {app.guardianFirstName} {app.guardianLastNames}
+            {app.guardianDocumentId ? ` · DNI ${app.guardianDocumentId}` : ''}
+          </p>
           <div className="flex flex-wrap gap-2 pt-1">
-            <a href={`tel:${app.guardianPhone}`} className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-muted"><Phone className="h-3.5 w-3.5" aria-hidden /> {app.guardianPhone}</a>
-            <a href={waLink(app.guardianPhone)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs text-emerald-700 hover:bg-muted dark:text-emerald-400"><MessageCircle className="h-3.5 w-3.5" aria-hidden /> WhatsApp</a>
+            <a
+              href={`tel:${app.guardianPhone}`}
+              className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-muted"
+            >
+              <Phone className="h-3.5 w-3.5" aria-hidden /> {app.guardianPhone}
+            </a>
+            <a
+              href={waLink(app.guardianPhone)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs text-emerald-700 hover:bg-muted dark:text-emerald-400"
+            >
+              <MessageCircle className="h-3.5 w-3.5" aria-hidden /> WhatsApp
+            </a>
           </div>
           {app.guardianEmail && <p className="pt-1">{app.guardianEmail}</p>}
         </div>
@@ -134,14 +190,25 @@ const DetailModal: React.FC<{ app: AdmissionApplication | null; onClose: () => v
         )}
         <label className="space-y-1">
           <span className="text-xs font-medium uppercase text-muted-foreground">Entrevista</span>
-          <Input type="datetime-local" value={interview} onChange={(e) => setInterview(e.target.value)} disabled={app.status === 'ENROLLED'} />
-          <span className="block text-xs text-muted-foreground">Al programarla, la familia recibe un correo con la fecha.</span>
+          <Input
+            type="datetime-local"
+            value={interview}
+            onChange={(e) => setInterview(e.target.value)}
+            disabled={app.status === 'ENROLLED'}
+          />
+          <span className="block text-xs text-muted-foreground">
+            Al programarla, la familia recibe un correo con la fecha.
+          </span>
         </label>
         <label className="space-y-1 sm:col-span-2">
-          <span className="text-xs font-medium uppercase text-muted-foreground">Notas internas (no las ve la familia)</span>
+          <span className="text-xs font-medium uppercase text-muted-foreground">
+            Notas internas (no las ve la familia)
+          </span>
           <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} maxLength={3000} />
         </label>
-        <p className="text-xs text-muted-foreground sm:col-span-2">Recibida el {formatPeruDateTime(app.createdAt)}. La familia aceptó el tratamiento de datos (Ley 29733).</p>
+        <p className="text-xs text-muted-foreground sm:col-span-2">
+          Recibida el {formatPeruDateTime(app.createdAt)}. La familia aceptó el tratamiento de datos (Ley 29733).
+        </p>
       </div>
     </Modal>
   );
@@ -172,11 +239,24 @@ export const AdmissionsTab: React.FC<{ defaultYear: number | null }> = ({ defaul
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative w-full max-w-xs">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" aria-hidden />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nombre o DNI" className="pl-8" />
+          <Input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Buscar por nombre o DNI"
+            className="pl-8"
+          />
         </div>
-        <select className="h-9 rounded-md border border-input bg-background px-2 text-sm" value={year ?? ''} onChange={(e) => setYear(e.target.value ? Number(e.target.value) : undefined)}>
+        <select
+          className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+          value={year ?? ''}
+          onChange={(e) => setYear(e.target.value ? Number(e.target.value) : undefined)}
+        >
           <option value="">Todos los años</option>
-          {years.map((y) => <option key={y} value={y}>Admisión {y}</option>)}
+          {years.map((y) => (
+            <option key={y} value={y}>
+              Admisión {y}
+            </option>
+          ))}
         </select>
         {closedCount > 0 && (
           <Button variant="ghost" size="sm" onClick={() => setShowClosed((v) => !v)}>
@@ -186,25 +266,49 @@ export const AdmissionsTab: React.FC<{ defaultYear: number | null }> = ({ defaul
       </div>
 
       {isLoading ? (
-        <div className="grid gap-3 md:grid-cols-4">{COLUMNS.map((c) => <Skeleton key={c} className="h-48" />)}</div>
+        <div className="grid gap-3 md:grid-cols-4">
+          {COLUMNS.map((c) => (
+            <Skeleton key={c} className="h-48" />
+          ))}
+        </div>
       ) : rows.length === 0 ? (
-        <EmptyState icon={<UserPlus className="h-8 w-8" />} title="Aún no hay postulaciones" description="Comparte el enlace del formulario de admisión en tus redes y en WhatsApp. Cada postulación llega aquí." />
+        <EmptyState
+          icon={<UserPlus className="h-8 w-8" />}
+          title="Aún no hay postulaciones"
+          description="Comparte el enlace del formulario de admisión en tus redes y en WhatsApp. Cada postulación llega aquí."
+        />
       ) : (
-        <div className={cn('grid gap-3', showClosed ? 'md:grid-cols-3 xl:grid-cols-6' : 'md:grid-cols-2 xl:grid-cols-4')}>
+        <div
+          className={cn('grid gap-3', showClosed ? 'md:grid-cols-3 xl:grid-cols-6' : 'md:grid-cols-2 xl:grid-cols-4')}
+        >
           {[...COLUMNS, ...(showClosed ? CLOSED : [])].map((status) => {
             const list = byStatus.get(status) ?? [];
             return (
               <div key={status} className={cn('rounded-lg border border-t-4 bg-muted/30 p-2', TONE[status])}>
                 <p className="mb-2 flex items-center justify-between px-1 text-sm font-medium">
-                  {ADMISSION_LABEL[status]} <span className="rounded-full bg-background px-2 text-xs text-muted-foreground">{list.length}</span>
+                  {ADMISSION_LABEL[status]}{' '}
+                  <span className="rounded-full bg-background px-2 text-xs text-muted-foreground">{list.length}</span>
                 </p>
                 <div className="space-y-2">
                   {list.map((a) => (
-                    <button key={a.id} type="button" onClick={() => setSelected(a)} className="w-full rounded-md border bg-background p-2.5 text-left text-sm shadow-sm transition hover:border-primary">
-                      <p className="font-medium leading-tight">{a.studentFirstNames} {a.studentLastNamePaternal}</p>
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => setSelected(a)}
+                      className="w-full rounded-md border bg-background p-2.5 text-left text-sm shadow-sm transition hover:border-primary"
+                    >
+                      <p className="font-medium leading-tight">
+                        {a.studentFirstNames} {a.studentLastNamePaternal}
+                      </p>
                       <p className="text-xs text-muted-foreground">{a.gradeLabel}</p>
-                      {a.interviewAt && status === 'INTERVIEW' && <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">Entrevista: {formatPeruDateTime(a.interviewAt)}</p>}
-                      <p className="mt-1 text-xs text-muted-foreground">{formatPeruShortDate(a.createdAt)} · {a.guardianPhone}</p>
+                      {a.interviewAt && status === 'INTERVIEW' && (
+                        <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
+                          Entrevista: {formatPeruDateTime(a.interviewAt)}
+                        </p>
+                      )}
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {formatPeruShortDate(a.createdAt)} · {a.guardianPhone}
+                      </p>
                     </button>
                   ))}
                 </div>
@@ -217,4 +321,3 @@ export const AdmissionsTab: React.FC<{ defaultYear: number | null }> = ({ defaul
     </div>
   );
 };
-

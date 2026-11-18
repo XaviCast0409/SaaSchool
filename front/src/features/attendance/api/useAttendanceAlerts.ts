@@ -40,10 +40,9 @@ export const useAttendAlert = () => {
 
   return useMutation({
     mutationFn: async ({ id, note }: { id: string; note: string }): Promise<AttendanceAlert> => {
-      const res = await api.patch<{ status: string; data: AttendanceAlert }>(
-        `/attendance/alerts/${id}/attend`,
-        { note },
-      );
+      const res = await api.patch<{ status: string; data: AttendanceAlert }>(`/attendance/alerts/${id}/attend`, {
+        note,
+      });
       return res.data.data;
     },
     onSuccess: () => {
@@ -69,10 +68,10 @@ export const useCiteFamily = () => {
       citationDate: string;
       note?: string;
     }): Promise<AttendanceAlert> => {
-      const res = await api.post<{ status: string; data: AttendanceAlert }>(
-        `/attendance/alerts/${id}/cite`,
-        { citationDate, note },
-      );
+      const res = await api.post<{ status: string; data: AttendanceAlert }>(`/attendance/alerts/${id}/cite`, {
+        citationDate,
+        note,
+      });
       return res.data.data;
     },
     onSuccess: () => {
@@ -90,9 +89,7 @@ export const useEvaluateAlerts = () => {
 
   return useMutation({
     mutationFn: async (): Promise<{ created: number }> => {
-      const res = await api.post<{ status: string; data: { created: number } }>(
-        '/attendance/alerts/evaluate',
-      );
+      const res = await api.post<{ status: string; data: { created: number } }>('/attendance/alerts/evaluate');
       return res.data.data;
     },
     onSuccess: (data) => {

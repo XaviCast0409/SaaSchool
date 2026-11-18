@@ -39,7 +39,9 @@ export const useLeads = (status?: LeadStatus) =>
   useQuery({
     queryKey: ['platform-leads', status ?? 'ALL'],
     queryFn: async () => {
-      const response = await api.get<{ status: string; data: LeadsResponse }>('/leads', { params: status ? { status } : {} });
+      const response = await api.get<{ status: string; data: LeadsResponse }>('/leads', {
+        params: status ? { status } : {},
+      });
       return response.data.data;
     },
     refetchInterval: 60_000,

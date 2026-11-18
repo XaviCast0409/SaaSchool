@@ -24,11 +24,23 @@ export const SecretariatPage: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Secretaría" description="Postulantes, ratificación de matrícula, constancias y certificados, y Libro de Reclamaciones en un solo lugar." />
+      <PageHeader
+        title="Secretaría"
+        description="Postulantes, ratificación de matrícula, constancias y certificados, y Libro de Reclamaciones en un solo lugar."
+      />
       {isLoading || !settings ? (
         <Skeleton className="h-28" />
       ) : (
-        school?.id && <PublicLinksCard key={`${settings.admissionsOpen}-${settings.ratificationOpen}-${settings.admissionsYear}`} schoolId={school.id} schoolSlug={school.slug ?? null} schoolName={school.name} settings={settings} canEdit={isManager} />
+        school?.id && (
+          <PublicLinksCard
+            key={`${settings.admissionsOpen}-${settings.ratificationOpen}-${settings.admissionsYear}`}
+            schoolId={school.id}
+            schoolSlug={school.slug ?? null}
+            schoolName={school.name}
+            settings={settings}
+            canEdit={isManager}
+          />
+        )
       )}
       <Tabs<Tab>
         value={tab}
@@ -40,7 +52,9 @@ export const SecretariatPage: React.FC = () => {
           { value: 'complaints', label: 'Libro de Reclamaciones', count: settings?.pending.complaints || undefined },
         ]}
       />
-      {tab === 'admission' && <AdmissionsTab key={settings?.admissionsYear ?? 'all'} defaultYear={settings?.admissionsYear ?? null} />}
+      {tab === 'admission' && (
+        <AdmissionsTab key={settings?.admissionsYear ?? 'all'} defaultYear={settings?.admissionsYear ?? null} />
+      )}
       {tab === 'ratification' && <RatificationTab open={Boolean(settings?.ratificationOpen)} />}
       {tab === 'documents' && <DocumentsTab />}
       {tab === 'complaints' && <ComplaintsTab canRespond={isManager} />}

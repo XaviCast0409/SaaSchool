@@ -1,20 +1,11 @@
 import React, { useState } from 'react';
 import { formatEducationLevel } from '@/lib/utils';
 import { SchoolLogo } from '@/features/schools/components/SchoolLetterhead';
-import {
-  X,
-  Printer,
-  FileCheck2,
-  FileBadge,
-  AlertTriangle,
-} from 'lucide-react';
+import { X, Printer, FileCheck2, FileBadge, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  useEnrollmentCertificate,
-  useNoDebtCertificate,
-} from '../api/useStudents';
+import { useEnrollmentCertificate, useNoDebtCertificate } from '../api/useStudents';
 import { PrintPortal, usePrint } from '@/lib/print';
 
 interface StudentCertificateModalProps {
@@ -69,19 +60,18 @@ export const StudentCertificateDocument: React.FC<{
           <span>REPÚBLICA DEL PERÚ</span>
           <span>MINISTERIO DE EDUCACIÓN</span>
         </div>
-        <SchoolLogo logoUrl={cert.school.logoUrl} name={cert.school.name} fallback={false} className="mx-auto h-20 w-20 pt-1" />
-        <h1 className="text-lg sm:text-xl font-black uppercase tracking-wide text-black pt-1">
-          {cert.school.name}
-        </h1>
+        <SchoolLogo
+          logoUrl={cert.school.logoUrl}
+          name={cert.school.name}
+          fallback={false}
+          className="mx-auto h-20 w-20 pt-1"
+        />
+        <h1 className="text-lg sm:text-xl font-black uppercase tracking-wide text-black pt-1">{cert.school.name}</h1>
         <p className="text-xs text-gray-700">
-          {cert.school.modularCode
-            ? `Código Modular: ${cert.school.modularCode} • `
-            : ''}
+          {cert.school.modularCode ? `Código Modular: ${cert.school.modularCode} • ` : ''}
           RUC: {cert.school.documentId}
         </p>
-        {cert.school.address && (
-          <p className="text-[11px] text-gray-500">{cert.school.address}</p>
-        )}
+        {cert.school.address && <p className="text-[11px] text-gray-500">{cert.school.address}</p>}
       </div>
 
       {/* Título de la Constancia */}
@@ -89,10 +79,7 @@ export const StudentCertificateDocument: React.FC<{
         <h2 className="text-base sm:text-lg font-black uppercase underline tracking-wider">
           {tab === 'ENROLLMENT' ? 'CONSTANCIA DE MATRÍCULA' : 'CONSTANCIA DE NO ADEUDO'}
         </h2>
-        <Badge
-          variant="outline"
-          className="font-mono text-[11px] text-gray-700 border-gray-400"
-        >
+        <Badge variant="outline" className="font-mono text-[11px] text-gray-700 border-gray-400">
           {cert.certificateNumber}
         </Badge>
       </div>
@@ -107,42 +94,28 @@ export const StudentCertificateDocument: React.FC<{
 
         {tab === 'ENROLLMENT' ? (
           <p>
-            Que, el/la estudiante{' '}
-            <strong className="uppercase font-black text-black">
-              {cert.student.fullName}
-            </strong>
-            , identificado(a) con {cert.student.documentType} N°{' '}
-            <strong>{cert.student.documentId}</strong>
-            {cert.student.studentCode
-              ? ` y Código de Estudiante N° ${cert.student.studentCode}`
-              : ''}
-            , se encuentra debidamente <strong>MATRICULADO(A)</strong> en el Año Lectivo{' '}
+            Que, el/la estudiante <strong className="uppercase font-black text-black">{cert.student.fullName}</strong>,
+            identificado(a) con {cert.student.documentType} N° <strong>{cert.student.documentId}</strong>
+            {cert.student.studentCode ? ` y Código de Estudiante N° ${cert.student.studentCode}` : ''}, se encuentra
+            debidamente <strong>MATRICULADO(A)</strong> en el Año Lectivo{' '}
             <strong>{cert.enrollment?.academicYear}</strong>, cursando el{' '}
             <strong>{cert.enrollment?.grade}° Grado</strong> del Nivel{' '}
             <strong>{formatEducationLevel(cert.enrollment?.educationLevel)}</strong>, Sección "
-            <strong>{cert.enrollment?.section}</strong>", Turno{' '}
-            <strong>{cert.enrollment?.shift}</strong>.
+            <strong>{cert.enrollment?.section}</strong>", Turno <strong>{cert.enrollment?.shift}</strong>.
           </p>
         ) : (
           <p>
-            Que, el/la estudiante{' '}
-            <strong className="uppercase font-black text-black">
-              {cert.student.fullName}
-            </strong>
-            , identificado(a) con {cert.student.documentType} N°{' '}
-            <strong>{cert.student.documentId}</strong>
-            {cert.student.studentCode
-              ? ` y Código de Estudiante N° ${cert.student.studentCode}`
-              : ''}
-            , se encuentra <strong>SIN DEUDA PENDIENTE</strong> y al día en el cumplimiento de
-            sus obligaciones económicas, pensiones y conceptos educativos correspondientes al Año Lectivo{' '}
-            <strong>{cert.academicYear}</strong>.
+            Que, el/la estudiante <strong className="uppercase font-black text-black">{cert.student.fullName}</strong>,
+            identificado(a) con {cert.student.documentType} N° <strong>{cert.student.documentId}</strong>
+            {cert.student.studentCode ? ` y Código de Estudiante N° ${cert.student.studentCode}` : ''}, se encuentra{' '}
+            <strong>SIN DEUDA PENDIENTE</strong> y al día en el cumplimiento de sus obligaciones económicas, pensiones y
+            conceptos educativos correspondientes al Año Lectivo <strong>{cert.academicYear}</strong>.
           </p>
         )}
 
         <p>
-          Se expide la presente constancia a solicitud de la parte interesada para los fines
-          legales y administrativos que estime conveniente.
+          Se expide la presente constancia a solicitud de la parte interesada para los fines legales y administrativos
+          que estime conveniente.
         </p>
       </div>
 
@@ -207,7 +180,11 @@ export const StudentCertificateModal: React.FC<StudentCertificateModalProps> = (
   if (!isOpen || !studentId) return null;
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200"
+    >
       <div className="bg-card w-full max-w-3xl rounded-2xl border border-border shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
         {/* Header no imprimible */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-border bg-muted/40">
@@ -216,12 +193,8 @@ export const StudentCertificateModal: React.FC<StudentCertificateModalProps> = (
               <FileCheck2 className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-black text-foreground">
-                Emisión de Constancias Oficiales
-              </h2>
-              <p className="text-xs text-muted-foreground truncate max-w-sm">
-                {studentName || 'Estudiante'}
-              </p>
+              <h2 className="text-base sm:text-lg font-black text-foreground">Emisión de Constancias Oficiales</h2>
+              <p className="text-xs text-muted-foreground truncate max-w-sm">{studentName || 'Estudiante'}</p>
             </div>
           </div>
 
@@ -236,12 +209,7 @@ export const StudentCertificateModal: React.FC<StudentCertificateModalProps> = (
               <Printer className="w-3.5 h-3.5" />
               <span>Imprimir</span>
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="rounded-full h-8 w-8 hover:bg-muted"
-            >
+            <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full h-8 w-8 hover:bg-muted">
               <X className="w-4 h-4 text-muted-foreground" />
             </Button>
           </div>
@@ -286,9 +254,7 @@ export const StudentCertificateModal: React.FC<StudentCertificateModalProps> = (
               <div className="w-14 h-14 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center mx-auto">
                 <AlertTriangle className="w-7 h-7" />
               </div>
-              <h3 className="text-base font-black text-foreground">
-                No se pudo emitir la constancia
-              </h3>
+              <h3 className="text-base font-black text-foreground">No se pudo emitir la constancia</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 {tab === 'NO_DEBT'
                   ? noDebtErrorMessage

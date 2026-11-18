@@ -44,7 +44,11 @@ const toDate = (v: unknown) => {
   return null;
 };
 
-export async function exportFinanceExcel(fileName: string, schoolName: string, sheets: ExcelSheet<any>[]): Promise<void> {
+export async function exportFinanceExcel(
+  fileName: string,
+  schoolName: string,
+  sheets: ExcelSheet<any>[],
+): Promise<void> {
   const wb = await newWorkbook();
   wb.creator = 'KIPUX';
   wb.created = new Date();

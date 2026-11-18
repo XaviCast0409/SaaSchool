@@ -10,7 +10,14 @@ vi.mock('../../lib/offlineData', () => ({
 }));
 vi.mock('../../lib/queryClient', () => ({ queryClient: { clear: vi.fn() } }));
 
-const teacher = { id: 'u1', email: 'a@b.pe', role: 'TEACHER' as const, firstName: 'A', lastNamePaternal: 'B', schoolId: 's1' };
+const teacher = {
+  id: 'u1',
+  email: 'a@b.pe',
+  role: 'TEACHER' as const,
+  firstName: 'A',
+  lastNamePaternal: 'B',
+  schoolId: 's1',
+};
 
 describe('sesión (useAuthStore)', () => {
   beforeEach(() => {

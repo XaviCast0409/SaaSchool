@@ -17,7 +17,10 @@ export const PublicShell: React.FC<{
         {school?.logoUrl ? (
           <img src={school.logoUrl} alt="" className="h-11 w-11 rounded-md object-contain" />
         ) : (
-          <div className="flex h-11 w-11 items-center justify-center rounded-md text-white" style={{ background: school?.brandColor || '#1e3a8a' }}>
+          <div
+            className="flex h-11 w-11 items-center justify-center rounded-md text-white"
+            style={{ background: school?.brandColor || '#1e3a8a' }}
+          >
             <School className="h-6 w-6" aria-hidden />
           </div>
         )}
@@ -50,11 +53,15 @@ export const PublicShell: React.FC<{
         </p>
       )}
       <p className="mt-1">
-        <Link to="/privacidad" className="underline">Política de privacidad</Link>
+        <Link to="/privacidad" className="underline">
+          Política de privacidad
+        </Link>
         {school && (
           <>
             {' · '}
-            <Link to={`/reclamaciones/${school.id}`} className="underline">Libro de Reclamaciones</Link>
+            <Link to={`/reclamaciones/${school.id}`} className="underline">
+              Libro de Reclamaciones
+            </Link>
           </>
         )}
       </p>
@@ -63,7 +70,13 @@ export const PublicShell: React.FC<{
 );
 
 export const fieldClass = 'h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground';
-export const Field: React.FC<{ label: string; required?: boolean; hint?: string; children: React.ReactNode; className?: string }> = ({ label, required, hint, children, className }) => (
+export const Field: React.FC<{
+  label: string;
+  required?: boolean;
+  hint?: string;
+  children: React.ReactNode;
+  className?: string;
+}> = ({ label, required, hint, children, className }) => (
   <label className={`block space-y-1 ${className ?? ''}`}>
     <span className="text-sm font-medium">
       {label}

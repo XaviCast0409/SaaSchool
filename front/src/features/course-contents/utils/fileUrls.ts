@@ -130,5 +130,3 @@ export async function openFile(url: string, options: { download?: boolean } = {}
     toast.error('No se pudo abrir el archivo. Intenta nuevamente.');
   }
 }
-
-

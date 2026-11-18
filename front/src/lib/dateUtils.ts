@@ -35,7 +35,7 @@ export function getPeruCurrentMonth(date: Date = new Date()): string {
  */
 export function formatPeruTime(
   dateInput: Date | string | null | undefined,
-  options: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' }
+  options: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' },
 ): string {
   if (!dateInput) return '—';
   const d = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
@@ -57,7 +57,12 @@ export function isDateOnlyValue(value: string | Date): boolean {
     if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return true;
     return /T00:00:00(\.000)?Z$/.test(value);
   }
-  return value.getUTCHours() === 0 && value.getUTCMinutes() === 0 && value.getUTCSeconds() === 0 && value.getUTCMilliseconds() === 0;
+  return (
+    value.getUTCHours() === 0 &&
+    value.getUTCMinutes() === 0 &&
+    value.getUTCSeconds() === 0 &&
+    value.getUTCMilliseconds() === 0
+  );
 }
 
 function toDate(value: string | Date): Date {
@@ -77,7 +82,7 @@ export function formatPeruDate(
     day: 'numeric',
     month: 'long',
     year: 'numeric',
-  }
+  },
 ): string {
   if (!dateInput) return '—';
   const d = toDate(dateInput);
@@ -96,7 +101,13 @@ export function formatPeruShortDate(dateInput: string | Date | null | undefined)
 /** Fecha y hora de un instante, siempre en hora de Lima. Ej: '12/11/2026, 08:15'. */
 export function formatPeruDateTime(
   dateInput: string | Date | null | undefined,
-  options: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }
+  options: Intl.DateTimeFormatOptions = {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  },
 ): string {
   if (!dateInput) return '—';
   const d = toDate(dateInput);

@@ -20,7 +20,13 @@ export interface ScheduleBlock {
 export interface ClassroomSchedule {
   classroom: { id: string; label: string };
   blocks: ScheduleBlock[];
-  courses: Array<{ id: string; name: string; isTransversal?: boolean; teacherName: string | null; weeklyMinutes: number }>;
+  courses: Array<{
+    id: string;
+    name: string;
+    isTransversal?: boolean;
+    teacherName: string | null;
+    weeklyMinutes: number;
+  }>;
 }
 
 export interface DayAgenda {
@@ -30,7 +36,14 @@ export interface DayAgenda {
   holiday: string | null;
   blocks: ScheduleBlock[];
   homeworks: Array<{ id: string; title: string; courseName: string; dueDate: string; submitted: boolean }>;
-  events: Array<{ id: string; title: string; type: string; startTime: string | null; endTime: string | null; location: string | null }>;
+  events: Array<{
+    id: string;
+    title: string;
+    type: string;
+    startTime: string | null;
+    endTime: string | null;
+    location: string | null;
+  }>;
 }
 
 const KEY = ['schedule'];
@@ -69,7 +82,8 @@ export const useMyTeacherSchedule = (enabled: boolean) =>
   useQuery({
     queryKey: [...KEY, 'teacher'],
     enabled,
-    queryFn: async () => (await api.get<{ data: { blocks: ScheduleBlock[] } }>('/schedule/teacher/me')).data.data.blocks,
+    queryFn: async () =>
+      (await api.get<{ data: { blocks: ScheduleBlock[] } }>('/schedule/teacher/me')).data.data.blocks,
   });
 
 export const useStudentSchedule = (studentId: string | null) =>
@@ -77,7 +91,11 @@ export const useStudentSchedule = (studentId: string | null) =>
     queryKey: [...KEY, 'student', studentId],
     enabled: Boolean(studentId),
     queryFn: async () =>
-      (await api.get<{ data: { classroom: { label: string } | null; blocks: ScheduleBlock[] } }>(`/schedule/student/${studentId}`)).data.data,
+      (
+        await api.get<{ data: { classroom: { label: string } | null; blocks: ScheduleBlock[] } }>(
+          `/schedule/student/${studentId}`,
+        )
+      ).data.data,
   });
 
 export const useDayAgenda = (studentId: string | null, date?: string) =>
@@ -85,5 +103,6 @@ export const useDayAgenda = (studentId: string | null, date?: string) =>
     queryKey: [...KEY, 'day', studentId, date ?? 'next'],
     enabled: Boolean(studentId),
     queryFn: async () =>
-      (await api.get<{ data: DayAgenda }>('/schedule/day', { params: { studentId, ...(date ? { date } : {}) } })).data.data,
+      (await api.get<{ data: DayAgenda }>('/schedule/day', { params: { studentId, ...(date ? { date } : {}) } })).data
+        .data,
   });

@@ -91,8 +91,17 @@ export const useMyBookings = (enabled: boolean) =>
 export const useCreateSlots = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { date: string; from: string; to: string; durationMinutes: number; mode: MeetingMode; location?: string; repeatWeeks?: number }) =>
-      (await api.post<{ data: { created: number; skipped: number; notified?: number } }>('/meetings/slots/bulk', input)).data.data,
+    mutationFn: async (input: {
+      date: string;
+      from: string;
+      to: string;
+      durationMinutes: number;
+      mode: MeetingMode;
+      location?: string;
+      repeatWeeks?: number;
+    }) =>
+      (await api.post<{ data: { created: number; skipped: number; notified?: number } }>('/meetings/slots/bulk', input))
+        .data.data,
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 };

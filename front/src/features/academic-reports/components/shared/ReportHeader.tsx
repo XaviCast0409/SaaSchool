@@ -61,23 +61,21 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
 
         {/* Centro: Título Oficial */}
         <div className="text-center flex-1">
-          <h1 className="text-base sm:text-lg font-black tracking-wide uppercase text-foreground">
-            {title}
-          </h1>
+          <h1 className="text-base sm:text-lg font-black tracking-wide uppercase text-foreground">{title}</h1>
           {subtitle && (
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-tight mt-0.5">
-              {subtitle}
-            </p>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-tight mt-0.5">{subtitle}</p>
           )}
         </div>
 
         {/* Derecha: Metadatos y Fecha de Impresión */}
         <div className="text-right text-xs font-mono text-muted-foreground min-w-[180px]">
-          <div>Fecha: <span className="font-semibold text-foreground">{currentDate}</span></div>
-          <div>Hora: <span className="font-semibold text-foreground">{currentTime}</span></div>
-          {extraInfoRight && (
-            <div className="text-xs font-sans font-bold text-primary mt-0.5">{extraInfoRight}</div>
-          )}
+          <div>
+            Fecha: <span className="font-semibold text-foreground">{currentDate}</span>
+          </div>
+          <div>
+            Hora: <span className="font-semibold text-foreground">{currentTime}</span>
+          </div>
+          {extraInfoRight && <div className="text-xs font-sans font-bold text-primary mt-0.5">{extraInfoRight}</div>}
         </div>
       </div>
 

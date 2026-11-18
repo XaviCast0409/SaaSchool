@@ -62,8 +62,7 @@ export const AcademicReportsPage: React.FC = () => {
   useEffect(() => {
     if (classrooms.length > 0 && !selectedClassroomId) {
       const defaultClassroom =
-        classrooms.find((c) => c.grade === 4 && c.educationLevel === 'SECONDARY') ||
-        classrooms[0];
+        classrooms.find((c) => c.grade === 4 && c.educationLevel === 'SECONDARY') || classrooms[0];
 
       setSelectedLevel(defaultClassroom.educationLevel);
       setSelectedGrade(defaultClassroom.grade);
@@ -80,59 +79,41 @@ export const AcademicReportsPage: React.FC = () => {
   }, [selectedReportCode]);
 
   // Consultas de datos
-  const consolidatedQuery = useConsolidatedGradesReport(
-    selectedClassroomId,
-    selectedPeriod,
-    { enabled: Boolean(selectedClassroomId) },
-  );
+  const consolidatedQuery = useConsolidatedGradesReport(selectedClassroomId, selectedPeriod, {
+    enabled: Boolean(selectedClassroomId),
+  });
 
-  const draftRegisterQuery = useDraftRegisterReport(
-    selectedClassroomId,
-    undefined,
-    { enabled: selectedReportCode === '0041' && Boolean(selectedClassroomId) },
-  );
+  const draftRegisterQuery = useDraftRegisterReport(selectedClassroomId, undefined, {
+    enabled: selectedReportCode === '0041' && Boolean(selectedClassroomId),
+  });
 
-  const meritClassroomQuery = useMeritClassroomReport(
-    selectedClassroomId,
-    selectedPeriod,
-    { enabled: selectedReportCode === '0048' && Boolean(selectedClassroomId) },
-  );
+  const meritClassroomQuery = useMeritClassroomReport(selectedClassroomId, selectedPeriod, {
+    enabled: selectedReportCode === '0048' && Boolean(selectedClassroomId),
+  });
 
-  const meritGradeQuery = useMeritGradeReport(
-    selectedLevel,
-    selectedGrade,
-    selectedPeriod,
-    { enabled: selectedReportCode === '0049' },
-  );
+  const meritGradeQuery = useMeritGradeReport(selectedLevel, selectedGrade, selectedPeriod, {
+    enabled: selectedReportCode === '0049',
+  });
 
-  const conductCommentsQuery = useConductCommentsReport(
-    selectedClassroomId,
-    selectedPeriod,
-    { enabled: selectedReportCode === '0030' && Boolean(selectedClassroomId) },
-  );
+  const conductCommentsQuery = useConductCommentsReport(selectedClassroomId, selectedPeriod, {
+    enabled: selectedReportCode === '0030' && Boolean(selectedClassroomId),
+  });
 
-  const classroomRosterQuery = useClassroomRosterReport(
-    selectedClassroomId,
-    { enabled: selectedReportCode === '0011' && Boolean(selectedClassroomId) },
-  );
+  const classroomRosterQuery = useClassroomRosterReport(selectedClassroomId, {
+    enabled: selectedReportCode === '0011' && Boolean(selectedClassroomId),
+  });
 
-  const familiesByStateQuery = useFamiliesByStateReport(
-    selectedFamilyState,
-    undefined,
-    { enabled: selectedReportCode === '0001' },
-  );
+  const familiesByStateQuery = useFamiliesByStateReport(selectedFamilyState, undefined, {
+    enabled: selectedReportCode === '0001',
+  });
 
-  const familiesChildrenQuery = useFamiliesChildrenReport(
-    selectedClassroomId || undefined,
-    undefined,
-    { enabled: selectedReportCode === '0002' },
-  );
+  const familiesChildrenQuery = useFamiliesChildrenReport(selectedClassroomId || undefined, undefined, {
+    enabled: selectedReportCode === '0002',
+  });
 
-  const familiesRelativesQuery = useFamiliesRelativesReport(
-    selectedClassroomId || undefined,
-    undefined,
-    { enabled: selectedReportCode === '0003' },
-  );
+  const familiesRelativesQuery = useFamiliesRelativesReport(selectedClassroomId || undefined, undefined, {
+    enabled: selectedReportCode === '0003',
+  });
 
   const studentBirthdaysQuery = useStudentBirthdaysReport(
     selectedMonth === 0 ? undefined : selectedMonth,
@@ -325,9 +306,7 @@ export const AcademicReportsPage: React.FC = () => {
           {selectedReportCode === '0048' && meritClassroomQuery.data && (
             <MeritSalondReport data={meritClassroomQuery.data} />
           )}
-          {selectedReportCode === '0049' && meritGradeQuery.data && (
-            <MeritGradeReport data={meritGradeQuery.data} />
-          )}
+          {selectedReportCode === '0049' && meritGradeQuery.data && <MeritGradeReport data={meritGradeQuery.data} />}
           {selectedReportCode === '0030' && conductCommentsQuery.data && (
             <ConductCommentsReport data={conductCommentsQuery.data} />
           )}
@@ -351,4 +330,3 @@ export const AcademicReportsPage: React.FC = () => {
     </div>
   );
 };
-

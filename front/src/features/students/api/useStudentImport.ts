@@ -2,7 +2,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
 import type { StudentImportPlan, StudentImportResult } from '../importTypes';
 
-interface Envelope<T> { status: string; data: T }
+interface Envelope<T> {
+  status: string;
+  data: T;
+}
 
 const UPLOAD = { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 300_000 } as const;
 
@@ -65,7 +68,13 @@ export const useStudentImportCommit = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (v: { file: File; generateFees: boolean }) =>
-      (await api.post<Envelope<StudentImportResult>>('/students/import/commit', formOf(v.file, { generateFees: v.generateFees }), UPLOAD)).data.data,
+      (
+        await api.post<Envelope<StudentImportResult>>(
+          '/students/import/commit',
+          formOf(v.file, { generateFees: v.generateFees }),
+          UPLOAD,
+        )
+      ).data.data,
     onSuccess: () => {
       ['students', 'classrooms', 'enrollments', 'academic', 'users', 'payments'].forEach((key) =>
         queryClient.invalidateQueries({ queryKey: [key] }),

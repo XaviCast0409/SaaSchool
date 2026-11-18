@@ -63,9 +63,9 @@ export const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({ isOpen, on
         typeof val === 'string' && val.trim() === ''
           ? undefined
           : typeof val === 'number' && Number.isNaN(val)
-          ? undefined
-          : val,
-      ])
+            ? undefined
+            : val,
+      ]),
     ) as CreateSchoolPayload;
 
     createSchool(sanitized, {
@@ -80,7 +80,15 @@ export const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({ isOpen, on
       onError: (err: any) => {
         const message: string = err?.response?.data?.message || 'Error al registrar el colegio cliente.';
         // Marca el campo responsable para que se vea qué corregir, además del aviso
-        const field = /modular/i.test(message) ? 'modularCode' : /RUC/i.test(message) ? 'documentId' : /código del colegio|slug/i.test(message) ? 'slug' : /correo|email/i.test(message) ? 'adminEmail' : null;
+        const field = /modular/i.test(message)
+          ? 'modularCode'
+          : /RUC/i.test(message)
+            ? 'documentId'
+            : /código del colegio|slug/i.test(message)
+              ? 'slug'
+              : /correo|email/i.test(message)
+                ? 'adminEmail'
+                : null;
         if (field) setError(field as keyof CreateSchoolPayload, { type: 'server', message });
         toast.error(message);
       },
@@ -106,7 +114,11 @@ export const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({ isOpen, on
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200"
+    >
       <div className="w-full max-w-2xl rounded-2xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border p-5 bg-card shrink-0">
@@ -198,11 +210,7 @@ export const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({ isOpen, on
                 <Copy className="w-4 h-4" />
                 Copiar credenciales
               </Button>
-              <Button
-                type="button"
-                onClick={handleClose}
-                className="w-full sm:w-auto text-xs font-bold"
-              >
+              <Button type="button" onClick={handleClose} className="w-full sm:w-auto text-xs font-bold">
                 Listo
               </Button>
             </div>
@@ -225,14 +233,24 @@ export const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({ isOpen, on
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label htmlFor="createschoolmodal-name" className="text-xs font-semibold text-foreground">Nombre del Colegio *</label>
-                  <Input id="createschoolmodal-name" placeholder="Ej: I.E. San José de Cluny" {...register('name', { required: true })} className="h-9 text-xs" />
+                  <label htmlFor="createschoolmodal-name" className="text-xs font-semibold text-foreground">
+                    Nombre del Colegio *
+                  </label>
+                  <Input
+                    id="createschoolmodal-name"
+                    placeholder="Ej: I.E. San José de Cluny"
+                    {...register('name', { required: true })}
+                    className="h-9 text-xs"
+                  />
                   {errors.name && <p className="text-xs text-destructive">El nombre es requerido</p>}
                 </div>
 
                 <div className="space-y-1">
-                  <label htmlFor="createschoolmodal-documentId" className="text-xs font-semibold text-foreground">RUC (11 dígitos) *</label>
-                  <Input id="createschoolmodal-documentId"
+                  <label htmlFor="createschoolmodal-documentId" className="text-xs font-semibold text-foreground">
+                    RUC (11 dígitos) *
+                  </label>
+                  <Input
+                    id="createschoolmodal-documentId"
                     placeholder="20123456781"
                     maxLength={11}
                     {...register('documentId', {
@@ -250,17 +268,28 @@ export const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({ isOpen, on
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label htmlFor="createschoolmodal-slug" className="text-xs font-semibold text-foreground flex items-center gap-1">
+                  <label
+                    htmlFor="createschoolmodal-slug"
+                    className="text-xs font-semibold text-foreground flex items-center gap-1"
+                  >
                     <Link2 className="w-3.5 h-3.5 text-primary" />
                     <span>Código de Ingreso (slug)</span>
                   </label>
-                  <Input id="createschoolmodal-slug" placeholder="Ej: san-jose-cluny" {...register('slug')} className="h-9 text-xs font-mono" />
+                  <Input
+                    id="createschoolmodal-slug"
+                    placeholder="Ej: san-jose-cluny"
+                    {...register('slug')}
+                    className="h-9 text-xs font-mono"
+                  />
                   <p className="text-[11px] text-muted-foreground">Si lo dejas vacío se genera desde el nombre.</p>
                 </div>
 
                 <div className="space-y-1">
-                  <label htmlFor="createschoolmodal-modularCode" className="text-xs font-semibold text-foreground">Código Modular (7 dígitos)</label>
-                  <Input id="createschoolmodal-modularCode"
+                  <label htmlFor="createschoolmodal-modularCode" className="text-xs font-semibold text-foreground">
+                    Código Modular (7 dígitos)
+                  </label>
+                  <Input
+                    id="createschoolmodal-modularCode"
                     placeholder="Ej: 1234567"
                     maxLength={7}
                     {...register('modularCode', {
@@ -277,39 +306,85 @@ export const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({ isOpen, on
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label htmlFor="createschoolmodal-phone" className="text-xs font-semibold text-foreground">Teléfono / Celular</label>
-                  <Input id="createschoolmodal-phone" placeholder="912345678" {...register('phone')} className="h-9 text-xs" />
+                  <label htmlFor="createschoolmodal-phone" className="text-xs font-semibold text-foreground">
+                    Teléfono / Celular
+                  </label>
+                  <Input
+                    id="createschoolmodal-phone"
+                    placeholder="912345678"
+                    {...register('phone')}
+                    className="h-9 text-xs"
+                  />
                 </div>
                 <div className="space-y-1">
-                  <label htmlFor="createschoolmodal-email" className="text-xs font-semibold text-foreground">Email Institucional</label>
-                  <Input id="createschoolmodal-email" placeholder="contacto@colegio.edu.pe" type="email" {...register('email')} className="h-9 text-xs" />
+                  <label htmlFor="createschoolmodal-email" className="text-xs font-semibold text-foreground">
+                    Email Institucional
+                  </label>
+                  <Input
+                    id="createschoolmodal-email"
+                    placeholder="contacto@colegio.edu.pe"
+                    type="email"
+                    {...register('email')}
+                    className="h-9 text-xs"
+                  />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label htmlFor="createschoolmodal-address" className="text-xs font-semibold text-foreground">Dirección</label>
-                <Input id="createschoolmodal-address" placeholder="Av. Principal 123, Urbanización..." {...register('address')} className="h-9 text-xs" />
+                <label htmlFor="createschoolmodal-address" className="text-xs font-semibold text-foreground">
+                  Dirección
+                </label>
+                <Input
+                  id="createschoolmodal-address"
+                  placeholder="Av. Principal 123, Urbanización..."
+                  {...register('address')}
+                  className="h-9 text-xs"
+                />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="space-y-1">
-                  <label htmlFor="createschoolmodal-department" className="text-xs font-semibold text-foreground">Departamento</label>
-                  <Input id="createschoolmodal-department" placeholder="LIMA" {...register('department')} className="h-9 text-xs" />
+                  <label htmlFor="createschoolmodal-department" className="text-xs font-semibold text-foreground">
+                    Departamento
+                  </label>
+                  <Input
+                    id="createschoolmodal-department"
+                    placeholder="LIMA"
+                    {...register('department')}
+                    className="h-9 text-xs"
+                  />
                 </div>
                 <div className="space-y-1">
-                  <label htmlFor="createschoolmodal-province" className="text-xs font-semibold text-foreground">Provincia</label>
-                  <Input id="createschoolmodal-province" placeholder="LIMA" {...register('province')} className="h-9 text-xs" />
+                  <label htmlFor="createschoolmodal-province" className="text-xs font-semibold text-foreground">
+                    Provincia
+                  </label>
+                  <Input
+                    id="createschoolmodal-province"
+                    placeholder="LIMA"
+                    {...register('province')}
+                    className="h-9 text-xs"
+                  />
                 </div>
                 <div className="space-y-1">
-                  <label htmlFor="createschoolmodal-district" className="text-xs font-semibold text-foreground">Distrito</label>
-                  <Input id="createschoolmodal-district" placeholder="LIMA" {...register('district')} className="h-9 text-xs" />
+                  <label htmlFor="createschoolmodal-district" className="text-xs font-semibold text-foreground">
+                    Distrito
+                  </label>
+                  <Input
+                    id="createschoolmodal-district"
+                    placeholder="LIMA"
+                    {...register('district')}
+                    className="h-9 text-xs"
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="space-y-1">
-                  <label htmlFor="createschoolmodal-plan" className="text-xs font-semibold text-foreground">Plan Inicial *</label>
-                  <select id="createschoolmodal-plan"
+                  <label htmlFor="createschoolmodal-plan" className="text-xs font-semibold text-foreground">
+                    Plan Inicial *
+                  </label>
+                  <select
+                    id="createschoolmodal-plan"
                     {...register('plan')}
                     className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-xs font-bold text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   >
@@ -319,12 +394,22 @@ export const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({ isOpen, on
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label htmlFor="createschoolmodal-planExpiresAt" className="text-xs font-semibold text-foreground">Vigencia del Plan</label>
-                  <Input id="createschoolmodal-planExpiresAt" type="date" {...register('planExpiresAt')} className="h-9 text-xs" />
+                  <label htmlFor="createschoolmodal-planExpiresAt" className="text-xs font-semibold text-foreground">
+                    Vigencia del Plan
+                  </label>
+                  <Input
+                    id="createschoolmodal-planExpiresAt"
+                    type="date"
+                    {...register('planExpiresAt')}
+                    className="h-9 text-xs"
+                  />
                 </div>
                 <div className="space-y-1">
-                  <label htmlFor="createschoolmodal-monthlyFee" className="text-xs font-semibold text-foreground">Mensualidad Pactada (S/)</label>
-                  <Input id="createschoolmodal-monthlyFee"
+                  <label htmlFor="createschoolmodal-monthlyFee" className="text-xs font-semibold text-foreground">
+                    Mensualidad Pactada (S/)
+                  </label>
+                  <Input
+                    id="createschoolmodal-monthlyFee"
                     type="number"
                     step="1"
                     min="0"
@@ -346,27 +431,59 @@ export const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({ isOpen, on
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="space-y-1">
-                  <label htmlFor="createschoolmodal-adminFirstName" className="text-xs font-semibold text-foreground">Nombres *</label>
-                  <Input id="createschoolmodal-adminFirstName" placeholder="Ej: Roberto" {...register('adminFirstName', { required: 'Nombres requeridos' })} className="h-9 text-xs" />
+                  <label htmlFor="createschoolmodal-adminFirstName" className="text-xs font-semibold text-foreground">
+                    Nombres *
+                  </label>
+                  <Input
+                    id="createschoolmodal-adminFirstName"
+                    placeholder="Ej: Roberto"
+                    {...register('adminFirstName', { required: 'Nombres requeridos' })}
+                    className="h-9 text-xs"
+                  />
                   {errors.adminFirstName && <p className="text-xs text-destructive">{errors.adminFirstName.message}</p>}
                 </div>
 
                 <div className="space-y-1">
-                  <label htmlFor="createschoolmodal-adminLastNamePaternal" className="text-xs font-semibold text-foreground">Apellido Paterno *</label>
-                  <Input id="createschoolmodal-adminLastNamePaternal" placeholder="Ej: Mendoza" {...register('adminLastNamePaternal', { required: 'Apellido paterno requerido' })} className="h-9 text-xs" />
-                  {errors.adminLastNamePaternal && <p className="text-xs text-destructive">{errors.adminLastNamePaternal.message}</p>}
+                  <label
+                    htmlFor="createschoolmodal-adminLastNamePaternal"
+                    className="text-xs font-semibold text-foreground"
+                  >
+                    Apellido Paterno *
+                  </label>
+                  <Input
+                    id="createschoolmodal-adminLastNamePaternal"
+                    placeholder="Ej: Mendoza"
+                    {...register('adminLastNamePaternal', { required: 'Apellido paterno requerido' })}
+                    className="h-9 text-xs"
+                  />
+                  {errors.adminLastNamePaternal && (
+                    <p className="text-xs text-destructive">{errors.adminLastNamePaternal.message}</p>
+                  )}
                 </div>
 
                 <div className="space-y-1">
-                  <label htmlFor="createschoolmodal-adminLastNameMaternal" className="text-xs font-semibold text-foreground">Apellido Materno</label>
-                  <Input id="createschoolmodal-adminLastNameMaternal" placeholder="Ej: Salazar" {...register('adminLastNameMaternal')} className="h-9 text-xs" />
+                  <label
+                    htmlFor="createschoolmodal-adminLastNameMaternal"
+                    className="text-xs font-semibold text-foreground"
+                  >
+                    Apellido Materno
+                  </label>
+                  <Input
+                    id="createschoolmodal-adminLastNameMaternal"
+                    placeholder="Ej: Salazar"
+                    {...register('adminLastNameMaternal')}
+                    className="h-9 text-xs"
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label htmlFor="createschoolmodal-adminDocumentId" className="text-xs font-semibold text-foreground">DNI del Director (8 dígitos) *</label>
-                  <Input id="createschoolmodal-adminDocumentId"
+                  <label htmlFor="createschoolmodal-adminDocumentId" className="text-xs font-semibold text-foreground">
+                    DNI del Director (8 dígitos) *
+                  </label>
+                  <Input
+                    id="createschoolmodal-adminDocumentId"
                     placeholder="Ej: 45678901"
                     maxLength={8}
                     {...register('adminDocumentId', {
@@ -378,31 +495,53 @@ export const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({ isOpen, on
                     })}
                     className="h-9 text-xs font-mono"
                   />
-                  {errors.adminDocumentId && <p className="text-xs text-destructive">{errors.adminDocumentId.message}</p>}
+                  {errors.adminDocumentId && (
+                    <p className="text-xs text-destructive">{errors.adminDocumentId.message}</p>
+                  )}
                 </div>
 
                 <div className="space-y-1">
-                  <label htmlFor="createschoolmodal-adminCellphone" className="text-xs font-semibold text-foreground">Celular del Director</label>
-                  <Input id="createschoolmodal-adminCellphone" placeholder="987654321" {...register('adminCellphone')} className="h-9 text-xs" />
+                  <label htmlFor="createschoolmodal-adminCellphone" className="text-xs font-semibold text-foreground">
+                    Celular del Director
+                  </label>
+                  <Input
+                    id="createschoolmodal-adminCellphone"
+                    placeholder="987654321"
+                    {...register('adminCellphone')}
+                    className="h-9 text-xs"
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label htmlFor="createschoolmodal-adminEmail" className="text-xs font-semibold text-foreground flex items-center gap-1">
+                  <label
+                    htmlFor="createschoolmodal-adminEmail"
+                    className="text-xs font-semibold text-foreground flex items-center gap-1"
+                  >
                     <Key className="w-3 h-3 text-primary" />
                     <span>Email de Acceso (Usuario) *</span>
                   </label>
-                  <Input id="createschoolmodal-adminEmail" placeholder="director@colegio.edu.pe" type="email" {...register('adminEmail', { required: 'Email de acceso requerido' })} className="h-9 text-xs" />
+                  <Input
+                    id="createschoolmodal-adminEmail"
+                    placeholder="director@colegio.edu.pe"
+                    type="email"
+                    {...register('adminEmail', { required: 'Email de acceso requerido' })}
+                    className="h-9 text-xs"
+                  />
                   {errors.adminEmail && <p className="text-xs text-destructive">{errors.adminEmail.message}</p>}
                 </div>
 
                 <div className="space-y-1">
-                  <label htmlFor="createschoolmodal-adminPassword" className="text-xs font-semibold text-foreground flex items-center gap-1">
+                  <label
+                    htmlFor="createschoolmodal-adminPassword"
+                    className="text-xs font-semibold text-foreground flex items-center gap-1"
+                  >
                     <Shield className="w-3 h-3 text-primary" />
                     <span>Contraseña Inicial *</span>
                   </label>
-                  <Input id="createschoolmodal-adminPassword"
+                  <Input
+                    id="createschoolmodal-adminPassword"
                     placeholder="Mín. 8 caracteres, letras y números"
                     type="text"
                     autoComplete="off"
@@ -415,7 +554,9 @@ export const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({ isOpen, on
                   {errors.adminPassword ? (
                     <p className="text-xs text-destructive">Mínimo 8 caracteres, con letras y números</p>
                   ) : (
-                    <p className="text-xs text-muted-foreground">Visible para que la copies y se la entregues al director.</p>
+                    <p className="text-xs text-muted-foreground">
+                      Visible para que la copies y se la entregues al director.
+                    </p>
                   )}
                 </div>
               </div>

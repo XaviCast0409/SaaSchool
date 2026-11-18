@@ -5,7 +5,11 @@ import type { AnnouncementAttachment } from '../types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { X, Send, AlertTriangle, Bell, Info, Loader2, CalendarClock } from 'lucide-react';
-import { createAnnouncementSchema, parsePollOptions, type CreateAnnouncementFormData } from '../schemas/announcement.schema';
+import {
+  createAnnouncementSchema,
+  parsePollOptions,
+  type CreateAnnouncementFormData,
+} from '../schemas/announcement.schema';
 import { useCreateAnnouncement } from '../api/useAnnouncements';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
 import { toast } from 'sonner';
@@ -15,7 +19,9 @@ import { useAuthStore } from '@/store/useAuthStore';
 
 type ScopeLevel = 'INITIAL' | 'PRIMARY' | 'SECONDARY';
 /** Traduce el valor del selector de alcance al payload del API. */
-const parseScope = (value?: string): { classroomId?: string; targetLevel?: ScopeLevel | null; targetGrade?: number | null } => {
+const parseScope = (
+  value?: string,
+): { classroomId?: string; targetLevel?: ScopeLevel | null; targetGrade?: number | null } => {
   if (!value) return {};
   if (value.startsWith('L:')) return { targetLevel: value.slice(2) as ScopeLevel };
   if (value.startsWith('G:')) {
@@ -30,10 +36,7 @@ interface CreateAnnouncementModalProps {
   onClose: () => void;
 }
 
-export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = ({
-  isOpen,
-  onClose,
-}) => {
+export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = ({ isOpen, onClose }) => {
   const { mutateAsync: createAnnouncement, isPending } = useCreateAnnouncement();
   // Adjuntos: se suben al elegirlos (como los materiales) y se envían con el comunicado
   const upload = useUploadMaterial();
@@ -42,10 +45,15 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
   const addFiles = async (files: FileList | null) => {
     if (!files) return;
     for (const file of Array.from(files)) {
-      if (attachments.length >= 3) { toast.error('Puedes adjuntar hasta 3 archivos.'); break; }
+      if (attachments.length >= 3) {
+        toast.error('Puedes adjuntar hasta 3 archivos.');
+        break;
+      }
       try {
         const r = await upload.mutateAsync({ file, purpose: 'SCHOOL_ASSET' });
-        setAttachments((list) => [...list, { fileId: r.fileId, name: r.fileName, size: r.fileSize, type: r.fileType }].slice(0, 3));
+        setAttachments((list) =>
+          [...list, { fileId: r.fileId, name: r.fileName, size: r.fileSize, type: r.fileType }].slice(0, 3),
+        );
       } catch (error: unknown) {
         const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
         toast.error(msg || `No se pudo subir ${file.name}.`);
@@ -82,8 +90,9 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
   const LEVEL_NAME: Record<string, string> = { INITIAL: 'Inicial', PRIMARY: 'Primaria', SECONDARY: 'Secundaria' };
   const gradeName = (level: string, grade: number) => (level === 'INITIAL' ? `${grade} años` : `${grade}.°`);
   const levelOptions = [...new Set(classrooms.map((c) => c.educationLevel))];
-  const gradeOptions = [...new Map(classrooms.map((c) => [`${c.educationLevel}:${c.grade}`, c])).values()]
-    .sort((a, b) => a.educationLevel.localeCompare(b.educationLevel) || a.grade - b.grade);
+  const gradeOptions = [...new Map(classrooms.map((c) => [`${c.educationLevel}:${c.grade}`, c])).values()].sort(
+    (a, b) => a.educationLevel.localeCompare(b.educationLevel) || a.grade - b.grade,
+  );
   const responseType = watch('responseType');
 
   const selectedRoles = watch('targetRoles') || [];
@@ -96,7 +105,10 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
 
   const handleRoleToggle = (role: 'SUPER_ADMIN' | 'SCHOOL_ADMIN' | 'ADMINISTRATIVE' | 'TEACHER' | 'PARENT') => {
     if (selectedRoles.includes(role)) {
-      setValue('targetRoles', selectedRoles.filter((r) => r !== role));
+      setValue(
+        'targetRoles',
+        selectedRoles.filter((r) => r !== role),
+      );
     } else {
       setValue('targetRoles', [...selectedRoles, role]);
     }
@@ -136,7 +148,11 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200"
+    >
       <div className="relative w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between pb-4 border-b border-border">
           <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
@@ -153,18 +169,20 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
 
         <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-4">
           <div>
-            <label htmlFor="createannouncementmodal-title" className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
+            <label
+              htmlFor="createannouncementmodal-title"
+              className="block text-xs font-semibold text-muted-foreground uppercase mb-1"
+            >
               Título del Comunicado *
             </label>
-            <input id="createannouncementmodal-title"
+            <input
+              id="createannouncementmodal-title"
               type="text"
               placeholder="Ej: Citación a Reunión General de Padres"
               {...register('title')}
               className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             />
-            {errors.title && (
-              <p className="mt-1 text-xs text-destructive">{errors.title.message}</p>
-            )}
+            {errors.title && <p className="mt-1 text-xs text-destructive">{errors.title.message}</p>}
           </div>
 
           <div>
@@ -195,9 +213,7 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
-              Destinatarios *
-            </label>
+            <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Destinatarios *</label>
             <div className="flex flex-wrap gap-2">
               {(isTeacher
                 ? [
@@ -229,13 +245,14 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
                 );
               })}
             </div>
-            {errors.targetRoles && (
-              <p className="mt-1 text-xs text-destructive">{errors.targetRoles.message}</p>
-            )}
+            {errors.targetRoles && <p className="mt-1 text-xs text-destructive">{errors.targetRoles.message}</p>}
           </div>
 
           <div>
-            <label htmlFor="announcement-classroom" className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
+            <label
+              htmlFor="announcement-classroom"
+              className="block text-xs font-semibold text-muted-foreground uppercase mb-1"
+            >
               Alcance {isTeacher && <span className="text-destructive">*</span>}
             </label>
             <select
@@ -247,7 +264,11 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
               {isTeacher && <option value="">-- Selecciona tu aula (obligatorio) --</option>}
               {!isTeacher && levelOptions.length > 0 && (
                 <optgroup label="Por nivel">
-                  {levelOptions.map((l) => <option key={l} value={`L:${l}`}>Todo {LEVEL_NAME[l]}</option>)}
+                  {levelOptions.map((l) => (
+                    <option key={l} value={`L:${l}`}>
+                      Todo {LEVEL_NAME[l]}
+                    </option>
+                  ))}
                 </optgroup>
               )}
               {!isTeacher && gradeOptions.length > 0 && (
@@ -270,49 +291,77 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
           </div>
 
           <div>
-            <label htmlFor="createannouncementmodal-content" className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
+            <label
+              htmlFor="createannouncementmodal-content"
+              className="block text-xs font-semibold text-muted-foreground uppercase mb-1"
+            >
               Contenido del Mensaje *
             </label>
-            <textarea id="createannouncementmodal-content"
+            <textarea
+              id="createannouncementmodal-content"
               rows={4}
               placeholder="Escribe el aviso oficial aquí..."
               {...register('content')}
               className="w-full rounded-xl border border-border bg-background p-4 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             />
-            {errors.content && (
-              <p className="mt-1 text-xs text-destructive">{errors.content.message}</p>
-            )}
+            {errors.content && <p className="mt-1 text-xs text-destructive">{errors.content.message}</p>}
           </div>
 
           <div>
-            <span className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Archivos adjuntos (opcional)</span>
+            <span className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
+              Archivos adjuntos (opcional)
+            </span>
             {attachments.length > 0 && (
               <ul className="mb-2 space-y-1">
                 {attachments.map((a) => (
-                  <li key={a.fileId} className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-1.5 text-xs">
-                    <span className="truncate">{a.name} <span className="text-muted-foreground">· {(a.size / 1024 / 1024).toFixed(1)} MB</span></span>
-                    <button type="button" aria-label={`Quitar ${a.name}`} onClick={() => setAttachments((list) => list.filter((x) => x.fileId !== a.fileId))}>
+                  <li
+                    key={a.fileId}
+                    className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-1.5 text-xs"
+                  >
+                    <span className="truncate">
+                      {a.name} <span className="text-muted-foreground">· {(a.size / 1024 / 1024).toFixed(1)} MB</span>
+                    </span>
+                    <button
+                      type="button"
+                      aria-label={`Quitar ${a.name}`}
+                      onClick={() => setAttachments((list) => list.filter((x) => x.fileId !== a.fileId))}
+                    >
                       <XIcon className="h-3.5 w-3.5 text-muted-foreground" />
                     </button>
                   </li>
                 ))}
               </ul>
             )}
-            <input ref={fileInput} type="file" multiple className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.webp" onChange={(e) => void addFiles(e.target.files)} />
+            <input
+              ref={fileInput}
+              type="file"
+              multiple
+              className="hidden"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.webp"
+              onChange={(e) => void addFiles(e.target.files)}
+            />
             <button
               type="button"
               disabled={upload.isPending || attachments.length >= 3}
               onClick={() => fileInput.current?.click()}
               className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary disabled:opacity-50"
             >
-              {upload.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Paperclip className="h-3.5 w-3.5" />}
+              {upload.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Paperclip className="h-3.5 w-3.5" />
+              )}
               {upload.isPending ? 'Subiendo…' : 'Adjuntar archivo (PDF, Word, imagen…)'}
             </button>
-            <p className="mt-1 text-[10px] text-muted-foreground">Hasta 3 archivos de 25 MB. Las familias los abren desde el comunicado.</p>
+            <p className="mt-1 text-[10px] text-muted-foreground">
+              Hasta 3 archivos de 25 MB. Las familias los abren desde el comunicado.
+            </p>
           </div>
 
           <div className="rounded-xl border border-border p-3 space-y-2.5">
-            <span className="block text-xs font-semibold text-muted-foreground uppercase">¿Pedir respuesta a las familias?</span>
+            <span className="block text-xs font-semibold text-muted-foreground uppercase">
+              ¿Pedir respuesta a las familias?
+            </span>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {[
                 { id: 'NONE', label: 'No' },
@@ -323,9 +372,15 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
                 <button
                   key={o.id}
                   type="button"
-                  onClick={() => setValue('responseType', o.id as CreateAnnouncementFormData['responseType'], { shouldValidate: true })}
+                  onClick={() =>
+                    setValue('responseType', o.id as CreateAnnouncementFormData['responseType'], {
+                      shouldValidate: true,
+                    })
+                  }
                   className={`rounded-lg border px-2 py-2 text-xs font-semibold transition-colors ${
-                    responseType === o.id ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-background text-muted-foreground hover:bg-secondary'
+                    responseType === o.id
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border bg-background text-muted-foreground hover:bg-secondary'
                   }`}
                   aria-pressed={responseType === o.id}
                 >
@@ -336,7 +391,8 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
             {errors.responseType && <p className="text-xs text-destructive">{errors.responseType.message}</p>}
             {responseType === 'AUTHORIZATION' && (
               <p className="text-xs text-muted-foreground">
-                Cada familia responde “Autorizo” o “No autorizo” por cada hijo. Se guarda la fecha y el dispositivo como constancia.
+                Cada familia responde “Autorizo” o “No autorizo” por cada hijo. Se guarda la fecha y el dispositivo como
+                constancia.
               </p>
             )}
             {responseType === 'POLL' && (
@@ -351,7 +407,9 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
                   {...register('pollOptionsText')}
                   className="w-full rounded-lg border border-border bg-background p-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
-                {errors.pollOptionsText && <p className="mt-1 text-xs text-destructive">{errors.pollOptionsText.message}</p>}
+                {errors.pollOptionsText && (
+                  <p className="mt-1 text-xs text-destructive">{errors.pollOptionsText.message}</p>
+                )}
               </div>
             )}
             {responseType !== 'NONE' && (
@@ -380,7 +438,9 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
                   type="button"
                   onClick={() => setValue('expiresAt', p.value, { shouldValidate: true })}
                   className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    expiresAt === p.value ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-background text-muted-foreground hover:bg-secondary'
+                    expiresAt === p.value
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border bg-background text-muted-foreground hover:bg-secondary'
                   }`}
                   aria-pressed={expiresAt === p.value}
                 >

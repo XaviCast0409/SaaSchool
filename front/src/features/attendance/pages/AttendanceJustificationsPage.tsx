@@ -1,12 +1,6 @@
 import { useUrlFilters } from '@/lib/useUrlFilters';
 import React, { useState } from 'react';
-import {
-  FileCheck2,
-  CheckCircle2,
-  XCircle,
-  ExternalLink,
-  Loader2,
-} from 'lucide-react';
+import { FileCheck2, CheckCircle2, XCircle, ExternalLink, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Pagination } from '@/components/ui/Pagination';
 import { openFile } from '@/features/course-contents/utils/fileUrls';
@@ -104,9 +98,7 @@ export const AttendanceJustificationsPage: React.FC = () => {
               <FileCheck2 className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-2xl font-black text-foreground tracking-tight">
-                Justificaciones de asistencia
-              </h1>
+              <h1 className="text-2xl font-black text-foreground tracking-tight">Justificaciones de asistencia</h1>
               <p className="text-xs sm:text-sm text-muted-foreground">
                 Revisa y aprueba las justificaciones enviadas por las familias.
               </p>
@@ -151,9 +143,7 @@ export const AttendanceJustificationsPage: React.FC = () => {
         ) : justifications.length === 0 ? (
           <div className="p-12 text-center text-muted-foreground space-y-2">
             <FileCheck2 className="w-10 h-10 mx-auto opacity-30" />
-            <p className="text-sm font-bold text-foreground">
-              No hay justificaciones en esta sección
-            </p>
+            <p className="text-sm font-bold text-foreground">No hay justificaciones en esta sección</p>
             <p className="text-xs text-muted-foreground">
               {activeTab === 'PENDING'
                 ? 'Todas las solicitudes han sido atendidas.'
@@ -192,15 +182,9 @@ export const AttendanceJustificationsPage: React.FC = () => {
 
                   return (
                     <tr key={item.id} className="hover:bg-muted/20 transition-colors">
-                      <td className="px-4 py-3 font-bold text-foreground whitespace-nowrap">
-                        {studentName}
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                        {classroomLabel}
-                      </td>
-                      <td className="px-4 py-3 font-semibold text-foreground whitespace-nowrap">
-                        {datesDisplay}
-                      </td>
+                      <td className="px-4 py-3 font-bold text-foreground whitespace-nowrap">{studentName}</td>
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{classroomLabel}</td>
+                      <td className="px-4 py-3 font-semibold text-foreground whitespace-nowrap">{datesDisplay}</td>
                       <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                         <span className="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-secondary text-secondary-foreground">
                           {REASON_LABELS[item.reason] || item.reason}
@@ -211,9 +195,7 @@ export const AttendanceJustificationsPage: React.FC = () => {
                           {item.description}
                         </span>
                         {item.reviewNote && item.status === 'REJECTED' && (
-                          <span className="block text-xs text-destructive mt-0.5">
-                            Nota: {item.reviewNote}
-                          </span>
+                          <span className="block text-xs text-destructive mt-0.5">Nota: {item.reviewNote}</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-center whitespace-nowrap">
@@ -298,21 +280,21 @@ export const AttendanceJustificationsPage: React.FC = () => {
 
       {/* Diálogo de Rechazo con Nota */}
       {rejectingItem && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-150">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-150"
+        >
           <div className="w-full max-w-md rounded-2xl border border-border bg-card shadow-2xl p-5 space-y-4">
             <div>
-              <h3 className="text-base font-black text-foreground">
-                Rechazar Justificación
-              </h3>
+              <h3 className="text-base font-black text-foreground">Rechazar Justificación</h3>
               <p className="text-xs text-muted-foreground mt-1">
                 Indica opcionalmente el motivo del rechazo para informar a la familia.
               </p>
             </div>
 
             <div>
-              <label className="text-xs font-bold text-foreground block mb-1">
-                Motivo / Observación
-              </label>
+              <label className="text-xs font-bold text-foreground block mb-1">Motivo / Observación</label>
               <textarea
                 value={rejectNote}
                 onChange={(e) => setRejectNote(e.target.value)}

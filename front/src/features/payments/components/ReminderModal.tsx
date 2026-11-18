@@ -15,9 +15,7 @@ export const ReminderModal: React.FC<ReminderModalProps> = ({ obligation, onClos
   const { mutate: sendReminder, isPending, error } = useSendReminder();
 
   const student = obligation.enrollment?.student;
-  const studentName = student
-    ? `${student.firstNames} ${student.lastNamePaternal}`
-    : 'Estudiante';
+  const studentName = student ? `${student.firstNames} ${student.lastNamePaternal}` : 'Estudiante';
 
   const handleSend = () => {
     sendReminder(
@@ -27,25 +25,24 @@ export const ReminderModal: React.FC<ReminderModalProps> = ({ obligation, onClos
           setIsSuccess(true);
           setTimeout(() => onClose(), 2000);
         },
-      }
+      },
     );
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+    >
       <div className="w-full max-w-md rounded-xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border p-4 bg-card shrink-0">
           <div className="flex items-center gap-2">
             <Send className="w-5 h-5 text-primary" />
-            <h2 className="font-bold text-base text-foreground leading-none">
-              Enviar Recordatorio de Pago
-            </h2>
+            <h2 className="font-bold text-base text-foreground leading-none">Enviar Recordatorio de Pago</h2>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted transition-colors"
-          >
+          <button onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -95,7 +92,8 @@ export const ReminderModal: React.FC<ReminderModalProps> = ({ obligation, onClos
                   <div className="space-y-0.5">
                     <p className="font-semibold text-foreground">Correo Electrónico (Email)</p>
                     <p className="text-muted-foreground text-xs leading-relaxed">
-                      Se enviará el recordatorio con los detalles de la deuda y fecha límite directamente al correo registrado del apoderado financiero.
+                      Se enviará el recordatorio con los detalles de la deuda y fecha límite directamente al correo
+                      registrado del apoderado financiero.
                     </p>
                   </div>
                 </div>

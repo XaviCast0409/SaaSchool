@@ -42,7 +42,12 @@ const Summary: React.FC<{ log: AuditLogItem }> = ({ log }) => {
       <span className="font-semibold">{log.actorName}</span>
       <span className="text-muted-foreground"> ({log.actorRoleLabel})</span>
       {verb}
-      {target.length > 0 && <> — <span className="font-medium">{target.join(' — ')}</span></>}
+      {target.length > 0 && (
+        <>
+          {' '}
+          — <span className="font-medium">{target.join(' — ')}</span>
+        </>
+      )}
     </span>
   );
 };
@@ -53,11 +58,20 @@ const LogRow: React.FC<{ log: AuditLogItem }> = ({ log }) => {
   return (
     <li className="px-4 py-3">
       <div className="flex items-start gap-3">
-        <span className="w-12 shrink-0 pt-0.5 text-xs tabular-nums text-muted-foreground">{formatPeruTime(log.createdAt)}</span>
+        <span className="w-12 shrink-0 pt-0.5 text-xs tabular-nums text-muted-foreground">
+          {formatPeruTime(log.createdAt)}
+        </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm leading-snug"><Summary log={log} /></p>
+          <p className="text-sm leading-snug">
+            <Summary log={log} />
+          </p>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
-            <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', CATEGORY_STYLE[log.category ?? ''] ?? 'bg-muted text-muted-foreground')}>
+            <span
+              className={cn(
+                'rounded-full px-2 py-0.5 text-xs font-medium',
+                CATEGORY_STYLE[log.category ?? ''] ?? 'bg-muted text-muted-foreground',
+              )}
+            >
               {log.actionLabel}
             </span>
             {log.isCorrection && (
@@ -66,8 +80,16 @@ const LogRow: React.FC<{ log: AuditLogItem }> = ({ log }) => {
               </span>
             )}
             {hasDetails && (
-              <button type="button" onClick={() => setOpen(!open)} className="inline-flex items-center text-xs text-primary hover:underline">
-                {open ? <ChevronDown className="mr-0.5 h-3.5 w-3.5" /> : <ChevronRight className="mr-0.5 h-3.5 w-3.5" />}
+              <button
+                type="button"
+                onClick={() => setOpen(!open)}
+                className="inline-flex items-center text-xs text-primary hover:underline"
+              >
+                {open ? (
+                  <ChevronDown className="mr-0.5 h-3.5 w-3.5" />
+                ) : (
+                  <ChevronRight className="mr-0.5 h-3.5 w-3.5" />
+                )}
                 {open ? 'Ocultar detalle' : 'Ver detalle'}
               </button>
             )}
@@ -90,7 +112,15 @@ const LogRow: React.FC<{ log: AuditLogItem }> = ({ log }) => {
 
 export const AuditLogsPage: React.FC = () => {
   // Filtros en la URL: sobreviven a recargar, al botón Atrás y se pueden compartir como enlace
-  const [urlFilters, setUrlFilters] = useUrlFilters({ category: '', actorId: '', corrections: false as boolean, from: '', to: '', page: 1, limit: 25 });
+  const [urlFilters, setUrlFilters] = useUrlFilters({
+    category: '',
+    actorId: '',
+    corrections: false as boolean,
+    from: '',
+    to: '',
+    page: 1,
+    limit: 25,
+  });
   const { category, actorId, corrections: onlyCorrections, from, to, page, limit } = urlFilters;
   const setCategory = (value: string) => setUrlFilters({ category: value });
   const setActorId = (value: string) => setUrlFilters({ actorId: value });
@@ -126,7 +156,12 @@ export const AuditLogsPage: React.FC = () => {
     return groups;
   }, [logs]);
 
-  const reset = <T,>(setter: (v: T) => void) => (v: T) => { setter(v); setPage(1); };
+  const reset =
+    <T,>(setter: (v: T) => void) =>
+    (v: T) => {
+      setter(v);
+      setPage(1);
+    };
 
   return (
     <div className="max-w-5xl pb-12">
@@ -141,14 +176,22 @@ export const AuditLogsPage: React.FC = () => {
             Tema
             <Select className="mt-1 w-full" value={category} onChange={(e) => reset(setCategory)(e.target.value)}>
               <option value="">Todos los temas</option>
-              {categories.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+              {categories.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
             </Select>
           </label>
           <label className="text-xs font-medium text-muted-foreground">
             Persona
             <Select className="mt-1 w-full" value={actorId} onChange={(e) => reset(setActorId)(e.target.value)}>
               <option value="">Todas las personas</option>
-              {actors.map((a) => <option key={a.id} value={a.id}>{a.name} ({ROLE_LABEL[a.role] ?? a.role})</option>)}
+              {actors.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name} ({ROLE_LABEL[a.role] ?? a.role})
+                </option>
+              ))}
             </Select>
           </label>
           <label className="text-xs font-medium text-muted-foreground">
@@ -161,7 +204,11 @@ export const AuditLogsPage: React.FC = () => {
           </label>
         </div>
         <label className="mt-3 flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={onlyCorrections} onChange={(e) => reset(setOnlyCorrections)(e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={onlyCorrections}
+            onChange={(e) => reset(setOnlyCorrections)(e.target.checked)}
+          />
           Solo correcciones de notas en periodos cerrados
         </label>
       </Card>
@@ -171,14 +218,22 @@ export const AuditLogsPage: React.FC = () => {
       ) : isError ? (
         <p className="text-sm text-destructive">No se pudo cargar la bitácora.</p>
       ) : logs.length === 0 ? (
-        <EmptyState icon={<History className="h-8 w-8" />} title="No hay movimientos con estos filtros" description="Prueba con otro tema, otra persona o un rango de fechas más amplio." />
+        <EmptyState
+          icon={<History className="h-8 w-8" />}
+          title="No hay movimientos con estos filtros"
+          description="Prueba con otro tema, otra persona o un rango de fechas más amplio."
+        />
       ) : (
         <Card className="overflow-hidden">
           {byDay.map((group) => (
             <section key={group.day}>
-              <h2 className="border-b border-border bg-muted/40 px-4 py-2 text-xs font-semibold text-muted-foreground">{group.day.charAt(0).toUpperCase() + group.day.slice(1)}</h2>
+              <h2 className="border-b border-border bg-muted/40 px-4 py-2 text-xs font-semibold text-muted-foreground">
+                {group.day.charAt(0).toUpperCase() + group.day.slice(1)}
+              </h2>
               <ul className="divide-y divide-border">
-                {group.items.map((log) => <LogRow key={log.id} log={log} />)}
+                {group.items.map((log) => (
+                  <LogRow key={log.id} log={log} />
+                ))}
               </ul>
             </section>
           ))}
@@ -188,7 +243,10 @@ export const AuditLogsPage: React.FC = () => {
             totalItems={meta.total}
             limit={limit}
             onPageChange={setPage}
-            onLimitChange={(n) => { setLimit(n); setPage(1); }}
+            onLimitChange={(n) => {
+              setLimit(n);
+              setPage(1);
+            }}
           />
         </Card>
       )}

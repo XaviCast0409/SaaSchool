@@ -22,19 +22,52 @@ interface ChildIncidentsCardProps {
   studentName?: string;
 }
 
-const TYPE_CONFIG: Record<
-  IncidentType,
-  { label: string; icon: React.ReactNode; color: string }
-> = {
-  MERITO: { label: 'Mérito', icon: <Award className="w-4 h-4 text-emerald-500" />, color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' },
-  POSITIVE: { label: 'Mérito', icon: <Award className="w-4 h-4 text-emerald-500" />, color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' },
-  DEMERITO: { label: 'Falta Conductual', icon: <AlertCircle className="w-4 h-4 text-amber-500" />, color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' },
-  BEHAVIORAL: { label: 'Conductual', icon: <AlertCircle className="w-4 h-4 text-amber-500" />, color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' },
-  ATENCION_TOPICO: { label: 'Tópico de Salud', icon: <Stethoscope className="w-4 h-4 text-blue-500" />, color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' },
-  HEALTH: { label: 'Salud', icon: <Stethoscope className="w-4 h-4 text-blue-500" />, color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' },
-  CITACION_PADRES: { label: 'Citación', icon: <CalendarClock className="w-4 h-4 text-purple-500" />, color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20' },
-  CITATION: { label: 'Citación', icon: <CalendarClock className="w-4 h-4 text-purple-500" />, color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20' },
-  ACADEMIC: { label: 'Académico', icon: <AlertCircle className="w-4 h-4 text-cyan-500" />, color: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20' },
+const TYPE_CONFIG: Record<IncidentType, { label: string; icon: React.ReactNode; color: string }> = {
+  MERITO: {
+    label: 'Mérito',
+    icon: <Award className="w-4 h-4 text-emerald-500" />,
+    color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+  },
+  POSITIVE: {
+    label: 'Mérito',
+    icon: <Award className="w-4 h-4 text-emerald-500" />,
+    color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+  },
+  DEMERITO: {
+    label: 'Falta Conductual',
+    icon: <AlertCircle className="w-4 h-4 text-amber-500" />,
+    color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+  },
+  BEHAVIORAL: {
+    label: 'Conductual',
+    icon: <AlertCircle className="w-4 h-4 text-amber-500" />,
+    color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+  },
+  ATENCION_TOPICO: {
+    label: 'Tópico de Salud',
+    icon: <Stethoscope className="w-4 h-4 text-blue-500" />,
+    color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+  },
+  HEALTH: {
+    label: 'Salud',
+    icon: <Stethoscope className="w-4 h-4 text-blue-500" />,
+    color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+  },
+  CITACION_PADRES: {
+    label: 'Citación',
+    icon: <CalendarClock className="w-4 h-4 text-purple-500" />,
+    color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20',
+  },
+  CITATION: {
+    label: 'Citación',
+    icon: <CalendarClock className="w-4 h-4 text-purple-500" />,
+    color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20',
+  },
+  ACADEMIC: {
+    label: 'Académico',
+    icon: <AlertCircle className="w-4 h-4 text-cyan-500" />,
+    color: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20',
+  },
 };
 
 const SEVERITY_CONFIG: Record<IncidentSeverity, { label: string; badgeClass: string }> = {
@@ -44,10 +77,7 @@ const SEVERITY_CONFIG: Record<IncidentSeverity, { label: string; badgeClass: str
   CRITICAL: { label: 'Urgente', badgeClass: 'bg-destructive text-destructive-foreground font-black animate-pulse' },
 };
 
-export const ChildIncidentsCard: React.FC<ChildIncidentsCardProps> = ({
-  studentId,
-  studentName,
-}) => {
+export const ChildIncidentsCard: React.FC<ChildIncidentsCardProps> = ({ studentId, studentName }) => {
   const { data, isLoading } = useIncidents({ studentId, limit: 20 }, Boolean(studentId));
   const acknowledgeMutation = useAcknowledgeIncident();
 
@@ -71,9 +101,7 @@ export const ChildIncidentsCard: React.FC<ChildIncidentsCardProps> = ({
             <ShieldAlert className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-foreground">
-              Agenda Escolar e Incidencias
-            </h3>
+            <h3 className="text-sm font-bold text-foreground">Agenda Escolar e Incidencias</h3>
             <p className="text-xs text-muted-foreground">
               {studentName ? `Reportes y citaciones de ${studentName}` : 'Reportes de conducta y salud'}
             </p>
@@ -115,7 +143,9 @@ export const ChildIncidentsCard: React.FC<ChildIncidentsCardProps> = ({
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold border ${typeInfo.color}`}>
+                    <span
+                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold border ${typeInfo.color}`}
+                    >
                       {typeInfo.icon}
                       <span>{typeInfo.label}</span>
                     </span>
@@ -136,9 +166,7 @@ export const ChildIncidentsCard: React.FC<ChildIncidentsCardProps> = ({
 
                 <div>
                   <h4 className="text-xs font-bold text-foreground">{inc.title}</h4>
-                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                    {inc.description}
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{inc.description}</p>
                 </div>
 
                 {inc.actionTaken && (
@@ -151,9 +179,7 @@ export const ChildIncidentsCard: React.FC<ChildIncidentsCardProps> = ({
                 {inc.citationDate && (
                   <div className="p-2 rounded-lg bg-purple-500/10 border border-purple-500/20 text-xs text-purple-700 dark:text-purple-300 flex items-center gap-1.5 font-semibold">
                     <Calendar className="w-3.5 h-3.5" />
-                    <span>
-                      Fecha de Citación: {formatPeruDateTime(inc.citationDate)}
-                    </span>
+                    <span>Fecha de Citación: {formatPeruDateTime(inc.citationDate)}</span>
                   </div>
                 )}
 
@@ -166,10 +192,7 @@ export const ChildIncidentsCard: React.FC<ChildIncidentsCardProps> = ({
                   {isAcknowledged ? (
                     <div className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>
-                        Enterado el{' '}
-                        {formatPeruShortDate(inc.acknowledgedAt!)}
-                      </span>
+                      <span>Enterado el {formatPeruShortDate(inc.acknowledgedAt!)}</span>
                     </div>
                   ) : (
                     <Button

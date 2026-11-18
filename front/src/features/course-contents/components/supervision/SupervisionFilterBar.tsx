@@ -12,11 +12,7 @@ interface SupervisionFilterBarProps {
   teachers?: Array<{ id: string; fullName: string }>;
 }
 
-export const SupervisionFilterBar: React.FC<SupervisionFilterBarProps> = ({
-  filters,
-  onChange,
-  teachers = [],
-}) => {
+export const SupervisionFilterBar: React.FC<SupervisionFilterBarProps> = ({ filters, onChange, teachers = [] }) => {
   const { periods: yearPeriods, label: periodLabel, labelPlural: periodLabelPlural } = usePeriods();
   const { data: classrooms = [] } = useClassrooms();
 
@@ -81,7 +77,9 @@ export const SupervisionFilterBar: React.FC<SupervisionFilterBarProps> = ({
         >
           <option value="">— Todos los {periodLabelPlural} —</option>
           {yearPeriods.map((p) => (
-            <option key={p} value={String(p)}>{p}° {periodLabel}</option>
+            <option key={p} value={String(p)}>
+              {p}° {periodLabel}
+            </option>
           ))}
         </select>
 
@@ -119,7 +117,8 @@ export const SupervisionFilterBar: React.FC<SupervisionFilterBarProps> = ({
           <option value="">— Todas las Aulas —</option>
           {filteredClassrooms.map((c) => (
             <option key={c.id} value={c.id}>
-              {c.grade}° "{c.section}" ({c.educationLevel === 'INITIAL' ? 'Ini' : c.educationLevel === 'PRIMARY' ? 'Pri' : 'Sec'})
+              {c.grade}° "{c.section}" (
+              {c.educationLevel === 'INITIAL' ? 'Ini' : c.educationLevel === 'PRIMARY' ? 'Pri' : 'Sec'})
             </option>
           ))}
         </select>

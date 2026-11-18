@@ -2,12 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
 import { useAuthStore } from '@/store/useAuthStore';
-import {
-  listQueuedScans,
-  removeQueuedScan,
-  updateQueuedScan,
-  type QueuedScan,
-} from './scanQueue';
+import { listQueuedScans, removeQueuedScan, updateQueuedScan, type QueuedScan } from './scanQueue';
 
 interface BatchScanResult {
   clientId: string;
@@ -49,17 +44,14 @@ export function useOfflineScanQueue(schoolId: string | undefined) {
     setIsSyncing(true);
 
     try {
-      const res = await api.post<{ status: string; data: { results: BatchScanResult[] } }>(
-        '/attendance/scan/batch',
-        {
-          items: toProcess.map((s) => ({
-            clientId: s.id,
-            code: s.code,
-            scannedAt: s.scannedAt,
-            toleranceTime: s.toleranceTime,
-          })),
-        },
-      );
+      const res = await api.post<{ status: string; data: { results: BatchScanResult[] } }>('/attendance/scan/batch', {
+        items: toProcess.map((s) => ({
+          clientId: s.id,
+          code: s.code,
+          scannedAt: s.scannedAt,
+          toleranceTime: s.toleranceTime,
+        })),
+      });
 
       const results = res.data?.data?.results || [];
       for (const item of toProcess) {

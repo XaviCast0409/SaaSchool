@@ -30,10 +30,7 @@ export const CourseTimelineModal: React.FC<CourseTimelineModalProps> = ({
   const { periods, label: periodLabel } = usePeriods();
   const [activeForumContent, setActiveForumContent] = useState<CourseContent | null>(null);
 
-  const { data: rawContents, isLoading } = useGetCourseContents(
-    assignmentId,
-    selectedBimester,
-  );
+  const { data: rawContents, isLoading } = useGetCourseContents(assignmentId, selectedBimester);
   const contents = Array.isArray(rawContents) ? rawContents : [];
 
   if (!isOpen || !assignmentId) return null;
@@ -47,9 +44,7 @@ export const CourseTimelineModal: React.FC<CourseTimelineModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <BookOpen className="w-5 h-5 text-primary" />
-                <h2 className="text-base sm:text-lg font-bold text-foreground">
-                  {areaName}
-                </h2>
+                <h2 className="text-base sm:text-lg font-bold text-foreground">{areaName}</h2>
               </div>
               <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1 flex-wrap">
                 <div className="flex items-center gap-1 font-semibold text-foreground">
@@ -82,7 +77,9 @@ export const CourseTimelineModal: React.FC<CourseTimelineModalProps> = ({
                     : 'bg-background text-muted-foreground border-border hover:bg-muted'
                 }`}
               >
-                <span>{bim}° {periodLabel}</span>
+                <span>
+                  {bim}° {periodLabel}
+                </span>
                 {selectedBimester === bim && (
                   <Badge
                     variant="secondary"
@@ -110,7 +107,8 @@ export const CourseTimelineModal: React.FC<CourseTimelineModalProps> = ({
                   Sin materiales publicados en el {selectedBimester}° {periodLabel}
                 </h3>
                 <p className="text-xs max-w-sm mx-auto mt-1 leading-relaxed">
-                  Tu profesor aún no ha compartido diapositivas, tareas o foros para este bimestre. Vuelve a consultar pronto.
+                  Tu profesor aún no ha compartido diapositivas, tareas o foros para este bimestre. Vuelve a consultar
+                  pronto.
                 </p>
               </div>
             ) : (

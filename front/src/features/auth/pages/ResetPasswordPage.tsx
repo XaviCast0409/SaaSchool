@@ -54,12 +54,8 @@ export const ResetPasswordPage: React.FC = () => {
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <Lock className="h-6 w-6" aria-hidden />
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">
-            Restablecer Contraseña
-          </h1>
-          <p className="text-xs text-muted-foreground">
-            Ingresa tu nueva contraseña para acceder a la plataforma.
-          </p>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">Restablecer Contraseña</h1>
+          <p className="text-xs text-muted-foreground">Ingresa tu nueva contraseña para acceder a la plataforma.</p>
         </div>
 
         {success ? (
@@ -81,7 +77,8 @@ export const ResetPasswordPage: React.FC = () => {
               <AlertCircle className="mx-auto h-8 w-8" />
               <p className="text-sm font-semibold">Enlace inválido</p>
               <p className="text-xs">
-                No se encontró el token de seguridad. Asegúrate de hacer clic en el enlace completo que recibiste por correo.
+                No se encontró el token de seguridad. Asegúrate de hacer clic en el enlace completo que recibiste por
+                correo.
               </p>
             </div>
             <Button asChild variant="outline" className="w-full h-10 font-bold">
@@ -97,7 +94,10 @@ export const ResetPasswordPage: React.FC = () => {
             )}
 
             <div className="space-y-1.5">
-              <label htmlFor="reset-new-password" className="text-xs font-semibold text-foreground tracking-wide uppercase">
+              <label
+                htmlFor="reset-new-password"
+                className="text-xs font-semibold text-foreground tracking-wide uppercase"
+              >
                 Nueva Contraseña
               </label>
               <Input
@@ -115,7 +115,10 @@ export const ResetPasswordPage: React.FC = () => {
             </div>
 
             <div className="space-y-1.5">
-              <label htmlFor="reset-confirm-password" className="text-xs font-semibold text-foreground tracking-wide uppercase">
+              <label
+                htmlFor="reset-confirm-password"
+                className="text-xs font-semibold text-foreground tracking-wide uppercase"
+              >
                 Confirmar Contraseña
               </label>
               <Input
@@ -129,7 +132,11 @@ export const ResetPasswordPage: React.FC = () => {
               />
             </div>
 
-            <Button type="submit" disabled={isPending || !newPassword || !confirmPassword} className="w-full h-10 font-bold gap-2">
+            <Button
+              type="submit"
+              disabled={isPending || !newPassword || !confirmPassword}
+              className="w-full h-10 font-bold gap-2"
+            >
               {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
               Guardar nueva contraseña
             </Button>
@@ -145,4 +152,3 @@ export const ResetPasswordPage: React.FC = () => {
     </div>
   );
 };
-

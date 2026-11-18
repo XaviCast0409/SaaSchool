@@ -25,18 +25,24 @@ export const DraftRegisterReport: React.FC<DraftRegisterReportProps> = ({ data }
       />
 
       <div className="bg-card border border-border p-4 sm:p-6 rounded-2xl shadow-sm overflow-x-auto print:border-none print:shadow-none print:p-0">
-        <ReportHeader
-          school={school}
-          title={title}
-          subtitle={subtitle}
-        />
+        <ReportHeader school={school} title={title} subtitle={subtitle} />
 
         {/* Metadatos manuales para el profesor */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-semibold border-b border-border pb-3 mb-3 text-foreground">
-          <div><span className="text-muted-foreground font-bold">Salón:</span> {classroom.grade}° Grado {classroom.section}</div>
-          <div><span className="text-muted-foreground font-bold">Curso:</span> {course ? course.name : '________________________'}</div>
-          <div><span className="text-muted-foreground font-bold">Profesor:</span> {course ? course.teacherName : '________________________'}</div>
-          <div><span className="text-muted-foreground font-bold">Periodo:</span> ________________________</div>
+          <div>
+            <span className="text-muted-foreground font-bold">Salón:</span> {classroom.grade}° Grado {classroom.section}
+          </div>
+          <div>
+            <span className="text-muted-foreground font-bold">Curso:</span>{' '}
+            {course ? course.name : '________________________'}
+          </div>
+          <div>
+            <span className="text-muted-foreground font-bold">Profesor:</span>{' '}
+            {course ? course.teacherName : '________________________'}
+          </div>
+          <div>
+            <span className="text-muted-foreground font-bold">Periodo:</span> ________________________
+          </div>
         </div>
 
         {/* Tabla Borrador Cuadriculada */}
@@ -44,9 +50,16 @@ export const DraftRegisterReport: React.FC<DraftRegisterReportProps> = ({ data }
           <table className="w-full border-collapse border border-foreground/50 text-xs">
             <thead>
               <tr className="bg-muted/40 font-bold">
-                <th rowSpan={2} className="border border-foreground/50 p-1 w-7 text-center">N°</th>
-                <th rowSpan={2} className="border border-foreground/50 p-1.5 min-w-[220px] text-left">Apellidos y Nombres</th>
-                <th colSpan={blankCriteriaColumnsCount} className="border border-foreground/50 p-1.5 text-center uppercase tracking-wider text-xs">
+                <th rowSpan={2} className="border border-foreground/50 p-1 w-7 text-center">
+                  N°
+                </th>
+                <th rowSpan={2} className="border border-foreground/50 p-1.5 min-w-[220px] text-left">
+                  Apellidos y Nombres
+                </th>
+                <th
+                  colSpan={blankCriteriaColumnsCount}
+                  className="border border-foreground/50 p-1.5 text-center uppercase tracking-wider text-xs"
+                >
                   CRITERIOS DE EVALUACIÓN
                 </th>
               </tr>

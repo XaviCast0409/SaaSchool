@@ -53,15 +53,13 @@ function shortWhen(iso: string): string {
   return day === getPeruToday() ? formatPeruTime(iso) : formatPeruDate(iso, { day: '2-digit', month: 'short' });
 }
 
-const normalize = (text: string) =>
-  text
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase();
+const normalize = (text: string) => text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 /** Texto con el que se busca una conversación: persona, alumno y aula. */
 const searchableText = (c: ConversationSummary) =>
-  normalize([c.counterpart.name, c.counterpart.roleLabel, c.student?.name, c.student?.classroom].filter(Boolean).join(' '));
+  normalize(
+    [c.counterpart.name, c.counterpart.roleLabel, c.student?.name, c.student?.classroom].filter(Boolean).join(' '),
+  );
 
 interface ConversationGroup {
   key: string;
@@ -74,7 +72,7 @@ interface ConversationGroup {
 function groupConversations(items: ConversationSummary[], kind: ConversationKind): ConversationGroup[] {
   const map = new Map<string, ConversationSummary[]>();
   for (const c of items) {
-    const key = kind === 'STAFF' ? c.counterpart.group : c.student?.classroom ?? NO_CLASSROOM;
+    const key = kind === 'STAFF' ? c.counterpart.group : (c.student?.classroom ?? NO_CLASSROOM);
     map.set(key, [...(map.get(key) ?? []), c]);
   }
   const groups = [...map.entries()].map(([key, list]) => ({
@@ -84,7 +82,9 @@ function groupConversations(items: ConversationSummary[], kind: ConversationKind
     unread: list.reduce((s, c) => s + c.unread, 0),
   }));
   if (kind === 'STAFF') {
-    return groups.sort((a, b) => STAFF_GROUP_ORDER.indexOf(a.key as StaffGroup) - STAFF_GROUP_ORDER.indexOf(b.key as StaffGroup));
+    return groups.sort(
+      (a, b) => STAFF_GROUP_ORDER.indexOf(a.key as StaffGroup) - STAFF_GROUP_ORDER.indexOf(b.key as StaffGroup),
+    );
   }
   return groups.sort(
     (a, b) =>
@@ -133,14 +133,28 @@ const NewConversationModal: React.FC<{
 
   const teamGroups = useMemo(() => {
     const q = normalize(search.trim());
-    const list = (team.data ?? []).filter((p) => !q || normalize(`${p.name} ${p.roleLabel} ${p.detail ?? ''}`).includes(q));
-    return STAFF_GROUP_ORDER.map((g) => ({ group: g, people: list.filter((p) => p.group === g) })).filter((g) => g.people.length);
+    const list = (team.data ?? []).filter(
+      (p) => !q || normalize(`${p.name} ${p.roleLabel} ${p.detail ?? ''}`).includes(q),
+    );
+    return STAFF_GROUP_ORDER.map((g) => ({ group: g, people: list.filter((p) => p.group === g) })).filter(
+      (g) => g.people.length,
+    );
   }, [team.data, search]);
 
   return (
-    <Modal open={open} onClose={onClose} title="Nuevo mensaje" description="Elige con quién quieres conversar." size="md">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Nuevo mensaje"
+      description="Elige con quién quieres conversar."
+      size="md"
+    >
       {isStaff && (
-        <div className="mb-3 grid grid-cols-2 gap-1 rounded-lg bg-muted p-1" role="tablist" aria-label="Tipo de conversación">
+        <div
+          className="mb-3 grid grid-cols-2 gap-1 rounded-lg bg-muted p-1"
+          role="tablist"
+          aria-label="Tipo de conversación"
+        >
           {(['FAMILY', 'STAFF'] as const).map((m) => (
             <button
               key={m}
@@ -177,7 +191,11 @@ const NewConversationModal: React.FC<{
 
       {mode === 'STAFF' ? (
         team.isLoading ? (
-          <div className="space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
+          <div className="space-y-2">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
         ) : teamGroups.length === 0 ? (
           <p className="text-sm text-muted-foreground">No encontramos a nadie del equipo con ese nombre.</p>
         ) : (
@@ -208,7 +226,11 @@ const NewConversationModal: React.FC<{
           </div>
         )
       ) : isLoading ? (
-        <div className="space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
+        <div className="space-y-2">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
       ) : data?.kind === 'PARENT' ? (
         data.children.length === 0 ? (
           <p className="text-sm text-muted-foreground">No encontramos hijos vinculados a tu cuenta.</p>
@@ -216,7 +238,9 @@ const NewConversationModal: React.FC<{
           <div className="space-y-4">
             {data.children.map((child) => (
               <div key={child.student.id}>
-                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{child.student.name}</p>
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {child.student.name}
+                </p>
                 <ul className="divide-y divide-border rounded-lg border border-border">
                   {child.contacts.map((c) => (
                     <li key={c.id}>
@@ -250,7 +274,8 @@ const NewConversationModal: React.FC<{
             {data.students.map((s) => (
               <li key={s.student.id} className="px-3 py-2.5">
                 <p className="text-sm font-medium text-foreground">
-                  {s.student.name} <span className="text-xs font-normal text-muted-foreground">· {s.student.classroom}</span>
+                  {s.student.name}{' '}
+                  <span className="text-xs font-normal text-muted-foreground">· {s.student.classroom}</span>
                 </p>
                 {s.contacts.length === 0 ? (
                   <p className="text-xs text-muted-foreground">Sin apoderados con cuenta activa.</p>
@@ -279,35 +304,52 @@ const NewConversationModal: React.FC<{
   );
 };
 
-const ConversationRow: React.FC<{ c: ConversationSummary; selected: boolean; showClassroom: boolean; onSelect: (id: string) => void }> = ({
-  c,
-  selected,
-  showClassroom,
-  onSelect,
-}) => {
+const ConversationRow: React.FC<{
+  c: ConversationSummary;
+  selected: boolean;
+  showClassroom: boolean;
+  onSelect: (id: string) => void;
+}> = ({ c, selected, showClassroom, onSelect }) => {
   const subtitle =
     c.kind === 'STAFF'
       ? c.counterpart.roleLabel
-      : [c.counterpart.roleLabel, c.student?.name, showClassroom ? c.student?.classroom : null].filter(Boolean).join(' · ');
+      : [c.counterpart.roleLabel, c.student?.name, showClassroom ? c.student?.classroom : null]
+          .filter(Boolean)
+          .join(' · ');
   return (
     <li>
       <button
         type="button"
         onClick={() => onSelect(c.id)}
-        className={cn('flex w-full items-start gap-3 px-3 py-3 text-left transition-colors hover:bg-muted/50', selected && 'bg-primary/5')}
+        className={cn(
+          'flex w-full items-start gap-3 px-3 py-3 text-left transition-colors hover:bg-muted/50',
+          selected && 'bg-primary/5',
+        )}
         aria-current={selected}
       >
         <UserAvatar name={c.counterpart.name} src={c.counterpart.avatarUrl} />
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-2">
-            <p className={cn('truncate text-sm', c.unread ? 'font-semibold text-foreground' : 'font-medium text-foreground')}>{c.counterpart.name}</p>
+            <p
+              className={cn(
+                'truncate text-sm',
+                c.unread ? 'font-semibold text-foreground' : 'font-medium text-foreground',
+              )}
+            >
+              {c.counterpart.name}
+            </p>
             <span className="shrink-0 text-xs text-muted-foreground">{shortWhen(c.lastMessageAt)}</span>
           </div>
           <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
           <div className="flex items-center justify-between gap-2">
-            <p className={cn('truncate text-xs', c.unread ? 'text-foreground' : 'text-muted-foreground')}>{c.lastMessageText ?? 'Sin mensajes todavía'}</p>
+            <p className={cn('truncate text-xs', c.unread ? 'text-foreground' : 'text-muted-foreground')}>
+              {c.lastMessageText ?? 'Sin mensajes todavía'}
+            </p>
             {c.unread > 0 && (
-              <span className="shrink-0 rounded-full bg-primary px-1.5 py-0.5 text-xs font-bold text-primary-foreground" aria-label={`${c.unread} sin leer`}>
+              <span
+                className="shrink-0 rounded-full bg-primary px-1.5 py-0.5 text-xs font-bold text-primary-foreground"
+                aria-label={`${c.unread} sin leer`}
+              >
                 {c.unread}
               </span>
             )}
@@ -328,7 +370,14 @@ const ConversationList: React.FC<{
   onSelect: (id: string) => void;
 }> = ({ items, kind, grouped, loading, emptyText, selectedId, onSelect }) => {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  if (loading) return <div className="space-y-2 p-3">{[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-14 w-full" />)}</div>;
+  if (loading)
+    return (
+      <div className="space-y-2 p-3">
+        {[1, 2, 3, 4].map((i) => (
+          <Skeleton key={i} className="h-14 w-full" />
+        ))}
+      </div>
+    );
   if (items.length === 0) return <div className="p-6 text-center text-sm text-muted-foreground">{emptyText}</div>;
 
   if (!grouped) {
@@ -362,18 +411,32 @@ const ConversationList: React.FC<{
               className="sticky top-0 z-10 flex w-full items-center justify-between gap-2 border-b border-border bg-muted/80 px-3 py-1.5 text-left backdrop-blur"
             >
               <span className="flex min-w-0 items-center gap-1.5">
-                <ChevronDown className={cn('h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform', isCollapsed && '-rotate-90')} aria-hidden />
+                <ChevronDown
+                  className={cn(
+                    'h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform',
+                    isCollapsed && '-rotate-90',
+                  )}
+                  aria-hidden
+                />
                 <span className="truncate text-xs font-semibold text-foreground">{g.label}</span>
                 <span className="text-xs text-muted-foreground">({g.items.length})</span>
               </span>
               {g.unread > 0 && (
-                <span className="shrink-0 rounded-full bg-primary px-1.5 text-xs font-bold text-primary-foreground">{g.unread}</span>
+                <span className="shrink-0 rounded-full bg-primary px-1.5 text-xs font-bold text-primary-foreground">
+                  {g.unread}
+                </span>
               )}
             </button>
             {!isCollapsed && (
               <ul className="divide-y divide-border">
                 {g.items.map((c) => (
-                  <ConversationRow key={c.id} c={c} selected={selectedId === c.id} showClassroom={false} onSelect={onSelect} />
+                  <ConversationRow
+                    key={c.id}
+                    c={c}
+                    selected={selectedId === c.id}
+                    showClassroom={false}
+                    onSelect={onSelect}
+                  />
                 ))}
               </ul>
             )}
@@ -485,7 +548,8 @@ const ChatPanel: React.FC<{ conversationId: string; onBack: () => void }> = ({ c
     send.mutate(body, {
       onSuccess: (res) => {
         setText('');
-        if (res.outsideHours) toast.info('Mensaje enviado fuera del horario de atención: el docente lo verá en su próximo horario.');
+        if (res.outsideHours)
+          toast.info('Mensaje enviado fuera del horario de atención: el docente lo verá en su próximo horario.');
       },
       onError: (e) => toast.error(apiErrorMessage(e)),
     });
@@ -521,7 +585,11 @@ const ChatPanel: React.FC<{ conversationId: string; onBack: () => void }> = ({ c
       { id: conversationId, archived: !conversation.archived },
       {
         onSuccess: () => {
-          toast.success(conversation.archived ? 'Conversación devuelta a la bandeja.' : 'Conversación archivada. Volverá si recibes un mensaje nuevo.');
+          toast.success(
+            conversation.archived
+              ? 'Conversación devuelta a la bandeja.'
+              : 'Conversación archivada. Volverá si recibes un mensaje nuevo.',
+          );
           if (!conversation.archived) onBack();
         },
         onError: (e) => toast.error(apiErrorMessage(e)),
@@ -548,21 +616,37 @@ const ChatPanel: React.FC<{ conversationId: string; onBack: () => void }> = ({ c
           aria-label={conversation.archived ? 'Devolver a la bandeja' : 'Archivar conversación'}
           title={conversation.archived ? 'Devolver a la bandeja' : 'Archivar conversación'}
         >
-          {conversation.archived ? <ArchiveRestore className="h-4 w-4" aria-hidden /> : <Archive className="h-4 w-4" aria-hidden />}
+          {conversation.archived ? (
+            <ArchiveRestore className="h-4 w-4" aria-hidden />
+          ) : (
+            <Archive className="h-4 w-4" aria-hidden />
+          )}
           <span className="hidden sm:inline">{conversation.archived ? 'Desarchivar' : 'Archivar'}</span>
         </Button>
       </div>
 
-      <div ref={scrollRef} onScroll={onScroll} className="relative min-h-0 flex-1 space-y-4 overflow-y-auto bg-muted/20 px-3 py-4">
+      <div
+        ref={scrollRef}
+        onScroll={onScroll}
+        className="relative min-h-0 flex-1 space-y-4 overflow-y-auto bg-muted/20 px-3 py-4"
+      >
         {(hasMoreOlder ?? data.hasMore) && (
           <div className="flex justify-center">
-            <Button variant="outline" size="sm" className="h-7 gap-1.5 rounded-full text-xs" onClick={loadOlder} disabled={loadingOlder}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1.5 rounded-full text-xs"
+              onClick={loadOlder}
+              disabled={loadingOlder}
+            >
               {loadingOlder && <Loader2 className="h-3 w-3 animate-spin" aria-hidden />} Ver mensajes anteriores
             </Button>
           </div>
         )}
         {grouped.length === 0 && (
-          <p className="py-10 text-center text-sm text-muted-foreground">Escribe el primer mensaje de esta conversación.</p>
+          <p className="py-10 text-center text-sm text-muted-foreground">
+            Escribe el primer mensaje de esta conversación.
+          </p>
         )}
         {grouped.map((g) => (
           <div key={g.day} className="space-y-1.5">
@@ -572,11 +656,18 @@ const ChatPanel: React.FC<{ conversationId: string; onBack: () => void }> = ({ c
                 <div
                   className={cn(
                     'max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-3 py-2 text-sm shadow-sm sm:max-w-[70%]',
-                    m.mine ? 'rounded-br-sm bg-primary text-primary-foreground' : 'rounded-bl-sm border border-border bg-card text-foreground',
+                    m.mine
+                      ? 'rounded-br-sm bg-primary text-primary-foreground'
+                      : 'rounded-bl-sm border border-border bg-card text-foreground',
                   )}
                 >
                   {m.body}
-                  <span className={cn('mt-1 flex items-center justify-end gap-1 text-xs', m.mine ? 'text-primary-foreground/75' : 'text-muted-foreground')}>
+                  <span
+                    className={cn(
+                      'mt-1 flex items-center justify-end gap-1 text-xs',
+                      m.mine ? 'text-primary-foreground/75' : 'text-muted-foreground',
+                    )}
+                  >
                     {formatPeruTime(m.createdAt)}
                     {m.mine &&
                       (otherRead && otherRead >= new Date(m.createdAt) ? (
@@ -606,7 +697,8 @@ const ChatPanel: React.FC<{ conversationId: string; onBack: () => void }> = ({ c
 
       {conversation.officeHours && (
         <p className="flex items-center gap-1.5 border-t border-border px-3 pt-2 text-xs text-muted-foreground">
-          <Clock className="h-3 w-3" aria-hidden /> Horario de atención: lunes a viernes de {conversation.officeHours.start} a {conversation.officeHours.end}
+          <Clock className="h-3 w-3" aria-hidden /> Horario de atención: lunes a viernes de{' '}
+          {conversation.officeHours.start} a {conversation.officeHours.end}
         </p>
       )}
       <form
@@ -626,17 +718,31 @@ const ChatPanel: React.FC<{ conversationId: string; onBack: () => void }> = ({ c
             }
           }}
           rows={1}
-          placeholder={conversation.counterpart.isActive ? 'Escribe un mensaje…' : 'Esta persona ya no tiene cuenta activa'}
+          placeholder={
+            conversation.counterpart.isActive ? 'Escribe un mensaje…' : 'Esta persona ya no tiene cuenta activa'
+          }
           disabled={!conversation.counterpart.isActive}
           aria-label="Mensaje"
           className="max-h-32 min-h-[40px] flex-1 resize-none rounded-xl border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         />
         {text.length > MAX_LENGTH * 0.8 && (
-          <span className={cn('self-center text-xs tabular-nums', text.length >= MAX_LENGTH ? 'text-destructive' : 'text-muted-foreground')} aria-live="polite">
+          <span
+            className={cn(
+              'self-center text-xs tabular-nums',
+              text.length >= MAX_LENGTH ? 'text-destructive' : 'text-muted-foreground',
+            )}
+            aria-live="polite"
+          >
             {text.length}/{MAX_LENGTH}
           </span>
         )}
-        <Button type="submit" size="icon" className="h-10 w-10 shrink-0 rounded-xl" disabled={!text.trim() || send.isPending} aria-label="Enviar">
+        <Button
+          type="submit"
+          size="icon"
+          className="h-10 w-10 shrink-0 rounded-xl"
+          disabled={!text.trim() || send.isPending}
+          aria-label="Enviar"
+        >
           {send.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </Button>
       </form>
@@ -657,7 +763,8 @@ export const MessagesPage: React.FC = () => {
   const { data, isLoading, error } = useConversations();
 
   const all = data ?? [];
-  const unreadBy = (kind: ConversationKind) => all.filter((c) => c.kind === kind && !c.archived).reduce((s, c) => s + c.unread, 0);
+  const unreadBy = (kind: ConversationKind) =>
+    all.filter((c) => c.kind === kind && !c.archived).reduce((s, c) => s + c.unread, 0);
 
   // Hijos con conversaciones (para el filtro de apoderados con varios hijos)
   const children = useMemo(() => {
@@ -704,7 +811,13 @@ export const MessagesPage: React.FC = () => {
   }, [selectedId, all.length]);
 
   if (error) {
-    return <EmptyState icon={<MessagesSquare className="h-6 w-6" />} title="Mensajería no disponible" description={apiErrorMessage(error)} />;
+    return (
+      <EmptyState
+        icon={<MessagesSquare className="h-6 w-6" />}
+        title="Mensajería no disponible"
+        description={apiErrorMessage(error)}
+      />
+    );
   }
 
   const emptyText = search
@@ -721,13 +834,17 @@ export const MessagesPage: React.FC = () => {
     // En celular se descuenta también la barra inferior (3.5rem + área segura): antes tapaba el campo para escribir
     <div className="-m-4 flex h-[calc(100dvh-7.5rem-env(safe-area-inset-bottom))] flex-col md:m-0 md:h-[calc(100dvh-8rem)]">
       <div className="flex min-h-0 flex-1 overflow-hidden border-border bg-card md:rounded-xl md:border">
-        <aside className={cn('flex w-full flex-col border-r border-border md:w-80 lg:w-96', selectedId && 'hidden md:flex')}>
+        <aside
+          className={cn('flex w-full flex-col border-r border-border md:w-80 lg:w-96', selectedId && 'hidden md:flex')}
+        >
           <div className="space-y-2.5 border-b border-border px-3 py-3">
             <div className="flex items-center justify-between gap-2">
               <div>
                 <h1 className="text-base font-semibold text-foreground">Mensajes</h1>
                 <p className="text-xs text-muted-foreground">
-                  {isStaff ? 'Familias y equipo del colegio, cada uno en su lugar' : 'Conversa con el tutor y los docentes de tus hijos'}
+                  {isStaff
+                    ? 'Familias y equipo del colegio, cada uno en su lugar'
+                    : 'Conversa con el tutor y los docentes de tus hijos'}
                 </p>
               </div>
               <Button size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setNewOpen(true)}>
@@ -748,12 +865,22 @@ export const MessagesPage: React.FC = () => {
                       onClick={() => switchTab(k)}
                       className={cn(
                         'flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold transition-colors',
-                        tab === k ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                        tab === k
+                          ? 'bg-background text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground',
                       )}
                     >
-                      {k === 'FAMILY' ? <MessagesSquare className="h-3.5 w-3.5" aria-hidden /> : <Users className="h-3.5 w-3.5" aria-hidden />}
+                      {k === 'FAMILY' ? (
+                        <MessagesSquare className="h-3.5 w-3.5" aria-hidden />
+                      ) : (
+                        <Users className="h-3.5 w-3.5" aria-hidden />
+                      )}
                       {k === 'FAMILY' ? 'Familias' : 'Equipo'}
-                      {n > 0 && <span className="rounded-full bg-primary px-1.5 text-[11px] font-bold text-primary-foreground">{n}</span>}
+                      {n > 0 && (
+                        <span className="rounded-full bg-primary px-1.5 text-[11px] font-bold text-primary-foreground">
+                          {n}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -765,18 +892,26 @@ export const MessagesPage: React.FC = () => {
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder={tab === 'STAFF' ? 'Buscar por nombre o cargo' : isStaff ? 'Buscar apoderado, alumno o aula' : 'Buscar docente'}
+                placeholder={
+                  tab === 'STAFF'
+                    ? 'Buscar por nombre o cargo'
+                    : isStaff
+                      ? 'Buscar apoderado, alumno o aula'
+                      : 'Buscar docente'
+                }
                 className="h-9 pl-9 text-sm"
                 aria-label="Buscar conversación"
               />
             </div>
 
             <div className="flex flex-wrap gap-1.5" aria-label="Filtros">
-              {([
-                ['all', 'Todas'],
-                ['unread', 'Sin leer'],
-                ['archived', `Archivadas${archivedCount ? ` (${archivedCount})` : ''}`],
-              ] as const).map(([f, label]) => (
+              {(
+                [
+                  ['all', 'Todas'],
+                  ['unread', 'Sin leer'],
+                  ['archived', `Archivadas${archivedCount ? ` (${archivedCount})` : ''}`],
+                ] as const
+              ).map(([f, label]) => (
                 <button
                   key={f}
                   type="button"
@@ -784,7 +919,9 @@ export const MessagesPage: React.FC = () => {
                   aria-pressed={filter === f}
                   className={cn(
                     'rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors',
-                    filter === f ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:text-foreground',
+                    filter === f
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border text-muted-foreground hover:text-foreground',
                   )}
                 >
                   {label}
@@ -826,7 +963,9 @@ export const MessagesPage: React.FC = () => {
             <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center text-muted-foreground">
               <MessagesSquare className="h-10 w-10 opacity-40" aria-hidden />
               <p className="text-sm">Elige una conversación o inicia una nueva.</p>
-              <p className="max-w-xs text-xs">Los mensajes quedan guardados en la plataforma del colegio. Nadie necesita compartir su número personal.</p>
+              <p className="max-w-xs text-xs">
+                Los mensajes quedan guardados en la plataforma del colegio. Nadie necesita compartir su número personal.
+              </p>
             </div>
           )}
         </section>

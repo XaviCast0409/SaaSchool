@@ -9,11 +9,7 @@ interface ChildSwitcherProps {
   onSelect: (id: string) => void;
 }
 
-export const ChildSwitcher: React.FC<ChildSwitcherProps> = ({
-  childrenList,
-  selectedId,
-  onSelect,
-}) => {
+export const ChildSwitcher: React.FC<ChildSwitcherProps> = ({ childrenList, selectedId, onSelect }) => {
   if (childrenList.length <= 1) {
     return null;
   }
@@ -42,9 +38,7 @@ export const ChildSwitcher: React.FC<ChildSwitcherProps> = ({
             >
               <div
                 className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-bold text-sm ${
-                  isSelected
-                    ? 'bg-primary-foreground/20 text-primary-foreground'
-                    : 'bg-primary/10 text-primary'
+                  isSelected ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-primary/10 text-primary'
                 }`}
               >
                 {child.firstNames.charAt(0)}
@@ -58,9 +52,7 @@ export const ChildSwitcher: React.FC<ChildSwitcherProps> = ({
                   <Badge
                     variant={isSelected ? 'outline' : 'secondary'}
                     className={`text-xs px-1.5 py-0 font-bold ${
-                      isSelected
-                        ? 'border-primary-foreground/40 text-primary-foreground'
-                        : ''
+                      isSelected ? 'border-primary-foreground/40 text-primary-foreground' : ''
                     }`}
                   >
                     {classroom ? `${classroom.grade}° "${classroom.section}"` : 'Sin aula'}
@@ -73,8 +65,8 @@ export const ChildSwitcher: React.FC<ChildSwitcherProps> = ({
                     {classroom?.educationLevel === 'INITIAL'
                       ? 'Inicial'
                       : classroom?.educationLevel === 'SECONDARY'
-                      ? 'Secundaria'
-                      : 'Primaria'}
+                        ? 'Secundaria'
+                        : 'Primaria'}
                   </span>
                 </div>
               </div>

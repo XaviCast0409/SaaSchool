@@ -12,8 +12,11 @@ const relativeLuminance = ([r, g, b]: [number, number, number]): number => {
 };
 
 const rgbToHsl = ([r, g, b]: [number, number, number]): [number, number, number] => {
-  const rn = r / 255, gn = g / 255, bn = b / 255;
-  const max = Math.max(rn, gn, bn), min = Math.min(rn, gn, bn);
+  const rn = r / 255,
+    gn = g / 255,
+    bn = b / 255;
+  const max = Math.max(rn, gn, bn),
+    min = Math.min(rn, gn, bn);
   const l = (max + min) / 2;
   if (max === min) return [0, 0, l * 100];
   const d = max - min;
@@ -26,7 +29,8 @@ const rgbToHsl = ([r, g, b]: [number, number, number]): [number, number, number]
 };
 
 const hslToRgb = (h: number, s: number, l: number): [number, number, number] => {
-  const sn = s / 100, ln = l / 100;
+  const sn = s / 100,
+    ln = l / 100;
   const k = (n: number) => (n + h / 30) % 12;
   const a = sn * Math.min(ln, 1 - ln);
   const f = (n: number) => ln - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
@@ -43,11 +47,10 @@ export function applyBrandColor(hex?: string | null): void {
   }
   const [h, s, initialL] = rgbToHsl(hexToRgb(hex));
   let l = initialL;
-  while (l > 10 && (1.05 / (relativeLuminance(hslToRgb(h, s, l)) + 0.05)) < 4.5) {
+  while (l > 10 && 1.05 / (relativeLuminance(hslToRgb(h, s, l)) + 0.05) < 4.5) {
     l -= 2;
   }
   const value = `${h.toFixed(1)} ${s.toFixed(1)}% ${l.toFixed(1)}%`;
   root.style.setProperty('--primary', value);
   root.style.setProperty('--ring', value);
 }
-

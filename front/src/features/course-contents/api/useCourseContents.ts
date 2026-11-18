@@ -45,7 +45,8 @@ export const useGetCourseContents = (courseAssignmentId?: string | null, bimeste
  * - COURSE_MATERIAL / SCHOOL_ASSET: todo el colegio · STAFF_RESOURCE: solo el personal
  * - ATTENDANCE_JUSTIFICATION / STUDENT_DOCUMENT: solo quien tiene acceso a ese estudiante (requiere studentId o enrollmentId)
  */
-export type UploadPurpose = 'COURSE_MATERIAL' | 'SCHOOL_ASSET' | 'STAFF_RESOURCE' | 'ATTENDANCE_JUSTIFICATION' | 'STUDENT_DOCUMENT';
+export type UploadPurpose =
+  'COURSE_MATERIAL' | 'SCHOOL_ASSET' | 'STAFF_RESOURCE' | 'ATTENDANCE_JUSTIFICATION' | 'STUDENT_DOCUMENT';
 
 export interface UploadInput {
   file: File;
@@ -60,7 +61,8 @@ export interface UploadInput {
 export const useUploadMaterial = () => {
   return useMutation({
     mutationFn: async (input: File | UploadInput): Promise<UploadFileResponse> => {
-      const { file, purpose, studentId, enrollmentId } = input instanceof File ? { file: input } as UploadInput : input;
+      const { file, purpose, studentId, enrollmentId } =
+        input instanceof File ? ({ file: input } as UploadInput) : input;
       const formData = new FormData();
       // Los campos van antes del archivo para que el servidor los tenga al procesarlo
       if (purpose) formData.append('purpose', purpose);
@@ -68,15 +70,11 @@ export const useUploadMaterial = () => {
       if (enrollmentId) formData.append('enrollmentId', enrollmentId);
       formData.append('file', await compressImageForUpload(file));
 
-      const res = await api.post<{ status: string; data: UploadFileResponse }>(
-        '/uploads/materials',
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
+      const res = await api.post<{ status: string; data: UploadFileResponse }>('/uploads/materials', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
         },
-      );
+      });
       return res.data.data;
     },
   });
@@ -90,10 +88,7 @@ export const useCreateCourseContent = () => {
 
   return useMutation({
     mutationFn: async (payload: CreateCourseContentPayload): Promise<CourseContent> => {
-      const res = await api.post<{ status: string; data: CourseContent }>(
-        '/course-contents',
-        payload,
-      );
+      const res = await api.post<{ status: string; data: CourseContent }>('/course-contents', payload);
       return res.data.data;
     },
     onSuccess: (_, variables) => {
@@ -131,9 +126,7 @@ export const useGetForumComments = (contentId?: string | null) => {
     queryKey: ['forum-comments', contentId],
     queryFn: async () => {
       if (!contentId) return [];
-      const res = await api.get<{ status: string; data: ForumComment[] }>(
-        `/course-contents/${contentId}/comments`,
-      );
+      const res = await api.get<{ status: string; data: ForumComment[] }>(`/course-contents/${contentId}/comments`);
       return res.data.data;
     },
     enabled: !!contentId,
@@ -294,5 +287,3 @@ export const useGradeHomeworkSubmission = () => {
     },
   });
 };
-
-

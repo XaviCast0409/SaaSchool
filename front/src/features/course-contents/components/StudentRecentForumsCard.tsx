@@ -1,12 +1,7 @@
 import React from 'react';
 import { usePeriods } from '@/features/academic-years/api/useAcademicYears';
 import { useNavigate } from 'react-router-dom';
-import {
-  MessageSquare,
-  MessagesSquare,
-  ArrowRight,
-  Sparkles,
-} from 'lucide-react';
+import { MessageSquare, MessagesSquare, ArrowRight, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -89,13 +84,9 @@ export const StudentRecentForumsCard: React.FC<StudentRecentForumsCardProps> = (
                           {periodLabel} {forum.bimester}
                         </span>
                       </div>
-                      <h4 className="text-xs font-bold text-foreground leading-snug">
-                        {forum.title}
-                      </h4>
+                      <h4 className="text-xs font-bold text-foreground leading-snug">{forum.title}</h4>
                       {forum.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-2">
-                          {forum.description}
-                        </p>
+                        <p className="text-xs text-muted-foreground line-clamp-2">{forum.description}</p>
                       )}
                     </div>
 

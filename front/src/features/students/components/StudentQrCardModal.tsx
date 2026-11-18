@@ -1,14 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSchoolBranding } from '@/features/schools/components/SchoolLetterhead';
-import {
-  X,
-  Printer,
-  Download,
-  School,
-  QrCode,
-  ShieldCheck,
-  User,
-} from 'lucide-react';
+import { X, Printer, Download, School, QrCode, ShieldCheck, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { generateStudentQrCode, downloadQrPng } from '@/features/attendance/utils/studentQrUtils';
@@ -70,9 +62,7 @@ export const StudentQrCardDocument: React.FC<StudentQrCardDocumentProps> = ({
             <span className="text-xs font-bold bg-white/10 px-2 py-0.5 rounded text-white">
               CARNET DE ASISTENCIA ESCOLAR
             </span>
-            <span className="text-[10px] font-mono text-slate-400">
-              {new Date().getFullYear()}
-            </span>
+            <span className="text-[10px] font-mono text-slate-400">{new Date().getFullYear()}</span>
           </div>
         </div>
 
@@ -83,32 +73,22 @@ export const StudentQrCardDocument: React.FC<StudentQrCardDocumentProps> = ({
             <div className="w-12 h-12 rounded-full bg-slate-100 border border-slate-300 text-slate-700 mx-auto flex items-center justify-center shadow-inner">
               <User className="w-6 h-6" />
             </div>
-            <h4 className="font-black text-sm text-slate-900 leading-snug uppercase pt-1">
-              {studentName}
-            </h4>
+            <h4 className="font-black text-sm text-slate-900 leading-snug uppercase pt-1">{studentName}</h4>
             <div className="flex items-center justify-center gap-1.5 text-xs text-slate-600 font-bold">
               <Badge variant="outline" className="text-[10px] bg-slate-100 text-slate-800 border-slate-300 font-bold">
                 {grade}° "{section}"
               </Badge>
               <span>•</span>
-              <span className="text-[11px] uppercase tracking-wide">
-                {educationLevel}
-              </span>
+              <span className="text-[11px] uppercase tracking-wide">{educationLevel}</span>
             </div>
           </div>
 
           {/* QR Code */}
           <div className="p-2 rounded-xl border border-slate-300 bg-white shadow-sm">
             {qrDataUrl ? (
-              <img
-                src={qrDataUrl}
-                alt={`Código QR de ${studentName}`}
-                className="w-36 h-36 object-contain"
-              />
+              <img src={qrDataUrl} alt={`Código QR de ${studentName}`} className="w-36 h-36 object-contain" />
             ) : (
-              <div className="w-36 h-36 flex items-center justify-center text-xs text-slate-400">
-                Generando QR...
-              </div>
+              <div className="w-36 h-36 flex items-center justify-center text-xs text-slate-400">Generando QR...</div>
             )}
           </div>
 
@@ -171,7 +151,11 @@ export const StudentQrCardModal: React.FC<StudentQrCardModalProps> = ({
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in"
+    >
       <div className="w-full max-w-md rounded-2xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col">
         {/* Header no imprimible */}
         <div className="flex items-center justify-between border-b border-border p-4 bg-muted/30">
@@ -180,12 +164,8 @@ export const StudentQrCardModal: React.FC<StudentQrCardModalProps> = ({
               <QrCode className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-extrabold text-base text-foreground">
-                Credencial Escolar QR
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                Carnet individual para control de asistencia
-              </p>
+              <h3 className="font-extrabold text-base text-foreground">Credencial Escolar QR</h3>
+              <p className="text-xs text-muted-foreground">Carnet individual para control de asistencia</p>
             </div>
           </div>
 
@@ -229,12 +209,7 @@ export const StudentQrCardModal: React.FC<StudentQrCardModalProps> = ({
             <Button variant="ghost" size="sm" onClick={onClose} className="text-xs">
               Cerrar
             </Button>
-            <Button
-              size="sm"
-              onClick={print}
-              disabled={isPrinting || !qrDataUrl}
-              className="gap-1.5 text-xs font-bold"
-            >
+            <Button size="sm" onClick={print} disabled={isPrinting || !qrDataUrl} className="gap-1.5 text-xs font-bold">
               <Printer className="w-4 h-4" />
               <span>Imprimir Carnet</span>
             </Button>

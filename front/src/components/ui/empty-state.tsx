@@ -15,4 +15,3 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ icon, title, description
     {action && <div className="mt-4">{action}</div>}
   </div>
 );
-

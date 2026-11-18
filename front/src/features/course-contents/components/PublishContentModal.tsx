@@ -15,10 +15,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ContentType } from '../types';
-import {
-  createCourseContentSchema,
-  type CreateCourseContentFormData,
-} from '../schemas/course-content.schema';
+import { createCourseContentSchema, type CreateCourseContentFormData } from '../schemas/course-content.schema';
 import { useCreateCourseContent, useUploadMaterial } from '../api/useCourseContents';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -145,7 +142,11 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4"
+    >
       <div className="w-full max-w-xl bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-border">
@@ -173,7 +174,9 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
                     : 'border-border bg-background text-muted-foreground hover:bg-muted/80'
                 }`}
               >
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${currentType === 'LESSON_MATERIAL' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                <div
+                  className={`w-8 h-8 rounded-xl flex items-center justify-center ${currentType === 'LESSON_MATERIAL' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+                >
                   <BookOpen className="w-4 h-4" />
                 </div>
                 <div>
@@ -191,7 +194,9 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
                     : 'border-border bg-background text-muted-foreground hover:bg-muted/80'
                 }`}
               >
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${currentType === 'HOMEWORK' ? 'bg-amber-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                <div
+                  className={`w-8 h-8 rounded-xl flex items-center justify-center ${currentType === 'HOMEWORK' ? 'bg-amber-500 text-white' : 'bg-muted text-muted-foreground'}`}
+                >
                   <ClipboardList className="w-4 h-4" />
                 </div>
                 <div>
@@ -209,7 +214,9 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
                     : 'border-border bg-background text-muted-foreground hover:bg-muted/80'
                 }`}
               >
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${currentType === 'FORUM' ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                <div
+                  className={`w-8 h-8 rounded-xl flex items-center justify-center ${currentType === 'FORUM' ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'}`}
+                >
                   <MessageSquare className="w-4 h-4" />
                 </div>
                 <div>
@@ -250,8 +257,8 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
                 currentType === 'LESSON_MATERIAL'
                   ? 'Ej: Sesión 04: Las Leyes de Newton (Diapositivas)'
                   : currentType === 'HOMEWORK'
-                  ? 'Ej: Ficha de Actividades: Ejercicios 1 al 10'
-                  : 'Ej: Foro de Debate: ¿Cómo impacta el cambio climático en tu región?'
+                    ? 'Ej: Ficha de Actividades: Ejercicios 1 al 10'
+                    : 'Ej: Foro de Debate: ¿Cómo impacta el cambio climático en tu región?'
               }
               className="text-xs"
             />
@@ -380,11 +387,14 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
                   {isGoogleDriveUrl(driveUrl) ? (
                     <div className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400 font-semibold bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20">
                       <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
-                      <span>¡Enlace en la nube reconocido! Se activará la descarga directa en 1 clic para los alumnos.</span>
+                      <span>
+                        ¡Enlace en la nube reconocido! Se activará la descarga directa en 1 clic para los alumnos.
+                      </span>
                     </div>
                   ) : (
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      💡 <strong>Tip:</strong> Asegúrate de que el archivo tenga permisos de lectura para que cualquier persona con el enlace pueda abrirlo o descargarlo sin restricciones.
+                      💡 <strong>Tip:</strong> Asegúrate de que el archivo tenga permisos de lectura para que cualquier
+                      persona con el enlace pueda abrirlo o descargarlo sin restricciones.
                     </p>
                   )}
 

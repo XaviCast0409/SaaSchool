@@ -45,4 +45,3 @@ export function downloadQrPng(dataUrl: string, fileName: string) {
   a.click();
   document.body.removeChild(a);
 }
-

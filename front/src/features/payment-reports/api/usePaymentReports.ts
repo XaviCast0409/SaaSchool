@@ -3,7 +3,12 @@ import { api } from '@/lib/axios';
 import { compressImageForUpload } from '@/lib/imageResize';
 
 export type ReportMethod = 'YAPE' | 'PLIN' | 'BANK_TRANSFER' | 'DEPOSIT';
-export const METHOD_LABEL: Record<ReportMethod, string> = { YAPE: 'Yape', PLIN: 'Plin', BANK_TRANSFER: 'Transferencia', DEPOSIT: 'Depósito' };
+export const METHOD_LABEL: Record<ReportMethod, string> = {
+  YAPE: 'Yape',
+  PLIN: 'Plin',
+  BANK_TRANSFER: 'Transferencia',
+  DEPOSIT: 'Depósito',
+};
 export type ReportStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export interface PaymentInstructions {
@@ -76,7 +81,8 @@ export const useTreasuryReports = (status: ReportStatus, enabled: boolean) =>
   useQuery({
     queryKey: [...KEY, 'treasury', status],
     enabled,
-    queryFn: async () => (await api.get<{ data: TreasuryReport[] }>('/payment-reports', { params: { status } })).data.data,
+    queryFn: async () =>
+      (await api.get<{ data: TreasuryReport[] }>('/payment-reports', { params: { status } })).data.data,
     refetchInterval: status === 'PENDING' ? 30_000 : false,
   });
 
@@ -95,15 +101,26 @@ export const useUploadVoucher = () =>
       const form = new FormData();
       form.append('purpose', purpose);
       form.append('file', await compressImageForUpload(file));
-      return (await api.post<{ data: { url: string; fileName: string } }>('/uploads/materials', form, { headers: { 'Content-Type': 'multipart/form-data' } })).data.data;
+      return (
+        await api.post<{ data: { url: string; fileName: string } }>('/uploads/materials', form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+      ).data.data;
     },
   });
 
 export const useReportPayment = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { obligationId: string; amount: number; method: ReportMethod; operationNumber: string; paidOn: string; voucherFileUrl: string; note?: string }) =>
-      (await api.post('/payment-reports', input)).data.data,
+    mutationFn: async (input: {
+      obligationId: string;
+      amount: number;
+      method: ReportMethod;
+      operationNumber: string;
+      paidOn: string;
+      voucherFileUrl: string;
+      note?: string;
+    }) => (await api.post('/payment-reports', input)).data.data,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEY });
       qc.invalidateQueries({ queryKey: ['parent-payments-obligations'] });
@@ -115,7 +132,12 @@ export const useReviewReport = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, action, reason }: { id: string; action: 'approve' | 'reject'; reason?: string }) =>
-      (await api.post<{ data: { receiptNumber?: string | null } }>(`/payment-reports/${id}/${action}`, action === 'reject' ? { reason } : {})).data.data,
+      (
+        await api.post<{ data: { receiptNumber?: string | null } }>(
+          `/payment-reports/${id}/${action}`,
+          action === 'reject' ? { reason } : {},
+        )
+      ).data.data,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEY });
       qc.invalidateQueries({ queryKey: ['payments-obligations'] });

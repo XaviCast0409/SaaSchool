@@ -61,10 +61,18 @@
   }
 
   body {
-    font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-family:
+      'Plus Jakarta Sans',
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      'Segoe UI',
+      sans-serif;
     -webkit-font-smoothing: antialiased;
     @apply bg-background text-foreground selection:bg-primary/10 selection:text-primary;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1;
   }
 
   :focus-visible {
@@ -73,28 +81,49 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
+    *,
+    *::before,
+    *::after {
       animation-duration: 0.01ms !important;
       transition-duration: 0.01ms !important;
     }
   }
 }
 
-#print-root { display: none; }
+#print-root {
+  display: none;
+}
 
 @media print {
-  body.has-print-portal > *:not(#print-root) { display: none !important; }
-  body.has-print-portal #print-root { display: block !important; }
-  body { background: #fff !important; }
+  body.has-print-portal > *:not(#print-root) {
+    display: none !important;
+  }
+  body.has-print-portal #print-root {
+    display: block !important;
+  }
+  body {
+    background: #fff !important;
+  }
   #print-root {
     color: #000;
     background: #fff;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  .no-print { display: none !important; }
-  .break-after-page { break-after: page; }
-  .break-after-page:last-child { break-after: auto; }
-  .avoid-break { break-inside: avoid; }
-  @page { size: A4; margin: 12mm; } /* por defecto; usePrint lo sobrescribe */
+  .no-print {
+    display: none !important;
+  }
+  .break-after-page {
+    break-after: page;
+  }
+  .break-after-page:last-child {
+    break-after: auto;
+  }
+  .avoid-break {
+    break-inside: avoid;
+  }
+  @page {
+    size: A4;
+    margin: 12mm;
+  } /* por defecto; usePrint lo sobrescribe */
 }

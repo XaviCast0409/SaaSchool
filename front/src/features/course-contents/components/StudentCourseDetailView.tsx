@@ -1,10 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { UserAvatar } from '@/components/ui/user-avatar';
-import {
-  ArrowLeft,
-  Search,
-  FolderOpen,
-} from 'lucide-react';
+import { ArrowLeft, Search, FolderOpen } from 'lucide-react';
 import type { StudentCourseAssignment, CourseContent, ContentType } from '../types';
 import { useGetCourseContents } from '../api/useCourseContents';
 import { getSubjectTheme } from '../utils/subjectThemes';
@@ -44,10 +40,7 @@ export const StudentCourseDetailView: React.FC<StudentCourseDetailViewProps> = (
     ? `${assignment.teacher.firstName} ${assignment.teacher.lastNamePaternal}`
     : 'Docente por asignar';
 
-  const { data: rawContents, isLoading } = useGetCourseContents(
-    assignment.id,
-    selectedBimester,
-  );
+  const { data: rawContents, isLoading } = useGetCourseContents(assignment.id, selectedBimester);
   const contents = useMemo(() => (Array.isArray(rawContents) ? rawContents : []), [rawContents]);
 
   // Filtrado de publicaciones
@@ -85,9 +78,7 @@ export const StudentCourseDetailView: React.FC<StudentCourseDetailViewProps> = (
         <div className="flex items-center gap-2 text-xs text-muted-foreground font-semibold">
           <span>Aula Virtual</span>
           <span>/</span>
-          <span className="text-foreground font-bold truncate max-w-[150px] sm:max-w-none">
-            {assignment.area.name}
-          </span>
+          <span className="text-foreground font-bold truncate max-w-[150px] sm:max-w-none">{assignment.area.name}</span>
         </div>
       </div>
 
@@ -107,9 +98,7 @@ export const StudentCourseDetailView: React.FC<StudentCourseDetailViewProps> = (
                 {classroomLabel}
               </Badge>
             </div>
-            <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
-              {assignment.area.name}
-            </h1>
+            <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">{assignment.area.name}</h1>
             <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
               <UserAvatar name={teacherFullName} src={assignment.teacher?.avatarUrl} size="sm" className="h-6 w-6" />
               <span>Prof. {teacherFullName}</span>
@@ -148,7 +137,9 @@ export const StudentCourseDetailView: React.FC<StudentCourseDetailViewProps> = (
                   : 'bg-card text-muted-foreground border-border hover:bg-secondary'
               }`}
             >
-              <span>{bim}° {periodLabel}</span>
+              <span>
+                {bim}° {periodLabel}
+              </span>
               {selectedBimester === bim && (
                 <Badge
                   variant="secondary"

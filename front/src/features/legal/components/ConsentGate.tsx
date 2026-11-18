@@ -41,11 +41,10 @@ export const ConsentGate: React.FC = () => {
           <div className="flex justify-center pb-1">
             <KipuxLogo className="h-12" />
           </div>
-          <h2 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
-            Antes de continuar
-          </h2>
+          <h2 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">Antes de continuar</h2>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            Para continuar utilizando KIPUX, es necesario que revises y aceptes los siguientes términos legales y consentimientos conforme a la Ley N.° 29733 de Protección de Datos Personales.
+            Para continuar utilizando KIPUX, es necesario que revises y aceptes los siguientes términos legales y
+            consentimientos conforme a la Ley N.° 29733 de Protección de Datos Personales.
           </p>
         </div>
 
@@ -91,7 +90,11 @@ export const ConsentGate: React.FC = () => {
                   )}
                   {item.type === 'MINOR_DATA_CONSENT' && (
                     <>
-                      Como padre, madre o apoderado(a) legal, autorizo de manera previa, libre, expresa, inequívoca e informada al colegio en el que está matriculado(a) mi hijo(a) (responsable del tratamiento) y a KIPUX (encargado del tratamiento) a tratar los datos personales de mi(s) menor(es) hijo(s), incluidos datos sensibles de salud y discapacidad, con la finalidad de gestionar su matrícula, evaluación, asistencia, comunicación con la familia y pagos, conforme a la{' '}
+                      Como padre, madre o apoderado(a) legal, autorizo de manera previa, libre, expresa, inequívoca e
+                      informada al colegio en el que está matriculado(a) mi hijo(a) (responsable del tratamiento) y a
+                      KIPUX (encargado del tratamiento) a tratar los datos personales de mi(s) menor(es) hijo(s),
+                      incluidos datos sensibles de salud y discapacidad, con la finalidad de gestionar su matrícula,
+                      evaluación, asistencia, comunicación con la familia y pagos, conforme a la{' '}
                       <Link
                         to="/privacidad"
                         target="_blank"
@@ -99,7 +102,8 @@ export const ConsentGate: React.FC = () => {
                       >
                         Política de Privacidad
                       </Link>
-                      . Entiendo que los datos se almacenan en servidores ubicados en Estados Unidos (Render Services, Inc. y Google LLC).
+                      . Entiendo que los datos se almacenan en servidores ubicados en Estados Unidos (Render Services,
+                      Inc. y Google LLC).
                     </>
                   )}
                 </span>

@@ -30,9 +30,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   const [isLoading, setIsLoading] = useState(true);
 
   const internal = isInternalFileUrl(fileUrl);
-  const { data: signedPreviewUrl, isLoading: isResolving } = useResolvedFileUrl(
-    isOpen && internal ? fileUrl : null,
-  );
+  const { data: signedPreviewUrl, isLoading: isResolving } = useResolvedFileUrl(isOpen && internal ? fileUrl : null);
 
   useEffect(() => {
     if (isOpen) {
@@ -47,12 +45,16 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
 
   if (!isOpen || !fileUrl) return null;
 
-  const previewUrl = internal ? signedPreviewUrl ?? '' : getPreviewUrl(fileUrl);
+  const previewUrl = internal ? (signedPreviewUrl ?? '') : getPreviewUrl(fileUrl);
   const isImage = isImageUrl(fileUrl, fileName);
   const canPreview = !internal || isPreviewableInternal(fileName);
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-200"
+    >
       <div className="w-full max-w-5xl bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[90vh] max-h-[90vh]">
         {/* Header del Visor */}
         <div className="px-4 py-3 sm:px-5 sm:py-3.5 border-b border-border flex items-center justify-between bg-muted/30 shrink-0 gap-2">
@@ -61,14 +63,8 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
               <FileText className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <h3 className="text-sm font-bold text-foreground truncate">
-                {title || fileName || 'Documento'}
-              </h3>
-              {fileName && (
-                <p className="text-xs text-muted-foreground truncate">
-                  {fileName}
-                </p>
-              )}
+              <h3 className="text-sm font-bold text-foreground truncate">{title || fileName || 'Documento'}</h3>
+              {fileName && <p className="text-xs text-muted-foreground truncate">{fileName}</p>}
             </div>
           </div>
 

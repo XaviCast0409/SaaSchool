@@ -90,7 +90,8 @@ const TONES = {
   },
   emerald: {
     hover: 'hover:bg-emerald-500/10 hover:border-emerald-500/40',
-    iconTone: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white',
+    iconTone:
+      'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white',
   },
   amber: {
     hover: 'hover:bg-amber-500/10 hover:border-amber-500/40',
@@ -122,24 +123,21 @@ const StaffDashboard: React.FC = () => {
   const { data: classrooms = [] } = useClassrooms(isAdministrative);
   const classroomsCount = classrooms.length;
 
-
   // Solo el director consulta el resumen macro financiero con montos en soles
   const { data: financialSummary } = useFinancialSummary(canSeeMacroFinances);
   const { data: announcementsData } = useGetAnnouncements({ page: 1, limit: 3 });
   const announcementsCount = announcementsData?.meta?.total ?? announcementsData?.data?.length ?? 0;
 
-  const totalAmountDue = canSeeMacroFinances ? financialSummary?.totalExpected ?? 0 : 0;
-  const paidTotal = canSeeMacroFinances ? financialSummary?.totalCollected ?? 0 : 0;
-  const pendingTotal = canSeeMacroFinances ? financialSummary?.totalPending ?? 0 : 0;
+  const totalAmountDue = canSeeMacroFinances ? (financialSummary?.totalExpected ?? 0) : 0;
+  const paidTotal = canSeeMacroFinances ? (financialSummary?.totalCollected ?? 0) : 0;
+  const pendingTotal = canSeeMacroFinances ? (financialSummary?.totalPending ?? 0) : 0;
   const collectionPercentage = totalAmountDue > 0 ? Math.round((paidTotal / totalAmountDue) * 100) : 0;
 
   return (
     <div className="space-y-6 pb-8">
       {/* Saludo breve: lo importante es el bloque «Hoy» */}
       <div className="space-y-1">
-        <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
-          Hola, {user?.firstName}
-        </h1>
+        <h1 className="text-2xl font-extrabold tracking-tight text-foreground">Hola, {user?.firstName}</h1>
         <p className="text-sm text-muted-foreground first-letter:uppercase">
           {formatPeruDate(getPeruToday(), { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
@@ -149,10 +147,7 @@ const StaffDashboard: React.FC = () => {
 
       {/* Guía de puesta en marcha para el director */}
       {isAdmin && onboarding && onboarding.percent < 100 && (
-        <DirectorOnboardingCard
-          onboarding={onboarding}
-          onOpenSettings={() => setIsSettingsOpen(true)}
-        />
+        <DirectorOnboardingCard onboarding={onboarding} onOpenSettings={() => setIsSettingsOpen(true)} />
       )}
 
       {/* Pendientes concretos para la Dirección y Secretaría */}
@@ -160,23 +155,69 @@ const StaffDashboard: React.FC = () => {
 
       {/* Botonera de Acciones Rápidas Según el Rol */}
       <div className="space-y-3">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          Acciones Rápidas
-        </h2>
+        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Acciones Rápidas</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {isAdmin ? (
             <>
-              <QuickAction icon={UserPlus} title="Nuevo alumno" subtitle="Registrar matrícula" onClick={() => navigate('/students?abrir=matricula')} {...TONES.primary} />
-              <QuickAction icon={DollarSign} title="Nuevo cobro" subtitle="Cobro individual" onClick={() => navigate('/payments?abrir=cobro')} {...TONES.emerald} />
-              <QuickAction icon={PlusCircle} title="Generar pensiones" subtitle="Por aula" onClick={() => navigate('/payments?abrir=pensiones')} {...TONES.amber} />
-              <QuickAction icon={Megaphone} title="Publicar aviso" subtitle="Comunicados" onClick={() => navigate('/announcements?abrir=nuevo')} {...TONES.primary} />
+              <QuickAction
+                icon={UserPlus}
+                title="Nuevo alumno"
+                subtitle="Registrar matrícula"
+                onClick={() => navigate('/students?abrir=matricula')}
+                {...TONES.primary}
+              />
+              <QuickAction
+                icon={DollarSign}
+                title="Nuevo cobro"
+                subtitle="Cobro individual"
+                onClick={() => navigate('/payments?abrir=cobro')}
+                {...TONES.emerald}
+              />
+              <QuickAction
+                icon={PlusCircle}
+                title="Generar pensiones"
+                subtitle="Por aula"
+                onClick={() => navigate('/payments?abrir=pensiones')}
+                {...TONES.amber}
+              />
+              <QuickAction
+                icon={Megaphone}
+                title="Publicar aviso"
+                subtitle="Comunicados"
+                onClick={() => navigate('/announcements?abrir=nuevo')}
+                {...TONES.primary}
+              />
             </>
           ) : (
             <>
-              <QuickAction icon={UserPlus} title="Matricular alumno" subtitle="Nueva matrícula" onClick={() => navigate('/students?abrir=matricula')} {...TONES.primary} />
-              <QuickAction icon={DollarSign} title="Caja diaria" subtitle="Cobro en ventanilla" onClick={() => navigate('/payments/cash')} {...TONES.emerald} />
-              <QuickAction icon={QrCode} title="Carnets QR" subtitle="Impresión por sección" onClick={() => navigate('/students?abrir=carnets')} {...TONES.sky} />
-              <QuickAction icon={Megaphone} title="Publicar aviso" subtitle="Circular a familias" onClick={() => navigate('/announcements?abrir=nuevo')} {...TONES.amber} />
+              <QuickAction
+                icon={UserPlus}
+                title="Matricular alumno"
+                subtitle="Nueva matrícula"
+                onClick={() => navigate('/students?abrir=matricula')}
+                {...TONES.primary}
+              />
+              <QuickAction
+                icon={DollarSign}
+                title="Caja diaria"
+                subtitle="Cobro en ventanilla"
+                onClick={() => navigate('/payments/cash')}
+                {...TONES.emerald}
+              />
+              <QuickAction
+                icon={QrCode}
+                title="Carnets QR"
+                subtitle="Impresión por sección"
+                onClick={() => navigate('/students?abrir=carnets')}
+                {...TONES.sky}
+              />
+              <QuickAction
+                icon={Megaphone}
+                title="Publicar aviso"
+                subtitle="Circular a familias"
+                onClick={() => navigate('/announcements?abrir=nuevo')}
+                {...TONES.amber}
+              />
             </>
           )}
         </div>
@@ -219,7 +260,6 @@ const StaffDashboard: React.FC = () => {
                 <p className="text-xs text-muted-foreground mt-1">Circulares y avisos vigentes</p>
               </CardContent>
             </Card>
-
           </>
         )}
 
@@ -228,7 +268,9 @@ const StaffDashboard: React.FC = () => {
           <>
             <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Recaudación Total</CardTitle>
+                <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">
+                  Recaudación Total
+                </CardTitle>
                 <CreditCard className="w-4 h-4 text-emerald-500" />
               </CardHeader>
               <CardContent>
@@ -241,7 +283,9 @@ const StaffDashboard: React.FC = () => {
 
             <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Pendiente de Cobro</CardTitle>
+                <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">
+                  Pendiente de Cobro
+                </CardTitle>
                 <Clock className="w-4 h-4 text-amber-500" />
               </CardHeader>
               <CardContent>
@@ -253,7 +297,6 @@ const StaffDashboard: React.FC = () => {
             </Card>
           </>
         )}
-
       </div>
 
       {/* Salud Financiera del Colegio (EXCLUSIVO Dirección del Colegio — NUNCA Personal Administrativo) */}
@@ -318,9 +361,7 @@ const StaffDashboard: React.FC = () => {
                   <span className="px-2 py-0.5 rounded text-xs font-bold bg-primary/10 text-primary">
                     {announcement.priority}
                   </span>
-                  <span className="text-xs text-muted-foreground">
-                    {formatPeruShortDate(announcement.publishedAt)}
-                  </span>
+                  <span className="text-xs text-muted-foreground">{formatPeruShortDate(announcement.publishedAt)}</span>
                 </div>
                 <h4 className="font-bold text-sm text-foreground line-clamp-1">{announcement.title}</h4>
                 <p className="text-xs text-muted-foreground line-clamp-2">{announcement.content}</p>
@@ -330,10 +371,7 @@ const StaffDashboard: React.FC = () => {
         </div>
       )}
 
-      <SchoolSettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-      />
+      <SchoolSettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
     </div>
   );
 };

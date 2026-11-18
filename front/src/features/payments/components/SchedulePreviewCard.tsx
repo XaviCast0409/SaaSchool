@@ -12,7 +12,9 @@ const CONCEPT_BADGE: Record<string, string> = {
 };
 
 /** Vista previa del cronograma de cuotas que se generará al matricular. */
-export const SchedulePreviewCard: React.FC<{ academicYearId?: string; classroomId?: string; condition?: string }> = (props) => {
+export const SchedulePreviewCard: React.FC<{ academicYearId?: string; classroomId?: string; condition?: string }> = (
+  props,
+) => {
   const { data, isLoading, isError } = useSchedulePreview(props);
   const [expanded, setExpanded] = useState(false);
 
@@ -76,13 +78,19 @@ export const SchedulePreviewCard: React.FC<{ academicYearId?: string; classroomI
             {visible.map((i) => (
               <tr key={`${i.concept}-${i.period}`}>
                 <td className="px-3 py-1.5">
-                  <span className={`inline-block px-1.5 py-0.5 rounded-full text-xs font-bold mr-1.5 ${CONCEPT_BADGE[i.concept] ?? ''}`}>
+                  <span
+                    className={`inline-block px-1.5 py-0.5 rounded-full text-xs font-bold mr-1.5 ${CONCEPT_BADGE[i.concept] ?? ''}`}
+                  >
                     {i.concept === 'CUOTA_INGRESO' ? 'INGRESO' : i.concept}
                   </span>
                   <span className="font-semibold text-foreground">{i.title}</span>
                 </td>
-                <td className="px-3 py-1.5 text-muted-foreground whitespace-nowrap">vence {formatPeruShortDate(i.dueDate)}</td>
-                <td className="px-3 py-1.5 text-right font-mono font-bold text-foreground whitespace-nowrap">{soles(i.amountDue)}</td>
+                <td className="px-3 py-1.5 text-muted-foreground whitespace-nowrap">
+                  vence {formatPeruShortDate(i.dueDate)}
+                </td>
+                <td className="px-3 py-1.5 text-right font-mono font-bold text-foreground whitespace-nowrap">
+                  {soles(i.amountDue)}
+                </td>
               </tr>
             ))}
           </tbody>

@@ -1,10 +1,5 @@
 export type AttendanceTodayStatus =
-  | 'PRESENT'
-  | 'LATE_JUSTIFIED'
-  | 'LATE_UNJUSTIFIED'
-  | 'ABSENT_JUSTIFIED'
-  | 'ABSENT_UNJUSTIFIED'
-  | 'NOT_RECORDED';
+  'PRESENT' | 'LATE_JUSTIFIED' | 'LATE_UNJUSTIFIED' | 'ABSENT_JUSTIFIED' | 'ABSENT_UNJUSTIFIED' | 'NOT_RECORDED';
 
 export interface ActiveEnrollmentInfo {
   id: string;

@@ -1,14 +1,7 @@
 import React from 'react';
 import { usePeriods } from '@/features/academic-years/api/useAcademicYears';
 import { useNavigate } from 'react-router-dom';
-import {
-  ClipboardList,
-  Clock,
-  Download,
-  CheckCircle2,
-  ArrowRight,
-  BookOpen,
-} from 'lucide-react';
+import { ClipboardList, Clock, Download, CheckCircle2, ArrowRight, BookOpen } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -101,14 +94,8 @@ export const StudentPendingTasksCard: React.FC<StudentPendingTasksCardProps> = (
                           {periodLabel} {hw.bimester}
                         </span>
                       </div>
-                      <h4 className="text-xs font-bold text-foreground leading-snug">
-                        {hw.title}
-                      </h4>
-                      {hw.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-2">
-                          {hw.description}
-                        </p>
-                      )}
+                      <h4 className="text-xs font-bold text-foreground leading-snug">{hw.title}</h4>
+                      {hw.description && <p className="text-xs text-muted-foreground line-clamp-2">{hw.description}</p>}
                     </div>
 
                     {formattedDate && (

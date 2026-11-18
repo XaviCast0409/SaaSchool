@@ -2,17 +2,23 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
 import type { FillResponse, NominaCommitResult, NominaPlan, TemplateImportResult, TemplateInspection } from './types';
 
-interface Envelope<T> { status: string; data: T }
+interface Envelope<T> {
+  status: string;
+  data: T;
+}
 
 const formOf = (files: File[], extra: Record<string, string | boolean | number | undefined> = {}) => {
   const fd = new FormData();
   files.forEach((f) => fd.append('files', f, f.name));
-  Object.entries(extra).forEach(([k, v]) => { if (v !== undefined) fd.append(k, String(v)); });
+  Object.entries(extra).forEach(([k, v]) => {
+    if (v !== undefined) fd.append(k, String(v));
+  });
   return fd;
 };
 
-const post = async <T,>(url: string, fd: FormData) =>
-  (await api.post<Envelope<T>>(url, fd, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 180_000 })).data.data;
+const post = async <T>(url: string, fd: FormData) =>
+  (await api.post<Envelope<T>>(url, fd, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 180_000 })).data
+    .data;
 
 export const useNominaPreview = () =>
   useMutation({ mutationFn: (files: File[]) => post<NominaPlan>('/siagie/nomina/preview', formOf(files)) });
@@ -32,7 +38,9 @@ export const useNominaCommit = () => {
 };
 
 export const useInspectTemplates = () =>
-  useMutation({ mutationFn: (files: File[]) => post<TemplateInspection[]>('/siagie/templates/inspect', formOf(files)) });
+  useMutation({
+    mutationFn: (files: File[]) => post<TemplateInspection[]>('/siagie/templates/inspect', formOf(files)),
+  });
 
 export const useImportTemplateGrades = () => {
   const qc = useQueryClient();
@@ -45,7 +53,10 @@ export const useImportTemplateGrades = () => {
 export const useFillTemplates = () =>
   useMutation({
     mutationFn: (v: { files: File[]; fillFromBank: boolean; overwrite: boolean; period?: string }) =>
-      post<FillResponse>('/siagie/templates/fill', formOf(v.files, { fillFromBank: v.fillFromBank, overwrite: v.overwrite, period: v.period })),
+      post<FillResponse>(
+        '/siagie/templates/fill',
+        formOf(v.files, { fillFromBank: v.fillFromBank, overwrite: v.overwrite, period: v.period }),
+      ),
   });
 
 export function downloadBase64(fileName: string, contentType: string, base64: string) {

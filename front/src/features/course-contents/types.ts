@@ -311,5 +311,3 @@ export interface GradeSubmissionPayload {
   literalScore?: 'AD' | 'A' | 'B' | 'C' | 'EXO' | null;
   teacherFeedback?: string;
 }
-
-

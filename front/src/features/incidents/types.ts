@@ -93,4 +93,3 @@ export interface IncidentsPaginatedResponse {
     totalPages: number;
   };
 }
-

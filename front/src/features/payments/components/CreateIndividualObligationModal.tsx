@@ -14,20 +14,22 @@ import { getPeruToday } from '@/lib/dateUtils';
 // "Hoy" según la hora peruana, aunque la computadora tenga otra zona horaria
 const getTodayLocal = (): string => getPeruToday();
 
-const createIndividualSchema = z.object({
-  studentId: z.string().min(1, 'Selecciona un estudiante'),
-  concept: z.string().min(1, 'El concepto es obligatorio'),
-  title: z.string().min(3, 'El título debe tener al menos 3 caracteres'),
-  amountDue: z.coerce.number().positive('El monto debe ser mayor a 0'),
-  dueDate: z.string().min(1, 'La fecha de vencimiento es obligatoria'),
-  notes: z.string().optional(),
-  paidNow: z.boolean().default(true),
-  paymentMethod: z.enum(['CASH', 'YAPE', 'PLIN', 'BANK_TRANSFER', 'DEPOSIT', 'CREDIT_CARD']).default('CASH'),
-  operationNumber: z.string().trim().optional(),
-}).refine((d) => !d.paidNow || d.paymentMethod === 'CASH' || Boolean(d.operationNumber), {
-  message: 'Ingresa el número de operación.',
-  path: ['operationNumber'],
-});
+const createIndividualSchema = z
+  .object({
+    studentId: z.string().min(1, 'Selecciona un estudiante'),
+    concept: z.string().min(1, 'El concepto es obligatorio'),
+    title: z.string().min(3, 'El título debe tener al menos 3 caracteres'),
+    amountDue: z.coerce.number().positive('El monto debe ser mayor a 0'),
+    dueDate: z.string().min(1, 'La fecha de vencimiento es obligatoria'),
+    notes: z.string().optional(),
+    paidNow: z.boolean().default(true),
+    paymentMethod: z.enum(['CASH', 'YAPE', 'PLIN', 'BANK_TRANSFER', 'DEPOSIT', 'CREDIT_CARD']).default('CASH'),
+    operationNumber: z.string().trim().optional(),
+  })
+  .refine((d) => !d.paidNow || d.paymentMethod === 'CASH' || Boolean(d.operationNumber), {
+    message: 'Ingresa el número de operación.',
+    path: ['operationNumber'],
+  });
 
 type FormData = z.infer<typeof createIndividualSchema>;
 
@@ -105,7 +107,8 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
         notes: data.notes || undefined,
         paidNow: data.paidNow,
         paymentMethod: data.paidNow ? data.paymentMethod : undefined,
-        operationNumber: data.paidNow && data.paymentMethod !== 'CASH' && data.operationNumber ? data.operationNumber : undefined,
+        operationNumber:
+          data.paidNow && data.paymentMethod !== 'CASH' && data.operationNumber ? data.operationNumber : undefined,
       });
 
       if (data.paidNow) {
@@ -125,7 +128,11 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200"
+    >
       <div className="bg-card w-full max-w-lg rounded-2xl border border-border shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-border bg-muted/40 shrink-0">
@@ -134,21 +141,14 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
               <PlusCircle className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-black text-foreground">
-                Nuevo Cobro en Caja
-              </h2>
+              <h2 className="text-base sm:text-lg font-black text-foreground">Nuevo Cobro en Caja</h2>
               <p className="text-xs text-muted-foreground">
                 Emite y cobra trámites, certificados o conceptos extraordinarios
               </p>
             </div>
           </div>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="rounded-full h-8 w-8 hover:bg-muted"
-          >
+          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full h-8 w-8 hover:bg-muted">
             <X className="w-4 h-4 text-muted-foreground" />
           </Button>
         </div>
@@ -157,12 +157,16 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
         <form onSubmit={handleSubmit(onSubmit)} className="p-4 sm:p-6 space-y-4 overflow-y-auto">
           {/* Estudiante */}
           <div className="space-y-1.5">
-            <label htmlFor="createindividualobligationmodal-field-1" className="text-xs font-bold text-foreground flex items-center gap-1.5">
+            <label
+              htmlFor="createindividualobligationmodal-field-1"
+              className="text-xs font-bold text-foreground flex items-center gap-1.5"
+            >
               <User className="w-3.5 h-3.5 text-primary" />
               <span>Estudiante a Cobrar:</span>
             </label>
             <div className="space-y-1">
-              <input id="createindividualobligationmodal-field-1"
+              <input
+                id="createindividualobligationmodal-field-1"
                 type="text"
                 placeholder="Filtrar por apellido o DNI..."
                 value={searchTerm}
@@ -176,24 +180,23 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
                 <option value="">— Selecciona un Estudiante —</option>
                 {students.map((st) => (
                   <option key={st.id} value={st.id}>
-                    {st.lastNamePaternal} {st.lastNameMaternal || ''}, {st.firstNames} (
-                    {st.documentType}: {st.documentId})
+                    {st.lastNamePaternal} {st.lastNameMaternal || ''}, {st.firstNames} ({st.documentType}:{' '}
+                    {st.documentId})
                   </option>
                 ))}
               </select>
             </div>
-            {errors.studentId && (
-              <p className="text-xs text-destructive font-semibold">
-                {errors.studentId.message}
-              </p>
-            )}
+            {errors.studentId && <p className="text-xs text-destructive font-semibold">{errors.studentId.message}</p>}
           </div>
 
           {/* Concepto y Título */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label htmlFor="createindividualobligationmodal-concept" className="text-xs font-bold text-foreground">Concepto:</label>
-              <select id="createindividualobligationmodal-concept"
+              <label htmlFor="createindividualobligationmodal-concept" className="text-xs font-bold text-foreground">
+                Concepto:
+              </label>
+              <select
+                id="createindividualobligationmodal-concept"
                 {...register('concept')}
                 className="w-full h-9 rounded-lg border border-border bg-background px-3 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
               >
@@ -203,64 +206,59 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
                   </option>
                 ))}
               </select>
-              {errors.concept && (
-                <p className="text-xs text-destructive font-semibold">
-                  {errors.concept.message}
-                </p>
-              )}
+              {errors.concept && <p className="text-xs text-destructive font-semibold">{errors.concept.message}</p>}
             </div>
 
             <div className="space-y-1.5">
-              <label htmlFor="createindividualobligationmodal-title" className="text-xs font-bold text-foreground">Título / Glosa:</label>
-              <Input id="createindividualobligationmodal-title"
+              <label htmlFor="createindividualobligationmodal-title" className="text-xs font-bold text-foreground">
+                Título / Glosa:
+              </label>
+              <Input
+                id="createindividualobligationmodal-title"
                 {...register('title')}
                 placeholder="Ej. Certificado de Estudios"
                 className="h-9 text-xs"
               />
-              {errors.title && (
-                <p className="text-xs text-destructive font-semibold">
-                  {errors.title.message}
-                </p>
-              )}
+              {errors.title && <p className="text-xs text-destructive font-semibold">{errors.title.message}</p>}
             </div>
           </div>
 
           {/* Monto y Fecha Vencimiento */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label htmlFor="createindividualobligationmodal-amountDue" className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <label
+                htmlFor="createindividualobligationmodal-amountDue"
+                className="text-xs font-bold text-foreground flex items-center gap-1.5"
+              >
                 <DollarSign className="w-3.5 h-3.5 text-primary" />
                 <span>Monto a Cobrar (S/):</span>
               </label>
-              <Input id="createindividualobligationmodal-amountDue"
+              <Input
+                id="createindividualobligationmodal-amountDue"
                 type="number"
                 step="0.01"
                 min="0.10"
                 {...register('amountDue')}
                 className="h-9 text-xs font-black"
               />
-              {errors.amountDue && (
-                <p className="text-xs text-destructive font-semibold">
-                  {errors.amountDue.message}
-                </p>
-              )}
+              {errors.amountDue && <p className="text-xs text-destructive font-semibold">{errors.amountDue.message}</p>}
             </div>
 
             <div className="space-y-1.5">
-              <label htmlFor="createindividualobligationmodal-dueDate" className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <label
+                htmlFor="createindividualobligationmodal-dueDate"
+                className="text-xs font-bold text-foreground flex items-center gap-1.5"
+              >
                 <Calendar className="w-3.5 h-3.5 text-primary" />
                 <span>Fecha:</span>
               </label>
-              <Input id="createindividualobligationmodal-dueDate"
+              <Input
+                id="createindividualobligationmodal-dueDate"
                 type="date"
                 {...register('dueDate')}
                 className="h-9 text-xs"
               />
-              {errors.dueDate && (
-                <p className="text-xs text-destructive font-semibold">
-                  {errors.dueDate.message}
-                </p>
-              )}
+              {errors.dueDate && <p className="text-xs text-destructive font-semibold">{errors.dueDate.message}</p>}
             </div>
           </div>
 
@@ -270,20 +268,14 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
               <div className="flex items-center gap-2">
                 <Banknote className="w-4 h-4 text-emerald-500" />
                 <div>
-                  <span className="text-xs font-bold text-foreground block">
-                    Cobrar en caja de inmediato
-                  </span>
+                  <span className="text-xs font-bold text-foreground block">Cobrar en caja de inmediato</span>
                   <span className="text-xs text-muted-foreground">
                     Registra el ingreso en el Arqueo de Caja y genera recibo
                   </span>
                 </div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  {...register('paidNow')}
-                  className="sr-only peer"
-                />
+                <input type="checkbox" {...register('paidNow')} className="sr-only peer" />
                 <div className="w-9 h-5 bg-muted-foreground/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
               </label>
             </div>
@@ -293,8 +285,14 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* Método de Pago */}
                   <div className="space-y-1">
-                    <label htmlFor="createindividualobligationmodal-paymentMethod" className="text-xs font-bold text-foreground">Método de Cobro:</label>
-                    <select id="createindividualobligationmodal-paymentMethod"
+                    <label
+                      htmlFor="createindividualobligationmodal-paymentMethod"
+                      className="text-xs font-bold text-foreground"
+                    >
+                      Método de Cobro:
+                    </label>
+                    <select
+                      id="createindividualobligationmodal-paymentMethod"
                       {...register('paymentMethod')}
                       className="w-full h-8 rounded-lg border border-border bg-background px-2.5 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
                     >
@@ -309,10 +307,14 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
                   {/* N° Operación (si no es efectivo) */}
                   {paymentMethod !== 'CASH' ? (
                     <div className="space-y-1">
-                      <label htmlFor="createindividualobligationmodal-operationNumber" className="text-xs font-bold text-muted-foreground">
+                      <label
+                        htmlFor="createindividualobligationmodal-operationNumber"
+                        className="text-xs font-bold text-muted-foreground"
+                      >
                         N° de operación ({PAYMENT_METHOD_LABEL[paymentMethod]}):
                       </label>
-                      <Input id="createindividualobligationmodal-operationNumber"
+                      <Input
+                        id="createindividualobligationmodal-operationNumber"
                         {...register('operationNumber')}
                         placeholder="Ej: 94827104"
                         className="h-8 text-xs font-mono"
@@ -321,13 +323,16 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
                         <p className="text-xs text-destructive">{errors.operationNumber.message}</p>
                       )}
                     </div>
-                  ) : <div />}
+                  ) : (
+                    <div />
+                  )}
                 </div>
 
                 <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 shrink-0" />
                   <span>
-                    El ingreso entra a <strong>tu caja</strong> con número de recibo correlativo. En efectivo necesitas tener la caja abierta.
+                    El ingreso entra a <strong>tu caja</strong> con número de recibo correlativo. En efectivo necesitas
+                    tener la caja abierta.
                   </span>
                 </div>
               </div>
@@ -336,11 +341,15 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
 
           {/* Notas */}
           <div className="space-y-1.5">
-            <label htmlFor="createindividualobligationmodal-notes" className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
+            <label
+              htmlFor="createindividualobligationmodal-notes"
+              className="text-xs font-bold text-muted-foreground flex items-center gap-1.5"
+            >
               <FileText className="w-3.5 h-3.5" />
               <span>Observaciones / Notas (Opcional):</span>
             </label>
-            <textarea id="createindividualobligationmodal-notes"
+            <textarea
+              id="createindividualobligationmodal-notes"
               {...register('notes')}
               rows={2}
               placeholder="Detalle o justificación administrativa..."
@@ -367,8 +376,8 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
               {isSubmitting
                 ? 'Procesando...'
                 : paidNow
-                ? `Cobrar S/ ${Number(amountDue || 0).toFixed(2)} y Registrar en Caja`
-                : 'Emitir Deuda Pendiente'}
+                  ? `Cobrar S/ ${Number(amountDue || 0).toFixed(2)} y Registrar en Caja`
+                  : 'Emitir Deuda Pendiente'}
             </Button>
           </div>
         </form>

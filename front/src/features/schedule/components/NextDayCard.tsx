@@ -74,7 +74,8 @@ export const NextDayCard: React.FC<{ studentId: string | null; compact?: boolean
         {data.homeworks.length > 0 && (
           <div>
             <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Tareas que vencen {pendingHw.length ? `(${pendingHw.length} pendiente${pendingHw.length > 1 ? 's' : ''})` : ''}
+              Tareas que vencen{' '}
+              {pendingHw.length ? `(${pendingHw.length} pendiente${pendingHw.length > 1 ? 's' : ''})` : ''}
             </p>
             <ul className="space-y-1">
               {data.homeworks.map((h) => (
@@ -95,7 +96,9 @@ export const NextDayCard: React.FC<{ studentId: string | null; compact?: boolean
 
         {data.events.length > 0 && (
           <div>
-            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">En el calendario</p>
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              En el calendario
+            </p>
             <ul className="space-y-1">
               {data.events.map((e) => (
                 <li key={e.id} className="flex items-start gap-2 text-sm text-foreground">

@@ -42,7 +42,8 @@ import { formatPeruDateTime, formatPeruShortDate } from '@/lib/dateUtils';
 
 type ModalKind = 'plan' | 'edit' | 'reset' | 'payments' | null;
 
-const formatSoles = (n: number) => `S/ ${n.toLocaleString('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+const formatSoles = (n: number) =>
+  `S/ ${n.toLocaleString('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 
 const errorMessage = (err: unknown, fallback: string) =>
   (err as { response?: { data?: { message?: string } } })?.response?.data?.message || fallback;
@@ -99,7 +100,10 @@ export const SchoolDetailPage: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-8">
-      <Link to="/super-admin" className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1">
+      <Link
+        to="/super-admin"
+        className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1"
+      >
         <ArrowLeft className="w-3.5 h-3.5" /> Torre de Control
       </Link>
 
@@ -107,7 +111,11 @@ export const SchoolDetailPage: React.FC = () => {
       <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4 border-b border-border pb-4">
         <div className="flex items-start gap-3 min-w-0">
           {school.logoUrl ? (
-            <img src={school.logoUrl} alt="" className="w-12 h-12 rounded-lg object-contain border border-border bg-background" />
+            <img
+              src={school.logoUrl}
+              alt=""
+              className="w-12 h-12 rounded-lg object-contain border border-border bg-background"
+            />
           ) : (
             <div className="w-12 h-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
               <Building2 className="w-6 h-6" />
@@ -122,17 +130,29 @@ export const SchoolDetailPage: React.FC = () => {
             <div className="flex flex-wrap gap-1.5 mt-2">
               <Badge className="text-xs">Plan {school.plan}</Badge>
               {school.isActive ? (
-                <Badge variant={status?.access === 'ACTIVE' ? 'success' : status?.access === 'GRACE' ? 'warning' : 'destructive'} className="text-xs">
+                <Badge
+                  variant={
+                    status?.access === 'ACTIVE' ? 'success' : status?.access === 'GRACE' ? 'warning' : 'destructive'
+                  }
+                  className="text-xs"
+                >
                   {status ? ACCESS_LABEL[status.access] : 'Activo'}
                 </Badge>
               ) : (
-                <Badge variant="destructive" className="text-xs">Suspendido</Badge>
+                <Badge variant="destructive" className="text-xs">
+                  Suspendido
+                </Badge>
               )}
             </div>
           </div>
         </div>
         <div className="flex flex-wrap gap-1.5">
-          <Button size="sm" variant="secondary" className="h-8 text-xs gap-1 border border-border" onClick={impersonate}>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="h-8 text-xs gap-1 border border-border"
+            onClick={impersonate}
+          >
             <ExternalLink className="w-3.5 h-3.5" /> Ver colegio
           </Button>
           <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={() => setModal('payments')}>
@@ -160,7 +180,9 @@ export const SchoolDetailPage: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-foreground">Código de ingreso:</span>
-                <span className="text-xs font-mono font-bold bg-muted px-2 py-0.5 rounded text-primary">{school.slug}</span>
+                <span className="text-xs font-mono font-bold bg-muted px-2 py-0.5 rounded text-primary">
+                  {school.slug}
+                </span>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Enlace público: <span className="font-mono">{schoolLoginUrl(school.slug)}</span>
@@ -172,7 +194,7 @@ export const SchoolDetailPage: React.FC = () => {
             variant="outline"
             className="text-xs gap-1.5 shrink-0"
             onClick={() => {
-              navigator.clipboard.writeText(schoolLoginUrl(school.slug ?? ""));
+              navigator.clipboard.writeText(schoolLoginUrl(school.slug ?? ''));
               toast.success('Enlace de ingreso copiado al portapapeles.');
             }}
           >
@@ -193,7 +215,9 @@ export const SchoolDetailPage: React.FC = () => {
               {formatSoles(school.effectiveMonthlyFee ?? 0)}
               {school.monthlyFee != null && <span className="text-xs text-muted-foreground"> (pactada)</span>}
             </Row>
-            <Row label="Vigente hasta">{school.planExpiresAt ? formatPeruShortDate(school.planExpiresAt) : 'Mensual indefinido'}</Row>
+            <Row label="Vigente hasta">
+              {school.planExpiresAt ? formatPeruShortDate(school.planExpiresAt) : 'Mensual indefinido'}
+            </Row>
             {status?.access !== 'ACTIVE' && status && (
               <Row label="Vencido hace">
                 <span className="text-destructive font-semibold">{status.daysOverdue} días</span>
@@ -202,7 +226,9 @@ export const SchoolDetailPage: React.FC = () => {
             {status?.access === 'ACTIVE' && status.daysUntilExpiry !== null && (
               <Row label="Faltan">{status.daysUntilExpiry} días</Row>
             )}
-            <Row label="Último pago">{school.lastPaymentOn ? formatPeruShortDate(school.lastPaymentOn) : 'Sin pagos registrados'}</Row>
+            <Row label="Último pago">
+              {school.lastPaymentOn ? formatPeruShortDate(school.lastPaymentOn) : 'Sin pagos registrados'}
+            </Row>
           </CardContent>
         </Card>
 
@@ -218,7 +244,14 @@ export const SchoolDetailPage: React.FC = () => {
               {pct !== null && <span className="text-xs text-muted-foreground"> ({pct}%)</span>}
             </Row>
             {pct !== null && (
-              <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden" role="meter" aria-label="Uso del cupo" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+              <div
+                className="h-1.5 w-full rounded-full bg-muted overflow-hidden"
+                role="meter"
+                aria-label="Uso del cupo"
+                aria-valuenow={pct}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              >
                 <div
                   className={`h-full rounded-full ${pct >= 100 ? 'bg-destructive' : pct >= 90 ? 'bg-amber-500' : 'bg-primary'}`}
                   style={{ width: `${Math.min(pct, 100)}%` }}
@@ -243,7 +276,9 @@ export const SchoolDetailPage: React.FC = () => {
           <CardContent className="space-y-2 text-sm">
             <Row label="Correo">{school.email || '—'}</Row>
             <Row label="Teléfono">{school.phone || '—'}</Row>
-            <Row label="Ubicación">{[school.district, school.province, school.department].filter(Boolean).join(', ') || '—'}</Row>
+            <Row label="Ubicación">
+              {[school.district, school.province, school.department].filter(Boolean).join(', ') || '—'}
+            </Row>
             <Row label="Cliente desde">{school.createdAt ? formatPeruShortDate(school.createdAt) : '—'}</Row>
           </CardContent>
         </Card>
@@ -265,7 +300,14 @@ export const SchoolDetailPage: React.FC = () => {
               <Skeleton className="h-40 w-full" />
             ) : (
               <>
-                <div className="h-2 w-full rounded-full bg-muted overflow-hidden" role="meter" aria-label="Avance de la puesta en marcha" aria-valuenow={onboarding.percent} aria-valuemin={0} aria-valuemax={100}>
+                <div
+                  className="h-2 w-full rounded-full bg-muted overflow-hidden"
+                  role="meter"
+                  aria-label="Avance de la puesta en marcha"
+                  aria-valuenow={onboarding.percent}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                >
                   <div className="h-full rounded-full bg-primary" style={{ width: `${onboarding.percent}%` }} />
                 </div>
                 {onboarding.nextStep && (
@@ -282,7 +324,9 @@ export const SchoolDetailPage: React.FC = () => {
                         <Circle className="w-4 h-4 text-muted-foreground shrink-0" />
                       )}
                       <span className={step.done ? 'text-foreground' : 'text-muted-foreground'}>{step.label}</span>
-                      {step.detail && step.done && <span className="text-xs text-muted-foreground">· {step.detail}</span>}
+                      {step.detail && step.done && (
+                        <span className="text-xs text-muted-foreground">· {step.detail}</span>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -294,10 +338,20 @@ export const SchoolDetailPage: React.FC = () => {
         <SchoolNotesCard schoolId={schoolId} />
       </div>
 
-      <EditSchoolPlanModal key={`plan-${school.id}-${modal}`} school={school} isOpen={modal === 'plan'} onClose={() => setModal(null)} />
+      <EditSchoolPlanModal
+        key={`plan-${school.id}-${modal}`}
+        school={school}
+        isOpen={modal === 'plan'}
+        onClose={() => setModal(null)}
+      />
       <EditSchoolInfoModal school={school} isOpen={modal === 'edit'} onClose={() => setModal(null)} />
       <ResetAdminPasswordModal school={school} isOpen={modal === 'reset'} onClose={() => setModal(null)} />
-      <SubscriptionPaymentsModal key={`pay-${school.id}-${modal}`} school={school} isOpen={modal === 'payments'} onClose={() => setModal(null)} />
+      <SubscriptionPaymentsModal
+        key={`pay-${school.id}-${modal}`}
+        school={school}
+        isOpen={modal === 'payments'}
+        onClose={() => setModal(null)}
+      />
     </div>
   );
 };
@@ -342,7 +396,14 @@ const SchoolNotesCard: React.FC<{ schoolId: string }> = ({ schoolId }) => {
   const togglePin = (note: SchoolNote) => saveNote({ id: note.id, pinned: !note.pinned });
 
   const remove = async (note: SchoolNote) => {
-    if (await confirmDialog({ title: '¿Eliminar esta nota interna?', description: 'No se puede deshacer.', confirmText: 'Eliminar', variant: 'danger' })) {
+    if (
+      await confirmDialog({
+        title: '¿Eliminar esta nota interna?',
+        description: 'No se puede deshacer.',
+        confirmText: 'Eliminar',
+        variant: 'danger',
+      })
+    ) {
       deleteNote(note.id, { onError: (err) => toast.error(errorMessage(err, 'No se pudo eliminar la nota.')) });
     }
   };
@@ -353,7 +414,9 @@ const SchoolNotesCard: React.FC<{ schoolId: string }> = ({ schoolId }) => {
         <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
           <StickyNote className="w-4 h-4 text-primary" /> Notas internas
         </CardTitle>
-        <p className="text-xs text-muted-foreground">Solo las ve el equipo de la plataforma. Ej.: “llamar en marzo”, “pidió descuento”.</p>
+        <p className="text-xs text-muted-foreground">
+          Solo las ve el equipo de la plataforma. Ej.: “llamar en marzo”, “pidió descuento”.
+        </p>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="space-y-2">
@@ -366,7 +429,13 @@ const SchoolNotesCard: React.FC<{ schoolId: string }> = ({ schoolId }) => {
             className="text-sm"
           />
           <div className="flex justify-end">
-            <Button size="sm" className="h-8 text-xs" onClick={add} disabled={!draft.trim()} isLoading={isPending && !editing}>
+            <Button
+              size="sm"
+              className="h-8 text-xs"
+              onClick={add}
+              disabled={!draft.trim()}
+              isLoading={isPending && !editing}
+            >
               Agregar nota
             </Button>
           </div>
@@ -379,7 +448,10 @@ const SchoolNotesCard: React.FC<{ schoolId: string }> = ({ schoolId }) => {
         ) : (
           <ul className="space-y-2">
             {notes.map((note) => (
-              <li key={note.id} className={`rounded-xl border p-3 text-sm ${note.pinned ? 'border-primary/40 bg-primary/5' : 'border-border'}`}>
+              <li
+                key={note.id}
+                className={`rounded-xl border p-3 text-sm ${note.pinned ? 'border-primary/40 bg-primary/5' : 'border-border'}`}
+              >
                 {editing?.id === note.id ? (
                   <div className="space-y-2">
                     <Textarea
@@ -394,7 +466,13 @@ const SchoolNotesCard: React.FC<{ schoolId: string }> = ({ schoolId }) => {
                       <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditing(null)}>
                         Cancelar
                       </Button>
-                      <Button size="sm" className="h-7 text-xs" onClick={saveEdit} disabled={!editing.body.trim()} isLoading={isPending}>
+                      <Button
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={saveEdit}
+                        disabled={!editing.body.trim()}
+                        isLoading={isPending}
+                      >
                         Guardar
                       </Button>
                     </div>

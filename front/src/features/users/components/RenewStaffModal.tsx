@@ -8,22 +8,37 @@ import { Button } from '@/components/ui/button';
 import { useCopyStaffYear } from '../api/useUsers';
 import type { DirectoryUser } from '../types';
 
-const ROLE: Record<string, string> = { TEACHER: 'Docente', ADMINISTRATIVE: 'Administrativo', SCHOOL_ADMIN: 'Dirección' };
+const ROLE: Record<string, string> = {
+  TEACHER: 'Docente',
+  ADMINISTRATIVE: 'Administrativo',
+  SCHOOL_ADMIN: 'Dirección',
+};
 
 /**
  * Renovar personal: elegir a quién del año vigente se contrata para el año siguiente (quien ya
  * figura en el año destino aparece marcado y no se duplica).
  */
-export const RenewStaffModal: React.FC<{ fromYear: { id: string; year: number }; toYear: { id: string; year: number }; onClose: () => void }> = ({
-  fromYear,
-  toYear,
-  onClose,
-}) => {
+export const RenewStaffModal: React.FC<{
+  fromYear: { id: string; year: number };
+  toYear: { id: string; year: number };
+  onClose: () => void;
+}> = ({ fromYear, toYear, onClose }) => {
   const copy = useCopyStaffYear();
   const fetchYear = (yearId: string) =>
-    api.get<{ data: DirectoryUser[] }>('/users', { params: { staffOnly: 'true', yearScope: 'year', limit: 1000 }, headers: { 'x-academic-year-id': yearId } }).then((r) => r.data.data);
-  const { data: source = [], isLoading } = useQuery({ queryKey: ['users', 'renew', fromYear.id], queryFn: () => fetchYear(fromYear.id) });
-  const { data: target = [] } = useQuery({ queryKey: ['users', 'renew', toYear.id], queryFn: () => fetchYear(toYear.id) });
+    api
+      .get<{ data: DirectoryUser[] }>('/users', {
+        params: { staffOnly: 'true', yearScope: 'year', limit: 1000 },
+        headers: { 'x-academic-year-id': yearId },
+      })
+      .then((r) => r.data.data);
+  const { data: source = [], isLoading } = useQuery({
+    queryKey: ['users', 'renew', fromYear.id],
+    queryFn: () => fetchYear(fromYear.id),
+  });
+  const { data: target = [] } = useQuery({
+    queryKey: ['users', 'renew', toYear.id],
+    queryFn: () => fetchYear(toYear.id),
+  });
   const already = useMemo(() => new Set(target.map((u) => u.id)), [target]);
   const candidates = source.filter((u) => u.isActive && u.role !== 'PARENT');
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -87,14 +102,24 @@ export const RenewStaffModal: React.FC<{ fromYear: { id: string; year: number };
             const isIn = already.has(u.id);
             return (
               <li key={u.id}>
-                <label className={`flex items-center justify-between gap-3 px-3 py-2 ${isIn ? 'opacity-60' : 'cursor-pointer hover:bg-muted/30'}`}>
+                <label
+                  className={`flex items-center justify-between gap-3 px-3 py-2 ${isIn ? 'opacity-60' : 'cursor-pointer hover:bg-muted/30'}`}
+                >
                   <span className="flex items-center gap-2">
-                    <input type="checkbox" disabled={isIn} checked={isIn || selected.has(u.id)} onChange={() => toggle(u.id)} className="w-4 h-4 rounded" />
+                    <input
+                      type="checkbox"
+                      disabled={isIn}
+                      checked={isIn || selected.has(u.id)}
+                      onChange={() => toggle(u.id)}
+                      className="w-4 h-4 rounded"
+                    />
                     <span className="font-semibold text-foreground">
                       {u.lastNamePaternal} {u.lastNameMaternal}, {u.firstName}
                     </span>
                   </span>
-                  <span className="text-muted-foreground">{isIn ? `Ya en ${toYear.year}` : ROLE[u.role] ?? u.role}</span>
+                  <span className="text-muted-foreground">
+                    {isIn ? `Ya en ${toYear.year}` : (ROLE[u.role] ?? u.role)}
+                  </span>
                 </label>
               </li>
             );

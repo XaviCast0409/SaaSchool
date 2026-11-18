@@ -21,13 +21,19 @@ export const MyCoursesPage: React.FC = () => {
   const { data: periods } = usePeriods();
   const [period, setPeriod] = useState<number | null>(null);
   useEffect(() => {
-    if (periods && period === null) setPeriod(periods.periods.find((p) => p.status === 'OPEN')?.periodNumber ?? periods.periods[periods.periods.length - 1]?.periodNumber ?? 1);
+    if (periods && period === null)
+      setPeriod(
+        periods.periods.find((p) => p.status === 'OPEN')?.periodNumber ??
+          periods.periods[periods.periods.length - 1]?.periodNumber ??
+          1,
+      );
   }, [periods, period]);
   // Registro de notas, avance y libretas son del plan PRO: en BASIC el docente usa el aula virtual
   const { data: school } = useGetActiveSchool();
   const hasGrades = school ? (PLAN_HIERARCHY[school.plan ?? 'BASIC'] ?? 1) >= PLAN_HIERARCHY.PRO : null;
   const { data: progress } = useMyProgress(hasGrades ? period : null);
-  const [virtualClassroom, setVirtualClassroom] = useState<React.ComponentProps<typeof TeacherCourseContentsModal>['assignment']>(null);
+  const [virtualClassroom, setVirtualClassroom] =
+    useState<React.ComponentProps<typeof TeacherCourseContentsModal>['assignment']>(null);
   const gradebookUrl = (assignmentId: string) => `/gradebook/${assignmentId}?period=${period ?? 1}`;
   const current = periods?.periods.find((p) => p.periodNumber === period);
   // Aulas de tutoría: las que envía el servidor (aunque no dicte cursos en ellas) y, por compatibilidad, las de sus cursos
@@ -49,20 +55,37 @@ export const MyCoursesPage: React.FC = () => {
     <div className="max-w-5xl">
       <PageHeader
         title="Mis cursos"
-        description={current ? <>Periodo: {current.name} <PeriodStatusBadge status={current.status} /></> : undefined}
-        actions={periods && (
-          <Select aria-label="Periodo" value={period ?? ''} onChange={(e) => setPeriod(Number(e.target.value))}>
-            {periods.periods.map((p) => <option key={p.periodNumber} value={p.periodNumber}>{p.name}</option>)}
-          </Select>
-        )}
+        description={
+          current ? (
+            <>
+              Periodo: {current.name} <PeriodStatusBadge status={current.status} />
+            </>
+          ) : undefined
+        }
+        actions={
+          periods && (
+            <Select aria-label="Periodo" value={period ?? ''} onChange={(e) => setPeriod(Number(e.target.value))}>
+              {periods.periods.map((p) => (
+                <option key={p.periodNumber} value={p.periodNumber}>
+                  {p.name}
+                </option>
+              ))}
+            </Select>
+          )
+        }
       />
       {hasGrades === false && (
         <p className="mb-4 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-          El registro de notas, el avance y las libretas están disponibles en el plan PRO del colegio. Mientras tanto, publica tus clases y tareas en el aula virtual.
+          El registro de notas, el avance y las libretas están disponibles en el plan PRO del colegio. Mientras tanto,
+          publica tus clases y tareas en el aula virtual.
         </p>
       )}
       {courses.length === 0 ? (
-        <EmptyState icon={<BookOpen className="h-8 w-8" />} title="Aún no tienes cursos asignados" description="La Dirección asigna los cursos en Carga docente." />
+        <EmptyState
+          icon={<BookOpen className="h-8 w-8" />}
+          title="Aún no tienes cursos asignados"
+          description="La Dirección asigna los cursos en Carga docente."
+        />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {courses.map((c) => {
@@ -96,7 +119,9 @@ export const MyCoursesPage: React.FC = () => {
                     )}
                   </Link>
                 )}
-                <div className={`mt-3 grid gap-2 border-t border-border pt-3 ${hasGrades === false ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                <div
+                  className={`mt-3 grid gap-2 border-t border-border pt-3 ${hasGrades === false ? 'grid-cols-1' : 'grid-cols-2'}`}
+                >
                   {hasGrades !== false && (
                     <Button asChild size="sm" variant="outline" className="gap-1.5">
                       <Link to={gradebookUrl(c.id)}>
@@ -108,13 +133,15 @@ export const MyCoursesPage: React.FC = () => {
                   <Button
                     size="sm"
                     className="gap-1.5"
-                    onClick={() => setVirtualClassroom({
-                      id: c.id,
-                      areaName: c.area.name,
-                      grade: c.classroom.grade,
-                      section: c.classroom.section,
-                      educationLevel: c.classroom.educationLevel,
-                    })}
+                    onClick={() =>
+                      setVirtualClassroom({
+                        id: c.id,
+                        areaName: c.area.name,
+                        grade: c.classroom.grade,
+                        section: c.classroom.section,
+                        educationLevel: c.classroom.educationLevel,
+                      })
+                    }
                   >
                     <MonitorPlay className="h-4 w-4" />
                     Aula virtual
@@ -131,10 +158,16 @@ export const MyCoursesPage: React.FC = () => {
           <div className="mt-2 flex flex-wrap gap-2">
             {tutorRooms.map((room) => (
               <React.Fragment key={room.id}>
-                <Link to={`/academic/tutor-report?classroomId=${room.id}`} className="rounded-md border border-primary/40 bg-primary/5 px-3 py-1.5 text-sm hover:bg-primary/10">
+                <Link
+                  to={`/academic/tutor-report?classroomId=${room.id}`}
+                  className="rounded-md border border-primary/40 bg-primary/5 px-3 py-1.5 text-sm hover:bg-primary/10"
+                >
                   Conducta y comentarios · {classroomLabel(room)}
                 </Link>
-                <Link to={`/academic/report-cards/print?classroomId=${room.id}`} className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-muted">
+                <Link
+                  to={`/academic/report-cards/print?classroomId=${room.id}`}
+                  className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-muted"
+                >
                   Libretas de {classroomLabel(room)}
                 </Link>
               </React.Fragment>
@@ -150,4 +183,3 @@ export const MyCoursesPage: React.FC = () => {
     </div>
   );
 };
-

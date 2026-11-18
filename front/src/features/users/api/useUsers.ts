@@ -33,10 +33,7 @@ export interface UserQueryParams {
 }
 
 export const useUsers = (roleOrParams?: UserRole | UserQueryParams) => {
-  const queryParams: UserQueryParams =
-    typeof roleOrParams === 'string'
-      ? { role: roleOrParams }
-      : roleOrParams || {};
+  const queryParams: UserQueryParams = typeof roleOrParams === 'string' ? { role: roleOrParams } : roleOrParams || {};
 
   return useQuery({
     queryKey: ['users', queryParams],
@@ -65,7 +62,7 @@ export const useCreateUser = () => {
     mutationFn: async (payload: CreateUserPayload) => {
       const response = await api.post<{ status: string; data: DirectoryUser & { temporaryPassword?: string | null } }>(
         '/users',
-        payload
+        payload,
       );
       return response.data.data;
     },
@@ -96,8 +93,17 @@ export const useResetUserPassword = () => {
 export const useSetStaffYear = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ userId, academicYearId, hired, position }: { userId: string; academicYearId: string; hired: boolean; position?: string | null }) =>
-      (await api.put(`/users/${userId}/years/${academicYearId}`, { hired, position })).data.data,
+    mutationFn: async ({
+      userId,
+      academicYearId,
+      hired,
+      position,
+    }: {
+      userId: string;
+      academicYearId: string;
+      hired: boolean;
+      position?: string | null;
+    }) => (await api.put(`/users/${userId}/years/${academicYearId}`, { hired, position })).data.data,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.invalidateQueries({ queryKey: ['staff-load'] });

@@ -87,7 +87,11 @@ export const AvatarUploader: React.FC<Props> = ({ name, avatarUrl, userId, onCha
             disabled={busy}
             className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-secondary disabled:opacity-60"
           >
-            {upload.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" aria-hidden />}
+            {upload.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Camera className="h-3.5 w-3.5" aria-hidden />
+            )}
             {avatarUrl ? 'Cambiar foto' : 'Subir foto'}
           </button>
           {avatarUrl && (

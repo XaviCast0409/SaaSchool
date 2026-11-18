@@ -11,7 +11,8 @@ export const ScheduleConflicts: React.FC = () => {
   if (!data || data.length === 0) {
     return (
       <Card className="flex items-center gap-3 p-4 text-sm text-foreground">
-        <CheckCircle2 className="h-5 w-5 text-emerald-600" aria-hidden /> Ningún docente tiene dos clases a la misma hora.
+        <CheckCircle2 className="h-5 w-5 text-emerald-600" aria-hidden /> Ningún docente tiene dos clases a la misma
+        hora.
       </Card>
     );
   }

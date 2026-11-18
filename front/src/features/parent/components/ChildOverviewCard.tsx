@@ -1,12 +1,6 @@
 import React from 'react';
 import { UserAvatar } from '@/components/ui/user-avatar';
-import {
-  School,
-  UserCheck,
-  ShieldCheck,
-  FileText,
-  Phone,
-} from 'lucide-react';
+import { School, UserCheck, ShieldCheck, FileText, Phone } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { ParentChildInfo } from '../types';
 
@@ -39,9 +33,7 @@ export const ChildOverviewCard: React.FC<ChildOverviewCardProps> = ({ child }) =
               {child.studentCode && (
                 <>
                   <span className="text-muted-foreground/40">•</span>
-                  <span className="text-xs text-muted-foreground font-medium">
-                    SIAGIE: {child.studentCode}
-                  </span>
+                  <span className="text-xs text-muted-foreground font-medium">SIAGIE: {child.studentCode}</span>
                 </>
               )}
             </div>
@@ -91,9 +83,7 @@ export const ChildOverviewCard: React.FC<ChildOverviewCardProps> = ({ child }) =
             <span className="text-xs uppercase font-bold tracking-wider text-muted-foreground block">
               Docente Tutor(a)
             </span>
-            <span className="font-bold text-foreground block truncate mt-0.5">
-              {tutor?.fullName || 'Por asignar'}
-            </span>
+            <span className="font-bold text-foreground block truncate mt-0.5">{tutor?.fullName || 'Por asignar'}</span>
             {tutor?.cellphone && (
               <span className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                 <Phone className="w-3 h-3 text-primary" />

@@ -8,9 +8,7 @@ export const usePickups = (studentId?: string | null) => {
     queryKey: ['pickups', studentId],
     queryFn: async (): Promise<AuthorizedPickup[]> => {
       if (!studentId) return [];
-      const res = await api.get<{ status: string; data: AuthorizedPickup[] }>(
-        `/pickups?studentId=${studentId}`,
-      );
+      const res = await api.get<{ status: string; data: AuthorizedPickup[] }>(`/pickups?studentId=${studentId}`);
       return res.data.data;
     },
     enabled: Boolean(studentId),
@@ -48,10 +46,7 @@ export const useUpdatePickup = () => {
       studentId: string;
       payload: UpdatePickupPayload;
     }): Promise<AuthorizedPickup> => {
-      const res = await api.patch<{ status: string; data: AuthorizedPickup }>(
-        `/pickups/${id}`,
-        payload,
-      );
+      const res = await api.patch<{ status: string; data: AuthorizedPickup }>(`/pickups/${id}`, payload);
       return res.data.data;
     },
     onSuccess: (_, variables) => {

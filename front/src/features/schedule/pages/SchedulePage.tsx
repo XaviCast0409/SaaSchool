@@ -36,19 +36,26 @@ const ClassroomScheduleView: React.FC<{ canEdit: boolean }> = ({ canEdit }) => {
           className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
           value={classroomId}
           onChange={(e) => {
-            if (editorDirty && !window.confirm('Tienes cambios sin guardar en este horario. Si cambias de aula se perderán. ¿Continuar?')) return;
+            if (
+              editorDirty &&
+              !window.confirm('Tienes cambios sin guardar en este horario. Si cambias de aula se perderán. ¿Continuar?')
+            )
+              return;
             setEditorDirty(false);
             setClassroomId(e.target.value);
           }}
         >
           {classrooms.map((c) => (
             <option key={c.id} value={c.id}>
-              {c.educationLevel === 'INITIAL' ? `${c.grade} años` : `${c.grade}.°`} "{c.section}" · {levelName(c.educationLevel)}
+              {c.educationLevel === 'INITIAL' ? `${c.grade} años` : `${c.grade}.°`} "{c.section}" ·{' '}
+              {levelName(c.educationLevel)}
             </option>
           ))}
         </select>
       </label>
-      {classroomId && <ScheduleEditor key={classroomId} classroomId={classroomId} canEdit={canEdit} onDirtyChange={setEditorDirty} />}
+      {classroomId && (
+        <ScheduleEditor key={classroomId} classroomId={classroomId} canEdit={canEdit} onDirtyChange={setEditorDirty} />
+      )}
     </div>
   );
 };
@@ -66,20 +73,28 @@ const FamilyView: React.FC = () => {
   const { selectedChildId, setSelectedChildId } = useParentStore();
   const studentId = useMemo(() => {
     if (isStudent) return user?.studentId ?? null;
-    return children.some((c) => c.id === selectedChildId) ? selectedChildId : children[0]?.id ?? null;
+    return children.some((c) => c.id === selectedChildId) ? selectedChildId : (children[0]?.id ?? null);
   }, [isStudent, user, children, selectedChildId]);
   const { data, isLoading } = useStudentSchedule(studentId);
 
   return (
     <div className="space-y-4">
-      {!isStudent && <ChildSwitcher childrenList={children} selectedId={studentId ?? ''} onSelect={setSelectedChildId} />}
+      {!isStudent && (
+        <ChildSwitcher childrenList={children} selectedId={studentId ?? ''} onSelect={setSelectedChildId} />
+      )}
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-1">
           <NextDayCard studentId={studentId} />
         </div>
         <div className="lg:col-span-2">
-          <h2 className="mb-2 text-sm font-semibold text-foreground">Horario semanal {data?.classroom ? `· ${data.classroom.label}` : ''}</h2>
-          {isLoading ? <Skeleton className="h-64 w-full" /> : <WeeklySchedule blocks={data?.blocks ?? []} highlightDay={todayWeekday()} />}
+          <h2 className="mb-2 text-sm font-semibold text-foreground">
+            Horario semanal {data?.classroom ? `· ${data.classroom.label}` : ''}
+          </h2>
+          {isLoading ? (
+            <Skeleton className="h-64 w-full" />
+          ) : (
+            <WeeklySchedule blocks={data?.blocks ?? []} highlightDay={todayWeekday()} />
+          )}
         </div>
       </div>
     </div>
@@ -96,7 +111,10 @@ export const SchedulePage: React.FC = () => {
   if (role === 'PARENT' || role === 'STUDENT') {
     return (
       <div className="max-w-6xl">
-        <PageHeader title="Horario" description="Qué toca cada día y qué llevar. Se actualiza solo cuando el colegio cambia el horario." />
+        <PageHeader
+          title="Horario"
+          description="Qué toca cada día y qué llevar. Se actualiza solo cuando el colegio cambia el horario."
+        />
         <FamilyView />
       </div>
     );
@@ -130,11 +148,13 @@ export const SchedulePage: React.FC = () => {
       )}
       {isManager && (
         <div className="mb-4 inline-flex flex-wrap rounded-lg border border-border p-0.5 text-xs">
-          {([
-            ['classrooms', 'Por aula'],
-            ['generator', 'Armado automático'],
-            ['conflicts', 'Cruces del colegio'],
-          ] as const).map(([t, label]) => (
+          {(
+            [
+              ['classrooms', 'Por aula'],
+              ['generator', 'Armado automático'],
+              ['conflicts', 'Cruces del colegio'],
+            ] as const
+          ).map(([t, label]) => (
             <button
               key={t}
               type="button"

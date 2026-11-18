@@ -111,7 +111,14 @@ export const PlatformAnnouncementsPage: React.FC = () => {
     );
 
   const del = async (a: PlatformAnnouncement) => {
-    if (await confirmDialog({ title: `¿Eliminar el aviso "${a.title}"?`, description: 'No se puede deshacer.', confirmText: 'Eliminar', variant: 'danger' })) {
+    if (
+      await confirmDialog({
+        title: `¿Eliminar el aviso "${a.title}"?`,
+        description: 'No se puede deshacer.',
+        confirmText: 'Eliminar',
+        variant: 'danger',
+      })
+    ) {
       remove(a.id, { onError: (err) => toast.error(errorMessage(err, 'No se pudo eliminar el aviso.')) });
     }
   };
@@ -134,7 +141,12 @@ export const PlatformAnnouncementsPage: React.FC = () => {
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-bold">{form.id ? 'Editar aviso' : 'Nuevo aviso'}</CardTitle>
             {form.id && (
-              <button type="button" onClick={() => setForm(emptyForm())} aria-label="Cancelar edición" className="rounded p-1 text-muted-foreground hover:bg-muted">
+              <button
+                type="button"
+                onClick={() => setForm(emptyForm())}
+                aria-label="Cancelar edición"
+                className="rounded p-1 text-muted-foreground hover:bg-muted"
+              >
                 <X className="w-4 h-4" />
               </button>
             )}
@@ -142,7 +154,13 @@ export const PlatformAnnouncementsPage: React.FC = () => {
           <CardContent>
             <form onSubmit={submit} className="space-y-3">
               <Field label="Título">
-                <Input value={form.title} onChange={(e) => set('title', e.target.value)} maxLength={120} placeholder="Mantenimiento programado" className="h-9 text-sm" />
+                <Input
+                  value={form.title}
+                  onChange={(e) => set('title', e.target.value)}
+                  maxLength={120}
+                  placeholder="Mantenimiento programado"
+                  className="h-9 text-sm"
+                />
               </Field>
               <Field label="Mensaje">
                 <Textarea
@@ -179,7 +197,9 @@ export const PlatformAnnouncementsPage: React.FC = () => {
                         aria-pressed={on}
                         onClick={() => toggleAudience(a)}
                         className={`rounded-full border px-3 py-1 text-xs transition-colors ${
-                          on ? 'border-primary bg-primary text-primary-foreground' : 'border-border text-muted-foreground hover:bg-muted'
+                          on
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-border text-muted-foreground hover:bg-muted'
                         }`}
                       >
                         {AUDIENCE_LABELS[a]}
@@ -190,10 +210,20 @@ export const PlatformAnnouncementsPage: React.FC = () => {
               </fieldset>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Field label="Desde (vacío = ahora)">
-                  <Input type="datetime-local" value={form.startsAt} onChange={(e) => set('startsAt', e.target.value)} className="h-9 text-xs" />
+                  <Input
+                    type="datetime-local"
+                    value={form.startsAt}
+                    onChange={(e) => set('startsAt', e.target.value)}
+                    className="h-9 text-xs"
+                  />
                 </Field>
                 <Field label="Hasta (opcional)">
-                  <Input type="datetime-local" value={form.endsAt} onChange={(e) => set('endsAt', e.target.value)} className="h-9 text-xs" />
+                  <Input
+                    type="datetime-local"
+                    value={form.endsAt}
+                    onChange={(e) => set('endsAt', e.target.value)}
+                    className="h-9 text-xs"
+                  />
                 </Field>
               </div>
               <div className="flex justify-end">
@@ -222,7 +252,12 @@ export const PlatformAnnouncementsPage: React.FC = () => {
                       <div className="min-w-0 space-y-1">
                         <div className="flex flex-wrap items-center gap-1.5">
                           <strong className="text-sm text-foreground">{a.title}</strong>
-                          <Badge variant={a.level === 'CRITICAL' ? 'destructive' : a.level === 'WARNING' ? 'warning' : 'secondary'} className="text-xs">
+                          <Badge
+                            variant={
+                              a.level === 'CRITICAL' ? 'destructive' : a.level === 'WARNING' ? 'warning' : 'secondary'
+                            }
+                            className="text-xs"
+                          >
                             {a.level === 'CRITICAL' ? 'Crítico' : a.level === 'WARNING' ? 'Importante' : 'Informativo'}
                           </Badge>
                           <Badge variant={a.isLive ? 'success' : 'outline'} className="text-xs">

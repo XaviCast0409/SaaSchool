@@ -12,10 +12,7 @@ import {
   CreateIndividualObligationPayload,
   FinanceAccess,
 } from '../types';
-import type {
-  CreateObligationFormData,
-  RegisterTransactionFormData,
-} from '../schemas/payment.schema';
+import type { CreateObligationFormData, RegisterTransactionFormData } from '../schemas/payment.schema';
 
 interface ObligationsResponse {
   status: string;
@@ -64,7 +61,15 @@ export const usePayments = (filters: ObligationFilterParams = {}, enabledOverrid
   const isEnabled = enabledOverride !== undefined ? enabledOverride : true;
 
   return useQuery({
-    queryKey: ['payments-obligations', filters.page, filters.limit, filters.status, filters.classroomId, filters.search, filters.overdue],
+    queryKey: [
+      'payments-obligations',
+      filters.page,
+      filters.limit,
+      filters.status,
+      filters.classroomId,
+      filters.search,
+      filters.overdue,
+    ],
     queryFn: async () => {
       const response = await api.get<ObligationsPaginatedResponse>(url);
       return response.data;
@@ -224,7 +229,9 @@ export const useVoidTransaction = () => {
 
   return useMutation({
     mutationFn: async ({ transactionId, reason }: { transactionId: string; reason: string }) => {
-      const response = await api.post<SingleTransactionResponse>(`/payments/transactions/${transactionId}/void`, { reason });
+      const response = await api.post<SingleTransactionResponse>(`/payments/transactions/${transactionId}/void`, {
+        reason,
+      });
       return response.data.data;
     },
     onSuccess: () => {
@@ -245,7 +252,9 @@ export const useCancelObligation = () => {
 
   return useMutation({
     mutationFn: async ({ obligationId, reason }: { obligationId: string; reason: string }) => {
-      const response = await api.post<SingleObligationResponse>(`/payments/obligations/${obligationId}/cancel`, { reason });
+      const response = await api.post<SingleObligationResponse>(`/payments/obligations/${obligationId}/cancel`, {
+        reason,
+      });
       return response.data.data;
     },
     onSuccess: () => {
@@ -259,13 +268,7 @@ export const useCancelObligation = () => {
 /** Mutation para enviar recordatorio por Email individual */
 export const useSendReminder = () => {
   return useMutation({
-    mutationFn: async ({
-      obligationId,
-      channel = 'EMAIL',
-    }: {
-      obligationId: string;
-      channel?: 'EMAIL';
-    }) => {
+    mutationFn: async ({ obligationId, channel = 'EMAIL' }: { obligationId: string; channel?: 'EMAIL' }) => {
       const response = await api.post(`/payments/obligations/${obligationId}/remind`, { channel });
       return response.data.data;
     },
@@ -297,17 +300,8 @@ export const useUpdateObligation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      id,
-      data,
-    }: {
-      id: string;
-      data: UpdateObligationDto;
-    }) => {
-      const response = await api.patch<SingleObligationResponse>(
-        `/payments/obligations/${id}`,
-        data,
-      );
+    mutationFn: async ({ id, data }: { id: string; data: UpdateObligationDto }) => {
+      const response = await api.patch<SingleObligationResponse>(`/payments/obligations/${id}`, data);
       return response.data.data;
     },
     onSuccess: () => {
@@ -343,12 +337,10 @@ export const useDailyCashClose = (date?: string) => {
   return useQuery({
     queryKey: ['daily-cash-close', date],
     queryFn: async () => {
-      const response = await api.get<{ status: string; data: DailyCashCloseData }>(
-        '/payments/daily-cash-close',
-        { params: date ? { date } : {} },
-      );
+      const response = await api.get<{ status: string; data: DailyCashCloseData }>('/payments/daily-cash-close', {
+        params: date ? { date } : {},
+      });
       return response.data.data;
     },
   });
 };
-

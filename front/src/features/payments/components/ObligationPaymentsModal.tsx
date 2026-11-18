@@ -51,23 +51,27 @@ export const ObligationPaymentsModal: React.FC<Props> = ({ obligationId, canMana
         onClose={onClose}
         size="lg"
         title="Cobros y ajustes de la cuota"
-        description={obligation ? `${obligation.title}${student ? ` — ${student.lastNamePaternal} ${student.lastNameMaternal}, ${student.firstNames}` : ''}` : undefined}
+        description={
+          obligation
+            ? `${obligation.title}${student ? ` — ${student.lastNamePaternal} ${student.lastNameMaternal}, ${student.firstNames}` : ''}`
+            : undefined
+        }
         footer={
           canManage && obligation && obligation.status !== 'CANCELLED' ? (
             <>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setAdjustOpen(true)}>
-              <Percent className="h-3.5 w-3.5" /> Agregar ajuste
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5 text-destructive"
-              disabled={active.length > 0}
-              title={active.length > 0 ? 'Primero anula los cobros vigentes' : undefined}
-              onClick={() => setCancelOpen(true)}
-            >
-              <Ban className="h-3.5 w-3.5" /> Anular cuota
-            </Button>
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setAdjustOpen(true)}>
+                <Percent className="h-3.5 w-3.5" /> Agregar ajuste
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-destructive"
+                disabled={active.length > 0}
+                title={active.length > 0 ? 'Primero anula los cobros vigentes' : undefined}
+                onClick={() => setCancelOpen(true)}
+              >
+                <Ban className="h-3.5 w-3.5" /> Anular cuota
+              </Button>
             </>
           ) : undefined
         }
@@ -105,7 +109,9 @@ export const ObligationPaymentsModal: React.FC<Props> = ({ obligationId, canMana
 
             {adjustments.length > 0 && (
               <section className="space-y-1.5">
-                <h3 className="text-xs font-bold uppercase text-muted-foreground">Descuentos, becas, moras y notas de crédito</h3>
+                <h3 className="text-xs font-bold uppercase text-muted-foreground">
+                  Descuentos, becas, moras y notas de crédito
+                </h3>
                 <div className="overflow-x-auto rounded-lg border border-border">
                   <table className="w-full text-xs">
                     <tbody>
@@ -113,10 +119,17 @@ export const ObligationPaymentsModal: React.FC<Props> = ({ obligationId, canMana
                         const voided = a.status === 'VOIDED';
                         const plus = a.type === 'LATE_FEE';
                         return (
-                          <tr key={a.id} className={`border-t border-border first:border-t-0 align-top ${voided ? 'bg-destructive/5 text-muted-foreground' : ''}`}>
+                          <tr
+                            key={a.id}
+                            className={`border-t border-border first:border-t-0 align-top ${voided ? 'bg-destructive/5 text-muted-foreground' : ''}`}
+                          >
                             <td className="p-2 font-mono whitespace-nowrap">
                               <span className={voided ? 'line-through' : ''}>{a.number}</span>
-                              {voided && <Badge variant="destructive" className="ml-1 text-xs">Anulado</Badge>}
+                              {voided && (
+                                <Badge variant="destructive" className="ml-1 text-xs">
+                                  Anulado
+                                </Badge>
+                              )}
                             </td>
                             <td className="p-2">
                               <span className="font-semibold text-foreground">{ADJUSTMENT_LABEL[a.type]}</span>
@@ -126,12 +139,20 @@ export const ObligationPaymentsModal: React.FC<Props> = ({ obligationId, canMana
                                 {voided ? ` · anulado por ${personName(a.voidedBy)}: ${a.voidReason}` : ''}
                               </span>
                             </td>
-                            <td className={`p-2 text-right font-semibold whitespace-nowrap ${voided ? 'line-through' : plus ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                            <td
+                              className={`p-2 text-right font-semibold whitespace-nowrap ${voided ? 'line-through' : plus ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400'}`}
+                            >
                               {plus ? '+' : '−'} S/ {Number(a.amount).toFixed(2)}
                             </td>
                             <td className="p-2 w-8">
                               {canManage && !voided && obligation.status !== 'CANCELLED' && (
-                                <Button size="sm" variant="ghost" className="h-7 px-2 text-destructive" title="Anular ajuste" onClick={() => setAdjToVoid(a)}>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 px-2 text-destructive"
+                                  title="Anular ajuste"
+                                  onClick={() => setAdjToVoid(a)}
+                                >
                                   <Ban className="h-3.5 w-3.5" />
                                 </Button>
                               )}
@@ -168,25 +189,49 @@ export const ObligationPaymentsModal: React.FC<Props> = ({ obligationId, canMana
                       const isVoided = t.status === 'VOIDED';
                       return (
                         <React.Fragment key={t.id}>
-                          <tr className={`border-t border-border ${isVoided ? 'bg-destructive/5 text-muted-foreground' : ''}`}>
+                          <tr
+                            className={`border-t border-border ${isVoided ? 'bg-destructive/5 text-muted-foreground' : ''}`}
+                          >
                             <td className="p-2 font-mono">
                               <span className={isVoided ? 'line-through' : ''}>{t.receiptNumber ?? '—'}</span>
-                              {isVoided && <Badge variant="destructive" className="ml-1.5 text-xs">Anulado</Badge>}
+                              {isVoided && (
+                                <Badge variant="destructive" className="ml-1.5 text-xs">
+                                  Anulado
+                                </Badge>
+                              )}
                             </td>
                             <td className="p-2">{formatPeruDateTime(t.paymentDate)}</td>
                             <td className="p-2">
                               {methodLabel(t.paymentMethod)}
-                              {t.operationNumber && <span className="block font-mono text-xs text-muted-foreground">Op. {t.operationNumber}</span>}
+                              {t.operationNumber && (
+                                <span className="block font-mono text-xs text-muted-foreground">
+                                  Op. {t.operationNumber}
+                                </span>
+                              )}
                             </td>
                             <td className="p-2">{personName(t.collectedBy)}</td>
-                            <td className={`p-2 text-right font-semibold ${isVoided ? 'line-through' : ''}`}>S/ {Number(t.amountPaid).toFixed(2)}</td>
+                            <td className={`p-2 text-right font-semibold ${isVoided ? 'line-through' : ''}`}>
+                              S/ {Number(t.amountPaid).toFixed(2)}
+                            </td>
                             <td className="p-2">
                               <div className="flex justify-end gap-1">
-                                <Button size="sm" variant="ghost" className="h-7 px-2" title="Ver recibo" onClick={() => setReceiptId(t.id)}>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 px-2"
+                                  title="Ver recibo"
+                                  onClick={() => setReceiptId(t.id)}
+                                >
                                   <FileText className="h-3.5 w-3.5" />
                                 </Button>
                                 {canManage && !isVoided && (
-                                  <Button size="sm" variant="ghost" className="h-7 px-2 text-destructive" title="Anular cobro" onClick={() => setToVoid(t)}>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 px-2 text-destructive"
+                                    title="Anular cobro"
+                                    onClick={() => setToVoid(t)}
+                                  >
                                     <Ban className="h-3.5 w-3.5" />
                                   </Button>
                                 )}
@@ -196,7 +241,8 @@ export const ObligationPaymentsModal: React.FC<Props> = ({ obligationId, canMana
                           {isVoided && (
                             <tr className="bg-destructive/5 text-xs text-muted-foreground">
                               <td colSpan={6} className="px-2 pb-2">
-                                Anulado {t.voidedAt ? formatPeruDateTime(t.voidedAt) : ''} por {personName(t.voidedBy)} — Motivo: {t.voidReason}
+                                Anulado {t.voidedAt ? formatPeruDateTime(t.voidedAt) : ''} por {personName(t.voidedBy)}{' '}
+                                — Motivo: {t.voidReason}
                               </td>
                             </tr>
                           )}

@@ -23,11 +23,7 @@ interface Result {
 }
 
 /** Sin tildes ni mayúsculas: "matricula" encuentra "Matrícula" */
-const normalize = (text: string) =>
-  text
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '');
+const normalize = (text: string) => text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 /** Buscador global (Ctrl+K): salta a cualquier pantalla del menú o a un alumno. */
 export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onClose, sections, canSearchStudents }) => {
@@ -59,9 +55,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onClose, s
     const results: Result[] = [];
     for (const section of sections) {
       for (const item of section.items) {
-        const entries = item.tabs && item.tabs.length > 1
-          ? item.tabs.map((tab) => ({ label: `${item.label} · ${tab.label}`, to: tab.path }))
-          : [{ label: item.label, to: item.path }];
+        const entries =
+          item.tabs && item.tabs.length > 1
+            ? item.tabs.map((tab) => ({ label: `${item.label} · ${tab.label}`, to: tab.path }))
+            : [{ label: item.label, to: item.path }];
         for (const entry of entries) {
           const haystack = normalize(`${entry.label} ${section.title} ${item.keywords ?? ''}`);
           if (needle && !needle.split(/\s+/).every((word) => haystack.includes(word))) continue;
@@ -155,7 +152,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onClose, s
             >
               <Icon className={`h-4 w-4 shrink-0 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
               <span className="min-w-0 flex-1 truncate font-medium">{result.label}</span>
-              {result.locked && <Lock className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-label="Requiere un plan superior" />}
+              {result.locked && (
+                <Lock className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-label="Requiere un plan superior" />
+              )}
               <span className="shrink-0 text-xs text-muted-foreground">{result.hint}</span>
               {active && <CornerDownLeft className="hidden h-3.5 w-3.5 shrink-0 text-muted-foreground sm:block" />}
             </button>
@@ -198,9 +197,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onClose, s
           {renderGroup(term ? 'Pantallas' : 'Ir a', pageResults, 0)}
           {renderGroup('Alumnos', studentResults, pageResults.length)}
           {results.length === 0 && !waitingStudents && (
-            <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-              No hay resultados para «{term}».
-            </p>
+            <p className="px-4 py-8 text-center text-sm text-muted-foreground">No hay resultados para «{term}».</p>
           )}
         </div>
       </div>

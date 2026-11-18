@@ -1,13 +1,5 @@
 import React, { useState } from 'react';
-import {
-  X,
-  CalendarOff,
-  Plus,
-  Trash2,
-  Calendar,
-  Loader2,
-  AlertCircle,
-} from 'lucide-react';
+import { X, CalendarOff, Plus, Trash2, Calendar, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -64,7 +56,11 @@ export const HolidaysModal: React.FC<HolidaysModalProps> = ({ isOpen, onClose })
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200"
+    >
       <div className="bg-card w-full max-w-lg rounded-2xl border border-border shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-border bg-muted/40">
@@ -73,21 +69,14 @@ export const HolidaysModal: React.FC<HolidaysModalProps> = ({ isOpen, onClose })
               <CalendarOff className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-black text-foreground">
-                Feriados y Días No Laborables
-              </h2>
+              <h2 className="text-base sm:text-lg font-black text-foreground">Feriados y Días No Laborables</h2>
               <p className="text-xs text-muted-foreground">
                 Los días feriados se excluyen del auto-cierre y del cómputo de inasistencias
               </p>
             </div>
           </div>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="rounded-full h-8 w-8 hover:bg-muted"
-          >
+          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full h-8 w-8 hover:bg-muted">
             <X className="w-4 h-4 text-muted-foreground" />
           </Button>
         </div>
@@ -119,13 +108,8 @@ export const HolidaysModal: React.FC<HolidaysModalProps> = ({ isOpen, onClose })
           </div>
 
           {/* Formulario para Agregar Feriado */}
-          <form
-            onSubmit={handleAddHoliday}
-            className="p-3.5 rounded-xl border border-border bg-secondary/20 space-y-3"
-          >
-            <span className="text-xs font-bold text-foreground block">
-              Agregar nuevo feriado:
-            </span>
+          <form onSubmit={handleAddHoliday} className="p-3.5 rounded-xl border border-border bg-secondary/20 space-y-3">
+            <span className="text-xs font-bold text-foreground block">Agregar nuevo feriado:</span>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <Input
                 type="date"
@@ -188,9 +172,7 @@ export const HolidaysModal: React.FC<HolidaysModalProps> = ({ isOpen, onClose })
                     className="p-3 flex items-center justify-between gap-3 hover:bg-muted/30 transition-colors"
                   >
                     <div className="space-y-0.5">
-                      <span className="font-bold text-xs text-foreground block">
-                        {h.name}
-                      </span>
+                      <span className="font-bold text-xs text-foreground block">{h.name}</span>
                       <span className="text-xs font-mono text-muted-foreground">
                         {formatPeruDate(h.date, { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
                       </span>

@@ -50,19 +50,31 @@ const Header: React.FC = () => {
         </a>
         <nav className="hidden lg:flex items-center gap-1 text-sm font-semibold">
           {NAV_LINKS.map((link) => (
-            <a key={link.href} href={link.href} className="px-4 py-2 rounded-full opacity-75 hover:opacity-100 transition-opacity">
+            <a
+              key={link.href}
+              href={link.href}
+              className="px-4 py-2 rounded-full opacity-75 hover:opacity-100 transition-opacity"
+            >
               {link.label}
             </a>
           ))}
         </nav>
         <div className="ml-auto flex items-center gap-2">
-          <Link to={token ? '/dashboard' : '/login'} className="hidden sm:inline-flex px-4 py-2 text-sm font-bold opacity-85 hover:opacity-100">
+          <Link
+            to={token ? '/dashboard' : '/login'}
+            className="hidden sm:inline-flex px-4 py-2 text-sm font-bold opacity-85 hover:opacity-100"
+          >
             {token ? 'Ir a mi panel' : 'Ingresar'}
           </Link>
           <button onClick={() => openLead('cabecera')} className="kx-btn kx-btn-primary px-5 py-2.5 text-sm">
             Pedir demo <ArrowRight className="w-4 h-4 hidden sm:block" />
           </button>
-          <button className="lg:hidden w-10 h-10 grid place-items-center rounded-full" onClick={() => setMenuOpen((open) => !open)} aria-label="Menú" aria-expanded={menuOpen}>
+          <button
+            className="lg:hidden w-10 h-10 grid place-items-center rounded-full"
+            onClick={() => setMenuOpen((open) => !open)}
+            aria-label="Menú"
+            aria-expanded={menuOpen}
+          >
             {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
         </div>
@@ -70,7 +82,12 @@ const Header: React.FC = () => {
       {menuOpen && (
         <nav className="lg:hidden border-t border-[var(--kx-line)] px-5 pb-6 pt-2 kx-panel-enter">
           {NAV_LINKS.map((link) => (
-            <a key={link.href} href={link.href} onClick={() => setMenuOpen(false)} className="block py-3.5 text-lg font-bold border-b border-[var(--kx-line)]">
+            <a
+              key={link.href}
+              href={link.href}
+              onClick={() => setMenuOpen(false)}
+              className="block py-3.5 text-lg font-bold border-b border-[var(--kx-line)]"
+            >
               {link.label}
             </a>
           ))}
@@ -96,21 +113,45 @@ const Footer: React.FC = () => (
           loading="lazy"
           className="h-11 w-auto"
         />
-        <p className="mt-5 kx-on-dark max-w-sm leading-relaxed">Gestión escolar para colegios del Perú: matrícula, asistencia, notas, pensiones y familias en un solo lugar.</p>
+        <p className="mt-5 kx-on-dark max-w-sm leading-relaxed">
+          Gestión escolar para colegios del Perú: matrícula, asistencia, notas, pensiones y familias en un solo lugar.
+        </p>
       </div>
       <div>
         <p className="font-extrabold">Producto</p>
         <ul className="mt-4 space-y-2.5 kx-on-dark text-sm">
-          {NAV_LINKS.map((link) => <li key={link.href}><a href={link.href} className="hover:text-white">{link.label}</a></li>)}
+          {NAV_LINKS.map((link) => (
+            <li key={link.href}>
+              <a href={link.href} className="hover:text-white">
+                {link.label}
+              </a>
+            </li>
+          ))}
         </ul>
       </div>
       <div>
         <p className="font-extrabold">Contacto</p>
         <ul className="mt-4 space-y-2.5 kx-on-dark text-sm">
-          <li><a href={whatsappUrl(DEFAULT_WHATSAPP_TEXT)} target="_blank" rel="noreferrer" className="hover:text-white">WhatsApp: 949 771 996</a></li>
-          <li><Link to="/login" className="hover:text-white">Ingresar a la plataforma</Link></li>
-          <li><Link to="/privacidad" className="hover:text-white">Política de privacidad</Link></li>
-          <li><Link to="/terminos" className="hover:text-white">Términos y condiciones</Link></li>
+          <li>
+            <a href={whatsappUrl(DEFAULT_WHATSAPP_TEXT)} target="_blank" rel="noreferrer" className="hover:text-white">
+              WhatsApp: 949 771 996
+            </a>
+          </li>
+          <li>
+            <Link to="/login" className="hover:text-white">
+              Ingresar a la plataforma
+            </Link>
+          </li>
+          <li>
+            <Link to="/privacidad" className="hover:text-white">
+              Política de privacidad
+            </Link>
+          </li>
+          <li>
+            <Link to="/terminos" className="hover:text-white">
+              Términos y condiciones
+            </Link>
+          </li>
         </ul>
       </div>
     </div>
@@ -143,7 +184,9 @@ const FloatingActions: React.FC = () => {
       >
         <MessageCircle className="w-7 h-7 relative" />
       </a>
-      <div className={`sm:hidden fixed bottom-0 inset-x-0 z-40 p-3 bg-[rgba(251,248,243,.92)] backdrop-blur border-t border-[var(--kx-line)] transition-transform duration-300 ${visible ? 'translate-y-0' : 'translate-y-full'}`}>
+      <div
+        className={`sm:hidden fixed bottom-0 inset-x-0 z-40 p-3 bg-[rgba(251,248,243,.92)] backdrop-blur border-t border-[var(--kx-line)] transition-transform duration-300 ${visible ? 'translate-y-0' : 'translate-y-full'}`}
+      >
         <button onClick={() => openLead('barra-movil')} className="kx-btn kx-btn-primary w-full py-3.5">
           Solicitar demostración <ArrowRight className="w-5 h-5" />
         </button>
