@@ -8,7 +8,8 @@ vi.mock('../../lib/offlineData', () => ({
   clearOfflineData: (...a: unknown[]) => clearOfflineData(...a),
   countPendingOffline: (...a: unknown[]) => countPendingOffline(...a),
 }));
-vi.mock('../../lib/queryClient', () => ({ queryClient: { clear: vi.fn() } }));
+const clearQueryClient = vi.fn();
+vi.mock('../../lib/queryClient', () => ({ queryClient: { clear: (...a: unknown[]) => clearQueryClient(...a) } }));
 
 const teacher = {
   id: 'u1',
@@ -25,6 +26,7 @@ describe('sesión (useAuthStore)', () => {
     vi.resetModules();
     post.mockClear();
     clearOfflineData.mockClear();
+    clearQueryClient.mockClear();
   });
 
   it('un usuario guardado corrupto no rompe el arranque de la app', async () => {
@@ -60,5 +62,26 @@ describe('sesión (useAuthStore)', () => {
     expect(clearOfflineData).toHaveBeenCalledWith({ includePending: false });
     expect(post).not.toHaveBeenCalled();
     expect(useAuthStore.getState().token).toBeNull();
+  });
+
+  it('patchImpersonatedSchool actualiza la memoria y localStorage sin limpiar la sesión', async () => {
+    const { useAuthStore } = await import('../useAuthStore');
+    const school = { id: 's1', name: 'X', plan: 'PRO' as const };
+    useAuthStore.getState().setImpersonatedSchool(school);
+    clearQueryClient.mockClear();
+
+    useAuthStore.getState().patchImpersonatedSchool({ logoUrl: 'x' });
+
+    expect(useAuthStore.getState().impersonatedSchool?.logoUrl).toBe('x');
+    expect(JSON.parse(localStorage.getItem('impersonatedSchool')!).logoUrl).toBe('x');
+    expect(clearQueryClient).not.toHaveBeenCalled();
+
+    // sin colegio impersonado → no cambia nada
+    useAuthStore.getState().setImpersonatedSchool(null);
+    clearQueryClient.mockClear();
+    useAuthStore.getState().patchImpersonatedSchool({ logoUrl: 'x2' });
+    expect(useAuthStore.getState().impersonatedSchool).toBeNull();
+    expect(localStorage.getItem('impersonatedSchool')).toBeNull();
+    expect(clearQueryClient).not.toHaveBeenCalled();
   });
 });

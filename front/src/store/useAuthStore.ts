@@ -33,6 +33,7 @@ interface AuthState {
   setAuth: (token: string, user: User) => void;
   updateUser: (updatedFields: Partial<User>) => void;
   setImpersonatedSchool: (school: ImpersonatedSchool | null) => void;
+  patchImpersonatedSchool: (fields: Partial<ImpersonatedSchool>) => void;
   /** Cierre forzado (sesión vencida o sin permisos): conserva los pendientes del dueño. */
   logout: () => void;
   /** Cierre voluntario: avisa si hay datos sin sincronizar y borra todo lo guardado en el dispositivo. */
@@ -90,6 +91,14 @@ export const useAuthStore = create<AuthState>((set, getState) => {
       }
       queryClient.clear();
       set({ impersonatedSchool: school });
+    },
+    patchImpersonatedSchool: (fields) => {
+      set((state) => {
+        if (!state.impersonatedSchool) return state;
+        const updated = { ...state.impersonatedSchool, ...fields };
+        localStorage.setItem('impersonatedSchool', JSON.stringify(updated));
+        return { impersonatedSchool: updated };
+      });
     },
     logout: () => {
       void clearOfflineData({ includePending: false });

@@ -18,12 +18,7 @@ const useRefreshSchoolLogo = () => {
     qc.invalidateQueries({ queryKey: schoolKeys.all });
     // En modo soporte la barra lateral usa la copia guardada del colegio. No se usa
     // setImpersonatedSchool porque limpia toda la caché: aquí solo cambia el logo.
-    const { impersonatedSchool } = useAuthStore.getState();
-    if (impersonatedSchool) {
-      const updated = { ...impersonatedSchool, logoUrl };
-      localStorage.setItem('impersonatedSchool', JSON.stringify(updated));
-      useAuthStore.setState({ impersonatedSchool: updated });
-    }
+    useAuthStore.getState().patchImpersonatedSchool({ logoUrl });
   };
 };
 
