@@ -51,7 +51,10 @@ export const useCreateJustification = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['attendance-justifications'] });
       queryClient.invalidateQueries({ queryKey: ['attendance'] });
-      queryClient.invalidateQueries({ queryKey: ['student-attendance'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance-sheet'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance-matrix'] });
+      queryClient.invalidateQueries({ queryKey: ['student-attendance-detail'] });
 
       if (data.status === 'APPROVED') {
         toast.success('Justificación registrada y aplicada.');
@@ -85,7 +88,10 @@ export const useReviewJustification = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['attendance-justifications'] });
       queryClient.invalidateQueries({ queryKey: ['attendance'] });
-      queryClient.invalidateQueries({ queryKey: ['student-attendance'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance-sheet'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance-matrix'] });
+      queryClient.invalidateQueries({ queryKey: ['student-attendance-detail'] });
       toast.success(data.status === 'APPROVED' ? 'Justificación aprobada correctamente.' : 'Justificación rechazada.');
     },
     onError: (err: any) => {
