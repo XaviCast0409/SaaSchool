@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/axios';
+import { getApiErrorMessage as apiErrorMessage } from '@/lib/errors';
 import type {
   Catalog,
   ConsolidationResponse,
@@ -31,10 +32,7 @@ interface Envelope<T> {
 const get = async <T>(url: string, params?: Record<string, unknown>) =>
   (await api.get<Envelope<T>>(url, { params })).data.data;
 
-export const apiErrorMessage = (e: unknown, fallback = 'No se pudo completar la acción.') => {
-  const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
-  return msg || fallback;
-};
+export { getApiErrorMessage as apiErrorMessage } from '@/lib/errors';
 
 const useInvalidate = () => {
   const qc = useQueryClient();
