@@ -14,6 +14,7 @@ interface ModalProps {
 
 const SIZES = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' };
 
+/** @deprecated Usar el Dialog de Radix de components/ui. */
 export const Modal: React.FC<ModalProps> = ({ open, onClose, title, description, children, footer, size = 'md' }) => {
   useEffect(() => {
     if (!open) return;

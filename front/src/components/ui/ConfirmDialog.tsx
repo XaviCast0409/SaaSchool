@@ -16,6 +16,7 @@ export interface ConfirmDialogProps {
   details?: React.ReactNode;
 }
 
+/** @deprecated Usar useConfirm()/confirmDialog() de './confirm'. */
 export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   isOpen,
   onClose,
