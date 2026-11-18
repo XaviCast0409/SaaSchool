@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { paymentsKeys } from './keys';
 import type { PaymentMethod, PersonRef } from '../types';
 
 /** Ajustes (descuentos, becas, moras, notas de crédito), estados de cuenta y reportes. */
@@ -236,13 +237,13 @@ const get = async <T>(url: string, params?: Record<string, unknown>) =>
 
 const invalidateAll = (qc: ReturnType<typeof useQueryClient>) => {
   for (const key of [
-    'payments-obligations',
-    'payment-obligation',
-    'financial-summary',
-    'scholarships',
-    'late-fees',
-    'adjustments',
-    'statement',
+    paymentsKeys.obligations.all[0],
+    paymentsKeys.obligationDetail.all[0],
+    paymentsKeys.summary.all[0],
+    paymentsKeys.scholarships.all[0],
+    paymentsKeys.lateFees.all[0],
+    paymentsKeys.adjustments.all[0],
+    paymentsKeys.statement.all[0],
   ]) {
     qc.invalidateQueries({ queryKey: [key] });
   }
@@ -276,7 +277,7 @@ export const useAdjustments = (
   enabled = true,
 ) =>
   useQuery({
-    queryKey: ['adjustments', filters],
+    queryKey: paymentsKeys.adjustments.list(filters),
     queryFn: () => get<ObligationAdjustment[]>('/payments/adjustments', filters),
     enabled,
   });
@@ -284,7 +285,7 @@ export const useAdjustments = (
 // ── Becas ─────────────────────────────────────────────────────────
 export const useScholarships = (activeOnly: boolean) =>
   useQuery({
-    queryKey: ['scholarships', activeOnly],
+    queryKey: paymentsKeys.scholarships.list(activeOnly),
     queryFn: () => get<Scholarship[]>('/payments/scholarships', { activeOnly: String(activeOnly) }),
   });
 
@@ -335,7 +336,7 @@ export const useDeactivateScholarship = () => {
 
 // ── Moras ─────────────────────────────────────────────────────────
 export const useFinanceSettings = () =>
-  useQuery({ queryKey: ['late-fees', 'settings'], queryFn: () => get<FinanceSettings>('/payments/finance-settings') });
+  useQuery({ queryKey: paymentsKeys.lateFees.settings(), queryFn: () => get<FinanceSettings>('/payments/finance-settings') });
 
 export const useUpdateFinanceSettings = () => {
   const qc = useQueryClient();
@@ -348,7 +349,7 @@ export const useUpdateFinanceSettings = () => {
 
 export const useLateFeePreview = (enabled = true) =>
   useQuery({
-    queryKey: ['late-fees', 'preview'],
+    queryKey: paymentsKeys.lateFees.preview(),
     queryFn: () => get<{ settings: FinanceSettings; rows: LateFeeRow[]; total: number }>('/payments/late-fees/preview'),
     enabled,
   });
@@ -366,21 +367,21 @@ export const useApplyLateFees = () => {
 // ── Estados de cuenta ─────────────────────────────────────────────
 export const useStudentStatement = (studentId: string | null) =>
   useQuery({
-    queryKey: ['statement', 'student', studentId],
+    queryKey: paymentsKeys.statement.student(studentId),
     queryFn: () => get<StudentStatement>(`/payments/statements/student/${studentId}`),
     enabled: !!studentId,
   });
 
 export const useFamilyStatement = (userId: string | null) =>
   useQuery({
-    queryKey: ['statement', 'family', userId],
+    queryKey: paymentsKeys.statement.family(userId),
     queryFn: () => get<FamilyStatement>(`/payments/statements/family/${userId}`),
     enabled: !!userId,
   });
 
 export const useMyStatement = (enabled: boolean) =>
   useQuery({
-    queryKey: ['statement', 'mine'],
+    queryKey: paymentsKeys.statement.mine(),
     queryFn: () => get<FamilyStatement>('/payments/statements/mine'),
     enabled,
   });
@@ -396,7 +397,7 @@ export interface GuardianOption {
 
 export const useGuardianSearch = (search: string) =>
   useQuery({
-    queryKey: ['statement', 'guardians', search],
+    queryKey: paymentsKeys.statement.guardians(search),
     queryFn: () => get<GuardianOption[]>('/payments/statements/guardians', { search }),
     enabled: search.trim().length >= 2,
   });
@@ -410,18 +411,18 @@ export const useCollectionsReport = (f: {
   concept?: string;
 }) =>
   useQuery({
-    queryKey: ['report', 'collections', f],
+    queryKey: paymentsKeys.report.collections(f),
     queryFn: () => get<CollectionsReport>('/payments/reports/collections', f),
   });
 
 export const useAgingReport = (classroomId?: string) =>
   useQuery({
-    queryKey: ['report', 'aging', classroomId],
+    queryKey: paymentsKeys.report.aging(classroomId),
     queryFn: () => get<AgingReport>('/payments/reports/aging', { classroomId }),
   });
 
 export const useMonthlyReport = (year: number) =>
   useQuery({
-    queryKey: ['report', 'monthly', year],
+    queryKey: paymentsKeys.report.monthly(year),
     queryFn: () => get<MonthlyReport>('/payments/reports/monthly', { year }),
   });

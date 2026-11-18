@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { paymentsKeys, invalidatePaymentViews } from './keys';
 import {
   PaymentObligation,
   PaymentTransaction,
@@ -61,15 +62,7 @@ export const usePayments = (filters: ObligationFilterParams = {}, enabledOverrid
   const isEnabled = enabledOverride !== undefined ? enabledOverride : true;
 
   return useQuery({
-    queryKey: [
-      'payments-obligations',
-      filters.page,
-      filters.limit,
-      filters.status,
-      filters.classroomId,
-      filters.search,
-      filters.overdue,
-    ],
+    queryKey: paymentsKeys.obligations.list(filters),
     queryFn: async () => {
       const response = await api.get<ObligationsPaginatedResponse>(url);
       return response.data;
@@ -81,7 +74,7 @@ export const usePayments = (filters: ObligationFilterParams = {}, enabledOverrid
 /** Hook para obtener las deudas del apoderado (Portal de Padres) */
 export const useParentPayments = (enabled: boolean = true) => {
   return useQuery({
-    queryKey: ['parent-payments-obligations'],
+    queryKey: paymentsKeys.parentObligations.all,
     queryFn: async () => {
       const response = await api.get<ObligationsResponse>('/payments/obligations/my-children');
       return response.data.data;
@@ -93,7 +86,7 @@ export const useParentPayments = (enabled: boolean = true) => {
 /** Hook para obtener el resumen financiero en tiempo real */
 export const useFinancialSummary = (enabled: boolean = true) => {
   return useQuery({
-    queryKey: ['financial-summary'],
+    queryKey: paymentsKeys.summary.all,
     queryFn: async () => {
       const response = await api.get<SummaryResponse>('/payments/summary');
       return response.data.data;
@@ -113,7 +106,7 @@ export const useTransactions = (filters: TransactionFilterParams = {}) => {
   const url = `/payments/transactions${queryString ? `?${queryString}` : ''}`;
 
   return useQuery({
-    queryKey: ['payments-transactions', filters.startDate, filters.endDate, filters.paymentMethod],
+    queryKey: paymentsKeys.transactions.list(filters.startDate, filters.endDate, filters.paymentMethod),
     queryFn: async () => {
       const response = await api.get<TransactionsResponse>(url);
       return response.data.data;
@@ -124,7 +117,7 @@ export const useTransactions = (filters: TransactionFilterParams = {}) => {
 /** Hook para obtener la data formateada de un recibo/boleta */
 export const useTransactionReceipt = (transactionId: string | null) => {
   return useQuery({
-    queryKey: ['transaction-receipt', transactionId],
+    queryKey: paymentsKeys.receipt.detail(transactionId),
     queryFn: async () => {
       const response = await api.get<ReceiptResponse>(`/payments/transactions/${transactionId}/receipt`);
       return response.data.data;
@@ -143,8 +136,7 @@ export const useCreateObligation = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payments-obligations'] });
-      queryClient.invalidateQueries({ queryKey: ['financial-summary'] });
+      invalidatePaymentViews(queryClient);
     },
   });
 };
@@ -172,8 +164,7 @@ export const useBulkCreateObligations = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payments-obligations'] });
-      queryClient.invalidateQueries({ queryKey: ['financial-summary'] });
+      invalidatePaymentViews(queryClient);
     },
   });
 };
@@ -188,12 +179,7 @@ export const useRegisterTransaction = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payments-obligations'] });
-      queryClient.invalidateQueries({ queryKey: ['parent-payments-obligations'] });
-      queryClient.invalidateQueries({ queryKey: ['financial-summary'] });
-      queryClient.invalidateQueries({ queryKey: ['payments-transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['daily-cash-close'] });
-      queryClient.invalidateQueries({ queryKey: ['cash'] });
+      invalidatePaymentViews(queryClient, { parent: true, transactions: true, cashClose: true, cash: true });
     },
   });
 };
@@ -201,7 +187,7 @@ export const useRegisterTransaction = () => {
 /** Qué puede hacer la persona en caja y tesorería (cajero, tesorero, contador, Dirección) */
 export const useFinanceAccess = (enabled: boolean = true) => {
   return useQuery({
-    queryKey: ['finance-access'],
+    queryKey: paymentsKeys.access.all,
     queryFn: async () => {
       const response = await api.get<{ status: string; data: FinanceAccess }>('/payments/access');
       return response.data.data;
@@ -214,7 +200,7 @@ export const useFinanceAccess = (enabled: boolean = true) => {
 /** Detalle de una cuota con todos sus cobros (vigentes y anulados) */
 export const useObligationDetail = (obligationId: string | null) => {
   return useQuery({
-    queryKey: ['payment-obligation', obligationId],
+    queryKey: paymentsKeys.obligationDetail.detail(obligationId),
     queryFn: async () => {
       const response = await api.get<SingleObligationResponse>(`/payments/obligations/${obligationId}`);
       return response.data.data;
@@ -235,13 +221,13 @@ export const useVoidTransaction = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payments-obligations'] });
-      queryClient.invalidateQueries({ queryKey: ['parent-payments-obligations'] });
-      queryClient.invalidateQueries({ queryKey: ['financial-summary'] });
-      queryClient.invalidateQueries({ queryKey: ['payments-transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['daily-cash-close'] });
-      queryClient.invalidateQueries({ queryKey: ['payment-obligation'] });
-      queryClient.invalidateQueries({ queryKey: ['cash'] });
+      invalidatePaymentViews(queryClient, {
+        parent: true,
+        transactions: true,
+        cashClose: true,
+        obligationDetail: true,
+        cash: true,
+      });
     },
   });
 };
@@ -258,9 +244,7 @@ export const useCancelObligation = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payments-obligations'] });
-      queryClient.invalidateQueries({ queryKey: ['financial-summary'] });
-      queryClient.invalidateQueries({ queryKey: ['payment-obligation'] });
+      invalidatePaymentViews(queryClient, { obligationDetail: true });
     },
   });
 };
@@ -305,11 +289,7 @@ export const useUpdateObligation = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payments-obligations'] });
-      queryClient.invalidateQueries({ queryKey: ['financial-summary'] });
-      queryClient.invalidateQueries({ queryKey: ['parent-payments-obligations'] });
-      queryClient.invalidateQueries({ queryKey: ['payments-transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['daily-cash-close'] });
+      invalidatePaymentViews(queryClient, { parent: true, transactions: true, cashClose: true });
     },
   });
 };
@@ -323,11 +303,7 @@ export const useCreateIndividualObligation = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payments-obligations'] });
-      queryClient.invalidateQueries({ queryKey: ['financial-summary'] });
-      queryClient.invalidateQueries({ queryKey: ['parent-payments-obligations'] });
-      queryClient.invalidateQueries({ queryKey: ['payments-transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['daily-cash-close'] });
+      invalidatePaymentViews(queryClient, { parent: true, transactions: true, cashClose: true });
     },
   });
 };
@@ -335,7 +311,7 @@ export const useCreateIndividualObligation = () => {
 /** Hook para obtener el arqueo de caja diario */
 export const useDailyCashClose = (date?: string) => {
   return useQuery({
-    queryKey: ['daily-cash-close', date],
+    queryKey: paymentsKeys.dailyCashClose.detail(date),
     queryFn: async () => {
       const response = await api.get<{ status: string; data: DailyCashCloseData }>('/payments/daily-cash-close', {
         params: date ? { date } : {},

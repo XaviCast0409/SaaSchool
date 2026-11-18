@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
 import { compressImageForUpload } from '@/lib/imageResize';
+import { paymentReportsKeys } from './keys';
+import { paymentsKeys } from '@/features/payments/api/keys';
 
 export type ReportMethod = 'YAPE' | 'PLIN' | 'BANK_TRANSFER' | 'DEPOSIT';
 export const METHOD_LABEL: Record<ReportMethod, string> = {
@@ -52,11 +54,9 @@ export interface TreasuryReport {
   classroom: string;
 }
 
-const KEY = ['payment-reports'];
-
 export const usePaymentInstructions = () =>
   useQuery({
-    queryKey: [...KEY, 'instructions'],
+    queryKey: paymentReportsKeys.instructions(),
     queryFn: async () => (await api.get<{ data: PaymentInstructions }>('/payment-reports/instructions')).data.data,
     // Alimenta un formulario editable: no se recarga sola para no pisar lo que se está escribiendo
     refetchOnWindowFocus: false,
@@ -66,20 +66,20 @@ export const useSavePaymentInstructions = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: PaymentInstructions) => (await api.put('/payment-reports/instructions', input)).data.data,
-    onSuccess: () => qc.invalidateQueries({ queryKey: [...KEY, 'instructions'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: paymentReportsKeys.instructions() }),
   });
 };
 
 export const useMyPaymentReports = (enabled: boolean) =>
   useQuery({
-    queryKey: [...KEY, 'mine'],
+    queryKey: paymentReportsKeys.mine(),
     enabled,
     queryFn: async () => (await api.get<{ data: MyPaymentReport[] }>('/payment-reports/mine')).data.data,
   });
 
 export const useTreasuryReports = (status: ReportStatus, enabled: boolean) =>
   useQuery({
-    queryKey: [...KEY, 'treasury', status],
+    queryKey: paymentReportsKeys.treasury(status),
     enabled,
     queryFn: async () =>
       (await api.get<{ data: TreasuryReport[] }>('/payment-reports', { params: { status } })).data.data,
@@ -88,7 +88,7 @@ export const useTreasuryReports = (status: ReportStatus, enabled: boolean) =>
 
 export const usePendingReportsCount = (enabled: boolean) =>
   useQuery({
-    queryKey: [...KEY, 'pending-count'],
+    queryKey: paymentReportsKeys.pendingCount(),
     enabled,
     queryFn: async () => (await api.get<{ data: { count: number } }>('/payment-reports/pending-count')).data.data.count,
     refetchInterval: 60_000,
@@ -122,8 +122,8 @@ export const useReportPayment = () => {
       note?: string;
     }) => (await api.post('/payment-reports', input)).data.data,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: KEY });
-      qc.invalidateQueries({ queryKey: ['parent-payments-obligations'] });
+      qc.invalidateQueries({ queryKey: paymentReportsKeys.all });
+      qc.invalidateQueries({ queryKey: paymentsKeys.parentObligations.all });
     },
   });
 };
@@ -139,9 +139,9 @@ export const useReviewReport = () => {
         )
       ).data.data,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: KEY });
-      qc.invalidateQueries({ queryKey: ['payments-obligations'] });
-      qc.invalidateQueries({ queryKey: ['financial-summary'] });
+      qc.invalidateQueries({ queryKey: paymentReportsKeys.all });
+      qc.invalidateQueries({ queryKey: paymentsKeys.obligations.all });
+      qc.invalidateQueries({ queryKey: paymentsKeys.summary.all });
     },
   });
 };

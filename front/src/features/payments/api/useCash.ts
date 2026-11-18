@@ -1,14 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { paymentsKeys, invalidateCashViews } from './keys';
 import type { CashExpense, CashSession, CashSessionDetail, CashSessionStatus, PersonRef } from '../types';
 
 /** Caja diaria: apertura, cierre con arqueo, revisión y egresos de caja chica. */
 
-const invalidateCash = (qc: ReturnType<typeof useQueryClient>) => {
-  qc.invalidateQueries({ queryKey: ['cash'] });
-  qc.invalidateQueries({ queryKey: ['daily-cash-close'] });
-  qc.invalidateQueries({ queryKey: ['payments-transactions'] });
-};
+const invalidateCash = invalidateCashViews;
 
 export interface CurrentCash {
   session: CashSessionDetail | null;
@@ -24,7 +21,7 @@ export interface CurrentCash {
 
 export const useCurrentCash = (enabled = true) =>
   useQuery({
-    queryKey: ['cash', 'current'],
+    queryKey: paymentsKeys.cash.current(),
     queryFn: async () => (await api.get<{ data: CurrentCash }>('/payments/cash/current')).data.data,
     enabled,
   });
@@ -38,7 +35,7 @@ export interface CashSessionFilters {
 
 export const useCashSessions = (filters: CashSessionFilters, enabled = true) =>
   useQuery({
-    queryKey: ['cash', 'sessions', filters],
+    queryKey: paymentsKeys.cash.sessions(filters),
     queryFn: async () =>
       (await api.get<{ data: CashSession[] }>('/payments/cash/sessions', { params: filters })).data.data,
     enabled,
@@ -46,14 +43,14 @@ export const useCashSessions = (filters: CashSessionFilters, enabled = true) =>
 
 export const useCashSession = (id: string | null) =>
   useQuery({
-    queryKey: ['cash', 'session', id],
+    queryKey: paymentsKeys.cash.session(id),
     queryFn: async () => (await api.get<{ data: CashSessionDetail }>(`/payments/cash/sessions/${id}`)).data.data,
     enabled: !!id,
   });
 
 export const useCashiers = (enabled = true) =>
   useQuery({
-    queryKey: ['cash', 'cashiers'],
+    queryKey: paymentsKeys.cash.cashiers(),
     queryFn: async () => (await api.get<{ data: PersonRef[] }>('/payments/cash/cashiers')).data.data,
     enabled,
   });

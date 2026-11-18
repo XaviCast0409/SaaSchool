@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { paymentsKeys, feeSchedules } from './keys';
 
 /** Tarifario por año académico y vista previa del cronograma de cuotas al matricular. */
 
@@ -68,11 +69,9 @@ export interface ScheduleResult {
   scholarshipsApplied?: number;
 }
 
-const KEY = 'fee-schedules';
-
 export const useFeeSchedules = (academicYearId: string | undefined) =>
   useQuery({
-    queryKey: [KEY, academicYearId],
+    queryKey: feeSchedules.byYear(academicYearId),
     queryFn: async () =>
       (await api.get<{ data: FeeSchedule[] }>('/payments/fee-schedules', { params: { academicYearId } })).data.data,
     enabled: !!academicYearId,
@@ -99,10 +98,10 @@ export const useSaveFeeSchedule = () => {
           ).data.data
         : (await api.post<{ data: FeeSchedule & { repriced?: number } }>('/payments/fee-schedules', body)).data.data,
     onSuccess: (r) => {
-      qc.invalidateQueries({ queryKey: [KEY] });
-      qc.invalidateQueries({ queryKey: ['schedule-preview'] });
+      qc.invalidateQueries({ queryKey: feeSchedules.all });
+      qc.invalidateQueries({ queryKey: paymentsKeys.schedulePreview.all });
       if (r.repriced)
-        for (const key of ['payments-obligations', 'financial-summary', 'statement'])
+        for (const key of [paymentsKeys.obligations.all[0], paymentsKeys.summary.all[0], paymentsKeys.statement.all[0]])
           qc.invalidateQueries({ queryKey: [key] });
     },
   });
@@ -113,8 +112,8 @@ export const useDeleteFeeSchedule = () => {
   return useMutation({
     mutationFn: async (id: string) => (await api.delete(`/payments/fee-schedules/${id}`)).data.data,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [KEY] });
-      qc.invalidateQueries({ queryKey: ['schedule-preview'] });
+      qc.invalidateQueries({ queryKey: feeSchedules.all });
+      qc.invalidateQueries({ queryKey: paymentsKeys.schedulePreview.all });
     },
   });
 };
@@ -124,7 +123,7 @@ export const useCopyFeeSchedules = () => {
   return useMutation({
     mutationFn: async (body: { fromAcademicYearId: string; toAcademicYearId: string }) =>
       (await api.post<{ data: { copied: number; skipped: number } }>('/payments/fee-schedules/copy', body)).data.data,
-    onSuccess: () => qc.invalidateQueries({ queryKey: [KEY] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: feeSchedules.all }),
   });
 };
 
@@ -147,7 +146,7 @@ export const useGenerateMissing = () => {
       (await api.post<{ data: GenerateMissingResult }>('/payments/fee-schedules/generate-missing', body)).data.data,
     onSuccess: (r) => {
       if (!r.dryRun) {
-        for (const key of ['payments-obligations', 'financial-summary', 'statement'])
+        for (const key of [paymentsKeys.obligations.all[0], paymentsKeys.summary.all[0], paymentsKeys.statement.all[0]])
           qc.invalidateQueries({ queryKey: [key] });
       }
     },
@@ -156,7 +155,7 @@ export const useGenerateMissing = () => {
 
 export const useSchedulePreview = (input: { academicYearId?: string; classroomId?: string; condition?: string }) =>
   useQuery({
-    queryKey: ['schedule-preview', input],
+    queryKey: paymentsKeys.schedulePreview.detail(input),
     queryFn: async () =>
       (await api.get<{ data: SchedulePreview }>('/enrollments/schedule-preview', { params: input })).data.data,
     enabled: !!input.academicYearId && !!input.classroomId,

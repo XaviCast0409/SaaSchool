@@ -12,6 +12,7 @@ import { formatPeruDateTime, formatPeruShortDate, getPeruToday } from '@/lib/dat
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
 import { useStudents } from '@/features/students/api/useStudents';
 import { useGetActiveSchool } from '@/features/schools/api/useSchool';
+import { paymentsKeys } from '../api/keys';
 import { useFinanceAccess } from '../api/usePayments';
 import { useCashiers } from '../api/useCash';
 import {
@@ -766,7 +767,7 @@ const ExpensesTab: React.FC = () => {
   const schoolName = useSchoolName();
   const [r, setR] = useState({ startDate: monthStart(), endDate: getPeruToday() });
   const { data = [], isLoading } = useQuery({
-    queryKey: ['report', 'expenses', r],
+    queryKey: paymentsKeys.report.expenses(r),
     queryFn: async () => (await api.get<{ data: CashExpense[] }>('/payments/cash/expenses', { params: r })).data.data,
   });
   const active = data.filter((e) => e.status === 'ACTIVE');
