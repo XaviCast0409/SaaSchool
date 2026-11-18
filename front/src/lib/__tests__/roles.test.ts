@@ -33,3 +33,4 @@ describe('roles', () => {
     expect(ROLE_LABELS.PARENT).toBe('Apoderado');
   });
 });
+
