@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import type { EducationLevel, Shift } from '@/shared/types/academic';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -27,7 +28,7 @@ export function formatFullName(person: PersonNameInput, format: 'LAST_FIRST' | '
   return [first, lastNames].filter(Boolean).join(' ');
 }
 
-export const EDUCATION_LEVEL_LABELS: Record<string, string> = {
+export const EDUCATION_LEVEL_LABELS: Record<EducationLevel, string> = {
   INITIAL: 'Inicial',
   PRIMARY: 'Primaria',
   SECONDARY: 'Secundaria',
@@ -35,10 +36,10 @@ export const EDUCATION_LEVEL_LABELS: Record<string, string> = {
 
 export function formatEducationLevel(level?: string | null): string {
   if (!level) return '';
-  return EDUCATION_LEVEL_LABELS[level] || level;
+  return (EDUCATION_LEVEL_LABELS as Record<string, string>)[level] || level;
 }
 
-export const SHIFT_LABELS: Record<string, string> = {
+export const SHIFT_LABELS: Record<Shift, string> = {
   MORNING: 'Mañana',
   AFTERNOON: 'Tarde',
   NIGHT: 'Noche',
@@ -46,5 +47,5 @@ export const SHIFT_LABELS: Record<string, string> = {
 
 export function formatShift(shift?: string | null): string {
   if (!shift) return '';
-  return SHIFT_LABELS[shift] || shift;
+  return (SHIFT_LABELS as Record<string, string>)[shift] || shift;
 }
