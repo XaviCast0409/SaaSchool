@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
 import { useAuthStore } from '@/store/useAuthStore';
 import { listQueuedScans, removeQueuedScan, updateQueuedScan, type QueuedScan } from './scanQueue';
+import { attendanceKeys } from '../api/keys';
 
 interface BatchScanResult {
   clientId: string;
@@ -75,9 +76,9 @@ export function useOfflineScanQueue(schoolId: string | undefined) {
         }
       }
 
-      queryClient.invalidateQueries({ queryKey: ['attendance'] });
-      queryClient.invalidateQueries({ queryKey: ['attendance-sheet'] });
-      queryClient.invalidateQueries({ queryKey: ['attendance-summary'] });
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.all });
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.sheetAll });
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.summaryAll });
     } catch (err: any) {
       for (const item of toProcess) {
         await updateQueuedScan({

@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CameraQrScanner } from './CameraQrScanner';
 import { useCheckoutPreview, useCheckout } from '../api/useCheckout';
+import { attendanceKeys } from '../api/keys';
 import { useResolvedFileUrl } from '@/features/course-contents/api/useResolvedFileUrl';
 import { formatPeruTime } from '@/lib/dateUtils';
 import { relationshipLabel } from '@/features/users/family-relationships/relationshipLabels';
@@ -109,7 +110,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
   // Padrón del colegio (el mismo del escáner QR) para buscar por nombre: el portero suele saber
   // cómo se llama el alumno, no su DNI.
   const { data: roster = [] } = useQuery({
-    queryKey: ['attendance', 'scan-roster'],
+    queryKey: attendanceKeys.scanRoster(),
     queryFn: async () => (await api.get<{ data: RosterStudent[] }>('/attendance/scan-roster')).data.data,
     enabled: open,
     staleTime: 5 * 60_000,

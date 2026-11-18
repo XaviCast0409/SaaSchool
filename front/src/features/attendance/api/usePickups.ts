@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/axios';
+import { attendanceKeys } from './keys';
 import type { AuthorizedPickup, CreatePickupPayload, UpdatePickupPayload } from '../types';
 
 export const usePickups = (studentId?: string | null) => {
   return useQuery({
-    queryKey: ['pickups', studentId],
+    queryKey: attendanceKeys.pickups(studentId),
     queryFn: async (): Promise<AuthorizedPickup[]> => {
       if (!studentId) return [];
       const res = await api.get<{ status: string; data: AuthorizedPickup[] }>(`/pickups?studentId=${studentId}`);
@@ -24,8 +25,8 @@ export const useCreatePickup = () => {
       return res.data.data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['pickups', variables.studentId] });
-      queryClient.invalidateQueries({ queryKey: ['pickups'] });
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.pickups(variables.studentId) });
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.pickupsAll });
       toast.success('Persona autorizada registrada con éxito.');
     },
     onError: (err: any) => {
@@ -50,8 +51,8 @@ export const useUpdatePickup = () => {
       return res.data.data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['pickups', variables.studentId] });
-      queryClient.invalidateQueries({ queryKey: ['pickups'] });
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.pickups(variables.studentId) });
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.pickupsAll });
       toast.success('Datos actualizados correctamente.');
     },
     onError: (err: any) => {
@@ -68,8 +69,8 @@ export const useDeactivatePickup = () => {
       await api.delete(`/pickups/${id}`);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['pickups', variables.studentId] });
-      queryClient.invalidateQueries({ queryKey: ['pickups'] });
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.pickups(variables.studentId) });
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.pickupsAll });
       toast.success('Persona autorizada retirada de la lista.');
     },
     onError: (err: any) => {

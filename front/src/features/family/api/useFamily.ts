@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { familyKeys } from './keys';
 
 export type Light = 'GREEN' | 'YELLOW' | 'RED' | 'GRAY';
 
@@ -23,7 +24,7 @@ export interface TimelineItem {
 
 export const useFamilyOverview = (enabled = true) =>
   useQuery({
-    queryKey: ['family', 'overview'],
+    queryKey: familyKeys.overview(),
     enabled,
     queryFn: async () => (await api.get<{ data: ChildOverview[] }>('/family/overview')).data.data,
     staleTime: 60_000,
@@ -31,7 +32,7 @@ export const useFamilyOverview = (enabled = true) =>
 
 export const useFamilyTimeline = (studentId: string | null, days = 14) =>
   useQuery({
-    queryKey: ['family', 'timeline', studentId, days],
+    queryKey: familyKeys.timeline(studentId, days),
     enabled: Boolean(studentId),
     queryFn: async () =>
       (
@@ -63,7 +64,7 @@ export interface GateToday {
 
 export const useGateToday = () =>
   useQuery({
-    queryKey: ['family', 'gate'],
+    queryKey: familyKeys.gate(),
     queryFn: async () => (await api.get<{ data: GateToday }>('/family/gate/today')).data.data,
     refetchInterval: 20_000,
   });

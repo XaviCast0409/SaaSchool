@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/axios';
+import { attendanceKeys } from './keys';
 import type { AttendanceAlert } from '../types';
 
 export interface AlertsFilters {
@@ -22,7 +23,7 @@ export interface AlertsResponse {
 
 export const useAttendanceAlerts = (filters: AlertsFilters = {}) => {
   return useQuery({
-    queryKey: ['attendance-alerts', filters],
+    queryKey: attendanceKeys.alerts(filters),
     queryFn: async (): Promise<AlertsResponse> => {
       const params = new URLSearchParams();
       if (filters.status) params.append('status', filters.status);
@@ -46,7 +47,7 @@ export const useAttendAlert = () => {
       return res.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['attendance-alerts'] });
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.alertsAll });
       toast.success('Alerta marcada como atendida.');
     },
     onError: (err: any) => {
@@ -75,7 +76,7 @@ export const useCiteFamily = () => {
       return res.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['attendance-alerts'] });
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.alertsAll });
       toast.success('Familia citada y alerta atendida.');
     },
     onError: (err: any) => {
@@ -93,7 +94,7 @@ export const useEvaluateAlerts = () => {
       return res.data.data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['attendance-alerts'] });
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.alertsAll });
       toast.success(
         data.created > 0
           ? `Evaluación completada: ${data.created} nueva(s) alerta(s) generada(s).`

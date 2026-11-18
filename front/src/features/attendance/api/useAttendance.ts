@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { attendanceKeys, invalidateAttendanceViews } from './keys';
 import {
   AttendanceRecord,
   AttendanceMonthlySummary,
@@ -64,15 +65,7 @@ export const useAttendance = (filters: AttendanceFilterParams = {}, enabledOverr
   const isEnabled = enabledOverride !== undefined ? enabledOverride : true;
 
   return useQuery({
-    queryKey: [
-      'attendance',
-      filters.date,
-      filters.classroomId,
-      filters.status,
-      filters.search,
-      filters.page,
-      filters.limit,
-    ],
+    queryKey: attendanceKeys.list(filters),
     queryFn: async () => {
       const response = await api.get<AttendancePaginatedResult>(url);
       return response.data;
@@ -87,7 +80,7 @@ export const useAttendanceMatrix = (params: { month: string; classroomId?: strin
   if (params.classroomId) queryParams.append('classroomId', params.classroomId);
 
   return useQuery({
-    queryKey: ['attendance-matrix', params.month, params.classroomId],
+    queryKey: attendanceKeys.matrix(params.month, params.classroomId),
     queryFn: async () => {
       const response = await api.get<MatrixResponse>(`/attendance/matrix?${queryParams.toString()}`);
       return response.data.data;
@@ -102,7 +95,7 @@ export const useStudentAttendanceDetail = (enrollmentId?: string, month?: string
   if (month) queryParams.append('month', month);
 
   return useQuery({
-    queryKey: ['student-attendance-detail', enrollmentId, month],
+    queryKey: attendanceKeys.detail(enrollmentId, month),
     queryFn: async () => {
       if (!enrollmentId) return null;
       const response = await api.get<StudentDetailResponse>(
@@ -124,7 +117,7 @@ export const useAttendanceSummary = (params: AttendanceSummaryQueryParams = {}) 
   const url = `/attendance/summary${queryString ? `?${queryString}` : ''}`;
 
   return useQuery({
-    queryKey: ['attendance-summary', params.month, params.classroomId],
+    queryKey: attendanceKeys.summary(params),
     queryFn: async () => {
       const response = await api.get<SummaryResponse>(url);
       return response.data.data;
@@ -139,7 +132,7 @@ export const useAttendanceExportData = (params: { month: string; classroomId?: s
   if (params.classroomId) queryParams.append('classroomId', params.classroomId);
 
   return useQuery({
-    queryKey: ['attendance-export', params.month, params.classroomId],
+    queryKey: attendanceKeys.exportData(params),
     queryFn: async () => {
       const response = await api.get<ExportResponse>(`/attendance/export?${queryParams.toString()}`);
       return response.data.data;
@@ -161,11 +154,7 @@ export const useUpdateAttendance = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['attendance'] });
-      queryClient.invalidateQueries({ queryKey: ['attendance-sheet'] });
-      queryClient.invalidateQueries({ queryKey: ['attendance-summary'] });
-      queryClient.invalidateQueries({ queryKey: ['attendance-matrix'] });
-      queryClient.invalidateQueries({ queryKey: ['student-attendance-detail'] });
+      invalidateAttendanceViews(queryClient);
     },
   });
 };
@@ -187,11 +176,7 @@ export const useBulkAttendance = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['attendance'] });
-      queryClient.invalidateQueries({ queryKey: ['attendance-sheet'] });
-      queryClient.invalidateQueries({ queryKey: ['attendance-summary'] });
-      queryClient.invalidateQueries({ queryKey: ['attendance-matrix'] });
-      queryClient.invalidateQueries({ queryKey: ['student-attendance-detail'] });
+      invalidateAttendanceViews(queryClient);
     },
   });
 };
@@ -211,10 +196,7 @@ export const useScanAttendance = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['attendance'] });
-      queryClient.invalidateQueries({ queryKey: ['attendance-sheet'] });
-      queryClient.invalidateQueries({ queryKey: ['attendance-summary'] });
-      queryClient.invalidateQueries({ queryKey: ['attendance-matrix'] });
+      invalidateAttendanceViews(queryClient, { includeDetail: false });
     },
   });
 };
@@ -222,7 +204,7 @@ export const useScanAttendance = () => {
 /** Hook para obtener la hoja unificada de asistencia de un aula y fecha */
 export const useAttendanceSheet = (params: { classroomId?: string; date: string }) => {
   return useQuery({
-    queryKey: ['attendance-sheet', params.classroomId, params.date],
+    queryKey: attendanceKeys.sheet(params.classroomId, params.date),
     queryFn: async () => {
       if (!params.classroomId) return null;
       const response = await api.get<SheetResponse>(
@@ -245,12 +227,12 @@ export const useSaveAttendanceSheet = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ['attendance-sheet', variables.classroomId, variables.date],
+        queryKey: attendanceKeys.sheet(variables.classroomId, variables.date),
       });
-      queryClient.invalidateQueries({ queryKey: ['attendance'] });
-      queryClient.invalidateQueries({ queryKey: ['attendance-summary'] });
-      queryClient.invalidateQueries({ queryKey: ['attendance-matrix'] });
-      queryClient.invalidateQueries({ queryKey: ['student-attendance-detail'] });
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.all });
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.summaryAll });
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.matrixAll });
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.detailAll });
     },
   });
 };
@@ -258,7 +240,7 @@ export const useSaveAttendanceSheet = () => {
 /** Hook para obtener el historial de asistencia por matrícula (Portal de Padres) */
 export const useAttendanceByEnrollment = (enrollmentId?: string, enabled = true) => {
   return useQuery({
-    queryKey: ['attendance-by-enrollment', enrollmentId],
+    queryKey: attendanceKeys.byEnrollment(enrollmentId),
     queryFn: async (): Promise<AttendanceRecord[]> => {
       if (!enrollmentId) return [];
       const response = await api.get<{ status: string; data: AttendanceRecord[] }>(
@@ -274,7 +256,7 @@ export const useAttendanceByEnrollment = (enrollmentId?: string, enabled = true)
 /** Hook para consultar las configuraciones de horarios de asistencia del colegio */
 export const useAttendanceScheduleConfigs = () => {
   return useQuery({
-    queryKey: ['attendance-schedule-configs'],
+    queryKey: attendanceKeys.scheduleConfigs(),
     queryFn: async (): Promise<AttendanceScheduleConfig[]> => {
       const response = await api.get<{ status: string; data: AttendanceScheduleConfig[] }>('/attendance/config');
       return response.data.data;
@@ -293,7 +275,7 @@ export const useUpsertAttendanceScheduleConfig = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['attendance-schedule-configs'] });
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.scheduleConfigsAll });
     },
   });
 };
@@ -308,11 +290,7 @@ export const useCloseAttendance = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['attendance'] });
-      queryClient.invalidateQueries({ queryKey: ['attendance-sheet'] });
-      queryClient.invalidateQueries({ queryKey: ['attendance-summary'] });
-      queryClient.invalidateQueries({ queryKey: ['attendance-matrix'] });
-      queryClient.invalidateQueries({ queryKey: ['student-attendance-detail'] });
+      invalidateAttendanceViews(queryClient);
     },
   });
 };
@@ -328,7 +306,7 @@ export interface SchoolHolidayItem {
 export const useHolidays = (year?: number) => {
   const currentYear = year || new Date().getFullYear();
   return useQuery({
-    queryKey: ['school-holidays', currentYear],
+    queryKey: attendanceKeys.holidays(currentYear),
     queryFn: async (): Promise<SchoolHolidayItem[]> => {
       const response = await api.get<{ status: string; data: SchoolHolidayItem[] }>(
         `/attendance/holidays?year=${currentYear}`,
@@ -347,7 +325,7 @@ export const useCreateHoliday = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['school-holidays'] });
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.holidaysAll });
     },
   });
 };
@@ -361,7 +339,7 @@ export const useDeleteHoliday = () => {
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['school-holidays'] });
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.holidaysAll });
     },
   });
 };

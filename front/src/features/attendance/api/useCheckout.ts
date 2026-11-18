@@ -1,11 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/axios';
+import { attendanceKeys } from './keys';
+import { familyKeys } from '@/features/family/api/keys';
 import type { CheckoutPreviewData, CheckoutPayload, AttendanceRecord } from '../types';
 
 export const useCheckoutPreview = (code?: string | null) => {
   return useQuery({
-    queryKey: ['checkout-preview', code],
+    queryKey: attendanceKeys.checkoutPreview(code),
     queryFn: async (): Promise<CheckoutPreviewData> => {
       const res = await api.get<{ status: string; data: CheckoutPreviewData }>(
         `/attendance/checkout/preview?code=${encodeURIComponent(code!)}`,
@@ -29,11 +31,11 @@ export const useCheckout = () => {
       return res.data.data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['attendance'] });
-      queryClient.invalidateQueries({ queryKey: ['attendance-sheet'] });
-      queryClient.invalidateQueries({ queryKey: ['attendance-summary'] });
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.all });
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.sheetAll });
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.summaryAll });
       // Portería: contadores y listas del día
-      queryClient.invalidateQueries({ queryKey: ['family', 'gate'] });
+      queryClient.invalidateQueries({ queryKey: familyKeys.gate() });
       toast.success(data.message || 'Salida registrada con éxito.');
     },
     onError: (err: any) => {

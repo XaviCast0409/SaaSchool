@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/axios';
+import { attendanceKeys, invalidateAttendanceViews } from './keys';
 import type { AttendanceJustification, CreateJustificationPayload, ReviewJustificationPayload } from '../types';
 
 export interface JustificationFilters {
@@ -23,7 +24,7 @@ export interface JustificationsResponse {
 
 export const useJustifications = (filters: JustificationFilters = {}) => {
   return useQuery({
-    queryKey: ['attendance-justifications', filters],
+    queryKey: attendanceKeys.justifications(filters),
     queryFn: async (): Promise<JustificationsResponse> => {
       const params = new URLSearchParams();
       if (filters.status) params.append('status', filters.status);
@@ -49,12 +50,8 @@ export const useCreateJustification = () => {
       return res.data.data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['attendance-justifications'] });
-      queryClient.invalidateQueries({ queryKey: ['attendance'] });
-      queryClient.invalidateQueries({ queryKey: ['attendance-sheet'] });
-      queryClient.invalidateQueries({ queryKey: ['attendance-summary'] });
-      queryClient.invalidateQueries({ queryKey: ['attendance-matrix'] });
-      queryClient.invalidateQueries({ queryKey: ['student-attendance-detail'] });
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.justificationsAll });
+      invalidateAttendanceViews(queryClient);
 
       if (data.status === 'APPROVED') {
         toast.success('Justificación registrada y aplicada.');
@@ -86,12 +83,8 @@ export const useReviewJustification = () => {
       return res.data.data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['attendance-justifications'] });
-      queryClient.invalidateQueries({ queryKey: ['attendance'] });
-      queryClient.invalidateQueries({ queryKey: ['attendance-sheet'] });
-      queryClient.invalidateQueries({ queryKey: ['attendance-summary'] });
-      queryClient.invalidateQueries({ queryKey: ['attendance-matrix'] });
-      queryClient.invalidateQueries({ queryKey: ['student-attendance-detail'] });
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.justificationsAll });
+      invalidateAttendanceViews(queryClient);
       toast.success(data.status === 'APPROVED' ? 'Justificación aprobada correctamente.' : 'Justificación rechazada.');
     },
     onError: (err: any) => {
