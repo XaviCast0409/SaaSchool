@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/axios';
+import { academicKeys } from './api/keys';
 import { getApiErrorMessage as apiErrorMessage } from '@/lib/errors';
 import type {
   Catalog,
@@ -36,23 +37,23 @@ export { getApiErrorMessage as apiErrorMessage } from '@/lib/errors';
 
 const useInvalidate = () => {
   const qc = useQueryClient();
-  return (...keys: string[]) => keys.forEach((k) => qc.invalidateQueries({ queryKey: ['academic', k] }));
+  return (...keys: string[]) => keys.forEach((k) => qc.invalidateQueries({ queryKey: academicKeys.sub(k) }));
 };
 
 // ── Catálogo y plan de estudios
 export const useCatalog = () =>
   useQuery({
-    queryKey: ['academic', 'catalog'],
+    queryKey: academicKeys.catalog(),
     queryFn: () => get<Catalog>('/academic/catalog'),
     staleTime: Infinity,
   });
 
 export const useSetupStatus = () =>
-  useQuery({ queryKey: ['academic', 'setup'], queryFn: () => get<SetupStatus>('/academic/setup-status') });
+  useQuery({ queryKey: academicKeys.setup(), queryFn: () => get<SetupStatus>('/academic/setup-status') });
 
 export const useStudyPlan = (level: Level, grade: number | null) =>
   useQuery({
-    queryKey: ['academic', 'plan', level, grade],
+    queryKey: academicKeys.plan(level, grade),
     queryFn: () => get<StudyPlan>('/academic/study-plan', { level, grade }),
     enabled: grade !== null,
   });
@@ -88,7 +89,7 @@ export const useCreateSubcourses = planMutation(
 );
 export const usePreuniversityCatalog = (level: Level, grade: number | null, enabled = true) =>
   useQuery({
-    queryKey: ['academic', 'plan', 'preuniversity', level, grade],
+    queryKey: academicKeys.planPreuniversity(level, grade),
     queryFn: () => get<PreuniversityCatalog>('/academic/study-plan/preuniversity', { level, grade }),
     enabled: enabled && grade !== null,
   });
@@ -129,7 +130,7 @@ export const useUpdatePlanCourse = () => {
 // ── Carga docente
 export const useTeachingLoad = (level: Level) =>
   useQuery({
-    queryKey: ['academic', 'load', level],
+    queryKey: academicKeys.load(level),
     queryFn: () => get<TeachingLoad>('/academic/teaching-load', { level }),
   });
 
@@ -149,7 +150,7 @@ export const useCopyTeachingLoad = planMutation(
 
 export const useMyCourses = () =>
   useQuery({
-    queryKey: ['academic', 'my-courses'],
+    queryKey: academicKeys.myCourses(),
     queryFn: () =>
       get<{ courses: MyCourse[]; tutorClassrooms?: MyCourse['classroom'][]; academicYearId: string | null }>(
         '/academic/my-courses',
@@ -158,7 +159,7 @@ export const useMyCourses = () =>
 
 // ── Periodos y avance
 export const usePeriods = () =>
-  useQuery({ queryKey: ['academic', 'periods'], queryFn: () => get<PeriodsResponse>('/academic/periods') });
+  useQuery({ queryKey: academicKeys.periods(), queryFn: () => get<PeriodsResponse>('/academic/periods') });
 
 export const useSetPeriodStatus = () => {
   const invalidate = useInvalidate();
@@ -180,14 +181,14 @@ export const useSetPeriodStatus = () => {
 
 export const useProgress = (periodNumber: number | null, level?: Level) =>
   useQuery({
-    queryKey: ['academic', 'progress', periodNumber, level ?? 'ALL'],
+    queryKey: academicKeys.progress(periodNumber, level ?? 'ALL'),
     queryFn: () => get<ProgressResponse>('/academic/progress', { periodNumber, level }),
     enabled: periodNumber !== null,
   });
 
 export const useMyProgress = (periodNumber: number | null) =>
   useQuery({
-    queryKey: ['academic', 'progress', 'mine', periodNumber],
+    queryKey: academicKeys.progressMine(periodNumber),
     queryFn: () => get<ProgressResponse>('/academic/my-progress', { periodNumber }),
     enabled: periodNumber !== null,
   });
@@ -203,7 +204,7 @@ export const useRemindPending = () =>
 // ── Registro de notas
 export const useGradebook = (assignmentId: string | undefined, periodNumber: number) =>
   useQuery({
-    queryKey: ['academic', 'gradebook', assignmentId, periodNumber],
+    queryKey: academicKeys.gradebook(assignmentId, periodNumber),
     queryFn: () => get<GradebookData>(`/academic/gradebook/${assignmentId}`, { periodNumber }),
     enabled: !!assignmentId,
     // Es un formulario en edición: no se vuelve a pedir solo al volver a la pestaña ni por avisos en vivo
@@ -231,7 +232,7 @@ export const useSaveScores = (assignmentId: string) => {
       ).data.data,
     // Lo guardado pasa a la caché: al volver a la pestaña o a otra competencia se ve lo último, sin volver a pedirlo
     onSuccess: (res, v) => {
-      qc.setQueryData<GradebookData>(['academic', 'gradebook', assignmentId, v.periodNumber], (old) => {
+      qc.setQueryData<GradebookData>(academicKeys.gradebook(assignmentId, v.periodNumber), (old) => {
         if (!old) return old;
         const keyOf = (x: { enrollmentId: string; competenceId: string; criterionId: string }) =>
           `${x.enrollmentId}|${x.competenceId}|${x.criterionId}`;
@@ -245,7 +246,7 @@ export const useSaveScores = (assignmentId: string) => {
         return { ...old, scores: [...scores.values()], results: [...results.values()] };
       });
       // Avance del docente y de Dirección cambia con cada nota
-      qc.invalidateQueries({ queryKey: ['academic', 'progress'] });
+      qc.invalidateQueries({ queryKey: academicKeys.progressAll });
     },
   });
 };
@@ -307,14 +308,14 @@ export const useImportHomework = () => {
 // ── Consolidado, libretas y exportaciones
 export const useConsolidation = (classroomId: string | null, period: number | 'FINAL') =>
   useQuery({
-    queryKey: ['academic', 'consolidation', classroomId, period],
+    queryKey: academicKeys.consolidation(classroomId, period),
     queryFn: () => get<ConsolidationResponse>('/academic/consolidation', { classroomId, period }),
     enabled: !!classroomId,
   });
 
 export const useReportCard = (enrollmentId: string | null | undefined) =>
   useQuery({
-    queryKey: ['academic', 'report-card', enrollmentId],
+    queryKey: academicKeys.reportCard(enrollmentId),
     queryFn: () => get<ReportCard>(`/academic/report-card/${enrollmentId}`),
     enabled: !!enrollmentId,
     retry: false,
@@ -322,7 +323,7 @@ export const useReportCard = (enrollmentId: string | null | undefined) =>
 
 export const useClassroomReportCards = (classroomId: string | null) =>
   useQuery({
-    queryKey: ['academic', 'report-cards', classroomId],
+    queryKey: academicKeys.reportCards(classroomId),
     queryFn: () => get<ReportCard[]>('/academic/report-cards', { classroomId }),
     enabled: !!classroomId,
   });
@@ -358,7 +359,7 @@ export async function downloadFile(url: string, params: Record<string, unknown>,
 // ── Banco de frases de conclusiones
 export const usePhrases = (assignmentId: string | null) =>
   useQuery({
-    queryKey: ['academic', 'phrases', assignmentId],
+    queryKey: academicKeys.phrases(assignmentId),
     queryFn: () => get<PhrasesForAssignment>('/academic/phrases', { assignmentId }),
     enabled: !!assignmentId,
     staleTime: 5 * 60_000,
@@ -366,7 +367,7 @@ export const usePhrases = (assignmentId: string | null) =>
 
 export const usePhrasesManage = (level: Level, cnebNumber: number | null, courseKey: string | null) =>
   useQuery({
-    queryKey: ['academic', 'phrases', 'manage', level, cnebNumber, courseKey],
+    queryKey: academicKeys.phrasesManage(level, cnebNumber, courseKey),
     queryFn: () =>
       get<PhrasesManage>('/academic/phrases/manage', { level, cnebNumber, courseKey: courseKey ?? undefined }),
     enabled: cnebNumber !== null,
@@ -422,7 +423,7 @@ export const useSetPhraseHidden = () => {
 // ── Libreta interna: conducta y comentario del tutor
 export const useTutorReport = (classroomId: string | null, periodNumber: number | null) =>
   useQuery({
-    queryKey: ['academic', 'tutor-report', classroomId, periodNumber],
+    queryKey: academicKeys.tutorReport(classroomId, periodNumber),
     queryFn: () => get<TutorReport>('/academic/tutor-report', { classroomId, periodNumber }),
     enabled: !!classroomId && !!periodNumber,
     // Alimenta un formulario editable: no se recarga sola para no pisar lo que se está escribiendo

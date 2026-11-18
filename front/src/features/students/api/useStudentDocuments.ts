@@ -144,3 +144,4 @@ export const useNoDebtCertificate = (studentId?: string, enabled = true) => {
     retry: false,
   });
 };
+

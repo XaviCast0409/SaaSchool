@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
 import { compressImageForUpload } from '@/lib/imageResize';
+import { courseContentsKeys } from './keys';
 import type {
   CourseContent,
   CreateCourseContentPayload,
@@ -18,7 +19,7 @@ import type {
  */
 export const useGetCourseContents = (courseAssignmentId?: string | null, bimester?: number | null) => {
   return useQuery({
-    queryKey: ['course-contents', courseAssignmentId, bimester],
+    queryKey: courseContentsKeys.list(courseAssignmentId, bimester),
     queryFn: async (): Promise<CourseContent[]> => {
       if (!courseAssignmentId) return [];
       const params = new URLSearchParams();
@@ -93,7 +94,7 @@ export const useCreateCourseContent = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ['course-contents', variables.courseAssignmentId],
+        queryKey: courseContentsKeys.list(variables.courseAssignmentId),
       });
     },
   });
@@ -112,7 +113,7 @@ export const useDeleteCourseContent = () => {
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({
-        queryKey: ['course-contents', result.courseAssignmentId],
+        queryKey: courseContentsKeys.list(result.courseAssignmentId),
       });
     },
   });
@@ -123,7 +124,7 @@ export const useDeleteCourseContent = () => {
  */
 export const useGetForumComments = (contentId?: string | null) => {
   return useQuery({
-    queryKey: ['forum-comments', contentId],
+    queryKey: courseContentsKeys.forumComments(contentId),
     queryFn: async () => {
       if (!contentId) return [];
       const res = await api.get<{ status: string; data: ForumComment[] }>(`/course-contents/${contentId}/comments`);
@@ -155,10 +156,10 @@ export const useAddForumComment = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ['forum-comments', variables.contentId],
+        queryKey: courseContentsKeys.forumComments(variables.contentId),
       });
       queryClient.invalidateQueries({
-        queryKey: ['course-contents'],
+        queryKey: courseContentsKeys.all,
       });
     },
   });
@@ -169,7 +170,7 @@ export const useAddForumComment = () => {
  */
 export const useGetStudentCourses = (studentId?: string | null) => {
   return useQuery({
-    queryKey: ['student-courses', studentId],
+    queryKey: courseContentsKeys.studentCourses(studentId),
     queryFn: async () => {
       if (!studentId) return null;
       const res = await api.get<{ status: string; data: import('../types').StudentCoursesResponse }>(
@@ -186,7 +187,7 @@ export const useGetStudentCourses = (studentId?: string | null) => {
  */
 export const useGetStudentTasks = (studentId?: string | null) => {
   return useQuery({
-    queryKey: ['student-tasks', studentId],
+    queryKey: courseContentsKeys.studentTasks(studentId),
     queryFn: async () => {
       if (!studentId) return null;
       const res = await api.get<{ status: string; data: import('../types').StudentTasksResponse }>(
@@ -220,13 +221,13 @@ export const useSubmitHomework = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ['homework-submissions', variables.courseContentId],
+        queryKey: courseContentsKeys.homeworkSubmissions(variables.courseContentId),
       });
       queryClient.invalidateQueries({
-        queryKey: ['student-tasks'],
+        queryKey: courseContentsKeys.studentTasksAll,
       });
       queryClient.invalidateQueries({
-        queryKey: ['course-contents'],
+        queryKey: courseContentsKeys.all,
       });
     },
   });
@@ -237,7 +238,7 @@ export const useSubmitHomework = () => {
  */
 export const useGetHomeworkSubmissions = (courseContentId?: string | null) => {
   return useQuery({
-    queryKey: ['homework-submissions', courseContentId],
+    queryKey: courseContentsKeys.homeworkSubmissions(courseContentId),
     queryFn: async (): Promise<HomeworkSubmissionsResponse> => {
       if (!courseContentId) throw new Error('courseContentId is required');
       const res = await api.get<{ status: string; data: HomeworkSubmissionsResponse }>(
@@ -274,15 +275,15 @@ export const useGradeHomeworkSubmission = () => {
     onSuccess: (_, variables) => {
       if (variables.courseContentId) {
         queryClient.invalidateQueries({
-          queryKey: ['homework-submissions', variables.courseContentId],
+          queryKey: courseContentsKeys.homeworkSubmissions(variables.courseContentId),
         });
       } else {
         queryClient.invalidateQueries({
-          queryKey: ['homework-submissions'],
+          queryKey: courseContentsKeys.homeworkSubmissionsAll,
         });
       }
       queryClient.invalidateQueries({
-        queryKey: ['student-tasks'],
+        queryKey: courseContentsKeys.studentTasksAll,
       });
     },
   });

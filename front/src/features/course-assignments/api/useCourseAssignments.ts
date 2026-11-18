@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { courseAssignmentsKeys } from './keys';
 
 export interface CourseAssignment {
   id: string;
@@ -43,7 +44,7 @@ export const useCourseAssignments = (options?: { enabled?: boolean }) => {
     user?.role === 'SUPER_ADMIN' && impersonatedSchool?.id ? impersonatedSchool.id : user?.schoolId;
 
   return useQuery({
-    queryKey: ['course-assignments', currentSchoolId],
+    queryKey: courseAssignmentsKeys.list(currentSchoolId),
     queryFn: async () => {
       const response = await api.get<ApiResponse<CourseAssignment[]>>('/course-assignments');
       return response.data.data;
@@ -59,7 +60,7 @@ export const useMyCourseAssignments = (options?: { enabled?: boolean }) => {
     user?.role === 'SUPER_ADMIN' && impersonatedSchool?.id ? impersonatedSchool.id : user?.schoolId;
 
   return useQuery({
-    queryKey: ['course-assignments', 'my-courses', user?.id, currentSchoolId],
+    queryKey: courseAssignmentsKeys.myCourses(user?.id, currentSchoolId),
     queryFn: async () => {
       const response = await api.get<ApiResponse<CourseAssignment[]>>('/course-assignments/my-courses');
       return response.data.data;

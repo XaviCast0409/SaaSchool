@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { courseContentsKeys } from './keys';
 import type { SupervisionStats, TeacherComplianceItem, SupervisedFeedResponse, SupervisionFeedFilters } from '../types';
 
 /**
@@ -7,7 +8,7 @@ import type { SupervisionStats, TeacherComplianceItem, SupervisedFeedResponse, S
  */
 export const useSupervisionStats = (bimester?: number | null) => {
   return useQuery({
-    queryKey: ['supervision-stats', bimester],
+    queryKey: courseContentsKeys.supervisionStats(bimester),
     queryFn: async (): Promise<SupervisionStats> => {
       const params = new URLSearchParams();
       if (bimester) params.append('bimester', String(bimester));
@@ -25,7 +26,7 @@ export const useSupervisionStats = (bimester?: number | null) => {
  */
 export const useTeacherCompliance = (bimester?: number | null) => {
   return useQuery({
-    queryKey: ['teacher-compliance', bimester],
+    queryKey: courseContentsKeys.teacherCompliance(bimester),
     queryFn: async (): Promise<TeacherComplianceItem[]> => {
       const params = new URLSearchParams();
       if (bimester) params.append('bimester', String(bimester));
@@ -43,7 +44,7 @@ export const useTeacherCompliance = (bimester?: number | null) => {
  */
 export const useSupervisedFeed = (filters: SupervisionFeedFilters) => {
   return useQuery({
-    queryKey: ['supervised-feed', filters],
+    queryKey: courseContentsKeys.supervisedFeed(filters as Record<string, unknown>),
     queryFn: async (): Promise<SupervisedFeedResponse> => {
       const params = new URLSearchParams();
       if (filters.bimester) params.append('bimester', String(filters.bimester));
@@ -75,10 +76,10 @@ export const useDeleteSupervisedContent = () => {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['supervision-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['teacher-compliance'] });
-      queryClient.invalidateQueries({ queryKey: ['supervised-feed'] });
-      queryClient.invalidateQueries({ queryKey: ['course-contents'] });
+      queryClient.invalidateQueries({ queryKey: courseContentsKeys.supervisionStatsAll });
+      queryClient.invalidateQueries({ queryKey: courseContentsKeys.teacherComplianceAll });
+      queryClient.invalidateQueries({ queryKey: courseContentsKeys.supervisedFeedAll });
+      queryClient.invalidateQueries({ queryKey: courseContentsKeys.all });
     },
   });
 };

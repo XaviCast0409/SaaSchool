@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
 import { toast } from 'sonner';
+import { gradesKeys } from './keys';
 
 export interface GradingScaleThresholds {
   AD: number;
@@ -10,7 +11,7 @@ export interface GradingScaleThresholds {
 
 export const useGradingScale = (level: 'PRIMARY' | 'SECONDARY') => {
   return useQuery({
-    queryKey: ['grading-scale', level],
+    queryKey: gradesKeys.gradingScale(level),
     queryFn: async (): Promise<GradingScaleThresholds> => {
       const response = await api.get<{ status: string; data: GradingScaleThresholds }>(
         `/grades/grading-scale?level=${level}`,
@@ -33,7 +34,7 @@ export const useUpdateGradingScale = () => {
       return response.data.data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['grading-scale', variables.level] });
+      queryClient.invalidateQueries({ queryKey: gradesKeys.gradingScale(variables.level) });
       toast.success('Escala de calificación actualizada con éxito.');
     },
     onError: (error: any) => {

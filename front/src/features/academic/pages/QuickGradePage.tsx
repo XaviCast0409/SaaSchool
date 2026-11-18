@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/axios';
 import { useGradebook } from '../api';
+import { academicKeys } from '../api/keys';
 import { useAuthStore } from '@/store/useAuthStore';
 import {
   cacheGradebook,
@@ -145,7 +146,7 @@ export const QuickGradePage: React.FC = () => {
         }
       }
     } finally {
-      if (changed) await qc.invalidateQueries({ queryKey: ['academic', 'gradebook', assignmentId, period] });
+      if (changed) await qc.invalidateQueries({ queryKey: academicKeys.gradebook(assignmentId, period) });
       setSyncing(false);
       syncingRef.current = false;
       void refreshPending();

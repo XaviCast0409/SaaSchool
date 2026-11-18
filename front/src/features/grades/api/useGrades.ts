@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
 import { toast } from 'sonner';
+import { gradesKeys } from './keys';
 import type { EvaluationCriterion } from '../types';
 
 interface ApiResponse<T> {
@@ -14,7 +15,7 @@ interface ApiResponse<T> {
  */
 export const useEvaluationCriteria = (level?: string) => {
   return useQuery({
-    queryKey: ['evaluation-criteria', level],
+    queryKey: gradesKeys.evaluationCriteria(level),
     queryFn: async () => {
       const response = await api.get<ApiResponse<EvaluationCriterion[]>>('/grades/criteria', {
         params: level ? { level } : undefined,
@@ -36,7 +37,7 @@ export const useCreateCriterion = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['evaluation-criteria'] });
+      queryClient.invalidateQueries({ queryKey: gradesKeys.evaluationCriteriaAll });
       toast.success('Criterio creado', {
         description: 'El nuevo rubro evaluativo ha sido registrado correctamente.',
       });
@@ -61,7 +62,7 @@ export const useUpdateCriterion = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['evaluation-criteria'] });
+      queryClient.invalidateQueries({ queryKey: gradesKeys.evaluationCriteriaAll });
       toast.success('Criterio actualizado', {
         description: 'Las modificaciones han sido guardadas.',
       });
@@ -86,7 +87,7 @@ export const useDeleteCriterion = () => {
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['evaluation-criteria'] });
+      queryClient.invalidateQueries({ queryKey: gradesKeys.evaluationCriteriaAll });
       toast.success('Criterio desactivado', {
         description: 'El criterio ya no aparecerá en nuevas evaluaciones.',
       });

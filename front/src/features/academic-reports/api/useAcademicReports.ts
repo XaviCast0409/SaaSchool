@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { academicReportsKeys } from './keys';
 import {
   ReportClassroomItem,
   ConsolidatedGradesReportData,
@@ -17,7 +18,7 @@ import {
 
 export const useReportCatalogClassrooms = (academicYearId?: string) => {
   return useQuery<ReportClassroomItem[]>({
-    queryKey: ['academic-reports', 'classrooms', academicYearId],
+    queryKey: academicReportsKeys.classrooms(academicYearId),
     queryFn: async () => {
       const response = await api.get('/academic-reports/catalog/classrooms', {
         params: { academicYearId },
@@ -34,7 +35,7 @@ export const useConsolidatedGradesReport = (
   options?: { enabled?: boolean },
 ) => {
   return useQuery<ConsolidatedGradesReportData>({
-    queryKey: ['academic-reports', '0021', classroomId, periodNumber],
+    queryKey: academicReportsKeys.report0021(classroomId, periodNumber),
     queryFn: async () => {
       const response = await api.get('/academic-reports/0021-consolidated-grades', {
         params: { classroomId, periodNumber },
@@ -52,7 +53,7 @@ export const useDraftRegisterReport = (
   options?: { enabled?: boolean },
 ) => {
   return useQuery<DraftRegisterReportData>({
-    queryKey: ['academic-reports', '0041', classroomId, courseAssignmentId],
+    queryKey: academicReportsKeys.report0041(classroomId, courseAssignmentId),
     queryFn: async () => {
       const response = await api.get('/academic-reports/0041-draft-register', {
         params: { classroomId, courseAssignmentId },
@@ -66,7 +67,7 @@ export const useDraftRegisterReport = (
 
 export const useMeritClassroomReport = (classroomId: string, periodNumber: number, options?: { enabled?: boolean }) => {
   return useQuery<MeritClassroomReportData>({
-    queryKey: ['academic-reports', '0048', classroomId, periodNumber],
+    queryKey: academicReportsKeys.report0048(classroomId, periodNumber),
     queryFn: async () => {
       const response = await api.get('/academic-reports/0048-merit-classroom', {
         params: { classroomId, periodNumber },
@@ -85,7 +86,7 @@ export const useMeritGradeReport = (
   options?: { enabled?: boolean },
 ) => {
   return useQuery<MeritGradeReportData>({
-    queryKey: ['academic-reports', '0049', educationLevel, grade, periodNumber],
+    queryKey: academicReportsKeys.report0049(educationLevel, grade, periodNumber),
     queryFn: async () => {
       const response = await api.get('/academic-reports/0049-merit-grade', {
         params: { educationLevel, grade, periodNumber },
@@ -103,7 +104,7 @@ export const useConductCommentsReport = (
   options?: { enabled?: boolean },
 ) => {
   return useQuery<ConductCommentsReportData>({
-    queryKey: ['academic-reports', '0030', classroomId, periodNumber],
+    queryKey: academicReportsKeys.report0030(classroomId, periodNumber),
     queryFn: async () => {
       const response = await api.get('/academic-reports/0030-conduct-comments', {
         params: { classroomId, periodNumber },
@@ -117,7 +118,7 @@ export const useConductCommentsReport = (
 
 export const useClassroomRosterReport = (classroomId: string, options?: { enabled?: boolean }) => {
   return useQuery<ClassroomRosterReportData>({
-    queryKey: ['academic-reports', '0011', classroomId],
+    queryKey: academicReportsKeys.report0011(classroomId),
     queryFn: async () => {
       const response = await api.get('/academic-reports/0011-classroom-roster', {
         params: { classroomId },
@@ -131,7 +132,7 @@ export const useClassroomRosterReport = (classroomId: string, options?: { enable
 
 export const useFamiliesByStateReport = (state?: string, academicYearId?: string, options?: { enabled?: boolean }) => {
   return useQuery<FamiliesByStateReportData>({
-    queryKey: ['academic-reports', '0001', state, academicYearId],
+    queryKey: academicReportsKeys.report0001(state, academicYearId),
     queryFn: async () => {
       const response = await api.get('/academic-reports/0001-families-by-state', {
         params: { state, academicYearId },
@@ -149,7 +150,7 @@ export const useFamiliesChildrenReport = (
   options?: { enabled?: boolean },
 ) => {
   return useQuery<FamiliesChildrenReportData>({
-    queryKey: ['academic-reports', '0002', classroomId, academicYearId],
+    queryKey: academicReportsKeys.report0002(classroomId, academicYearId),
     queryFn: async () => {
       const response = await api.get('/academic-reports/0002-families-children', {
         params: { classroomId, academicYearId },
@@ -167,7 +168,7 @@ export const useFamiliesRelativesReport = (
   options?: { enabled?: boolean },
 ) => {
   return useQuery<FamiliesRelativesReportData>({
-    queryKey: ['academic-reports', '0003', classroomId, academicYearId],
+    queryKey: academicReportsKeys.report0003(classroomId, academicYearId),
     queryFn: async () => {
       const response = await api.get('/academic-reports/0003-families-relatives', {
         params: { classroomId, academicYearId },
@@ -187,7 +188,7 @@ export const useStudentBirthdaysReport = (
   options?: { enabled?: boolean },
 ) => {
   return useQuery<StudentBirthdaysReportData>({
-    queryKey: ['academic-reports', '0019', month, classroomId, educationLevel, academicYearId],
+    queryKey: academicReportsKeys.report0019(month, classroomId, educationLevel, academicYearId),
     queryFn: async () => {
       const response = await api.get('/academic-reports/0019-student-birthdays', {
         params: { month, classroomId, educationLevel, academicYearId },

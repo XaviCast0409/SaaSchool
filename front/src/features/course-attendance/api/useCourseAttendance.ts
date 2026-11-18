@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { courseAttendanceKeys } from './keys';
 
 export type CourseAttendanceStatus =
   'PRESENT' | 'LATE_UNJUSTIFIED' | 'LATE_JUSTIFIED' | 'ABSENT_UNJUSTIFIED' | 'ABSENT_JUSTIFIED';
@@ -67,7 +68,7 @@ export const useCourseAttendanceSession = (params: {
 }) => {
   const { courseAssignmentId, date, periodLabel = '1' } = params;
   return useQuery({
-    queryKey: ['course-attendance', 'session', courseAssignmentId, date, periodLabel],
+    queryKey: courseAttendanceKeys.session(courseAssignmentId, date, periodLabel),
     queryFn: async () => {
       const response = await api.get<ApiResponse<CourseAttendanceSessionResponse>>('/course-attendance/session', {
         params: { courseAssignmentId, date, periodLabel },
@@ -87,10 +88,10 @@ export const useSaveCourseAttendanceSession = () => {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ['course-attendance', 'session', variables.courseAssignmentId, variables.date, variables.periodLabel],
+        queryKey: courseAttendanceKeys.session(variables.courseAssignmentId, variables.date, variables.periodLabel),
       });
       queryClient.invalidateQueries({
-        queryKey: ['course-attendance', 'summary', variables.courseAssignmentId],
+        queryKey: courseAttendanceKeys.summaryAll(variables.courseAssignmentId),
       });
     },
   });
@@ -99,7 +100,7 @@ export const useSaveCourseAttendanceSession = () => {
 export const useCourseAttendanceSummary = (params: { courseAssignmentId?: string; month?: string }) => {
   const { courseAssignmentId, month } = params;
   return useQuery({
-    queryKey: ['course-attendance', 'summary', courseAssignmentId, month],
+    queryKey: courseAttendanceKeys.summary(courseAssignmentId, month),
     queryFn: async () => {
       const response = await api.get<ApiResponse<CourseAttendanceSummaryResponse>>('/course-attendance/summary', {
         params: { courseAssignmentId, month },
