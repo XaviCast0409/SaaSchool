@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { KipuxLogo } from '@/components/brand/KipuxLogo';
 import { fetchSchoolLoginPage } from '../api/useSchoolLoginPage';
+import { authKeys } from '../api/keys';
 import { getLastSchoolCode, isSchoolCodeFormat, normalizeSchoolCode } from '../lib/lastSchool';
 
 const PageSpinner: React.FC = () => (
@@ -53,7 +54,7 @@ export const SchoolCodePage: React.FC = () => {
     setChecking(true);
     try {
       await queryClient.fetchQuery({
-        queryKey: ['school-login-page', value],
+        queryKey: authKeys.schoolLoginPage(value),
         queryFn: () => fetchSchoolLoginPage(value),
         staleTime: 5 * 60 * 1000,
       });

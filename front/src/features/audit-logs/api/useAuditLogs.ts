@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { auditLogsKeys } from './keys';
 
 export interface AuditLogItem {
   id: string;
@@ -36,7 +37,7 @@ export interface AuditLogFilters {
 export const useAuditLogs = (filters: AuditLogFilters = {}) => {
   const { category, actorId, onlyCorrections, from, to, page = 1, limit = 25 } = filters;
   return useQuery({
-    queryKey: ['audit-logs', { category, actorId, onlyCorrections, from, to, page, limit }],
+    queryKey: auditLogsKeys.list({ category, actorId, onlyCorrections, from, to, page, limit }),
     queryFn: async (): Promise<AuditLogsResponse> => {
       const params = new URLSearchParams();
       if (category) params.append('category', category);
@@ -54,7 +55,7 @@ export const useAuditLogs = (filters: AuditLogFilters = {}) => {
 
 export const useAuditCategories = () =>
   useQuery({
-    queryKey: ['audit-logs', 'categories'],
+    queryKey: auditLogsKeys.categories(),
     queryFn: async () =>
       (await api.get<{ data: Array<{ value: string; label: string }> }>('/audit-logs/categories')).data.data,
     staleTime: Infinity,
@@ -62,7 +63,7 @@ export const useAuditCategories = () =>
 
 export const useAuditActors = () =>
   useQuery({
-    queryKey: ['audit-logs', 'actors'],
+    queryKey: auditLogsKeys.actors(),
     queryFn: async () =>
       (await api.get<{ data: Array<{ id: string; name: string; role: string }> }>('/audit-logs/actors')).data.data,
   });

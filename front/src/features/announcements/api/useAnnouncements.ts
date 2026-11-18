@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { announcementsKeys } from './keys';
 import type {
   AnnouncementFilters,
   AnnouncementResponsesDetail,
@@ -9,7 +10,7 @@ import type {
 
 export const useGetAnnouncements = (filters: AnnouncementFilters) => {
   return useQuery({
-    queryKey: ['announcements', filters],
+    queryKey: announcementsKeys.list(filters as unknown as Record<string, unknown>),
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filters.page) params.append('page', String(filters.page));
@@ -34,7 +35,7 @@ export const useCreateAnnouncement = () => {
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['announcements'] });
+      queryClient.invalidateQueries({ queryKey: announcementsKeys.all });
     },
   });
 };
@@ -45,7 +46,7 @@ export const useUpdateAnnouncementExpiry = () => {
   return useMutation({
     mutationFn: async ({ id, expiresAt }: { id: string; expiresAt: string | null }) =>
       (await api.put(`/announcements/${id}`, { expiresAt })).data,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['announcements'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: announcementsKeys.all }),
   });
 };
 
@@ -58,7 +59,7 @@ export const useDeleteAnnouncement = () => {
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['announcements'] });
+      queryClient.invalidateQueries({ queryKey: announcementsKeys.all });
     },
   });
 };
@@ -77,13 +78,13 @@ export const useRespondAnnouncement = () => {
       response: string;
       comment?: string;
     }) => (await api.post(`/announcements/${id}/respond`, { studentId, response, comment })).data,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['announcements'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: announcementsKeys.all }),
   });
 };
 
 export const useAnnouncementResponses = (id: string | null) =>
   useQuery({
-    queryKey: ['announcements', 'responses', id],
+    queryKey: announcementsKeys.responses(id),
     enabled: Boolean(id),
     queryFn: async () =>
       (await api.get<{ data: AnnouncementResponsesDetail }>(`/announcements/${id}/responses`)).data.data,

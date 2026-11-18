@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
 import type { School, UpdateSchoolPayload } from '../types';
 import { useAuthStore } from '@/store/useAuthStore';
+import { schoolKeys } from './keys';
 
 export const useGetActiveSchool = () => {
   const user = useAuthStore((state) => state.user);
@@ -11,7 +12,7 @@ export const useGetActiveSchool = () => {
   const schoolId = user?.role === 'SUPER_ADMIN' ? impersonatedSchool?.id || null : user?.schoolId || null;
 
   return useQuery({
-    queryKey: ['school', schoolId],
+    queryKey: schoolKeys.detail(schoolId),
     queryFn: async () => {
       if (!schoolId) return null;
       try {
@@ -43,7 +44,7 @@ export const useUpdateSchool = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['school', schoolId] });
+      queryClient.invalidateQueries({ queryKey: schoolKeys.detail(schoolId) });
     },
   });
 };

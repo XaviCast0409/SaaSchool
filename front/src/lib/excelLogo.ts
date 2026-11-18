@@ -1,12 +1,13 @@
 import type ExcelJS from 'exceljs';
 import { queryClient } from './queryClient';
+import { schoolKeys } from '@/features/schools/api/keys';
 
 const LOGO_HEIGHT_PX = 56;
 const LOGO_MAX_WIDTH_PX = 140;
 
 /** Logo del colegio activo, tomado de la caché de React Query (lo carga el layout al entrar). */
 export function activeSchoolLogoUrl(): string | null {
-  for (const [, data] of queryClient.getQueriesData<{ logoUrl?: string | null } | null>({ queryKey: ['school'] })) {
+  for (const [, data] of queryClient.getQueriesData<{ logoUrl?: string | null } | null>({ queryKey: schoolKeys.all })) {
     if (data?.logoUrl) return data.logoUrl;
   }
   return null;

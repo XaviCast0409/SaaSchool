@@ -3,6 +3,7 @@ import { api } from '@/lib/axios';
 import type { NotificationFilters, NotificationsResponse, AppNotification } from '../types';
 
 export const NOTIFICATIONS_QUERY_KEY = ['notifications'];
+export const VAPID_PUBLIC_KEY = ['vapid-public-key'] as const;
 
 export const useGetNotifications = (filters: NotificationFilters = { limit: 15, page: 1 }) => {
   return useQuery({
@@ -66,7 +67,7 @@ export const useDeleteNotification = () => {
 
 export const useGetVapidPublicKey = () => {
   return useQuery({
-    queryKey: ['vapid-public-key'],
+    queryKey: VAPID_PUBLIC_KEY,
     queryFn: async (): Promise<string> => {
       const response = await api.get<{ status: string; data: { publicKey: string } }>(
         '/notifications/vapid-public-key',

@@ -48,7 +48,8 @@ export interface EventInput {
   notifyFamilies?: boolean;
 }
 
-const KEY = ['calendar'];
+export const CALENDAR_EVENTS_QUERY_KEY = ['calendar'] as const;
+const KEY = CALENDAR_EVENTS_QUERY_KEY;
 
 export const useCalendar = (from: string, to: string) =>
   useQuery({

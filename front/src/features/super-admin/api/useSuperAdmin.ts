@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { superAdminKeys } from './keys';
+import { schoolKeys } from '@/features/schools/api/keys';
 import {
   SchoolWithStats,
   CreateSchoolPayload,
@@ -17,7 +19,7 @@ interface SchoolsResponse {
 /** Hook para obtener todos los colegios registrados en la plataforma (Exclusivo SUPER_ADMIN) */
 export const useGetAllSchools = (enabled: boolean = true) => {
   return useQuery({
-    queryKey: ['superadmin-schools'],
+    queryKey: superAdminKeys.schools,
     queryFn: async () => {
       const response = await api.get<SchoolsResponse>('/schools');
       return response.data.data;
@@ -35,7 +37,7 @@ export interface PlanCatalog {
 /** Catálogo de planes (precio de lista y cupo de alumnos) definido en el back */
 export const usePlanCatalog = () => {
   return useQuery({
-    queryKey: ['superadmin-plan-catalog'],
+    queryKey: superAdminKeys.planCatalog,
     queryFn: async () => {
       const response = await api.get<{ status: string; data: PlanCatalog }>('/schools/plans');
       return response.data.data;
@@ -54,7 +56,7 @@ export const useCreateSchool = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['superadmin-schools'] });
+      queryClient.invalidateQueries({ queryKey: superAdminKeys.schools });
     },
   });
 };
@@ -83,8 +85,8 @@ export const useUpdateSchoolPlan = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['superadmin-schools'] });
-      queryClient.invalidateQueries({ queryKey: ['school'] });
+      queryClient.invalidateQueries({ queryKey: superAdminKeys.schools });
+      queryClient.invalidateQueries({ queryKey: schoolKeys.all });
     },
   });
 };
@@ -99,7 +101,7 @@ export const useDeactivateSchool = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['superadmin-schools'] });
+      queryClient.invalidateQueries({ queryKey: superAdminKeys.schools });
     },
   });
 };
@@ -114,7 +116,7 @@ export const useReactivateSchool = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['superadmin-schools'] });
+      queryClient.invalidateQueries({ queryKey: superAdminKeys.schools });
     },
   });
 };
@@ -129,8 +131,8 @@ export const useUpdateSchoolInfo = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['superadmin-schools'] });
-      queryClient.invalidateQueries({ queryKey: ['school'] });
+      queryClient.invalidateQueries({ queryKey: superAdminKeys.schools });
+      queryClient.invalidateQueries({ queryKey: schoolKeys.all });
     },
   });
 };
@@ -151,7 +153,7 @@ export const useResetAdminPassword = () => {
 /** Cobrado este mes y el anterior (pagos de suscripción no anulados) */
 export const useBillingSummary = () => {
   return useQuery({
-    queryKey: ['superadmin-billing-summary'],
+    queryKey: superAdminKeys.billingSummary,
     queryFn: async () => {
       const response = await api.get<{ status: string; data: BillingSummary }>('/schools/billing-summary');
       return response.data.data;
@@ -162,7 +164,7 @@ export const useBillingSummary = () => {
 /** Historial de pagos de suscripción de un colegio */
 export const useSubscriptionPayments = (schoolId: string | null) => {
   return useQuery({
-    queryKey: ['superadmin-subscription-payments', schoolId],
+    queryKey: superAdminKeys.subscriptionPayments(schoolId),
     queryFn: async () => {
       const response = await api.get<{ status: string; data: SubscriptionPayment[] }>(
         `/schools/${schoolId}/subscription-payments`,
@@ -176,7 +178,7 @@ export const useSubscriptionPayments = (schoolId: string | null) => {
 /** Vista previa de la nueva vigencia al pagar N meses (la regla vive en el back) */
 export const useRenewalPreview = (schoolId: string | null, months: number) => {
   return useQuery({
-    queryKey: ['superadmin-renewal-preview', schoolId, months],
+    queryKey: superAdminKeys.renewalPreview(schoolId, months),
     queryFn: async () => {
       const response = await api.get<{
         status: string;
@@ -189,11 +191,11 @@ export const useRenewalPreview = (schoolId: string | null, months: number) => {
 };
 
 const invalidateBilling = (queryClient: ReturnType<typeof useQueryClient>, schoolId: string) => {
-  queryClient.invalidateQueries({ queryKey: ['superadmin-subscription-payments', schoolId] });
-  queryClient.invalidateQueries({ queryKey: ['superadmin-renewal-preview', schoolId] });
-  queryClient.invalidateQueries({ queryKey: ['superadmin-billing-summary'] });
-  queryClient.invalidateQueries({ queryKey: ['superadmin-schools'] });
-  queryClient.invalidateQueries({ queryKey: ['school'] });
+  queryClient.invalidateQueries({ queryKey: superAdminKeys.subscriptionPayments(schoolId) });
+  queryClient.invalidateQueries({ queryKey: superAdminKeys.renewalPreview(schoolId) });
+  queryClient.invalidateQueries({ queryKey: superAdminKeys.billingSummary });
+  queryClient.invalidateQueries({ queryKey: superAdminKeys.schools });
+  queryClient.invalidateQueries({ queryKey: schoolKeys.all });
 };
 
 /** Registrar un pago de suscripción (extiende la vigencia del plan) */

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
 import { toast } from 'sonner';
+import { legalKeys } from './keys';
 
 export type LegalDocType = 'PRIVACY_POLICY' | 'TERMS' | 'MINOR_DATA_CONSENT';
 
@@ -18,7 +19,7 @@ export interface LegalStatusResponse {
 
 export const useLegalStatus = (options?: { enabled?: boolean }) => {
   return useQuery({
-    queryKey: ['legal-status'],
+    queryKey: legalKeys.status,
     queryFn: async (): Promise<PendingLegalDoc[]> => {
       const response = await api.get<LegalStatusResponse>('/legal/status');
       return response.data.data.pending;
@@ -37,7 +38,7 @@ export const useAcceptLegal = () => {
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['legal-status'] });
+      queryClient.invalidateQueries({ queryKey: legalKeys.status });
       toast.success('Consentimientos registrados correctamente.');
     },
     onError: (error: any) => {

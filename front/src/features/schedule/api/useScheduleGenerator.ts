@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
-import type { ScheduleBlock } from './useSchedule';
+import { SCHEDULE_QUERY_KEY, type ScheduleBlock } from './useSchedule';
 
 export type Level = 'INITIAL' | 'PRIMARY' | 'SECONDARY';
 export const LEVEL_NAME: Record<Level, string> = { INITIAL: 'Inicial', PRIMARY: 'Primaria', SECONDARY: 'Secundaria' };
@@ -126,7 +126,7 @@ export const useApplyGeneration = () => {
         })
       ).data.data,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['schedule'] });
+      qc.invalidateQueries({ queryKey: SCHEDULE_QUERY_KEY });
       qc.invalidateQueries({ queryKey: KEY });
     },
   });

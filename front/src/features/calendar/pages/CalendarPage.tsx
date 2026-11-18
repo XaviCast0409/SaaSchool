@@ -41,6 +41,7 @@ import {
   useDeleteEvent,
   useImportOfficialDates,
   useSaveEvent,
+  CALENDAR_EVENTS_QUERY_KEY,
   type CalendarItem,
   type EventInput,
   type EventType,
@@ -686,7 +687,7 @@ export const CalendarPage: React.FC = () => {
           onClose={() => {
             setHolidaysOpen(false);
             // Los días sin clases se pintan en el calendario
-            queryClient.invalidateQueries({ queryKey: ['calendar'] });
+            queryClient.invalidateQueries({ queryKey: CALENDAR_EVENTS_QUERY_KEY });
           }}
         />
       )}

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { superAdminKeys } from './keys';
 
 // ── Tipos ───────────────────────────────────────────────────────────────
 
@@ -96,14 +97,14 @@ type Envelope<T> = { status: string; data: T };
 
 export const useSchoolOnboarding = (schoolId: string | undefined) =>
   useQuery({
-    queryKey: ['superadmin-onboarding', schoolId],
+    queryKey: superAdminKeys.onboarding(schoolId),
     queryFn: async () => (await api.get<Envelope<OnboardingStatus>>(`/schools/${schoolId}/onboarding`)).data.data,
     enabled: !!schoolId,
   });
 
 export const useSchoolNotes = (schoolId: string | undefined) =>
   useQuery({
-    queryKey: ['superadmin-notes', schoolId],
+    queryKey: superAdminKeys.notes(schoolId),
     queryFn: async () => (await api.get<Envelope<SchoolNote[]>>(`/schools/${schoolId}/notes`)).data.data,
     enabled: !!schoolId,
   });
@@ -118,7 +119,7 @@ export const useSaveSchoolNote = (schoolId: string) => {
         : await api.post<Envelope<SchoolNote>>(`/schools/${schoolId}/notes`, payload);
       return response.data.data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['superadmin-notes', schoolId] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: superAdminKeys.notes(schoolId) }),
   });
 };
 
@@ -128,7 +129,7 @@ export const useDeleteSchoolNote = (schoolId: string) => {
     mutationFn: async (noteId: string) => {
       await api.delete(`/schools/${schoolId}/notes/${noteId}`);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['superadmin-notes', schoolId] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: superAdminKeys.notes(schoolId) }),
   });
 };
 
@@ -137,7 +138,7 @@ export const useDeleteSchoolNote = (schoolId: string) => {
 /** Avisos vigentes para el usuario actual (todos los roles salvo SUPER_ADMIN) */
 export const useActivePlatformAnnouncements = (enabled: boolean) =>
   useQuery({
-    queryKey: ['platform-announcements-active'],
+    queryKey: superAdminKeys.announcementsActive,
     queryFn: async () => (await api.get<Envelope<PlatformAnnouncement[]>>('/platform/announcements/active')).data.data,
     enabled,
     staleTime: 5 * 60_000,
@@ -146,7 +147,7 @@ export const useActivePlatformAnnouncements = (enabled: boolean) =>
 
 export const usePlatformAnnouncements = () =>
   useQuery({
-    queryKey: ['superadmin-platform-announcements'],
+    queryKey: superAdminKeys.announcementsAll,
     queryFn: async () => (await api.get<Envelope<PlatformAnnouncement[]>>('/platform/announcements')).data.data,
   });
 
@@ -159,7 +160,7 @@ export const useSavePlatformAnnouncement = () => {
         : await api.post<Envelope<PlatformAnnouncement>>('/platform/announcements', payload);
       return response.data.data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['superadmin-platform-announcements'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: superAdminKeys.announcementsAll }),
   });
 };
 
@@ -169,7 +170,7 @@ export const useDeletePlatformAnnouncement = () => {
     mutationFn: async (id: string) => {
       await api.delete(`/platform/announcements/${id}`);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['superadmin-platform-announcements'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: superAdminKeys.announcementsAll }),
   });
 };
 
@@ -177,7 +178,7 @@ export const useDeletePlatformAnnouncement = () => {
 
 export const usePlatformHealth = () =>
   useQuery({
-    queryKey: ['superadmin-platform-health'],
+    queryKey: superAdminKeys.health,
     queryFn: async () => (await api.get<Envelope<PlatformHealth>>('/platform/health')).data.data,
     refetchInterval: 60_000,
   });

@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { incidentsKeys } from './keys';
+import { NOTIFICATIONS_QUERY_KEY } from '@/features/notifications/api/useNotifications';
 import type {
   StudentIncident,
   CreateIncidentPayload,
@@ -23,7 +25,7 @@ export const useIncidents = (filters: IncidentFilterParams = {}, enabled = true)
   const url = `/incidents${queryString ? `?${queryString}` : ''}`;
 
   return useQuery({
-    queryKey: ['incidents', filters],
+    queryKey: incidentsKeys.list(filters),
     queryFn: async () => {
       const response = await api.get<IncidentsPaginatedResponse>(url);
       return response.data;
@@ -41,7 +43,7 @@ export const useCreateIncident = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['incidents'] });
+      queryClient.invalidateQueries({ queryKey: incidentsKeys.all });
     },
   });
 };
@@ -55,8 +57,8 @@ export const useAcknowledgeIncident = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['incidents'] });
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: incidentsKeys.all });
+      queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY });
     },
   });
 };
@@ -72,7 +74,7 @@ export const useRegisterSiseve = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['incidents'] });
+      queryClient.invalidateQueries({ queryKey: incidentsKeys.all });
     },
   });
 };

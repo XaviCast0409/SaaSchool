@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { superAdminKeys } from './keys';
 
 export type LeadStatus = 'NEW' | 'CONTACTED' | 'DEMO_SCHEDULED' | 'WON' | 'LOST';
 
@@ -37,7 +38,7 @@ interface LeadsResponse {
 /** Bandeja de leads de la web de marketing (solo SUPER_ADMIN). */
 export const useLeads = (status?: LeadStatus) =>
   useQuery({
-    queryKey: ['platform-leads', status ?? 'ALL'],
+    queryKey: superAdminKeys.leads(status),
     queryFn: async () => {
       const response = await api.get<{ status: string; data: LeadsResponse }>('/leads', {
         params: status ? { status } : {},
@@ -54,6 +55,6 @@ export const useUpdateLead = () => {
       const response = await api.patch<{ status: string; data: SalesLead }>(`/leads/${id}`, payload);
       return response.data.data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['platform-leads'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: superAdminKeys.leadsAll }),
   });
 };

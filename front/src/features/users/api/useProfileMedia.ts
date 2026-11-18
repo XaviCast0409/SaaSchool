@@ -3,6 +3,7 @@ import { api } from '@/lib/axios';
 import { useAuthStore } from '@/store/useAuthStore';
 import { resizeImage } from '@/lib/imageResize';
 import { usersKeys } from './keys';
+import { schoolKeys } from '@/features/schools/api/keys';
 
 const postImage = async <T>(url: string, file: File): Promise<T> => {
   const form = new FormData();
@@ -14,7 +15,7 @@ const postImage = async <T>(url: string, file: File): Promise<T> => {
 const useRefreshSchoolLogo = () => {
   const qc = useQueryClient();
   return (logoUrl: string | null) => {
-    qc.invalidateQueries({ queryKey: ['school'] });
+    qc.invalidateQueries({ queryKey: schoolKeys.all });
     // En modo soporte la barra lateral usa la copia guardada del colegio. No se usa
     // setImpersonatedSchool porque limpia toda la caché: aquí solo cambia el logo.
     const { impersonatedSchool } = useAuthStore.getState();

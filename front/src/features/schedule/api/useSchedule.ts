@@ -46,7 +46,8 @@ export interface DayAgenda {
   }>;
 }
 
-const KEY = ['schedule'];
+export const SCHEDULE_QUERY_KEY = ['schedule'] as const;
+const KEY = SCHEDULE_QUERY_KEY;
 
 export const useClassroomSchedule = (classroomId: string | null) =>
   useQuery({

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { authKeys } from './keys';
 
 /** Lo que cada colegio muestra en su página de ingreso (datos públicos). */
 export interface SchoolLoginPage {
@@ -22,7 +23,7 @@ export const fetchSchoolLoginPage = async (code: string): Promise<SchoolLoginPag
 
 export const useSchoolLoginPage = (code: string | undefined) =>
   useQuery({
-    queryKey: ['school-login-page', code],
+    queryKey: authKeys.schoolLoginPage(code),
     queryFn: () => fetchSchoolLoginPage(code as string),
     enabled: Boolean(code),
     staleTime: 5 * 60 * 1000,

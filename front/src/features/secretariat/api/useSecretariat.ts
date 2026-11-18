@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { secretariatKeys } from './keys';
 
 export type Level = 'INITIAL' | 'PRIMARY' | 'SECONDARY';
 export type AdmissionStatus = 'NEW' | 'INTERVIEW' | 'ADMITTED' | 'ENROLLED' | 'REJECTED' | 'WITHDRAWN';
@@ -333,7 +334,7 @@ async function publicFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const usePublicSchool = (schoolId: string | undefined) =>
   useQuery({
-    queryKey: ['public-school', schoolId],
+    queryKey: secretariatKeys.publicSchool(schoolId),
     enabled: Boolean(schoolId),
     retry: false,
     queryFn: () => publicFetch<PublicSchool>(`/${schoolId}`),
