@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getSubjectTheme } from '@/features/course-contents/utils/subjectThemes';
 import { formatEducationLevel } from '@/lib/utils';
-import type { TeacherCourseAssignment } from '@/features/course-assignments/api/useCourseAssignments';
+import type { CourseAssignment } from '@/features/course-assignments/api/useCourseAssignments';
 
 export interface ClassroomSummary {
   id: string;
@@ -18,7 +18,7 @@ export interface ClassroomSummary {
 }
 
 export interface TeacherTodayScheduleProps {
-  myCourses: TeacherCourseAssignment[];
+  myCourses: CourseAssignment[];
   loadingCourses: boolean;
   availableClassrooms: ClassroomSummary[];
 }
