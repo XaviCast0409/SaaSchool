@@ -1,107 +1,35 @@
-import { getApiErrorMessage } from '@/lib/errors';
-import { confirmDialog } from '@/components/ui/confirm';
 import React, { useState } from 'react';
 import {
   Calendar,
-  Plus,
-  Pencil,
-  Trash2,
-  CheckCircle2,
-  Sparkles,
-  Clock,
   CalendarDays,
-  DoorOpen,
-  DoorClosed,
-  ClipboardCheck,
+  Clock,
+  Plus,
+  Sparkles,
 } from 'lucide-react';
-import { FinalSituationModal } from '../components/FinalSituationModal';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { confirmDialog } from '@/components/ui/confirm';
+import { Skeleton } from '@/components/ui/skeleton';
+import { getApiErrorMessage } from '@/lib/errors';
+import { useAuthStore } from '@/store/useAuthStore';
 import {
   useAcademicYears,
   useCreateAcademicYear,
-  useUpdateAcademicYear,
   useDeleteAcademicYear,
-  useActivationImpact,
   useSetEnrollmentOpen,
+  useUpdateAcademicYear,
   type AcademicYear,
-  type PeriodDateConfig,
 } from '../api/useAcademicYears';
-import { Button } from '@/components/ui/button';
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { toast } from 'sonner';
-import { useAuthStore } from '@/store/useAuthStore';
-import { formatPeruDate } from '@/lib/dateUtils';
-
-function formatDateDisplay(dateString: string): string {
-  if (!dateString) return '──';
-  try {
-    return formatPeruDate(dateString, { day: '2-digit', month: 'short', year: 'numeric' });
-  } catch {
-    return dateString;
-  }
-}
-
-function formatDateInput(dateString: string): string {
-  if (!dateString) return '';
-  try {
-    const d = new Date(dateString);
-    return d.toISOString().split('T')[0];
-  } catch {
-    return '';
-  }
-}
-
-function getDefaultPeriods(periodType: 'BIMESTER' | 'TRIMESTER', year: number): PeriodDateConfig[] {
-  if (periodType === 'TRIMESTER') {
-    return [
-      { periodNumber: 1, name: '1° Trimestre', startDate: `${year}-03-01`, endDate: `${year}-05-31` },
-      { periodNumber: 2, name: '2° Trimestre', startDate: `${year}-06-01`, endDate: `${year}-08-31` },
-      { periodNumber: 3, name: '3° Trimestre', startDate: `${year}-09-01`, endDate: `${year}-12-20` },
-    ];
-  }
-  return [
-    { periodNumber: 1, name: '1° Bimestre', startDate: `${year}-03-01`, endDate: `${year}-05-15` },
-    { periodNumber: 2, name: '2° Bimestre', startDate: `${year}-05-16`, endDate: `${year}-07-25` },
-    { periodNumber: 3, name: '3° Bimestre', startDate: `${year}-08-10`, endDate: `${year}-10-15` },
-    { periodNumber: 4, name: '4° Bimestre', startDate: `${year}-10-16`, endDate: `${year}-12-20` },
-  ];
-}
-
-/** Mueve una fecha YYYY-MM-DD al mismo día y mes de otro año (29/02 pasa a 28/02 si hace falta). */
-function moveToYear(dateString: string, fromYear: number, toYear: number): string {
-  if (!dateString) return dateString;
-  const [y, m, d] = dateString.slice(0, 10).split('-').map(Number);
-  const targetYear = y + (toYear - fromYear);
-  const lastDay = new Date(Date.UTC(targetYear, m, 0)).getUTCDate();
-  return `${targetYear}-${String(m).padStart(2, '0')}-${String(Math.min(d, lastDay)).padStart(2, '0')}`;
-}
-
-/**
- * Al cambiar el número del año, el nombre y todas las fechas lo acompañan: así no se puede
- * guardar «2026» con nombre y periodos de 2027 por olvido.
- */
-function withYear<
-  T extends { year: number; name: string; startDate: string; endDate: string; periodsConfig: PeriodDateConfig[] },
->(form: T, nextYear: number): T {
-  const prevYear = form.year;
-  if (!nextYear || nextYear < 2000 || nextYear > 2100 || !prevYear || nextYear === prevYear)
-    return { ...form, year: nextYear };
-  const autoName = !form.name.trim() || /^Año Escolar \d{4}$/.test(form.name.trim());
-  return {
-    ...form,
-    year: nextYear,
-    name: autoName ? `Año Escolar ${nextYear}` : form.name.replace(String(prevYear), String(nextYear)),
-    startDate: moveToYear(form.startDate, prevYear, nextYear),
-    endDate: moveToYear(form.endDate, prevYear, nextYear),
-    periodsConfig: form.periodsConfig.map((p) => ({
-      ...p,
-      startDate: moveToYear(p.startDate, prevYear, nextYear),
-      endDate: moveToYear(p.endDate, prevYear, nextYear),
-    })),
-  };
-}
+import { FinalSituationModal } from '../components/FinalSituationModal';
+import { AcademicYearCard } from '../components/academic-years/AcademicYearCard';
+import { AcademicYearFormModal, type AcademicYearFormData } from '../components/academic-years/AcademicYearFormModal';
+import { CloseYearDialog } from '../components/academic-years/CloseYearDialog';
+import {
+  formatDateDisplay,
+  formatDateInput,
+  getDefaultPeriods,
+} from '../utils/academicYearDates';
 
 export const AcademicYearsPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -110,25 +38,26 @@ export const AcademicYearsPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingYear, setEditingYear] = useState<AcademicYear | null>(null);
 
-  // Form State
   const currentYearNum = new Date().getFullYear();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<AcademicYearFormData>({
     year: currentYearNum,
     name: `Año Escolar ${currentYearNum}`,
     startDate: `${currentYearNum}-03-01`,
     endDate: `${currentYearNum}-12-20`,
     isActive: false,
-    periodType: 'BIMESTER' as 'BIMESTER' | 'TRIMESTER',
-    annualCalculationMode: 'LAST_PERIOD' as 'LAST_PERIOD' | 'AVERAGE',
+    periodType: 'BIMESTER',
+    annualCalculationMode: 'LAST_PERIOD',
     periodsConfig: getDefaultPeriods('BIMESTER', currentYearNum),
   });
 
-  // Queries & Mutations
   const { data: years = [], isLoading, isError, refetch } = useAcademicYears();
   const { mutateAsync: createYear, isPending: isCreating } = useCreateAcademicYear();
   const { mutateAsync: updateYear, isPending: isUpdating } = useUpdateAcademicYear();
   const { mutateAsync: deleteYear } = useDeleteAcademicYear();
   const setEnrollmentOpen = useSetEnrollmentOpen();
+
+  const [yearToActivate, setYearToActivate] = useState<AcademicYear | null>(null);
+  const [finalYear, setFinalYear] = useState<AcademicYear | null>(null);
 
   const toggleEnrollment = (ay: AcademicYear) =>
     setEnrollmentOpen.mutate(
@@ -140,7 +69,7 @@ export const AcademicYearsPage: React.FC = () => {
               ? `Matrícula ${ay.year} cerrada.`
               : `Matrícula ${ay.year} abierta: ya puedes matricular y re-matricular para ${ay.year} sin cambiar el año vigente.`,
           ),
-        onError: (err: any) => toast.error(getApiErrorMessage(err, 'No se pudo cambiar la matrícula.')),
+        onError: (err: unknown) => toast.error(getApiErrorMessage(err, 'No se pudo cambiar la matrícula.')),
       },
     );
 
@@ -191,35 +120,26 @@ export const AcademicYearsPage: React.FC = () => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const payload = {
+        year: Number(formData.year),
+        name: formData.name,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        periodType: formData.periodType,
+        annualCalculationMode: formData.annualCalculationMode,
+        periodsConfig: formData.periodsConfig,
+      };
+
       if (editingYear) {
-        await updateYear({
-          id: editingYear.id,
-          payload: {
-            year: Number(formData.year),
-            name: formData.name,
-            startDate: formData.startDate,
-            endDate: formData.endDate,
-            periodType: formData.periodType,
-            annualCalculationMode: formData.annualCalculationMode,
-            periodsConfig: formData.periodsConfig,
-          },
-        });
+        await updateYear({ id: editingYear.id, payload });
         toast.success('Año Lectivo actualizado con éxito.');
       } else {
-        await createYear({
-          year: Number(formData.year),
-          name: formData.name,
-          startDate: formData.startDate,
-          endDate: formData.endDate,
-          periodType: formData.periodType,
-          annualCalculationMode: formData.annualCalculationMode,
-          periodsConfig: formData.periodsConfig,
-        });
+        await createYear(payload);
         toast.success('✨ Nuevo Año Lectivo registrado con éxito.');
       }
       setIsModalOpen(false);
       refetch();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(getApiErrorMessage(err, 'Error al guardar el Año Lectivo.'));
     }
   };
@@ -236,15 +156,11 @@ export const AcademicYearsPage: React.FC = () => {
         await deleteYear(ay.id);
         toast.success('Año Lectivo eliminado.');
         refetch();
-      } catch (err: any) {
+      } catch (err: unknown) {
         toast.error(getApiErrorMessage(err, 'Error al eliminar el Año Lectivo.'));
       }
     }
   };
-
-  const [yearToActivate, setYearToActivate] = useState<AcademicYear | null>(null);
-  const [finalYear, setFinalYear] = useState<AcademicYear | null>(null);
-  const { data: impact, isLoading: impactLoading } = useActivationImpact(yearToActivate?.id ?? null);
 
   const handleConfirmActivate = async () => {
     if (!yearToActivate) return;
@@ -253,7 +169,7 @@ export const AcademicYearsPage: React.FC = () => {
       toast.success(`Año Lectivo ${yearToActivate.year} activado.`);
       setYearToActivate(null);
       refetch();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(getApiErrorMessage(err, 'No se pudo activar el Año Lectivo.'));
     }
   };
@@ -353,372 +269,40 @@ export const AcademicYearsPage: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {years.map((ay) => (
-            <Card key={ay.id} className="bg-card hover:border-primary/40 transition-all">
-              <CardContent className="p-5 space-y-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-11 h-11 rounded-2xl flex items-center justify-center font-extrabold text-base ${
-                        ay.isActive ? 'bg-primary text-primary-foreground shadow-md' : 'bg-muted text-muted-foreground'
-                      }`}
-                    >
-                      {ay.year}
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-base text-foreground">{ay.name || `Año Escolar ${ay.year}`}</h3>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <Badge
-                          variant={ay.isActive ? 'default' : 'secondary'}
-                          className={`text-xs font-bold ${
-                            ay.isActive ? 'bg-emerald-500 text-white' : 'text-muted-foreground'
-                          }`}
-                        >
-                          {ay.isActive ? 'Vigente' : 'No vigente'}
-                        </Badge>
-                        {ay.enrollmentOpen && (
-                          <Badge
-                            variant="outline"
-                            className="text-xs font-bold border-indigo-500/40 text-indigo-600 dark:text-indigo-300"
-                          >
-                            Matrícula abierta
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {isAdmin && (
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 px-2 text-xs text-primary hover:bg-primary/10"
-                        onClick={() => handleOpenEditModal(ay)}
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 px-2 text-xs text-destructive hover:bg-destructive/10"
-                        onClick={() => handleDelete(ay)}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-
-                <div className="p-3 rounded-xl bg-muted/30 border border-border flex items-center justify-between text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-primary" />
-                    <span>
-                      Inicio: <strong className="text-foreground">{formatDateDisplay(ay.startDate)}</strong>
-                    </span>
-                  </div>
-                  <span>──</span>
-                  <div className="flex items-center gap-1.5">
-                    <span>
-                      Fin: <strong className="text-foreground">{formatDateDisplay(ay.endDate)}</strong>
-                    </span>
-                  </div>
-                </div>
-
-                {ay.periodsConfig && ay.periodsConfig.length > 0 && (
-                  <ul className="grid grid-cols-2 gap-1 text-[11px] text-muted-foreground">
-                    {[...ay.periodsConfig]
-                      .sort((a, b) => a.periodNumber - b.periodNumber)
-                      .map((p) => (
-                        <li key={p.periodNumber}>
-                          <span className="font-semibold text-foreground">{p.name}:</span>{' '}
-                          {formatDateDisplay(p.startDate)} – {formatDateDisplay(p.endDate)}
-                        </li>
-                      ))}
-                  </ul>
-                )}
-
-                {isAdmin && ay.isActive && (
-                  <div className="pt-2 flex justify-end">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-xs gap-1 font-semibold"
-                      onClick={() => setFinalYear(ay)}
-                      title="Calcula con las notas quién es promovido, va a recuperación o permanece, y lo guarda para la re-matrícula"
-                    >
-                      <ClipboardCheck className="w-3.5 h-3.5" />
-                      <span>Registrar situación final</span>
-                    </Button>
-                  </div>
-                )}
-
-                {isAdmin && !ay.isActive && (
-                  <div className="pt-2 flex flex-wrap justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-xs gap-1 font-semibold"
-                      disabled={setEnrollmentOpen.isPending}
-                      onClick={() => toggleEnrollment(ay)}
-                      title="Permite matricular para este año sin dejar de operar el año vigente"
-                    >
-                      {ay.enrollmentOpen ? (
-                        <DoorClosed className="w-3.5 h-3.5" />
-                      ) : (
-                        <DoorOpen className="w-3.5 h-3.5" />
-                      )}
-                      <span>{ay.enrollmentOpen ? 'Cerrar matrícula' : 'Abrir matrícula'}</span>
-                    </Button>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="h-7 text-xs gap-1 font-semibold"
-                      onClick={() => setYearToActivate(ay)}
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Activar este año</span>
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <AcademicYearCard
+              key={ay.id}
+              academicYear={ay}
+              isAdmin={isAdmin}
+              onEdit={handleOpenEditModal}
+              onDelete={handleDelete}
+              onFinalSituation={setFinalYear}
+              onToggleEnrollment={toggleEnrollment}
+              onActivate={setYearToActivate}
+              isEnrollmentBusy={setEnrollmentOpen.isPending}
+            />
           ))}
         </div>
       )}
 
       {/* Modal Crear / Editar Año Lectivo */}
-      {isModalOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200"
-        >
-          <div className="relative w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4">
-            <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-primary" />
-              <span>{editingYear ? 'Editar Año Lectivo' : 'Nuevo Año Lectivo'}</span>
-            </h2>
+      <AcademicYearFormModal
+        isOpen={isModalOpen}
+        editingYear={editingYear}
+        formData={formData}
+        isLoading={isCreating || isUpdating}
+        onClose={() => setIsModalOpen(false)}
+        onChange={setFormData}
+        onSubmit={handleSave}
+      />
 
-            <form onSubmit={handleSave} className="space-y-4">
-              <div>
-                <label
-                  htmlFor="academicyearspage-field-1"
-                  className="block text-xs font-bold text-muted-foreground uppercase mb-1"
-                >
-                  Número de Año (Ej: 2026) *
-                </label>
-                <input
-                  id="academicyearspage-field-1"
-                  type="number"
-                  required
-                  min={2000}
-                  max={2100}
-                  value={formData.year}
-                  onChange={(e) => setFormData(withYear(formData, Number(e.target.value)))}
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="academicyearspage-field-2"
-                  className="block text-xs font-bold text-muted-foreground uppercase mb-1"
-                >
-                  Nombre del Año Lectivo *
-                </label>
-                <input
-                  id="academicyearspage-field-2"
-                  type="text"
-                  required
-                  placeholder='Ej: "Año Escolar 2026"'
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label
-                    htmlFor="academicyearspage-field-3"
-                    className="block text-xs font-bold text-muted-foreground uppercase mb-1"
-                  >
-                    Fecha Inicio *
-                  </label>
-                  <input
-                    id="academicyearspage-field-3"
-                    type="date"
-                    required
-                    value={formData.startDate}
-                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="academicyearspage-field-4"
-                    className="block text-xs font-bold text-muted-foreground uppercase mb-1"
-                  >
-                    Fecha Término *
-                  </label>
-                  <input
-                    id="academicyearspage-field-4"
-                    type="date"
-                    required
-                    value={formData.endDate}
-                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-              </div>
-
-              {/* Régimen de Periodos y Modo de Cálculo Anual */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label
-                    htmlFor="academicyearspage-field-5"
-                    className="block text-xs font-bold text-muted-foreground uppercase mb-1"
-                  >
-                    Régimen de Periodos
-                  </label>
-                  <select
-                    id="academicyearspage-field-5"
-                    value={formData.periodType}
-                    onChange={(e) => {
-                      const newType = e.target.value as 'BIMESTER' | 'TRIMESTER';
-                      setFormData({
-                        ...formData,
-                        periodType: newType,
-                        periodsConfig: getDefaultPeriods(newType, formData.year),
-                      });
-                    }}
-                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    <option value="BIMESTER">Bimestral (4 Periodos)</option>
-                    <option value="TRIMESTER">Trimestral (3 Periodos)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="academicyearspage-field-6"
-                    className="block text-xs font-bold text-muted-foreground uppercase mb-1"
-                  >
-                    Cálculo Anual SIAGIE
-                  </label>
-                  <select
-                    id="academicyearspage-field-6"
-                    value={formData.annualCalculationMode}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        annualCalculationMode: e.target.value as 'LAST_PERIOD' | 'AVERAGE',
-                      })
-                    }
-                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    <option value="LAST_PERIOD">Último Periodo Conclusivo (RVM 094)</option>
-                    <option value="AVERAGE">Promedio Anual Ponderado</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Configuración de Fechas por Bimestre/Trimestre */}
-              <div className="p-3 rounded-xl border border-border bg-muted/20 space-y-2.5">
-                <p className="text-xs font-bold text-foreground">
-                  Calendario de {formData.periodType === 'TRIMESTER' ? 'Trimestres' : 'Bimestres'} (Fechas Oficiales):
-                </p>
-                <div className="space-y-2">
-                  {formData.periodsConfig.map((period, idx) => (
-                    <div key={period.periodNumber} className="grid grid-cols-5 gap-2 items-center">
-                      <span className="col-span-1 text-xs font-bold text-muted-foreground truncate">{period.name}</span>
-                      <div className="col-span-2">
-                        <input
-                          type="date"
-                          value={period.startDate}
-                          onChange={(e) => {
-                            const updated = [...formData.periodsConfig];
-                            updated[idx] = { ...updated[idx], startDate: e.target.value };
-                            setFormData({ ...formData, periodsConfig: updated });
-                          }}
-                          className="w-full rounded-lg border border-border bg-background px-2 py-1 text-xs text-foreground"
-                          title="Fecha de Inicio del Periodo"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <input
-                          type="date"
-                          value={period.endDate}
-                          onChange={(e) => {
-                            const updated = [...formData.periodsConfig];
-                            updated[idx] = { ...updated[idx], endDate: e.target.value };
-                            setFormData({ ...formData, periodsConfig: updated });
-                          }}
-                          className="w-full rounded-lg border border-border bg-background px-2 py-1 text-xs text-foreground"
-                          title="Fecha de Fin del Periodo"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
-                <Button type="button" variant="ghost" size="sm" onClick={() => setIsModalOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button type="submit" size="sm" isLoading={isCreating || isUpdating} className="gap-2 font-bold">
-                  <span>Guardar Año Lectivo</span>
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
       <FinalSituationModal year={finalYear} onClose={() => setFinalYear(null)} />
-      <ConfirmDialog
-        isOpen={!!yearToActivate}
+
+      <CloseYearDialog
+        yearToActivate={yearToActivate}
+        activeYearObj={activeYearObj}
+        isLoading={isUpdating}
         onClose={() => setYearToActivate(null)}
         onConfirm={handleConfirmActivate}
-        title={`Activar el año ${yearToActivate?.year ?? ''}`}
-        description={`El año ${activeYearObj?.isActive ? activeYearObj.year : 'actual'} dejará de ser el vigente. Asistencia, notas, carga docente, cobranza y moras pasarán a trabajar con ${yearToActivate?.year ?? ''}. Puedes volver a activar el año anterior cuando quieras: no se pierde ningún dato.`}
-        details={
-          impactLoading ? (
-            <p className="text-xs text-muted-foreground">Calculando impacto...</p>
-          ) : impact ? (
-            <div className="space-y-2 text-xs">
-              <ul className="space-y-1 text-foreground">
-                {impact.currentYear !== null && (
-                  <li>
-                    <strong>{impact.willDeactivate}</strong> matrículas de {impact.currentYear} dejarán de estar
-                    vigentes
-                    {impact.pendingObligationsOfCurrentYear > 0 && (
-                      <>
-                        {' '}
-                        (con <strong>{impact.pendingObligationsOfCurrentYear}</strong> cuotas pendientes que saldrán de
-                        moras y vencidas)
-                      </>
-                    )}
-                    .
-                  </li>
-                )}
-                <li>
-                  <strong>{impact.willActivate}</strong> matrículas de {impact.targetYear} pasarán a ser las vigentes.
-                </li>
-              </ul>
-              {impact.isEarly && (
-                <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-amber-800 dark:text-amber-300">
-                  {impact.targetYear} aún no empieza. Si solo quieres matricular para {impact.targetYear}, usa{' '}
-                  <strong>Abrir matrícula</strong> y mantén {impact.currentYear} como vigente.
-                </p>
-              )}
-            </div>
-          ) : null
-        }
-        confirmText="Activar"
-        variant="warning"
-        isLoading={isUpdating}
       />
     </div>
   );
