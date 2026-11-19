@@ -1,10 +1,10 @@
-import { getApiErrorMessage } from '@/lib/errors';
 import React, { useState } from 'react';
 import { formatEducationLevel } from '@/lib/utils';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Layers, X, Save, School, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/errors';
 import { bulkCreateObligationsSchema, type BulkCreateObligationsFormData } from '../schemas/payment.schema';
 import { useBulkCreateObligations } from '../api/usePayments';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
@@ -103,7 +103,7 @@ export const BulkObligationModal: React.FC<BulkObligationModalProps> = ({ onClos
         );
         onClose();
       },
-      onError: (err: any) => {
+      onError: (err: unknown) => {
         toast.error(getApiErrorMessage(err, 'Error al generar el cronograma masivo.'));
       },
     });
@@ -136,8 +136,7 @@ export const BulkObligationModal: React.FC<BulkObligationModalProps> = ({ onClos
         <form onSubmit={handleSubmit(onSubmit)} className="p-5 space-y-4">
           {error && (
             <div className="p-3 rounded-md bg-destructive/10 text-destructive text-xs font-medium border border-destructive/20">
-              {(error as { response?: { data?: { message?: string } } }).response?.data?.message ||
-                'Error al generar el cronograma masivo.'}
+              {getApiErrorMessage(error, 'Error al generar el cronograma masivo.')}
             </div>
           )}
 

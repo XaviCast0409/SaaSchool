@@ -1,6 +1,8 @@
 import { formatMoney } from '@/lib/format';
 import React, { useState } from 'react';
 import { Send, X, Mail, CheckCircle2 } from 'lucide-react';
+import { formatMoney } from '@/lib/format';
+import { getApiErrorMessage } from '@/lib/errors';
 import { useSendReminder } from '../api/usePayments';
 import { Button } from '@/components/ui/button';
 import { PaymentObligation } from '../types';
@@ -62,8 +64,7 @@ export const ReminderModal: React.FC<ReminderModalProps> = ({ obligation, onClos
             <>
               {error && (
                 <div className="p-3 rounded-md bg-destructive/10 text-destructive text-xs font-medium border border-destructive/20">
-                  {(error as { response?: { data?: { message?: string } } }).response?.data?.message ||
-                    'Error al enviar el recordatorio.'}
+                  {getApiErrorMessage(error, 'Error al enviar el recordatorio.')}
                 </div>
               )}
 

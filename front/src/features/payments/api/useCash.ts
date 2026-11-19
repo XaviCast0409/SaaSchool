@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import { getApiErrorMessage } from '@/lib/errors';
 import { paymentsKeys, invalidateCashViews } from './keys';
 import type { CashExpense, CashSession, CashSessionDetail, CashSessionStatus, PersonRef } from '../types';
 
@@ -119,5 +120,4 @@ export const useVoidExpense = () => {
 };
 
 /** Mensaje de error del backend en español (o uno genérico). */
-export const apiError = (err: unknown, fallback: string) =>
-  (err as { response?: { data?: { message?: string } } })?.response?.data?.message || fallback;
+export const apiError = (err: unknown, fallback: string) => getApiErrorMessage(err, fallback);

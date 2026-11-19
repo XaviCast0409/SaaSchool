@@ -4,8 +4,9 @@ import { toast } from 'sonner';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { formatMoney } from '@/lib/format';
+import { getApiErrorMessage } from '@/lib/errors';
 import { useCreateAdjustment } from '../api/useFinance';
-import { apiError } from '../api/useCash';
 
 type Kind = 'DISCOUNT' | 'CREDIT_NOTE' | 'LATE_FEE';
 
@@ -54,7 +55,7 @@ export const AdjustmentDialog: React.FC<{
           toast.success(`Ajuste ${a.number} registrado. La cuota queda en ${formatMoney(newDue)}.`);
           onClose();
         },
-        onError: (e) => toast.error(apiError(e, 'No se pudo registrar el ajuste.')),
+        onError: (e) => toast.error(getApiErrorMessage(e, 'No se pudo registrar el ajuste.')),
       },
     );
 

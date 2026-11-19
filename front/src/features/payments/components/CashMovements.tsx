@@ -1,9 +1,9 @@
-import { formatMoney } from '@/lib/format';
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Ban } from 'lucide-react';
 import { formatPeruTime } from '@/lib/dateUtils';
+import { formatMoney } from '@/lib/format';
 import {
   EXPENSE_CATEGORY_LABEL,
   EXPENSE_DOCUMENT_LABEL,
@@ -16,8 +16,7 @@ import {
   type PaymentMethod,
 } from '../types';
 
-const soles = (n: number | null | undefined) => formatMoney(n ?? 0);
-export { soles };
+export { formatMoney as soles };
 
 /** Tarjetas con el total por medio de pago (solo cobros vigentes). */
 export const MethodTotals: React.FC<{
@@ -31,7 +30,7 @@ export const MethodTotals: React.FC<{
       <div key={m} className="rounded-lg border border-border bg-card p-2.5">
         <p className="text-xs font-semibold uppercase text-muted-foreground">{PAYMENT_METHOD_LABEL[m]}</p>
         <p className="text-sm font-bold text-foreground">
-          {hideCashTotal && m === 'CASH' ? 'Al cerrar' : soles(byMethod?.[m])}
+          {hideCashTotal && m === 'CASH' ? 'Al cerrar' : formatMoney(byMethod?.[m])}
         </p>
         {countByMethod && <p className="text-xs text-muted-foreground">{countByMethod[m] ?? 0} cobros</p>}
       </div>
@@ -106,7 +105,7 @@ export const PaymentsList: React.FC<{
                 </td>
                 {showCashier && <td className="p-2 whitespace-nowrap">{personName(t.collectedBy)}</td>}
                 <td className={`p-2 text-right font-semibold whitespace-nowrap ${voided ? 'line-through' : ''}`}>
-                  {soles(t.amountPaid)}
+                  {formatMoney(t.amountPaid)}
                 </td>
               </tr>
             );
@@ -170,7 +169,7 @@ export const ExpensesList: React.FC<{
                 </td>
                 <td className="p-2 whitespace-nowrap">{personName(e.registeredBy)}</td>
                 <td className={`p-2 text-right font-semibold whitespace-nowrap ${voided ? 'line-through' : ''}`}>
-                  {soles(e.amount)}
+                  {formatMoney(e.amount)}
                 </td>
                 {onVoid && (
                   <td className="p-2">

@@ -1,5 +1,3 @@
-import { formatMoney } from '@/lib/format';
-import { getApiErrorMessage } from '@/lib/errors';
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,6 +10,8 @@ import { PAYMENT_METHODS, PAYMENT_METHOD_LABEL, PaymentObligation } from '../typ
 import { useCurrentCash } from '../api/useCash';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { formatMoney } from '@/lib/format';
+import { getApiErrorMessage } from '@/lib/errors';
 import { ReceiptModal } from './ReceiptModal';
 
 interface RegisterTransactionModalProps {
@@ -68,7 +68,7 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
         if (tx?.id) setReceiptId(tx.id);
         else onClose();
       },
-      onError: (err: any) => {
+      onError: (err: unknown) => {
         toast.error(getApiErrorMessage(err, 'Error al registrar el cobro.'));
       },
     });
@@ -109,7 +109,7 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
           <div>
             <span className="text-xs text-muted-foreground block font-medium">Saldo Pendiente:</span>
             <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-              S/ {remainingBalance.toFixed(2)}
+              {formatMoney(remainingBalance)}
             </span>
           </div>
           <div className="text-right">
@@ -122,8 +122,7 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
         <form noValidate onSubmit={handleSubmit(onSubmit)} className="p-4 space-y-4">
           {error && (
             <div className="p-3 rounded-md bg-destructive/10 text-destructive text-xs font-medium border border-destructive/20">
-              {(error as { response?: { data?: { message?: string } } }).response?.data?.message ||
-                'Error al registrar el cobro.'}
+              {getApiErrorMessage(error, 'Error al registrar el cobro.')}
             </div>
           )}
 
@@ -217,19 +216,24 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
-            <Button type="button" variant="ghost" size="sm" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              size="sm"
-              isLoading={isPending}
-              className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
-            >
-              <Check className="w-4 h-4" />
-              <span>Confirmar y Registrar Pago</span>
-            </Button>
+          <div className="pt-2 border-t border-border space-y-2">
+            {errors.obligationId && (
+              <p className="text-xs text-destructive text-right">{errors.obligationId.message}</p>
+            )}
+            <div className="flex items-center justify-end gap-2">
+              <Button type="button" variant="ghost" size="sm" onClick={onClose}>
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                isLoading={isPending}
+                className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                <Check className="w-4 h-4" />
+                <span>Confirmar y Registrar Pago</span>
+              </Button>
+            </div>
           </div>
         </form>
       </div>
