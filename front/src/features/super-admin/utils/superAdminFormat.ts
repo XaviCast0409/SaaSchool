@@ -51,7 +51,7 @@ export const getAttentionReasons = (s: SchoolWithStats, catalog?: PlanCatalog): 
     reasons.push({ tone: pct >= 100 ? 'danger' : 'info', label: `Cupo de alumnos al ${pct}%` });
   }
 
-  const isNew = Boolean(s.createdAt) && Date.now() - new Date(s.createdAt!).getTime() < INACTIVE_DAYS * DAY_MS;
+  const isNew = Boolean(s.createdAt) && Date.now() - new Date(s.createdAt as string).getTime() < INACTIVE_DAYS * DAY_MS;
   const lastSeen = s.activity?.lastSeenAt;
   if (!isNew && (!lastSeen || Date.now() - new Date(lastSeen).getTime() > INACTIVE_DAYS * DAY_MS)) {
     reasons.push({

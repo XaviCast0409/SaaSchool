@@ -1,4 +1,3 @@
-import { confirmDialog } from '@/components/ui/confirm';
 import { schoolLoginUrl } from '@/lib/schoolDomain';
 import React, { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -10,11 +9,7 @@ import {
   ExternalLink,
   Key,
   Pencil,
-  Pin,
-  PinOff,
   Sparkles,
-  StickyNote,
-  Trash2,
   Wallet,
   Copy,
   Link2,
@@ -22,13 +17,7 @@ import {
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useGetAllSchools, usePlanCatalog } from '../api/useSuperAdmin';
-import {
-  useDeleteSchoolNote,
-  useSaveSchoolNote,
-  useSchoolNotes,
-  useSchoolOnboarding,
-  type SchoolNote,
-} from '../api/usePlatform';
+import { useSchoolOnboarding } from '../api/usePlatform';
 import { EditSchoolPlanModal } from '../components/EditSchoolPlanModal';
 import { EditSchoolInfoModal } from '../components/EditSchoolInfoModal';
 import { ResetAdminPasswordModal } from '../components/ResetAdminPasswordModal';
@@ -37,16 +26,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Textarea } from '@/components/ui/textarea';
-import { formatPeruDateTime, formatPeruShortDate } from '@/lib/dateUtils';
+import { formatPeruShortDate } from '@/lib/dateUtils';
+import { Row } from '../components/ui-bits';
+import { SchoolSubscriptionCard } from '../components/school-detail/SchoolSubscriptionCard';
+import { SchoolQuotaCard } from '../components/school-detail/SchoolQuotaCard';
+import { SchoolNotesCard } from '../components/school-detail/SchoolNotesCard';
 
 type ModalKind = 'plan' | 'edit' | 'reset' | 'payments' | null;
-
-const formatSoles = (n: number) =>
-  `S/ ${n.toLocaleString('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
-
-const errorMessage = (err: unknown, fallback: string) =>
-  (err as { response?: { data?: { message?: string } } })?.response?.data?.message || fallback;
 
 const ACCESS_LABEL = {
   ACTIVE: 'Vigente',
@@ -205,68 +191,8 @@ export const SchoolDetailPage: React.FC = () => {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4">
-        {/* Plan y cobros */}
-        <Card className="border-border shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Plan y cobros</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <Row label="Mensualidad">
-              {formatSoles(school.effectiveMonthlyFee ?? 0)}
-              {school.monthlyFee != null && <span className="text-xs text-muted-foreground"> (pactada)</span>}
-            </Row>
-            <Row label="Vigente hasta">
-              {school.planExpiresAt ? formatPeruShortDate(school.planExpiresAt) : 'Mensual indefinido'}
-            </Row>
-            {status?.access !== 'ACTIVE' && status && (
-              <Row label="Vencido hace">
-                <span className="text-destructive font-semibold">{status.daysOverdue} días</span>
-              </Row>
-            )}
-            {status?.access === 'ACTIVE' && status.daysUntilExpiry !== null && (
-              <Row label="Faltan">{status.daysUntilExpiry} días</Row>
-            )}
-            <Row label="Último pago">
-              {school.lastPaymentOn ? formatPeruShortDate(school.lastPaymentOn) : 'Sin pagos registrados'}
-            </Row>
-          </CardContent>
-        </Card>
-
-        {/* Uso */}
-        <Card className="border-border shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Uso</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <Row label="Alumnos">
-              {students}
-              <span className="text-muted-foreground"> / {quota === null ? '∞' : (quota ?? '—')}</span>
-              {pct !== null && <span className="text-xs text-muted-foreground"> ({pct}%)</span>}
-            </Row>
-            {pct !== null && (
-              <div
-                className="h-1.5 w-full rounded-full bg-muted overflow-hidden"
-                role="meter"
-                aria-label="Uso del cupo"
-                aria-valuenow={pct}
-                aria-valuemin={0}
-                aria-valuemax={100}
-              >
-                <div
-                  className={`h-full rounded-full ${pct >= 100 ? 'bg-destructive' : pct >= 90 ? 'bg-amber-500' : 'bg-primary'}`}
-                  style={{ width: `${Math.min(pct, 100)}%` }}
-                />
-              </div>
-            )}
-            <Row label="Usuarios">{school._count?.users ?? 0}</Row>
-            <Row label="Última actividad">
-              {school.activity?.lastSeenAt ? formatPeruDateTime(school.activity.lastSeenAt) : 'Sin actividad'}
-            </Row>
-            <Row label="Cuentas activas">
-              {school.activity?.active7d ?? 0} en 7 d · {school.activity?.active30d ?? 0} en 30 d
-            </Row>
-          </CardContent>
-        </Card>
+        <SchoolSubscriptionCard school={school} />
+        <SchoolQuotaCard school={school} quota={quota} students={students} pct={pct} />
 
         {/* Contacto */}
         <Card className="border-border shadow-sm">
@@ -355,172 +281,3 @@ export const SchoolDetailPage: React.FC = () => {
     </div>
   );
 };
-
-const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
-  <div className="flex items-baseline justify-between gap-3">
-    <span className="text-xs text-muted-foreground shrink-0">{label}</span>
-    <span className="text-right text-foreground min-w-0 break-words">{children}</span>
-  </div>
-);
-
-/** Notas internas del equipo de la plataforma (el colegio no las ve) */
-const SchoolNotesCard: React.FC<{ schoolId: string }> = ({ schoolId }) => {
-  const { data: notes, isLoading } = useSchoolNotes(schoolId);
-  const { mutate: saveNote, isPending } = useSaveSchoolNote(schoolId);
-  const { mutate: deleteNote } = useDeleteSchoolNote(schoolId);
-  const [draft, setDraft] = useState('');
-  const [editing, setEditing] = useState<{ id: string; body: string } | null>(null);
-
-  const add = () => {
-    if (!draft.trim()) return;
-    saveNote(
-      { body: draft.trim() },
-      {
-        onSuccess: () => setDraft(''),
-        onError: (err) => toast.error(errorMessage(err, 'No se pudo guardar la nota.')),
-      },
-    );
-  };
-
-  const saveEdit = () => {
-    if (!editing?.body.trim()) return;
-    saveNote(
-      { id: editing.id, body: editing.body.trim() },
-      {
-        onSuccess: () => setEditing(null),
-        onError: (err) => toast.error(errorMessage(err, 'No se pudo guardar la nota.')),
-      },
-    );
-  };
-
-  const togglePin = (note: SchoolNote) => saveNote({ id: note.id, pinned: !note.pinned });
-
-  const remove = async (note: SchoolNote) => {
-    if (
-      await confirmDialog({
-        title: '¿Eliminar esta nota interna?',
-        description: 'No se puede deshacer.',
-        confirmText: 'Eliminar',
-        variant: 'danger',
-      })
-    ) {
-      deleteNote(note.id, { onError: (err) => toast.error(errorMessage(err, 'No se pudo eliminar la nota.')) });
-    }
-  };
-
-  return (
-    <Card className="border-border shadow-sm">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
-          <StickyNote className="w-4 h-4 text-primary" /> Notas internas
-        </CardTitle>
-        <p className="text-xs text-muted-foreground">
-          Solo las ve el equipo de la plataforma. Ej.: “llamar en marzo”, “pidió descuento”.
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="space-y-2">
-          <Textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="Escribe una nota…"
-            maxLength={4000}
-            rows={2}
-            className="text-sm"
-          />
-          <div className="flex justify-end">
-            <Button
-              size="sm"
-              className="h-8 text-xs"
-              onClick={add}
-              disabled={!draft.trim()}
-              isLoading={isPending && !editing}
-            >
-              Agregar nota
-            </Button>
-          </div>
-        </div>
-
-        {isLoading ? (
-          <Skeleton className="h-16 w-full" />
-        ) : !notes?.length ? (
-          <p className="text-xs text-muted-foreground">Todavía no hay notas.</p>
-        ) : (
-          <ul className="space-y-2">
-            {notes.map((note) => (
-              <li
-                key={note.id}
-                className={`rounded-xl border p-3 text-sm ${note.pinned ? 'border-primary/40 bg-primary/5' : 'border-border'}`}
-              >
-                {editing?.id === note.id ? (
-                  <div className="space-y-2">
-                    <Textarea
-                      autoFocus
-                      value={editing.body}
-                      onChange={(e) => setEditing({ id: note.id, body: e.target.value })}
-                      maxLength={4000}
-                      rows={3}
-                      className="text-sm"
-                    />
-                    <div className="flex justify-end gap-2">
-                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditing(null)}>
-                        Cancelar
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="h-7 text-xs"
-                        onClick={saveEdit}
-                        disabled={!editing.body.trim()}
-                        isLoading={isPending}
-                      >
-                        Guardar
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <p className="whitespace-pre-line text-foreground">{note.body}</p>
-                    <div className="mt-2 flex items-center justify-between gap-2">
-                      <span className="text-xs text-muted-foreground">
-                        {formatPeruDateTime(note.createdAt)}
-                        {note.authorEmail ? ` · ${note.authorEmail}` : ''}
-                      </span>
-                      <div className="flex gap-0.5">
-                        <IconButton label={note.pinned ? 'Desfijar' : 'Fijar arriba'} onClick={() => togglePin(note)}>
-                          {note.pinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
-                        </IconButton>
-                        <IconButton label="Editar" onClick={() => setEditing({ id: note.id, body: note.body })}>
-                          <Pencil className="w-3.5 h-3.5" />
-                        </IconButton>
-                        <IconButton label="Eliminar" onClick={() => remove(note)} danger>
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </IconButton>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </CardContent>
-    </Card>
-  );
-};
-
-const IconButton: React.FC<{ label: string; onClick: () => void; danger?: boolean; children: React.ReactNode }> = ({
-  label,
-  onClick,
-  danger,
-  children,
-}) => (
-  <button
-    type="button"
-    title={label}
-    aria-label={label}
-    onClick={onClick}
-    className={`rounded-md p-1.5 text-muted-foreground transition-colors ${danger ? 'hover:bg-destructive/10 hover:text-destructive' : 'hover:bg-muted hover:text-foreground'}`}
-  >
-    {children}
-  </button>
-);

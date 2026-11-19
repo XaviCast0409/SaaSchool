@@ -18,6 +18,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatPeruDateTime } from '@/lib/dateUtils';
+import { getApiErrorMessage } from '@/lib/errors';
+import { Field, IconButton } from '../components/ui-bits';
 
 const LEVEL_LABELS: Record<AnnouncementLevel, string> = {
   INFO: 'Informativo',
@@ -54,9 +56,6 @@ const toLocalInput = (iso: string | null) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
-const errorMessage = (err: unknown, fallback: string) =>
-  (err as { response?: { data?: { message?: string } } })?.response?.data?.message || fallback;
-
 /** Avisos de la plataforma para todos los colegios: mantenimiento, novedades, incidentes */
 export const PlatformAnnouncementsPage: React.FC = () => {
   const { data: announcements, isLoading } = usePlatformAnnouncements();
@@ -88,7 +87,7 @@ export const PlatformAnnouncementsPage: React.FC = () => {
           toast.success(form.id ? 'Aviso actualizado.' : 'Aviso publicado.');
           setForm(emptyForm());
         },
-        onError: (err) => toast.error(errorMessage(err, 'No se pudo guardar el aviso.')),
+        onError: (err) => toast.error(getApiErrorMessage(err, 'No se pudo guardar el aviso.')),
       },
     );
   };
@@ -107,7 +106,7 @@ export const PlatformAnnouncementsPage: React.FC = () => {
   const toggleActive = (a: PlatformAnnouncement) =>
     save(
       { id: a.id, payload: { isActive: !a.isActive } },
-      { onError: (err) => toast.error(errorMessage(err, 'No se pudo actualizar el aviso.')) },
+      { onError: (err) => toast.error(getApiErrorMessage(err, 'No se pudo actualizar el aviso.')) },
     );
 
   const del = async (a: PlatformAnnouncement) => {
@@ -119,7 +118,7 @@ export const PlatformAnnouncementsPage: React.FC = () => {
         variant: 'danger',
       })
     ) {
-      remove(a.id, { onError: (err) => toast.error(errorMessage(err, 'No se pudo eliminar el aviso.')) });
+      remove(a.id, { onError: (err) => toast.error(getApiErrorMessage(err, 'No se pudo eliminar el aviso.')) });
     }
   };
 
@@ -293,26 +292,3 @@ export const PlatformAnnouncementsPage: React.FC = () => {
   );
 };
 
-const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
-  <label className="block space-y-1.5">
-    <span className="text-xs font-bold uppercase tracking-wide text-foreground">{label}</span>
-    {children}
-  </label>
-);
-
-const IconButton: React.FC<{ label: string; onClick: () => void; danger?: boolean; children: React.ReactNode }> = ({
-  label,
-  onClick,
-  danger,
-  children,
-}) => (
-  <button
-    type="button"
-    title={label}
-    aria-label={label}
-    onClick={onClick}
-    className={`rounded-md p-1.5 text-muted-foreground transition-colors ${danger ? 'hover:bg-destructive/10 hover:text-destructive' : 'hover:bg-muted hover:text-foreground'}`}
-  >
-    {children}
-  </button>
-);
