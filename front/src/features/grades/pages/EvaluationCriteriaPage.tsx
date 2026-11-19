@@ -1,40 +1,31 @@
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
 import {
-  SlidersHorizontal,
-  Plus,
-  Pencil,
-  Trash2,
   CheckCircle2,
-  AlertCircle,
   HelpCircle,
   Layers,
+  Plus,
   Scale,
   ShieldCheck,
-  Check,
-  X,
   Sparkles,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { PlanGuard } from '@/components/ui/PlanGuard';
-import { useEvaluationCriteria, useCreateCriterion, useUpdateCriterion, useDeleteCriterion } from '../api/useGrades';
-import { GradingScaleCard } from '../components/GradingScaleCard';
-import { useAuthStore } from '@/store/useAuthStore';
-import type { EvaluationCriterion } from '../types';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-
-interface CriterionFormValues {
-  name: string;
-  shortName: string;
-  weight: number;
-  order: number;
-  educationLevel: string; // 'ALL' | 'INITIAL' | 'PRIMARY' | 'SECONDARY'
-}
+import { PlanGuard } from '@/components/ui/PlanGuard';
+import { getApiErrorMessage } from '@/lib/errors';
+import { useAuthStore } from '@/store/useAuthStore';
+import {
+  useCreateCriterion,
+  useDeleteCriterion,
+  useEvaluationCriteria,
+  useUpdateCriterion,
+} from '../api/useGrades';
+import { GradingScaleCard } from '../components/GradingScaleCard';
+import { CriterionModal, type CriterionPayload } from '../components/evaluation-criteria/CriterionModal';
+import { CurricularAreaAccordion } from '../components/evaluation-criteria/CurricularAreaAccordion';
+import type { EvaluationCriterion } from '../types';
 
 export const EvaluationCriteriaPage: React.FC = () => {
   const user = useAuthStore((state) => state.user);
@@ -47,61 +38,28 @@ export const EvaluationCriteriaPage: React.FC = () => {
   const [editingCriterion, setEditingCriterion] = useState<EvaluationCriterion | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [deletingCriterion, setDeletingCriterion] = useState<EvaluationCriterion | null>(null);
+  const [isApplyingPreset, setIsApplyingPreset] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    formState: { errors },
-  } = useForm<CriterionFormValues>({
-    defaultValues: {
-      name: '',
-      shortName: '',
-      weight: 1.0,
-      order: 1,
-      educationLevel: 'ALL',
-    },
-  });
+  const activeCriteria = criteria.filter((c) => c.isActive);
+  const totalWeight = activeCriteria.reduce((acc, c) => acc + (c.weight || 1), 0);
+  const isSaving = createMutation.isPending || updateMutation.isPending || isApplyingPreset;
 
   const handleOpenCreate = () => {
     setEditingCriterion(null);
-    reset({
-      name: '',
-      shortName: '',
-      weight: 1.0,
-      order: criteria.length + 1,
-      educationLevel: 'ALL',
-    });
     setIsFormOpen(true);
   };
 
   const handleOpenEdit = (criterion: EvaluationCriterion) => {
     setEditingCriterion(criterion);
-    setValue('name', criterion.name);
-    setValue('shortName', criterion.shortName);
-    setValue('weight', criterion.weight || 1.0);
-    setValue('order', criterion.order || 1);
-    setValue('educationLevel', criterion.educationLevel || 'ALL');
     setIsFormOpen(true);
   };
 
   const handleCloseForm = () => {
     setIsFormOpen(false);
     setEditingCriterion(null);
-    reset();
   };
 
-  const onSubmit = (values: CriterionFormValues) => {
-    const payload = {
-      name: values.name.trim(),
-      shortName: values.shortName.trim().toUpperCase(),
-      weight: Number(values.weight),
-      order: Number(values.order),
-      educationLevel:
-        values.educationLevel === 'ALL' ? null : (values.educationLevel as 'INITIAL' | 'PRIMARY' | 'SECONDARY'),
-    };
-
+  const onSubmitForm = (payload: CriterionPayload) => {
     if (editingCriterion) {
       updateMutation.mutate(
         { id: editingCriterion.id, data: payload },
@@ -110,8 +68,8 @@ export const EvaluationCriteriaPage: React.FC = () => {
             toast.success(`Criterio "${payload.name}" actualizado correctamente`);
             handleCloseForm();
           },
-          onError: () => {
-            toast.error('Error al actualizar el criterio');
+          onError: (err) => {
+            toast.error(getApiErrorMessage(err, 'Error al actualizar el criterio'));
           },
         },
       );
@@ -121,8 +79,8 @@ export const EvaluationCriteriaPage: React.FC = () => {
           toast.success(`Criterio "${payload.name}" creado correctamente`);
           handleCloseForm();
         },
-        onError: () => {
-          toast.error('Error al registrar el criterio');
+        onError: (err) => {
+          toast.error(getApiErrorMessage(err, 'Error al registrar el criterio'));
         },
       });
     }
@@ -135,13 +93,11 @@ export const EvaluationCriteriaPage: React.FC = () => {
         toast.success(`Criterio "${deletingCriterion.name}" desactivado`);
         setDeletingCriterion(null);
       },
-      onError: () => {
-        toast.error('Error al desactivar el criterio');
+      onError: (err) => {
+        toast.error(getApiErrorMessage(err, 'Error al desactivar el criterio'));
       },
     });
   };
-
-  const [isApplyingPreset, setIsApplyingPreset] = useState(false);
 
   const handleApplyPreset = async () => {
     if (
@@ -158,7 +114,7 @@ export const EvaluationCriteriaPage: React.FC = () => {
         await deleteMutation.mutateAsync(c.id);
       }
 
-      const preset = [
+      const preset: CriterionPayload[] = [
         { name: 'Práctica Mensual', shortName: 'PM', weight: 1.0, order: 1, educationLevel: null },
         { name: 'Examen Mensual', shortName: 'EM', weight: 1.0, order: 2, educationLevel: null },
         { name: 'Revisión de Cuaderno / Tareas', shortName: 'RC', weight: 1.0, order: 3, educationLevel: null },
@@ -170,16 +126,12 @@ export const EvaluationCriteriaPage: React.FC = () => {
       }
 
       toast.success('Plantilla de colegio particular aplicada con éxito.');
-    } catch {
-      toast.error('Error al aplicar la plantilla.');
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Error al aplicar la plantilla.'));
     } finally {
       setIsApplyingPreset(false);
     }
   };
-
-  const activeCriteria = criteria.filter((c) => c.isActive);
-  const totalWeight = activeCriteria.reduce((acc, c) => acc + (c.weight || 1), 0);
-  const isSaving = createMutation.isPending || updateMutation.isPending || isApplyingPreset;
 
   return (
     <PlanGuard minPlan="PRO">
@@ -276,246 +228,26 @@ export const EvaluationCriteriaPage: React.FC = () => {
         </div>
 
         {/* Modal / Formulario Flotante de Creación o Edición */}
-        {isFormOpen && (
-          <Card className="p-5 border-primary/30 bg-primary/5 space-y-4 shadow-lg animate-in slide-in-from-top-2 duration-150">
-            <div className="flex items-center justify-between border-b border-primary/20 pb-3">
-              <div className="flex items-center gap-2">
-                <SlidersHorizontal className="w-4 h-4 text-primary" />
-                <h3 className="text-sm font-bold text-foreground">
-                  {editingCriterion
-                    ? `Editar Criterio: ${editingCriterion.name}`
-                    : 'Registrar Nuevo Criterio Evaluativo'}
-                </h3>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCloseForm}
-                className="h-7 text-xs text-muted-foreground hover:text-foreground"
-              >
-                <X className="w-4 h-4 mr-1" />
-                Cerrar
-              </Button>
-            </div>
-
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                {/* Nombre */}
-                <div className="space-y-1 sm:col-span-2">
-                  <label className="text-xs font-semibold text-foreground">Nombre Completo del Criterio *</label>
-                  <Input
-                    {...register('name', { required: 'El nombre es obligatorio' })}
-                    placeholder="Ej: Práctica Calificada, Revisión de Cuaderno, Conducta"
-                    className="h-8 text-xs bg-background"
-                  />
-                  {errors.name && <span className="text-xs text-destructive">{errors.name.message}</span>}
-                </div>
-
-                {/* Abreviatura */}
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">Abreviatura (Cabecera) *</label>
-                  <Input
-                    {...register('shortName', {
-                      required: 'La abreviatura es obligatoria',
-                      maxLength: { value: 8, message: 'Máximo 8 caracteres' },
-                    })}
-                    placeholder="Ej: PC, COND, RC, EB, EXP"
-                    className="h-8 text-xs font-mono uppercase bg-background"
-                  />
-                  {errors.shortName && <span className="text-xs text-destructive">{errors.shortName.message}</span>}
-                </div>
-
-                {/* Nivel Educativo */}
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">Nivel Educativo</label>
-                  <select
-                    {...register('educationLevel')}
-                    className="w-full h-8 px-2.5 rounded-md border border-input bg-background text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-                  >
-                    <option value="ALL">Todos los Niveles</option>
-                    <option value="INITIAL">Inicial</option>
-                    <option value="PRIMARY">Primaria</option>
-                    <option value="SECONDARY">Secundaria</option>
-                  </select>
-                </div>
-
-                {/* Peso */}
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">Peso / Ponderación *</label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    min="0.1"
-                    {...register('weight', {
-                      required: 'El peso es obligatorio',
-                      valueAsNumber: true,
-                    })}
-                    className="h-8 text-xs font-mono bg-background"
-                  />
-                  <span className="text-xs text-muted-foreground">1.0 = ponderación estándar</span>
-                </div>
-
-                {/* Orden */}
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">Orden de Columna</label>
-                  <Input
-                    type="number"
-                    min="1"
-                    {...register('order', { valueAsNumber: true })}
-                    className="h-8 text-xs font-mono bg-background"
-                  />
-                  <span className="text-xs text-muted-foreground">1, 2, 3... de izquierda a derecha</span>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t border-primary/20">
-                <Button type="button" variant="outline" size="sm" onClick={handleCloseForm} className="h-8 text-xs">
-                  Cancelar
-                </Button>
-                <Button type="submit" size="sm" disabled={isSaving} className="h-8 text-xs font-bold gap-1.5 shadow-sm">
-                  <Check className="w-3.5 h-3.5" />
-                  <span>{editingCriterion ? 'Guardar Cambios' : 'Crear Criterio'}</span>
-                </Button>
-              </div>
-            </form>
-          </Card>
-        )}
+        <CriterionModal
+          isOpen={isFormOpen}
+          editingCriterion={editingCriterion}
+          defaultOrder={criteria.length + 1}
+          isSaving={isSaving}
+          onClose={handleCloseForm}
+          onSubmit={onSubmitForm}
+        />
 
         {/* Tabla de Criterios Configurados */}
-        <Card className="border-border bg-card shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-border flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Criterios Configurados para el Colegio ({criteria.length})
-            </h3>
-            <span className="text-xs text-muted-foreground font-mono">
-              Los cambios se reflejan automáticamente en la matriz docente
-            </span>
-          </div>
-
-          {isLoading ? (
-            <div className="p-6 space-y-3">
-              <Skeleton className="h-10 w-full rounded-md" />
-              <Skeleton className="h-10 w-full rounded-md" />
-              <Skeleton className="h-10 w-full rounded-md" />
-            </div>
-          ) : isError ? (
-            <div className="p-8 text-center text-muted-foreground space-y-2">
-              <AlertCircle className="w-8 h-8 text-destructive mx-auto" />
-              <p className="text-xs font-semibold text-foreground">Error al cargar los criterios evaluativos</p>
-            </div>
-          ) : criteria.length === 0 ? (
-            <div className="p-12 text-center text-muted-foreground space-y-3">
-              <Layers className="w-10 h-10 text-muted-foreground/50 mx-auto" />
-              <p className="text-sm font-semibold text-foreground">No hay criterios configurados aún</p>
-              <p className="text-xs max-w-md mx-auto">
-                Mientras no haya criterios, cada docente registra directamente el calificativo de cada competencia (AD,
-                A, B o C). Si tu colegio califica por rubros (prácticas, exámenes, cuaderno), agrega tus criterios o
-                carga la plantilla estándar.
-              </p>
-              <Button type="button" variant="outline" size="sm" onClick={handleApplyPreset} disabled={isSaving}>
-                Cargar plantilla estándar
-              </Button>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="bg-muted/50 border-b border-border font-bold text-muted-foreground">
-                    <th className="p-3 w-16 text-center">Orden</th>
-                    <th className="p-3 w-28 text-center">Abreviatura</th>
-                    <th className="p-3">Nombre del Criterio</th>
-                    <th className="p-3 w-32 text-center">Nivel</th>
-                    <th className="p-3 w-28 text-center">Peso</th>
-                    <th className="p-3 w-28 text-center">Estado</th>
-                    <th className="p-3 w-32 text-right">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {criteria.map((c) => (
-                    <tr
-                      key={c.id}
-                      className={`hover:bg-muted/30 transition-colors ${!c.isActive ? 'opacity-50 bg-muted/20' : ''}`}
-                    >
-                      {/* Orden */}
-                      <td className="p-3 text-center font-mono font-bold text-muted-foreground">#{c.order}</td>
-
-                      {/* Abreviatura */}
-                      <td className="p-3 text-center">
-                        <Badge variant="secondary" className="font-mono font-bold text-xs px-2 py-0.5">
-                          {c.shortName}
-                        </Badge>
-                      </td>
-
-                      {/* Nombre */}
-                      <td className="p-3 font-semibold text-foreground">{c.name}</td>
-
-                      {/* Nivel */}
-                      <td className="p-3 text-center">
-                        {c.educationLevel ? (
-                          <Badge variant="outline" className="text-xs uppercase font-semibold">
-                            {c.educationLevel === 'INITIAL'
-                              ? 'Inicial'
-                              : c.educationLevel === 'PRIMARY'
-                                ? 'Primaria'
-                                : 'Secundaria'}
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-xs text-muted-foreground border-border">
-                            Todos
-                          </Badge>
-                        )}
-                      </td>
-
-                      {/* Peso */}
-                      <td className="p-3 text-center font-mono font-bold text-foreground">{c.weight.toFixed(1)}x</td>
-
-                      {/* Estado */}
-                      <td className="p-3 text-center">
-                        {c.isActive ? (
-                          <Badge
-                            variant="secondary"
-                            className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-none text-xs"
-                          >
-                            Activo
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-muted-foreground text-xs">
-                            Inactivo
-                          </Badge>
-                        )}
-                      </td>
-
-                      {/* Acciones */}
-                      <td className="p-3 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenEdit(c)}
-                            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                            title="Editar criterio"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setDeletingCriterion(c)}
-                            disabled={deleteMutation.isPending}
-                            className="h-7 w-7 p-0 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
-                            title="Desactivar criterio"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Card>
+        <CurricularAreaAccordion
+          criteria={criteria}
+          isLoading={isLoading}
+          isError={isError}
+          isSaving={isSaving}
+          onApplyPreset={handleApplyPreset}
+          onEdit={handleOpenEdit}
+          onDelete={setDeletingCriterion}
+          deletePending={deleteMutation.isPending}
+        />
 
         {/* Escala de Conversión Numérica a Literal CNEB */}
         {canConfigureScale && <GradingScaleCard />}
