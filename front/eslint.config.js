@@ -36,4 +36,8 @@ export default tseslint.config(
       complexity: ['warn', 15],
     },
   },
+  {
+    files: ['src/**/data/**/*.ts'],
+    rules: { 'max-lines': 'off' },
+  },
 );
