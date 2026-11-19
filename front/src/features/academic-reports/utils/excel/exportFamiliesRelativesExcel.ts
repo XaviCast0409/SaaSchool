@@ -131,7 +131,3 @@ export const exportFamiliesRelativesExcel = async (data: FamiliesRelativesReport
 
   await saveWorkbook(wb, `0003_Directorio_Familias_y_Parientes.xlsx`);
 };
-
-// ============================================================================
-// REPORTE 0019: LISTADO DE CUMPLEAÑOS DEL ALUMNO
-// ============================================================================

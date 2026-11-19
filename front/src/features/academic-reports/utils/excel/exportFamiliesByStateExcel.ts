@@ -132,7 +132,3 @@ export const exportFamiliesByStateExcel = async (data: FamiliesByStateReportData
 
   await saveWorkbook(wb, `0001_Familias_Por_Estado_${filterState}.xlsx`);
 };
-
-// ============================================================================
-// REPORTE 0002: LISTADO DE FAMILIAS E HIJOS
-// ============================================================================

@@ -122,7 +122,3 @@ export const exportClassroomRosterExcel = async (data: ClassroomRosterReportData
 
   await saveWorkbook(wb, `0011_Padron_${classroom.grade}_${classroom.section}.xlsx`);
 };
-
-// ============================================================================
-// REPORTE 0001: LISTADO DE FAMILIAS POR ESTADO
-// ============================================================================

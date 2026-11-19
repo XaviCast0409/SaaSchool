@@ -278,7 +278,3 @@ export const exportMeritGradeExcel = async (data: MeritGradeReportData): Promise
 
   await saveWorkbook(wb, `0049_Merito_Grado_${educationLevel}_${grade}_B${periodNumber}.xlsx`);
 };
-
-// ============================================================================
-// REPORTE 0041: REGISTRO AUXILIAR BORRADOR
-// ============================================================================

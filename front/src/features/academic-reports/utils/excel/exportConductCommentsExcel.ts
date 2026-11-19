@@ -99,7 +99,3 @@ export const exportConductCommentsExcel = async (data: ConductCommentsReportData
 
   await saveWorkbook(wb, `0030_Conducta_${classroom.grade}_${classroom.section}_B${periodNumber}.xlsx`);
 };
-
-// ============================================================================
-// REPORTE 0011: PADRÓN OFICIAL DE ALUMNOS POR SALÓN
-// ============================================================================

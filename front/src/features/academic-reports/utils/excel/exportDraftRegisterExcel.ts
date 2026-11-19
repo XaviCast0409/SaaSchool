@@ -92,7 +92,3 @@ export const exportDraftRegisterExcel = async (data: DraftRegisterReportData): P
 
   await saveWorkbook(wb, `0041_Borrador_${classroom.grade}_${classroom.section}.xlsx`);
 };
-
-// ============================================================================
-// REPORTE 0030: CONDUCTA Y COMENTARIOS
-// ============================================================================

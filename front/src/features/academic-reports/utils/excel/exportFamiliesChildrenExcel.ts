@@ -132,7 +132,3 @@ export const exportFamiliesChildrenExcel = async (data: FamiliesChildrenReportDa
 
   await saveWorkbook(wb, `0002_Familias_e_Hijos.xlsx`);
 };
-
-// ============================================================================
-// REPORTE 0003: LISTADO DE FAMILIAS Y PARIENTES (DIRECTORIO INSTITUCIONAL)
-// ============================================================================

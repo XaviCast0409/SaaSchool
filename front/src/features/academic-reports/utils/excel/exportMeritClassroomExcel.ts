@@ -288,7 +288,3 @@ export const exportMeritClassroomExcel = async (data: MeritClassroomReportData):
 
   await saveWorkbook(wb, `0048_Merito_${classroom.grade}_${classroom.section}_B${periodNumber}.xlsx`);
 };
-
-// ============================================================================
-// REPORTE 0049: ORDEN DE MÉRITO Y TERCIOS POR GRADO
-// ============================================================================
