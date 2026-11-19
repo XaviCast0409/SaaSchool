@@ -1,431 +1,28 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ArrowLeft, CalendarRange, Copy, ListPlus, Loader2, Pencil, Plus, Receipt, Trash2 } from 'lucide-react';
+import { ArrowLeft, CalendarRange, Copy, ListPlus, Loader2, Plus, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Modal } from '@/components/ui/modal';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useAcademicYears } from '@/features/academic-years/api/useAcademicYears';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
+import { getApiErrorMessage } from '@/lib/errors';
+import { formatMoney } from '@/lib/format';
 import { useFinanceAccess } from '../api/usePayments';
-import { apiError } from '../api/useCash';
-import { soles } from '../components/CashMovements';
 import {
-  feeSummary,
   LEVEL_LABEL,
-  MONTH_LONG,
-  MONTH_SHORT,
-  useCopyFeeSchedules,
   useDeleteFeeSchedule,
   useFeeSchedules,
   useGenerateMissing,
-  useSaveFeeSchedule,
   type GenerateMissingResult,
   type EducationLevel,
   type FeeSchedule,
 } from '../api/useFeeSchedules';
+import { LEVELS, scopeLabel } from '../constants';
+import { CopyFeeScheduleModal } from '../components/fee-schedules/CopyFeeScheduleModal';
+import { FeeScheduleModal } from '../components/fee-schedules/FeeScheduleModal';
+import { FeeScheduleQuotaTable } from '../components/fee-schedules/FeeScheduleQuotaTable';
 
-const LEVELS: EducationLevel[] = ['INITIAL', 'PRIMARY', 'SECONDARY'];
-
-const scopeLabel = (f: Pick<FeeSchedule, 'educationLevel' | 'grade'>) =>
-  f.grade === null ? 'Todo el nivel' : f.educationLevel === 'INITIAL' ? `${f.grade} años` : `${f.grade}° grado`;
-
-// ──────────────────────────────────────────────────────────────────
-// Formulario (crear / editar)
-// ──────────────────────────────────────────────────────────────────
-interface FormState {
-  educationLevel: EducationLevel;
-  grade: string; // '' = todo el nivel
-  enrollmentFee: string;
-  admissionFee: string;
-  monthlyFee: string;
-  firstMonth: number;
-  lastMonth: number;
-  dueDay: string;
-}
-
-const FeeScheduleModal: React.FC<{
-  open: boolean;
-  onClose: () => void;
-  academicYearId: string;
-  editing: FeeSchedule | null;
-  initialLevel: EducationLevel;
-  gradesByLevel: Record<EducationLevel, number[]>;
-  /** Tras registrar un tarifario nuevo: revisar si hay matrículas sin cuotas. */
-  onCreated?: () => void;
-}> = ({ open, onClose, academicYearId, editing, initialLevel, gradesByLevel, onCreated }) => {
-  const save = useSaveFeeSchedule();
-  const [applyToPending, setApplyToPending] = useState(false);
-  const [f, setF] = useState<FormState>({
-    educationLevel: initialLevel,
-    grade: '',
-    enrollmentFee: '',
-    admissionFee: '',
-    monthlyFee: '',
-    firstMonth: 3,
-    lastMonth: 12,
-    dueDay: '31',
-  });
-
-  useEffect(() => {
-    if (!open) return;
-    setApplyToPending(false);
-    setF(
-      editing
-        ? {
-            educationLevel: editing.educationLevel,
-            grade: editing.grade === null ? '' : String(editing.grade),
-            enrollmentFee: String(editing.enrollmentFee),
-            admissionFee: String(editing.admissionFee),
-            monthlyFee: String(editing.monthlyFee),
-            firstMonth: editing.firstMonth,
-            lastMonth: editing.lastMonth,
-            dueDay: String(editing.dueDay),
-          }
-        : {
-            educationLevel: initialLevel,
-            grade: '',
-            enrollmentFee: '',
-            admissionFee: '0',
-            monthlyFee: '',
-            firstMonth: 3,
-            lastMonth: 12,
-            dueDay: '31',
-          },
-    );
-  }, [open, editing, initialLevel]);
-
-  const nums = {
-    enrollmentFee: Number(f.enrollmentFee || 0),
-    admissionFee: Number(f.admissionFee || 0),
-    monthlyFee: Number(f.monthlyFee || 0),
-    dueDay: Number(f.dueDay),
-  };
-  const errors: string[] = [];
-  if (nums.monthlyFee < 0 || nums.enrollmentFee < 0 || nums.admissionFee < 0) {
-    errors.push('El monto no puede ser negativo.');
-  } else if (f.monthlyFee === '' || nums.monthlyFee === 0) {
-    errors.push('Ingresa la pensión mensual.');
-  }
-  if (f.firstMonth > f.lastMonth) errors.push('El primer mes no puede ser posterior al último.');
-  if (!Number.isInteger(nums.dueDay) || nums.dueDay < 1 || nums.dueDay > 31)
-    errors.push('El día de vencimiento va de 1 a 31.');
-  const summary = feeSummary({ ...nums, firstMonth: f.firstMonth, lastMonth: f.lastMonth });
-  const grades = gradesByLevel[f.educationLevel] ?? [];
-
-  const submit = () =>
-    save.mutate(
-      {
-        id: editing?.id,
-        applyToPending: !!editing && applyToPending,
-        body: {
-          academicYearId,
-          educationLevel: f.educationLevel,
-          grade: f.grade === '' ? null : Number(f.grade),
-          enrollmentFee: nums.enrollmentFee,
-          admissionFee: nums.admissionFee,
-          monthlyFee: nums.monthlyFee,
-          firstMonth: f.firstMonth,
-          lastMonth: f.lastMonth,
-          dueDay: nums.dueDay,
-        },
-      },
-      {
-        onSuccess: (r) => {
-          toast.success(
-            editing
-              ? `Tarifario actualizado${applyToPending ? ` · ${r.repriced ?? 0} cuotas pendientes actualizadas` : ''}.`
-              : 'Tarifario registrado.',
-          );
-          onClose();
-          if (!editing) onCreated?.();
-        },
-        onError: (e) => toast.error(apiError(e, 'No se pudo guardar el tarifario.')),
-      },
-    );
-
-  const selectCls =
-    'w-full text-xs rounded-xl border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring';
-
-  return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title={editing ? 'Editar tarifario' : 'Nuevo tarifario'}
-      description="Los montos aplican a las matrículas nuevas. Al editar, puedes llevarlos también a las cuotas pendientes ya generadas."
-      size="lg"
-      footer={
-        <>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button size="sm" disabled={errors.length > 0} isLoading={save.isPending} onClick={submit}>
-            Guardar tarifario
-          </Button>
-        </>
-      }
-    >
-      <div className="space-y-4 text-xs">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label htmlFor="feeschedulespage-field-1" className="font-semibold block mb-1">
-              Nivel *
-            </label>
-            <select
-              id="feeschedulespage-field-1"
-              className={selectCls}
-              value={f.educationLevel}
-              disabled={!!editing}
-              onChange={(e) => setF({ ...f, educationLevel: e.target.value as EducationLevel, grade: '' })}
-            >
-              {LEVELS.map((l) => (
-                <option key={l} value={l}>
-                  {LEVEL_LABEL[l]}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label htmlFor="feeschedulespage-field-2" className="font-semibold block mb-1">
-              Aplica a
-            </label>
-            <select
-              id="feeschedulespage-field-2"
-              className={selectCls}
-              value={f.grade}
-              disabled={!!editing}
-              onChange={(e) => setF({ ...f, grade: e.target.value })}
-            >
-              <option value="">Todo el nivel</option>
-              {grades.map((g) => (
-                <option key={g} value={g}>
-                  Solo {scopeLabel({ educationLevel: f.educationLevel, grade: g }).toLowerCase()}
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-muted-foreground mt-1">
-              El tarifario de un grado tiene prioridad sobre el del nivel.
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div>
-            <label htmlFor="feeschedulespage-field-3" className="font-semibold block mb-1">
-              Matrícula (S/)
-            </label>
-            <Input
-              id="feeschedulespage-field-3"
-              type="number"
-              min="0"
-              step="0.01"
-              className="text-xs rounded-xl font-mono"
-              value={f.enrollmentFee}
-              onChange={(e) => setF({ ...f, enrollmentFee: e.target.value })}
-              placeholder="0.00"
-            />
-          </div>
-          <div>
-            <label htmlFor="feeschedulespage-field-4" className="font-semibold block mb-1">
-              Pensión mensual (S/) *
-            </label>
-            <Input
-              id="feeschedulespage-field-4"
-              type="number"
-              min="0"
-              step="0.01"
-              className="text-xs rounded-xl font-mono"
-              value={f.monthlyFee}
-              onChange={(e) => setF({ ...f, monthlyFee: e.target.value })}
-              placeholder="0.00"
-            />
-          </div>
-          <div>
-            <label htmlFor="feeschedulespage-field-5" className="font-semibold block mb-1">
-              Cuota de ingreso (S/)
-            </label>
-            <Input
-              id="feeschedulespage-field-5"
-              type="number"
-              min="0"
-              step="0.01"
-              className="text-xs rounded-xl font-mono"
-              value={f.admissionFee}
-              onChange={(e) => setF({ ...f, admissionFee: e.target.value })}
-              placeholder="0.00"
-            />
-            <p className="text-xs text-muted-foreground mt-1">Solo para alumnos ingresantes.</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div>
-            <label htmlFor="feeschedulespage-field-6" className="font-semibold block mb-1">
-              Pensión desde
-            </label>
-            <select
-              id="feeschedulespage-field-6"
-              className={selectCls}
-              value={f.firstMonth}
-              onChange={(e) => setF({ ...f, firstMonth: Number(e.target.value) })}
-            >
-              {MONTH_LONG.map((m, i) => (
-                <option key={m} value={i + 1}>
-                  {m}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label htmlFor="feeschedulespage-field-7" className="font-semibold block mb-1">
-              Hasta
-            </label>
-            <select
-              id="feeschedulespage-field-7"
-              className={selectCls}
-              value={f.lastMonth}
-              onChange={(e) => setF({ ...f, lastMonth: Number(e.target.value) })}
-            >
-              {MONTH_LONG.map((m, i) => (
-                <option key={m} value={i + 1}>
-                  {m}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label htmlFor="feeschedulespage-field-8" className="font-semibold block mb-1">
-              Vence el día
-            </label>
-            <Input
-              id="feeschedulespage-field-8"
-              type="number"
-              min="1"
-              max="31"
-              className="text-xs rounded-xl font-mono"
-              value={f.dueDay}
-              onChange={(e) => setF({ ...f, dueDay: e.target.value })}
-            />
-            <p className="text-xs text-muted-foreground mt-1">31 = último día de cada mes.</p>
-          </div>
-        </div>
-
-        {/* Resumen en vivo */}
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 flex flex-wrap items-center gap-x-6 gap-y-1">
-          <span>
-            <strong className="text-foreground">{summary.months}</strong> pensiones ({MONTH_SHORT[f.firstMonth - 1]}–
-            {MONTH_SHORT[f.lastMonth - 1]})
-          </span>
-          <span>
-            Total anual por alumno: <strong className="text-foreground font-mono">{soles(summary.annual)}</strong>
-          </span>
-          {nums.admissionFee > 0 && (
-            <span className="text-muted-foreground">+ {soles(nums.admissionFee)} si es ingresante</span>
-          )}
-        </div>
-        {editing && (
-          <label className="flex items-start gap-2 rounded-xl border border-border p-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={applyToPending}
-              onChange={(e) => setApplyToPending(e.target.checked)}
-              className="w-4 h-4 mt-0.5 rounded"
-            />
-            <span>
-              <strong className="text-foreground">Actualizar también las cuotas pendientes ya generadas</strong>
-              <span className="block text-muted-foreground">
-                Cambia el monto (y el día de vencimiento de las pensiones) de las cuotas sin cobros, descuentos, becas
-                ni moras de este nivel
-                {editing.grade !== null ? ' y grado' : ''}. Las pagadas, con ajustes o con pensión personalizada no se
-                tocan. No agrega ni quita meses.
-              </span>
-            </span>
-          </label>
-        )}
-        {/* «Ingresa la pensión» no es un error mientras el formulario está recién abierto. */}
-        {errors.length > 0 && !(errors[0] === 'Ingresa la pensión mensual.' && f.monthlyFee === '') && (
-          <p className="text-xs text-destructive font-medium">{errors[0]}</p>
-        )}
-      </div>
-    </Modal>
-  );
-};
-
-// ──────────────────────────────────────────────────────────────────
-// Copiar de otro año
-// ──────────────────────────────────────────────────────────────────
-const CopyModal: React.FC<{
-  open: boolean;
-  onClose: () => void;
-  toYearId: string;
-  years: { id: string; label: string }[];
-}> = ({ open, onClose, toYearId, years }) => {
-  const copy = useCopyFeeSchedules();
-  const options = years.filter((y) => y.id !== toYearId);
-  const [from, setFrom] = useState('');
-  useEffect(() => {
-    if (open) setFrom(options[0]?.id ?? '');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
-  return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title="Copiar tarifario de otro año"
-      description="Se copian los niveles y grados que aún no tienen tarifario en este año. Luego puedes ajustar los montos."
-      size="sm"
-      footer={
-        <>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button
-            size="sm"
-            disabled={!from}
-            isLoading={copy.isPending}
-            onClick={() =>
-              copy.mutate(
-                { fromAcademicYearId: from, toAcademicYearId: toYearId },
-                {
-                  onSuccess: (r) => {
-                    toast.success(
-                      r.copied ? `Se copiaron ${r.copied} tarifarios.` : 'No había tarifarios nuevos que copiar.',
-                    );
-                    onClose();
-                  },
-                  onError: (e) => toast.error(apiError(e, 'No se pudo copiar el tarifario.')),
-                },
-              )
-            }
-          >
-            Copiar
-          </Button>
-        </>
-      }
-    >
-      {options.length === 0 ? (
-        <p className="text-xs text-muted-foreground">No hay otros años académicos registrados.</p>
-      ) : (
-        <select
-          value={from}
-          onChange={(e) => setFrom(e.target.value)}
-          className="w-full text-xs rounded-xl border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-        >
-          {options.map((y) => (
-            <option key={y.id} value={y.id}>
-              {y.label}
-            </option>
-          ))}
-        </select>
-      )}
-    </Modal>
-  );
-};
-
-// ──────────────────────────────────────────────────────────────────
-// Página
-// ──────────────────────────────────────────────────────────────────
 export const FeeSchedulesPage: React.FC = () => {
   const { data: access, isLoading: accessLoading } = useFinanceAccess();
   const { data: years = [] } = useAcademicYears();
@@ -446,18 +43,19 @@ export const FeeSchedulesPage: React.FC = () => {
           r.cuotas === 0
             ? toast.info(`Todas las matrículas de ${r.year} ya tienen su cronograma completo.`)
             : setMissingPreview(r),
-        onError: (e) => toast.error(apiError(e, 'No se pudo calcular.')),
+        onError: (e) => toast.error(getApiErrorMessage(e, 'No se pudo calcular.')),
       },
     );
+
   const confirmMissing = () =>
     generateMissing.mutate(
       { academicYearId: yearId, dryRun: false },
       {
         onSuccess: (r) => {
-          toast.success(`Se generaron ${r.cuotas} cuotas para ${r.withMissing} matrículas (${soles(r.total)}).`);
+          toast.success(`Se generaron ${r.cuotas} cuotas para ${r.withMissing} matrículas (${formatMoney(r.total)}).`);
           setMissingPreview(null);
         },
-        onError: (e) => toast.error(apiError(e, 'No se pudieron generar las cuotas.')),
+        onError: (e) => toast.error(getApiErrorMessage(e, 'No se pudieron generar las cuotas.')),
       },
     );
 
@@ -478,7 +76,6 @@ export const FeeSchedulesPage: React.FC = () => {
     return map;
   }, [classrooms]);
 
-  // Niveles con aulas o con tarifario; si no hay aulas aún, se muestran los tres
   const levels = useMemo(() => {
     const used = LEVELS.filter((l) => gradesByLevel[l].length > 0 || schedules.some((s) => s.educationLevel === l));
     return used.length > 0 ? used : LEVELS;
@@ -590,112 +187,16 @@ export const FeeSchedulesPage: React.FC = () => {
         <div className="grid gap-4">
           {levels.map((level) => {
             const rows = schedules.filter((s) => s.educationLevel === level);
-            const hasLevelWide = rows.some((r) => r.grade === null);
             return (
-              <div key={level} className="rounded-2xl bg-card border border-border shadow-sm overflow-hidden">
-                <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border bg-muted/30">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-sm font-black text-foreground">{LEVEL_LABEL[level]}</h2>
-                    {rows.length === 0 ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400">
-                        Sin tarifario: las matrículas no generarán cuotas
-                      </span>
-                    ) : !hasLevelWide ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-secondary text-secondary-foreground">
-                        Solo algunos grados
-                      </span>
-                    ) : null}
-                  </div>
-                  {canManage && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-xs font-bold text-primary gap-1"
-                      onClick={() => setModal({ editing: null, level })}
-                    >
-                      <Plus className="w-3 h-3" /> Agregar
-                    </Button>
-                  )}
-                </div>
-                {rows.length === 0 ? (
-                  <p className="px-4 py-6 text-xs text-muted-foreground text-center">
-                    {canManage
-                      ? 'Agrega el tarifario de este nivel para generar cuotas al matricular.'
-                      : 'Aún no se configuró.'}
-                  </p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-muted/40 border-b border-border text-xs font-extrabold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
-                        <tr>
-                          <th className="px-4 py-3">Aplica a</th>
-                          <th className="px-4 py-3 text-right">Matrícula</th>
-                          <th className="px-4 py-3 text-right">Pensión</th>
-                          <th className="px-4 py-3 text-right">Cuota de ingreso</th>
-                          <th className="px-4 py-3">Meses</th>
-                          <th className="px-4 py-3">Vence</th>
-                          <th className="px-4 py-3 text-right">Total anual</th>
-                          {canManage && <th className="px-4 py-3 text-right">Acciones</th>}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border/60">
-                        {rows.map((r) => {
-                          const sum = feeSummary(r);
-                          return (
-                            <tr key={r.id} className="hover:bg-muted/20 transition-colors">
-                              <td className="px-4 py-3 font-bold text-foreground whitespace-nowrap">{scopeLabel(r)}</td>
-                              <td className="px-4 py-3 text-right font-mono whitespace-nowrap">
-                                {soles(r.enrollmentFee)}
-                              </td>
-                              <td className="px-4 py-3 text-right font-mono font-bold text-foreground whitespace-nowrap">
-                                {soles(r.monthlyFee)}
-                              </td>
-                              <td className="px-4 py-3 text-right font-mono whitespace-nowrap text-muted-foreground">
-                                {r.admissionFee > 0 ? soles(r.admissionFee) : '—'}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap">
-                                <span className="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-secondary text-secondary-foreground">
-                                  {MONTH_SHORT[r.firstMonth - 1]}–{MONTH_SHORT[r.lastMonth - 1]} · {sum.months} cuotas
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                                {r.dueDay === 31 ? 'Último día del mes' : `Día ${r.dueDay}`}
-                              </td>
-                              <td className="px-4 py-3 text-right font-mono font-bold text-foreground whitespace-nowrap">
-                                {soles(sum.annual)}
-                              </td>
-                              {canManage && (
-                                <td className="px-4 py-3 text-right whitespace-nowrap">
-                                  <div className="flex items-center justify-end gap-1">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-7 w-7 p-0"
-                                      aria-label="Editar"
-                                      onClick={() => setModal({ editing: r, level })}
-                                    >
-                                      <Pencil className="w-3.5 h-3.5" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                      aria-label="Eliminar"
-                                      onClick={() => setDeleting(r)}
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </Button>
-                                  </div>
-                                </td>
-                              )}
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
+              <FeeScheduleQuotaTable
+                key={level}
+                level={level}
+                rows={rows}
+                canManage={canManage}
+                onEdit={(r) => setModal({ editing: r, level })}
+                onDelete={(r) => setDeleting(r)}
+                onAdd={() => setModal({ editing: null, level })}
+              />
             );
           })}
         </div>
@@ -718,7 +219,7 @@ export const FeeSchedulesPage: React.FC = () => {
           onCreated={previewMissing}
         />
       )}
-      <CopyModal open={copyOpen} onClose={() => setCopyOpen(false)} toYearId={yearId} years={yearOptions} />
+      <CopyFeeScheduleModal open={copyOpen} onClose={() => setCopyOpen(false)} toYearId={yearId} years={yearOptions} />
       <ConfirmDialog
         isOpen={!!missingPreview}
         onClose={() => setMissingPreview(null)}
@@ -726,7 +227,7 @@ export const FeeSchedulesPage: React.FC = () => {
         title={`Generar cuotas faltantes de ${missingPreview?.year ?? ''}`}
         description={
           missingPreview
-            ? `Se crearán ${missingPreview.cuotas} cuotas por ${soles(missingPreview.total)} para ${missingPreview.withMissing} de ${missingPreview.enrollments} matrículas. No se duplica ningún periodo ni se recrean cuotas anuladas.`
+            ? `Se crearán ${missingPreview.cuotas} cuotas por ${formatMoney(missingPreview.total)} para ${missingPreview.withMissing} de ${missingPreview.enrollments} matrículas. No se duplica ningún periodo ni se recrean cuotas anuladas.`
             : ''
         }
         details={
@@ -759,7 +260,7 @@ export const FeeSchedulesPage: React.FC = () => {
               toast.success('Tarifario eliminado.');
               setDeleting(null);
             },
-            onError: (e) => toast.error(apiError(e, 'No se pudo eliminar.')),
+            onError: (e) => toast.error(getApiErrorMessage(e, 'No se pudo eliminar.')),
           })
         }
       />
