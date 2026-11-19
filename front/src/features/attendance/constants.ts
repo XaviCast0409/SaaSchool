@@ -48,3 +48,11 @@ export const ATTENDANCE_STATUS_ORDER: AttendanceStatus[] = [
   'LATE_UNJUSTIFIED',
   'LATE_JUSTIFIED',
 ];
+
+export type AttendanceAlertReason = 'CONSECUTIVE_ABSENCES' | 'MONTHLY_ABSENCE_RATE' | 'REPEATED_LATENESS';
+
+export const RISK_REASON_LABELS: Record<AttendanceAlertReason, string> = {
+  CONSECUTIVE_ABSENCES: 'Faltas injustificadas consecutivas',
+  MONTHLY_ABSENCE_RATE: '% de faltas injustificadas (últimos 30 días)',
+  REPEATED_LATENESS: 'Tardanzas injustificadas repetidas (últimos 30 días)',
+};
