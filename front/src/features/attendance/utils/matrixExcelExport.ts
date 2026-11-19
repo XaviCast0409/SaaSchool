@@ -1,9 +1,7 @@
-import type ExcelJS from 'exceljs';
-
-/** La librería de Excel (pesada) se descarga solo cuando se genera un archivo. */
-const newWorkbook = async (): Promise<ExcelJS.Workbook> => new (await import('exceljs')).default.Workbook();
-import { addSchoolLogoToWorkbook } from '@/lib/excelLogo';
+import { newWorkbook, saveWorkbook, colLetter } from '@/lib/excel/base';
+import { getDayInfo, formatMonthSpanish } from '@/lib/calendarDates';
 import { AttendanceMatrixStudentRow } from '../types';
+import { PALETTE, thinBorder, headerCellBorder, applyStyle } from './matrixExcelLayout';
 
 export interface MarkedMatrixExportParams {
   students: AttendanceMatrixStudentRow[];
@@ -14,145 +12,6 @@ export interface MarkedMatrixExportParams {
   mode: 'WITH_ATTENDANCE' | 'EMPTY';
 }
 
-const SPANISH_MONTHS = [
-  'Enero',
-  'Febrero',
-  'Marzo',
-  'Abril',
-  'Mayo',
-  'Junio',
-  'Julio',
-  'Agosto',
-  'Setiembre',
-  'Octubre',
-  'Noviembre',
-  'Diciembre',
-];
-
-const SPANISH_DAYS_SHORT = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
-
-function formatMonthSpanish(monthStr: string): string {
-  const [year, month] = monthStr.split('-').map(Number);
-  const monthName = SPANISH_MONTHS[month - 1] || 'MES';
-  return `${monthName.toUpperCase()} ${year}`;
-}
-
-function getDayInfo(year: number, month: number, day: number) {
-  const date = new Date(year, month - 1, day);
-  const dayIndex = date.getDay();
-  return {
-    short: SPANISH_DAYS_SHORT[dayIndex],
-    isWeekend: dayIndex === 0 || dayIndex === 6,
-    isSunday: dayIndex === 0,
-  };
-}
-
-/**
- * Convierte un índice de columna numérico (1-based) a letra de Excel (ej: 1 -> A, 27 -> AA)
- */
-function colLetter(colIdx: number): string {
-  let temp = colIdx;
-  let letter = '';
-  while (temp > 0) {
-    const mod = (temp - 1) % 26;
-    letter = String.fromCharCode(65 + mod) + letter;
-    temp = Math.floor((temp - mod) / 26);
-  }
-  return letter;
-}
-
-const PALETTE = {
-  navyDark: 'FF0F172A', // Slate 900
-  navyBlue: 'FF1E3A8A', // Blue 900
-  iceBlue: 'FFEFF6FF', // Blue 50
-  slateLight: 'FFF8FAFC', // Slate 50
-  slateBorder: 'FFCBD5E1', // Slate 300
-  slateBorderDark: 'FF94A3B8', // Slate 400
-  headerDayBg: 'FF334155', // Slate 700
-  headerDayText: 'FFFFFFFF', // Blanco
-  headerSummaryBg: 'FF0F766E', // Teal 700
-  headerSummarySubBg: 'FF115E59', // Teal 800
-
-  // Estados Asistencia
-  presentBg: 'FFDCFCE7', // Emerald 100
-  presentText: 'FF166534', // Emerald 800
-  lateInjBg: 'FFFFEDD5', // Orange 100
-  lateInjText: 'FF9A3412', // Orange 800
-  lateJustBg: 'FFE0F2FE', // Sky 100
-  lateJustText: 'FF075985', // Sky 800
-  absentInjBg: 'FFFEE2E2', // Red 100
-  absentInjText: 'FF991B1B', // Red 800
-  absentJustBg: 'FFFEF3C7', // Amber 100
-  absentJustText: 'FF92400E', // Amber 800
-
-  // Fines de semana
-  weekendBg: 'FFE2E8F0', // Slate 200
-  weekendText: 'FF64748B', // Slate 500
-
-  // Resumen
-  summaryP: 'FFECFDF5',
-  summaryFJ: 'FFFFFBEB',
-  summaryFI: 'FFFEF2F2',
-  summaryT: 'FFFFF7ED',
-  summaryPct: 'FFF0FDF4',
-  summaryRiskNormal: 'FFDCFCE7',
-  summaryRiskWarning: 'FFFEF3C7',
-  summaryRiskCritical: 'FFFEE2E2',
-};
-
-const thinBorder: Partial<ExcelJS.Borders> = {
-  top: { style: 'thin', color: { argb: PALETTE.slateBorder } },
-  left: { style: 'thin', color: { argb: PALETTE.slateBorder } },
-  bottom: { style: 'thin', color: { argb: PALETTE.slateBorder } },
-  right: { style: 'thin', color: { argb: PALETTE.slateBorder } },
-};
-
-const headerCellBorder: Partial<ExcelJS.Borders> = {
-  top: { style: 'thin', color: { argb: PALETTE.slateBorderDark } },
-  left: { style: 'thin', color: { argb: PALETTE.slateBorderDark } },
-  bottom: { style: 'medium', color: { argb: PALETTE.navyDark } },
-  right: { style: 'thin', color: { argb: PALETTE.slateBorderDark } },
-};
-
-function applyStyle(
-  cell: ExcelJS.Cell,
-  options: {
-    font?: Partial<ExcelJS.Font>;
-    fillBg?: string;
-    border?: Partial<ExcelJS.Borders>;
-    alignment?: Partial<ExcelJS.Alignment>;
-    numFmt?: string;
-  },
-) {
-  if (options.font) cell.font = { name: 'Segoe UI', ...options.font };
-  if (options.fillBg) {
-    cell.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: options.fillBg },
-    };
-  }
-  if (options.border) cell.border = options.border;
-  if (options.alignment) cell.alignment = options.alignment;
-  if (options.numFmt) cell.numFmt = options.numFmt;
-}
-
-const saveWorkbook = async (workbook: ExcelJS.Workbook, filename: string): Promise<void> => {
-  await addSchoolLogoToWorkbook(workbook);
-  const buffer = await workbook.xlsx.writeBuffer();
-  const blob = new Blob([buffer], {
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  });
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  window.URL.revokeObjectURL(url);
-};
-
 /**
  * Exporta el Registro Auxiliar de Asistencia en formato Excel (.xlsx) nativo
  * utilizando ExcelJS con cuadrícula ejecutiva, fórmulas dinámicas de conteo,
@@ -162,7 +21,7 @@ export async function exportWellMarkedMatrixExcel(params: MarkedMatrixExportPara
   const { students, monthStr, daysInMonth, classroomLabel, schoolName = 'INSTITUCIÓN EDUCATIVA', mode } = params;
 
   const [yearNum, monthNum] = monthStr.split('-').map(Number);
-  const periodText = formatMonthSpanish(monthStr);
+  const periodText = formatMonthSpanish(monthStr).toUpperCase();
 
   const days = Array.from({ length: daysInMonth }, (_, i) => {
     const day = i + 1;
