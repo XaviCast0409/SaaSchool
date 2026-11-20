@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { TurnstileWidget, TURNSTILE_SITE_KEY } from '@/components/security/TurnstileWidget';
 import { useParams } from 'react-router-dom';
-import { BookOpenText, CheckCircle2, Loader2, Printer } from 'lucide-react';
+import { BookOpenText, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { formatPeruShortDate, getPeruToday } from '@/lib/dateUtils';
 import { submitComplaint, usePublicSchool } from '../api/useSecretariat';
 import { Field, PublicShell, fieldClass } from '../components/PublicShell';
+import { ConsumerSection } from './public-complaints/ConsumerSection';
+import { ComplaintSuccessView } from './public-complaints/ComplaintSuccessView';
 
 const empty = {
   kind: 'RECLAMO' as 'RECLAMO' | 'QUEJA',
@@ -36,6 +38,7 @@ export const PublicComplaintsBookPage: React.FC = () => {
   const [result, setResult] = useState<{ code: string; dueDate: string } | null>(null);
   const [captcha, setCaptcha] = useState<string | null>(null);
   const [captchaReset, setCaptchaReset] = useState(0);
+
   const set =
     (k: keyof typeof empty) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
       setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -59,48 +62,7 @@ export const PublicComplaintsBookPage: React.FC = () => {
   return (
     <PublicShell school={school} loading={isLoading} error={isError} title="Libro de Reclamaciones virtual">
       {result ? (
-        <div className="space-y-4 rounded-lg border bg-background p-6 print:border-0">
-          <div className="text-center">
-            <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-600 print:hidden" aria-hidden />
-            <p className="mt-3 text-lg font-semibold">Hoja de reclamación registrada</p>
-            <p className="mt-1 font-mono text-2xl font-bold tracking-wide">{result.code}</p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Enviamos una copia a <strong>{form.consumerEmail}</strong>. El colegio le responderá a ese correo a más
-              tardar el <strong>{formatPeruShortDate(result.dueDate)}</strong> (15 días hábiles).
-            </p>
-          </div>
-          <dl className="grid gap-x-4 gap-y-2 rounded-md bg-muted/50 p-4 text-sm sm:grid-cols-[160px_1fr]">
-            <dt className="text-muted-foreground">Colegio / Proveedor</dt>
-            <dd>
-              {school?.name} · RUC {school?.documentId || '—'}
-            </dd>
-            <dt className="text-muted-foreground">Dirección</dt>
-            <dd>{school?.address ? `${school.address}${school.district ? `, ${school.district}` : ''}` : '—'}</dd>
-            <dt className="text-muted-foreground">Código de hoja</dt>
-            <dd className="font-mono font-semibold">{result.code}</dd>
-            <dt className="text-muted-foreground">Fecha de registro</dt>
-            <dd>{formatPeruShortDate(getPeruToday())}</dd>
-            <dt className="text-muted-foreground">Fecha límite respuesta</dt>
-            <dd className="font-semibold text-primary">{formatPeruShortDate(result.dueDate)}</dd>
-            <dt className="text-muted-foreground">Tipo</dt>
-            <dd>{form.kind === 'RECLAMO' ? 'Reclamo' : 'Queja'}</dd>
-            <dt className="text-muted-foreground">Consumidor</dt>
-            <dd>
-              {form.consumerName} · {form.consumerDocType} {form.consumerDocId}
-            </dd>
-            <dt className="text-muted-foreground">Bien contratado</dt>
-            <dd>{form.itemDescription}</dd>
-            <dt className="text-muted-foreground">Detalle</dt>
-            <dd className="whitespace-pre-line">{form.detail}</dd>
-            <dt className="text-muted-foreground">Pedido</dt>
-            <dd className="whitespace-pre-line">{form.request}</dd>
-          </dl>
-          <div className="flex justify-center print:hidden">
-            <Button variant="outline" className="gap-2" onClick={() => window.print()}>
-              <Printer className="h-4 w-4" aria-hidden /> Imprimir o guardar en PDF
-            </Button>
-          </div>
-        </div>
+        <ComplaintSuccessView result={result} school={school} form={form} />
       ) : (
         <form onSubmit={submit} className="space-y-5">
           <div className="flex items-start gap-3 rounded-lg border bg-background p-5">
@@ -125,89 +87,11 @@ export const PublicComplaintsBookPage: React.FC = () => {
             </div>
           </div>
 
-          <section className="space-y-4 rounded-lg border bg-background p-5">
-            <h2 className="font-semibold">1. Identificación del consumidor</h2>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Field label="Nombre completo" required className="sm:col-span-3">
-                <input
-                  className={fieldClass}
-                  value={form.consumerName}
-                  onChange={set('consumerName')}
-                  required
-                  maxLength={150}
-                />
-              </Field>
-              <Field label="Documento" required>
-                <select className={fieldClass} value={form.consumerDocType} onChange={set('consumerDocType')}>
-                  <option value="DNI">DNI</option>
-                  <option value="CE">Carné de extranjería</option>
-                  <option value="PASAPORTE">Pasaporte</option>
-                  <option value="RUC">RUC</option>
-                </select>
-              </Field>
-              <Field label="N.° de documento" required>
-                <input
-                  className={fieldClass}
-                  value={form.consumerDocId}
-                  onChange={set('consumerDocId')}
-                  required
-                  maxLength={15}
-                />
-              </Field>
-              <Field label="Teléfono">
-                <input
-                  className={fieldClass}
-                  value={form.consumerPhone}
-                  onChange={set('consumerPhone')}
-                  inputMode="tel"
-                  maxLength={20}
-                />
-              </Field>
-              <Field
-                label="Correo electrónico"
-                required
-                hint="Aquí recibirá la copia y la respuesta"
-                className="sm:col-span-2"
-              >
-                <input
-                  type="email"
-                  className={fieldClass}
-                  value={form.consumerEmail}
-                  onChange={set('consumerEmail')}
-                  required
-                  maxLength={150}
-                />
-              </Field>
-              <Field label="Domicilio">
-                <input
-                  className={fieldClass}
-                  value={form.consumerAddress}
-                  onChange={set('consumerAddress')}
-                  maxLength={200}
-                />
-              </Field>
-            </div>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="h-4 w-4"
-                checked={form.isMinor}
-                onChange={(e) => setForm((f) => ({ ...f, isMinor: e.target.checked }))}
-              />
-              Soy menor de edad
-            </label>
-            {form.isMinor && (
-              <Field label="Nombre del padre, madre o apoderado" required>
-                <input
-                  className={fieldClass}
-                  value={form.guardianName}
-                  onChange={set('guardianName')}
-                  required
-                  maxLength={150}
-                />
-              </Field>
-            )}
-          </section>
+          <ConsumerSection
+            form={form}
+            onChangeField={(k) => set(k)}
+            onMinorChange={(isMinor) => setForm((f) => ({ ...f, isMinor }))}
+          />
 
           <section className="space-y-4 rounded-lg border bg-background p-5">
             <h2 className="font-semibold">2. Identificación del bien contratado</h2>
