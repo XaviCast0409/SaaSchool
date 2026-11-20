@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useSchoolBranding } from '@/features/schools/components/SchoolLetterhead';
-import { X, Printer, School, QrCode, Users, Scissors, Sparkles, ChevronDown } from 'lucide-react';
+import { X, Printer, QrCode, Users, Scissors, Sparkles, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
@@ -9,124 +9,15 @@ import type { Student } from '../types';
 import { generateStudentQrCode } from '@/features/attendance/utils/studentQrUtils';
 import { PrintPortal, usePrint } from '@/lib/print';
 import { formatEducationLevel } from '@/lib/utils';
+import { SectionQrCardsDocument } from './section-qr-cards/SectionQrCardsDocument';
+
+export { SectionQrCardsDocument };
 
 interface SectionQrCardsModalProps {
   initialClassroomId?: string;
   schoolName?: string;
   onClose: () => void;
 }
-
-interface SectionQrCardsDocumentProps {
-  pages: Student[][];
-  qrMap: Record<string, string>;
-  activeClassroom?: { grade: number; section: string; educationLevel: string };
-  schoolName?: string;
-  schoolLogoUrl?: string | null;
-  isPrint?: boolean;
-}
-
-export const SectionQrCardsDocument: React.FC<SectionQrCardsDocumentProps> = ({
-  pages,
-  qrMap,
-  activeClassroom,
-  schoolName = 'Institución Educativa',
-  schoolLogoUrl,
-  isPrint,
-}) => {
-  return (
-    <div className={isPrint ? 'w-[194mm] mx-auto' : 'mx-auto space-y-8'}>
-      {pages.map((pageStudents, pageIndex) => (
-        <div
-          key={`page-${pageIndex}`}
-          className={`a4-print-page ${isPrint ? (pageIndex < pages.length - 1 ? 'break-after-page' : '') : 'bg-white p-3 rounded-xl border border-slate-300 shadow-sm'}`}
-          style={
-            isPrint
-              ? {
-                  width: '194mm',
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 94mm)',
-                  gridTemplateRows: 'repeat(4, 63mm)',
-                  gap: '5mm',
-                  boxSizing: 'border-box',
-                }
-              : undefined
-          }
-        >
-          {pageStudents.map((student, studentIndex) => {
-            const globalIndex = pageIndex * 8 + studentIndex + 1;
-            const qrUrl = qrMap[student.id];
-            const gradeText = activeClassroom ? `${activeClassroom.grade}° "${activeClassroom.section}"` : '';
-            const levelText = activeClassroom?.educationLevel || '';
-
-            return (
-              <div
-                key={student.id}
-                className="qr-card-item rounded-xl border-2 border-dashed border-slate-400 bg-white text-slate-900 p-2.5 flex flex-col justify-between shadow-sm avoid-break"
-                style={
-                  isPrint
-                    ? {
-                        width: '94mm',
-                        height: '63mm',
-                        boxSizing: 'border-box',
-                        border: '1.5px dashed #334155',
-                      }
-                    : undefined
-                }
-              >
-                {/* Cabecera del carnet */}
-                <div className="border-b border-slate-300 pb-1.5 flex items-center justify-between">
-                  <div className="flex items-center gap-1 text-[10px] font-black uppercase text-slate-900 tracking-wider truncate max-w-[170px]">
-                    {schoolLogoUrl ? (
-                      <img src={schoolLogoUrl} alt="" className="h-4 w-4 shrink-0 object-contain" />
-                    ) : (
-                      <School className="w-3 h-3 text-slate-800 shrink-0" />
-                    )}
-                    <span className="truncate">{schoolName}</span>
-                  </div>
-                  <span className="bg-slate-100 text-slate-800 text-[8px] font-bold px-1.5 py-0.5 rounded font-mono border border-slate-200">
-                    {gradeText} • {levelText}
-                  </span>
-                </div>
-
-                {/* Cuerpo: Datos del alumno + QR */}
-                <div className="flex items-center justify-between gap-2 py-1">
-                  {/* Datos */}
-                  <div className="flex-1 space-y-0.5">
-                    <span className="text-[8px] font-bold text-slate-400 uppercase">Estudiante #{globalIndex}</span>
-                    <div className="font-black text-[11px] text-slate-900 uppercase leading-snug line-clamp-2">
-                      {student.lastNamePaternal} {student.lastNameMaternal || ''}, {student.firstNames}
-                    </div>
-                    <div className="pt-0.5">
-                      <span className="text-[8px] font-semibold text-slate-500 block">DNI / DOC. IDENTIDAD</span>
-                      <span className="font-mono font-black text-xs text-slate-900 tracking-wider">
-                        {student.documentId || student.studentCode || '—'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* QR Image */}
-                  <div className="p-1 rounded-lg border border-slate-300 bg-white shrink-0">
-                    {qrUrl ? (
-                      <img src={qrUrl} alt={`QR ${student.firstNames}`} className="w-16 h-16 object-contain" />
-                    ) : (
-                      <div className="w-16 h-16 flex items-center justify-center text-[8px] text-slate-400">QR</div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Pie con línea de corte */}
-                <div className="border-t border-slate-200 pt-1 flex items-center justify-between text-[8px] text-slate-500 font-semibold">
-                  <span>✂ Válido para lector óptico / Kiosco</span>
-                  <span className="font-mono">{new Date().getFullYear()}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ))}
-    </div>
-  );
-};
 
 export const SectionQrCardsModal: React.FC<SectionQrCardsModalProps> = ({
   initialClassroomId,
@@ -139,235 +30,211 @@ export const SectionQrCardsModal: React.FC<SectionQrCardsModalProps> = ({
     initialClassroomId || (classrooms.length > 0 ? classrooms[0].id : ''),
   );
 
-  // Si no había selección inicial y cargan las aulas, auto-seleccionar la primera
   useEffect(() => {
     if (!selectedClassroomId && classrooms.length > 0) {
       setSelectedClassroomId(classrooms[0].id);
     }
   }, [classrooms, selectedClassroomId]);
 
-  // Consulta los estudiantes específicos de la sección seleccionada (hasta 100 alumnos por aula)
-  const {
-    data: studentsResponse,
-    isLoading: isLoadingStudents,
-    isError,
-    refetch,
-  } = useStudents(
-    {
-      classroomId: selectedClassroomId || undefined,
-      limit: 100,
-      page: 1,
-    },
+  const activeClassroom = useMemo(() => {
+    return classrooms.find((c) => c.id === selectedClassroomId);
+  }, [classrooms, selectedClassroomId]);
+
+  const { data: studentsResponse, isLoading: isLoadingStudents } = useStudents(
+    { classroomId: selectedClassroomId, limit: 100 },
     Boolean(selectedClassroomId),
   );
 
-  const rawStudents = studentsResponse?.data || [];
-  const activeClassroom = classrooms.find((c) => c.id === selectedClassroomId);
+  const rawStudents = useMemo(() => {
+    return studentsResponse?.data || [];
+  }, [studentsResponse]);
 
-  const classroomLabel = activeClassroom
-    ? `${activeClassroom.grade}° "${activeClassroom.section}" - ${formatEducationLevel(activeClassroom.educationLevel)}`
-    : 'Sección Seleccionada';
+  const sortedStudents = useMemo(() => {
+    return [...rawStudents].sort((a, b) => {
+      const nameA = `${a.lastNamePaternal} ${a.lastNameMaternal || ''} ${a.firstNames}`.toLowerCase();
+      const nameB = `${b.lastNamePaternal} ${b.lastNameMaternal || ''} ${b.firstNames}`.toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+  }, [rawStudents]);
+
+  const [qrMap, setQrMap] = useState<Record<string, string>>({});
+  const [isGeneratingQr, setIsGeneratingQr] = useState(false);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const generateAllQr = async () => {
+      if (!rawStudents.length) {
+        setQrMap({});
+        return;
+      }
+
+      setIsGeneratingQr(true);
+      const newMap: Record<string, string> = {};
+
+      for (const student of rawStudents) {
+        if (isCancelled) return;
+        const code = student.documentId || student.studentCode;
+        if (code) {
+          try {
+            newMap[student.id] = await generateStudentQrCode(code);
+          } catch {
+            // Silencioso
+          }
+        }
+      }
+
+      if (!isCancelled) {
+        setQrMap(newMap);
+        setIsGeneratingQr(false);
+      }
+    };
+
+    void generateAllQr();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [rawStudents]);
+
+  const pages = useMemo(() => {
+    const chunks: Student[][] = [];
+    const itemsPerPage = 8;
+    for (let i = 0; i < sortedStudents.length; i += itemsPerPage) {
+      chunks.push(sortedStudents.slice(i, i + itemsPerPage));
+    }
+    return chunks;
+  }, [sortedStudents]);
+
+  const printTitle = activeClassroom
+    ? `Fotochecks_QR_${activeClassroom.grade}_${activeClassroom.section}`
+    : 'Fotochecks_QR_Seccion';
 
   const { print, isPrinting } = usePrint({
     pageSize: 'A4 portrait',
     margin: '8mm',
-    title: `Carnets_${classroomLabel.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
+    title: printTitle,
   });
 
-  // Mapa de QRs en Base64
-  const [qrMap, setQrMap] = useState<Record<string, string>>({});
-  const [isGeneratingQrs, setIsGeneratingQrs] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    const generateAll = async () => {
-      setIsGeneratingQrs(true);
-      const newMap: Record<string, string> = {};
-
-      for (const s of rawStudents) {
-        const payload = (s.documentId || s.studentCode || s.id).trim();
-        const url = await generateStudentQrCode(payload, 250);
-        newMap[s.id] = url;
-      }
-
-      if (active) {
-        setQrMap(newMap);
-        setIsGeneratingQrs(false);
-      }
-    };
-
-    if (rawStudents.length > 0) {
-      generateAll();
-    } else {
-      setIsGeneratingQrs(false);
-    }
-
-    return () => {
-      active = false;
-    };
-  }, [rawStudents]);
-
-  // Agrupar a los estudiantes exactamente de 8 en 8 por página A4 (2 columnas x 4 filas)
-  const pages = useMemo(() => {
-    const chunks = [];
-    for (let i = 0; i < rawStudents.length; i += 8) {
-      chunks.push(rawStudents.slice(i, i + 8));
-    }
-    return chunks;
-  }, [rawStudents]);
-
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2 sm:p-4 backdrop-blur-sm animate-in fade-in"
-    >
-      <div className="w-full max-w-5xl rounded-2xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col max-h-[94vh]">
-        {/* Header no imprimible */}
-        <div className="flex items-center justify-between border-b border-border p-4 bg-muted/30">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto animate-in fade-in duration-200">
+      <div className="bg-background border border-border w-full max-w-5xl rounded-2xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
+        {/* Cabecera del Modal */}
+        <div className="p-4 border-b border-border flex items-center justify-between bg-card shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
-              <QrCode className="w-6 h-6" />
+              <QrCode className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="font-extrabold text-lg text-foreground">
-                  Generador de Carnets QR por Sección (A4 Imprimible / PDF)
-                </h2>
-                <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30 font-bold">
-                  8 Carnets por Hoja A4
+              <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+                Impresión Masiva de Fotochecks QR
+                <Badge variant="outline" className="text-[10px] uppercase font-bold text-primary border-primary/30">
+                  A4 • 8 por hoja
                 </Badge>
-              </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Genera los carnets por grado/sección específico para evitar archivos masivos sobrecargados.
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Genera credenciales de asistencia listas para imprimir y recortar para toda el aula.
               </p>
             </div>
           </div>
-
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-          >
+          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
             <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Barra de Filtro de Grado/Sección y Botón de Impresión */}
-        <div className="px-5 py-3.5 bg-muted/20 border-b border-border flex flex-wrap items-center justify-between gap-3 text-xs">
-          {/* Selector de Aula / Sección */}
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-foreground flex items-center gap-1.5">
-              <School className="w-4 h-4 text-primary" />
-              Seleccionar Aula:
-            </span>
-            <div className="relative">
-              <select
-                value={selectedClassroomId}
-                onChange={(e) => setSelectedClassroomId(e.target.value)}
-                className="h-9 pl-3 pr-8 rounded-xl border border-border bg-background text-xs font-bold text-foreground focus:ring-2 focus:ring-primary shadow-sm cursor-pointer appearance-none"
-              >
-                <option value="">— Seleccionar Sección —</option>
-                {classrooms.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.grade}° "{c.section}" - {formatEducationLevel(c.educationLevel)}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-4 h-4 text-muted-foreground absolute right-2.5 top-2.5 pointer-events-none" />
-            </div>
-          </div>
-
-          {/* Estadísticas de la selección */}
-          <div className="flex items-center gap-3 text-muted-foreground font-semibold">
-            <div className="flex items-center gap-1.5">
-              <Users className="w-4 h-4 text-primary" />
-              <span>{rawStudents.length} estudiantes</span>
-            </div>
-            <span>•</span>
-            <div className="flex items-center gap-1.5">
-              <Scissors className="w-3.5 h-3.5 text-primary" />
-              <span>
-                {pages.length} {pages.length === 1 ? 'página A4' : 'páginas A4'}
-              </span>
-            </div>
-          </div>
-
-          <Button
-            size="sm"
-            onClick={print}
-            disabled={isPrinting || isGeneratingQrs || rawStudents.length === 0}
-            className="gap-2 font-bold text-xs shadow-sm bg-primary hover:bg-primary/90 text-primary-foreground"
-          >
-            <Printer className="w-4 h-4" />
-            <span>Imprimir / Guardar como PDF</span>
           </Button>
         </div>
 
-        {/* Zona de Vista Previa y Contenedor de Impresión */}
-        <div className="p-4 sm:p-6 overflow-y-auto bg-muted/10 flex-1">
-          {isLoadingStudents || isGeneratingQrs ? (
-            <div className="py-24 text-center space-y-3">
-              <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-              <p className="text-xs font-semibold text-muted-foreground">
-                Generando códigos QR de alta resolución para {classroomLabel}...
-              </p>
+        {/* Barra de Controles y Selector de Aula */}
+        <div className="p-3.5 bg-muted/40 border-b border-border flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-2">
+            <label htmlFor="classroom-select" className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5 text-muted-foreground" />
+              Aula:
+            </label>
+            <div className="relative">
+              <select
+                id="classroom-select"
+                value={selectedClassroomId}
+                onChange={(e) => setSelectedClassroomId(e.target.value)}
+                className="h-9 pr-8 pl-3 rounded-xl border border-input bg-background text-xs font-bold shadow-sm focus:outline-none focus:ring-2 focus:ring-primary appearance-none cursor-pointer"
+              >
+                {classrooms.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.grade}° "{c.section}" — {formatEducationLevel(c.educationLevel)}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             </div>
-          ) : isError ? (
-            <div className="py-20 text-center text-destructive border border-destructive/20 bg-destructive/10 rounded-xl space-y-2 p-4">
-              <p className="font-bold text-sm">Error al cargar la nómina de estudiantes</p>
-              <Button size="sm" variant="outline" onClick={() => refetch()}>
-                Reintentar
-              </Button>
+
+            <span className="text-xs text-muted-foreground ml-2">
+              <strong>{sortedStudents.length}</strong> alumnos ({pages.length}{' '}
+              {pages.length === 1 ? 'página' : 'páginas'})
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={print}
+              disabled={isPrinting || isLoadingStudents || sortedStudents.length === 0 || isGeneratingQr}
+              className="gap-2 shadow-sm font-bold text-xs"
+            >
+              <Printer className="w-4 h-4" />
+              {isPrinting ? 'Preparando...' : isGeneratingQr ? 'Generando QR...' : 'Imprimir / Exportar PDF'}
+            </Button>
+          </div>
+        </div>
+
+        {/* Contenido / Vista Previa A4 */}
+        <div className="flex-1 overflow-y-auto p-6 bg-slate-100/70 dark:bg-slate-950/40">
+          {isLoadingStudents ? (
+            <div className="h-96 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+              <Sparkles className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-sm font-semibold">Cargando nómina de estudiantes...</p>
             </div>
-          ) : !selectedClassroomId ? (
-            <div className="py-20 text-center text-muted-foreground border border-dashed border-border rounded-xl space-y-2">
-              <p className="font-bold text-sm text-foreground">Selecciona una sección educativa</p>
-              <p className="text-xs text-muted-foreground">
-                Usa el selector arriba para elegir el grado del cual deseas generar los carnets QR.
-              </p>
-            </div>
-          ) : rawStudents.length === 0 ? (
-            <div className="py-20 text-center text-muted-foreground border border-dashed border-border rounded-xl space-y-2">
-              <p className="font-bold text-sm text-foreground">No se encontraron estudiantes matriculados</p>
-              <p className="text-xs text-muted-foreground">
-                Esta sección ({classroomLabel}) aún no tiene alumnos matriculados. Selecciona otra aula arriba.
+          ) : sortedStudents.length === 0 ? (
+            <div className="h-96 flex flex-col items-center justify-center gap-2 text-muted-foreground text-center">
+              <Users className="w-10 h-10 stroke-1 text-slate-400" />
+              <p className="text-sm font-bold text-foreground">No hay alumnos matriculados en esta sección</p>
+              <p className="text-xs max-w-sm">
+                Selecciona otra aula o matricula alumnos para poder generar sus carnets QR.
               </p>
             </div>
           ) : (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between text-xs text-muted-foreground max-w-[194mm] mx-auto px-1">
+                <span className="flex items-center gap-1 font-semibold">
+                  <Scissors className="w-3.5 h-3.5" /> Vista previa tamaño real (Hoja A4)
+                </span>
+                <span>
+                  {sortedStudents.length} fotochecks • {pages.length} hoja(s)
+                </span>
+              </div>
+
+              {/* Documento Renderizado en pantalla */}
+              <SectionQrCardsDocument
+                pages={pages}
+                qrMap={qrMap}
+                activeClassroom={activeClassroom}
+                schoolName={schoolName}
+                schoolLogoUrl={branding?.logoUrl}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Portal de Impresión Real (Oculto en pantalla) */}
+        {isPrinting && (
+          <PrintPortal>
             <SectionQrCardsDocument
               pages={pages}
               qrMap={qrMap}
               activeClassroom={activeClassroom}
               schoolName={schoolName}
               schoolLogoUrl={branding?.logoUrl}
+              isPrint
             />
-          )}
-        </div>
-
-        {/* Footer no imprimible */}
-        <div className="p-3 bg-muted/30 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-          <span className="flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-primary" />
-            Al imprimir en horizontal o vertical, selecciona <strong>"Guardar como PDF"</strong> o tu impresora A4.
-          </span>
-          <Button variant="ghost" size="sm" onClick={onClose} className="text-xs">
-            Cerrar
-          </Button>
-        </div>
+          </PrintPortal>
+        )}
       </div>
-
-      {isPrinting && (
-        <PrintPortal>
-          <SectionQrCardsDocument
-            pages={pages}
-            qrMap={qrMap}
-            activeClassroom={activeClassroom}
-            schoolName={schoolName}
-            schoolLogoUrl={branding?.logoUrl}
-            isPrint
-          />
-        </PrintPortal>
-      )}
     </div>
   );
 };
