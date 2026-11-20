@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { X, PlusCircle, User, Calendar, DollarSign, FileText, Banknote, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABEL } from '../types';
@@ -10,45 +9,19 @@ import { Input } from '@/components/ui/input';
 import { useCreateIndividualObligation } from '../api/usePayments';
 import { useStudents } from '@/features/students/api/useStudents';
 import { getPeruToday } from '@/lib/dateUtils';
-
-// "Hoy" según la hora peruana, aunque la computadora tenga otra zona horaria
-const getTodayLocal = (): string => getPeruToday();
-
-const createIndividualSchema = z
-  .object({
-    studentId: z.string().min(1, 'Selecciona un estudiante'),
-    concept: z.string().min(1, 'El concepto es obligatorio'),
-    title: z.string().min(3, 'El título debe tener al menos 3 caracteres'),
-    amountDue: z.coerce.number().positive('El monto debe ser mayor a 0'),
-    dueDate: z.string().min(1, 'La fecha de vencimiento es obligatoria'),
-    notes: z.string().optional(),
-    paidNow: z.boolean().default(true),
-    paymentMethod: z.enum(['CASH', 'YAPE', 'PLIN', 'BANK_TRANSFER', 'DEPOSIT', 'CREDIT_CARD']).default('CASH'),
-    operationNumber: z.string().trim().optional(),
-  })
-  .refine((d) => !d.paidNow || d.paymentMethod === 'CASH' || Boolean(d.operationNumber), {
-    message: 'Ingresa el número de operación.',
-    path: ['operationNumber'],
-  });
-
-type FormData = z.infer<typeof createIndividualSchema>;
+import { formatMoney } from '@/lib/format';
+import { getApiErrorMessage } from '@/lib/errors';
+import {
+  createIndividualObligationSchema,
+  OBLIGATION_CONCEPT_OPTIONS,
+  type CreateIndividualObligationFormData,
+} from '../schemas/individual-obligation.schema';
 
 interface CreateIndividualObligationModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultStudentId?: string;
 }
-
-const CONCEPT_OPTIONS = [
-  { value: 'OTROS', label: 'Otros Conceptos (Constancias, Certificados, etc.)' },
-  { value: 'MATRICULA', label: 'Matrícula Anual' },
-  { value: 'PENSION', label: 'Pensión de Enseñanza' },
-  { value: 'LIBROS_MATERIALES', label: 'Libros y Materiales Educativos' },
-  { value: 'UNIFORME', label: 'Uniforme Escolar' },
-  { value: 'CARNET_AGENDA', label: 'Carnet / Agenda Escolar' },
-  { value: 'CUOTA_INGRESO', label: 'Cuota de Ingreso' },
-  { value: 'EXCURSION_EVENTO', label: 'Excursión / Evento Extracurricular' },
-];
 
 export const CreateIndividualObligationModal: React.FC<CreateIndividualObligationModalProps> = ({
   isOpen,
@@ -73,14 +46,14 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
     reset,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm<FormData>({
-    resolver: zodResolver(createIndividualSchema),
+  } = useForm<CreateIndividualObligationFormData>({
+    resolver: zodResolver(createIndividualObligationSchema),
     defaultValues: {
       studentId: defaultStudentId || '',
       concept: 'OTROS',
       title: '',
       amountDue: 50,
-      dueDate: getTodayLocal(),
+      dueDate: getPeruToday(),
       notes: '',
       paidNow: true,
       paymentMethod: 'CASH',
@@ -96,7 +69,7 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
 
   const students = studentsData?.data || [];
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = async (data: CreateIndividualObligationFormData) => {
     try {
       await createMutation.mutateAsync({
         studentId: data.studentId,
@@ -112,7 +85,7 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
       });
 
       if (data.paidNow) {
-        toast.success(`Cobro de S/ ${Number(data.amountDue).toFixed(2)} registrado en tu caja con recibo numerado.`);
+        toast.success(`Cobro de ${formatMoney(Number(data.amountDue))} registrado en tu caja con recibo numerado.`);
       } else {
         toast.success('📋 Cobro individual generado como deuda pendiente.');
       }
@@ -120,10 +93,7 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
       reset();
       onClose();
     } catch (err: unknown) {
-      const errorMsg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Error al procesar el cobro individual';
-      toast.error(errorMsg);
+      toast.error(getApiErrorMessage(err, 'Error al procesar el cobro individual'));
     }
   };
 
@@ -200,7 +170,7 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
                 {...register('concept')}
                 className="w-full h-9 rounded-lg border border-border bg-background px-3 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
               >
-                {CONCEPT_OPTIONS.map((c) => (
+                {OBLIGATION_CONCEPT_OPTIONS.map((c) => (
                   <option key={c.value} value={c.value}>
                     {c.label}
                   </option>
@@ -376,7 +346,7 @@ export const CreateIndividualObligationModal: React.FC<CreateIndividualObligatio
               {isSubmitting
                 ? 'Procesando...'
                 : paidNow
-                  ? `Cobrar S/ ${Number(amountDue || 0).toFixed(2)} y Registrar en Caja`
+                  ? `Cobrar ${formatMoney(Number(amountDue || 0))} y Registrar en Caja`
                   : 'Emitir Deuda Pendiente'}
             </Button>
           </div>
