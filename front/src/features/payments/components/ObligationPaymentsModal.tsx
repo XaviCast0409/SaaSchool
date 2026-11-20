@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
-import { Ban, FileText, History, Percent } from 'lucide-react';
+import { Ban, Percent } from 'lucide-react';
 import { toast } from 'sonner';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatPeruDateTime, formatPeruShortDate } from '@/lib/dateUtils';
+import { formatMoney } from '@/lib/format';
 import { useCancelObligation, useObligationDetail, useVoidTransaction } from '../api/usePayments';
 import { apiError } from '../api/useCash';
-import { methodLabel, personName, type PaymentTransaction } from '../types';
+import { personName, type PaymentTransaction } from '../types';
 import { ReasonDialog } from './ReasonDialog';
 import { ReceiptModal } from './ReceiptModal';
 import { AdjustmentDialog } from './AdjustmentDialog';
 import { ADJUSTMENT_LABEL, useVoidAdjustment, type ObligationAdjustment } from '../api/useFinance';
+import { PaymentsHistoryTable } from './obligation-payments-modal/PaymentsHistoryTable';
 
 interface Props {
   obligationId: string;
@@ -83,19 +85,19 @@ export const ObligationPaymentsModal: React.FC<Props> = ({ obligationId, canMana
             <div className="grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
               <div className="rounded-lg border border-border p-2">
                 <p className="text-xs text-muted-foreground">Monto original</p>
-                <p className="font-bold">S/ {original.toFixed(2)}</p>
+                <p className="font-bold">{formatMoney(original)}</p>
               </div>
               <div className="rounded-lg border border-border p-2">
                 <p className="text-xs text-muted-foreground">Monto vigente</p>
-                <p className="font-bold">S/ {Number(obligation.amountDue).toFixed(2)}</p>
+                <p className="font-bold">{formatMoney(Number(obligation.amountDue))}</p>
               </div>
               <div className="rounded-lg border border-border p-2">
                 <p className="text-xs text-muted-foreground">Pagado</p>
-                <p className="font-bold text-emerald-600 dark:text-emerald-400">S/ {paid.toFixed(2)}</p>
+                <p className="font-bold text-emerald-600 dark:text-emerald-400">{formatMoney(paid)}</p>
               </div>
               <div className="rounded-lg border border-border p-2">
                 <p className="text-xs text-muted-foreground">Saldo</p>
-                <p className="font-bold text-amber-600 dark:text-amber-400">S/ {balance.toFixed(2)}</p>
+                <p className="font-bold text-amber-600 dark:text-amber-400">{formatMoney(balance)}</p>
               </div>
             </div>
 
@@ -116,16 +118,16 @@ export const ObligationPaymentsModal: React.FC<Props> = ({ obligationId, canMana
                   <table className="w-full text-xs">
                     <tbody>
                       {adjustments.map((a) => {
-                        const voided = a.status === 'VOIDED';
+                        const isVoidedAdj = a.status === 'VOIDED';
                         const plus = a.type === 'LATE_FEE';
                         return (
                           <tr
                             key={a.id}
-                            className={`border-t border-border first:border-t-0 align-top ${voided ? 'bg-destructive/5 text-muted-foreground' : ''}`}
+                            className={`border-t border-border first:border-t-0 align-top ${isVoidedAdj ? 'bg-destructive/5 text-muted-foreground' : ''}`}
                           >
                             <td className="p-2 font-mono whitespace-nowrap">
-                              <span className={voided ? 'line-through' : ''}>{a.number}</span>
-                              {voided && (
+                              <span className={isVoidedAdj ? 'line-through' : ''}>{a.number}</span>
+                              {isVoidedAdj && (
                                 <Badge variant="destructive" className="ml-1 text-xs">
                                   Anulado
                                 </Badge>
@@ -136,16 +138,16 @@ export const ObligationPaymentsModal: React.FC<Props> = ({ obligationId, canMana
                               <span className="block text-xs">{a.reason}</span>
                               <span className="block text-xs text-muted-foreground">
                                 {formatPeruDateTime(a.createdAt)} · {personName(a.createdBy)}
-                                {voided ? ` · anulado por ${personName(a.voidedBy)}: ${a.voidReason}` : ''}
+                                {isVoidedAdj ? ` · anulado por ${personName(a.voidedBy)}: ${a.voidReason}` : ''}
                               </span>
                             </td>
                             <td
-                              className={`p-2 text-right font-semibold whitespace-nowrap ${voided ? 'line-through' : plus ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400'}`}
+                              className={`p-2 text-right font-semibold whitespace-nowrap ${isVoidedAdj ? 'line-through' : plus ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400'}`}
                             >
-                              {plus ? '+' : '−'} S/ {Number(a.amount).toFixed(2)}
+                              {plus ? '+' : '−'} {formatMoney(Number(a.amount))}
                             </td>
                             <td className="p-2 w-8">
-                              {canManage && !voided && obligation.status !== 'CANCELLED' && (
+                              {canManage && !isVoidedAdj && obligation.status !== 'CANCELLED' && (
                                 <Button
                                   size="sm"
                                   variant="ghost"
@@ -166,93 +168,12 @@ export const ObligationPaymentsModal: React.FC<Props> = ({ obligationId, canMana
               </section>
             )}
 
-            {rows.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 py-8 text-sm text-muted-foreground">
-                <History className="h-6 w-6" />
-                Esta cuota todavía no tiene cobros.
-              </div>
-            ) : (
-              <div className="overflow-x-auto rounded-lg border border-border">
-                <table className="w-full text-xs">
-                  <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
-                    <tr>
-                      <th className="p-2">Recibo</th>
-                      <th className="p-2">Fecha</th>
-                      <th className="p-2">Medio</th>
-                      <th className="p-2">Cobró</th>
-                      <th className="p-2 text-right">Monto</th>
-                      <th className="p-2" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((t) => {
-                      const isVoided = t.status === 'VOIDED';
-                      return (
-                        <React.Fragment key={t.id}>
-                          <tr
-                            className={`border-t border-border ${isVoided ? 'bg-destructive/5 text-muted-foreground' : ''}`}
-                          >
-                            <td className="p-2 font-mono">
-                              <span className={isVoided ? 'line-through' : ''}>{t.receiptNumber ?? '—'}</span>
-                              {isVoided && (
-                                <Badge variant="destructive" className="ml-1.5 text-xs">
-                                  Anulado
-                                </Badge>
-                              )}
-                            </td>
-                            <td className="p-2">{formatPeruDateTime(t.paymentDate)}</td>
-                            <td className="p-2">
-                              {methodLabel(t.paymentMethod)}
-                              {t.operationNumber && (
-                                <span className="block font-mono text-xs text-muted-foreground">
-                                  Op. {t.operationNumber}
-                                </span>
-                              )}
-                            </td>
-                            <td className="p-2">{personName(t.collectedBy)}</td>
-                            <td className={`p-2 text-right font-semibold ${isVoided ? 'line-through' : ''}`}>
-                              S/ {Number(t.amountPaid).toFixed(2)}
-                            </td>
-                            <td className="p-2">
-                              <div className="flex justify-end gap-1">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-7 px-2"
-                                  title="Ver recibo"
-                                  onClick={() => setReceiptId(t.id)}
-                                >
-                                  <FileText className="h-3.5 w-3.5" />
-                                </Button>
-                                {canManage && !isVoided && (
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-7 px-2 text-destructive"
-                                    title="Anular cobro"
-                                    onClick={() => setToVoid(t)}
-                                  >
-                                    <Ban className="h-3.5 w-3.5" />
-                                  </Button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                          {isVoided && (
-                            <tr className="bg-destructive/5 text-xs text-muted-foreground">
-                              <td colSpan={6} className="px-2 pb-2">
-                                Anulado {t.voidedAt ? formatPeruDateTime(t.voidedAt) : ''} por {personName(t.voidedBy)}{' '}
-                                — Motivo: {t.voidReason}
-                              </td>
-                            </tr>
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <PaymentsHistoryTable
+              transactions={rows}
+              canManage={canManage}
+              onViewReceipt={(id) => setReceiptId(id)}
+              onVoidTransaction={(t) => setToVoid(t)}
+            />
           </div>
         )}
       </Modal>
