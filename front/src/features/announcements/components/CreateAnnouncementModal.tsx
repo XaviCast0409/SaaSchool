@@ -1,10 +1,9 @@
 import React, { useRef, useState } from 'react';
-import { Paperclip, X as XIcon } from 'lucide-react';
 import { useUploadMaterial } from '@/features/course-contents/api/useCourseContents';
 import type { AnnouncementAttachment } from '../types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { X, Send, AlertTriangle, Bell, Info, Loader2, CalendarClock } from 'lucide-react';
+import { X, Send, AlertTriangle, Bell, Info, Loader2 } from 'lucide-react';
 import {
   createAnnouncementSchema,
   parsePollOptions,
@@ -13,9 +12,13 @@ import {
 import { useCreateAnnouncement } from '../api/useAnnouncements';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
 import { toast } from 'sonner';
-import { getPeruToday, formatPeruDate } from '@/lib/dateUtils';
-import { endOfDayLima, expiryPresets, UNDATED_ARCHIVE_DAYS } from '../lib/expiry';
+import { getPeruToday } from '@/lib/dateUtils';
+import { getApiErrorMessage } from '@/lib/errors';
+import { endOfDayLima, expiryPresets } from '../lib/expiry';
 import { useAuthStore } from '@/store/useAuthStore';
+import { AnnouncementScopeSelector } from './create-announcement-modal/AnnouncementScopeSelector';
+import { AnnouncementAttachmentManager } from './create-announcement-modal/AnnouncementAttachmentManager';
+import { AnnouncementResponseAndExpiryFields } from './create-announcement-modal/AnnouncementResponseAndExpiryFields';
 
 type ScopeLevel = 'INITIAL' | 'PRIMARY' | 'SECONDARY';
 /** Traduce el valor del selector de alcance al payload del API. */
@@ -38,10 +41,10 @@ interface CreateAnnouncementModalProps {
 
 export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = ({ isOpen, onClose }) => {
   const { mutateAsync: createAnnouncement, isPending } = useCreateAnnouncement();
-  // Adjuntos: se suben al elegirlos (como los materiales) y se envían con el comunicado
   const upload = useUploadMaterial();
   const [attachments, setAttachments] = useState<AnnouncementAttachment[]>([]);
   const fileInput = useRef<HTMLInputElement>(null);
+
   const addFiles = async (files: FileList | null) => {
     if (!files) return;
     for (const file of Array.from(files)) {
@@ -55,12 +58,12 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
           [...list, { fileId: r.fileId, name: r.fileName, size: r.fileSize, type: r.fileType }].slice(0, 3),
         );
       } catch (error: unknown) {
-        const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
-        toast.error(msg || `No se pudo subir ${file.name}.`);
+        toast.error(getApiErrorMessage(error, `No se pudo subir ${file.name}.`));
       }
     }
     if (fileInput.current) fileInput.current.value = '';
   };
+
   const currentUser = useAuthStore((s) => s.user);
   const isTeacher = currentUser?.role === 'TEACHER';
 
@@ -85,16 +88,9 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
       pollOptionsText: '',
     },
   });
-  const { data: classrooms = [] } = useClassrooms();
-  // Niveles y grados que el colegio tiene abiertos, para dirigir un comunicado a todo un nivel o grado
-  const LEVEL_NAME: Record<string, string> = { INITIAL: 'Inicial', PRIMARY: 'Primaria', SECONDARY: 'Secundaria' };
-  const gradeName = (level: string, grade: number) => (level === 'INITIAL' ? `${grade} años` : `${grade}.°`);
-  const levelOptions = [...new Set(classrooms.map((c) => c.educationLevel))];
-  const gradeOptions = [...new Map(classrooms.map((c) => [`${c.educationLevel}:${c.grade}`, c])).values()].sort(
-    (a, b) => a.educationLevel.localeCompare(b.educationLevel) || a.grade - b.grade,
-  );
-  const responseType = watch('responseType');
 
+  const { data: classrooms = [] } = useClassrooms();
+  const responseType = watch('responseType');
   const selectedRoles = watch('targetRoles') || [];
   const expiresAt = watch('expiresAt') || '';
   const responseDeadline = watch('responseDeadline') || '';
@@ -126,10 +122,8 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
         priority: data.priority,
         targetRoles: data.targetRoles,
         ...parseScope(data.classroomId),
-        // Visible hasta el final del día indicado (hora de Lima)
         expiresAt: data.expiresAt ? endOfDayLima(data.expiresAt) : null,
         responseType: data.responseType,
-        // Fecha límite al final del día indicado (hora de Lima)
         responseDeadline:
           data.responseType !== 'NONE' && data.responseDeadline
             ? new Date(`${data.responseDeadline}T23:59:59-05:00`).toISOString()
@@ -142,8 +136,7 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
       setAttachments([]);
       onClose();
     } catch (error: unknown) {
-      const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast.error(msg || 'No se pudo publicar el comunicado.');
+      toast.error(getApiErrorMessage(error, 'No se pudo publicar el comunicado.'));
     }
   };
 
@@ -248,47 +241,11 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
             {errors.targetRoles && <p className="mt-1 text-xs text-destructive">{errors.targetRoles.message}</p>}
           </div>
 
-          <div>
-            <label
-              htmlFor="announcement-classroom"
-              className="block text-xs font-semibold text-muted-foreground uppercase mb-1"
-            >
-              Alcance {isTeacher && <span className="text-destructive">*</span>}
-            </label>
-            <select
-              id="announcement-classroom"
-              {...register('classroomId')}
-              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              {!isTeacher && <option value="">Todo el colegio</option>}
-              {isTeacher && <option value="">-- Selecciona tu aula (obligatorio) --</option>}
-              {!isTeacher && levelOptions.length > 0 && (
-                <optgroup label="Por nivel">
-                  {levelOptions.map((l) => (
-                    <option key={l} value={`L:${l}`}>
-                      Todo {LEVEL_NAME[l]}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-              {!isTeacher && gradeOptions.length > 0 && (
-                <optgroup label="Por grado">
-                  {gradeOptions.map((c) => (
-                    <option key={`${c.educationLevel}:${c.grade}`} value={`G:${c.educationLevel}:${c.grade}`}>
-                      Todo {gradeName(c.educationLevel, c.grade)} de {LEVEL_NAME[c.educationLevel]}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-              <optgroup label="Un aula">
-                {classrooms.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    Solo {gradeName(c.educationLevel, c.grade)} "{c.section}" · {LEVEL_NAME[c.educationLevel]}
-                  </option>
-                ))}
-              </optgroup>
-            </select>
-          </div>
+          <AnnouncementScopeSelector
+            isTeacher={isTeacher}
+            classrooms={classrooms}
+            register={register}
+          />
 
           <div>
             <label
@@ -307,162 +264,24 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
             {errors.content && <p className="mt-1 text-xs text-destructive">{errors.content.message}</p>}
           </div>
 
-          <div>
-            <span className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
-              Archivos adjuntos (opcional)
-            </span>
-            {attachments.length > 0 && (
-              <ul className="mb-2 space-y-1">
-                {attachments.map((a) => (
-                  <li
-                    key={a.fileId}
-                    className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-1.5 text-xs"
-                  >
-                    <span className="truncate">
-                      {a.name} <span className="text-muted-foreground">· {(a.size / 1024 / 1024).toFixed(1)} MB</span>
-                    </span>
-                    <button
-                      type="button"
-                      aria-label={`Quitar ${a.name}`}
-                      onClick={() => setAttachments((list) => list.filter((x) => x.fileId !== a.fileId))}
-                    >
-                      <XIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <input
-              ref={fileInput}
-              type="file"
-              multiple
-              className="hidden"
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.webp"
-              onChange={(e) => void addFiles(e.target.files)}
-            />
-            <button
-              type="button"
-              disabled={upload.isPending || attachments.length >= 3}
-              onClick={() => fileInput.current?.click()}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary disabled:opacity-50"
-            >
-              {upload.isPending ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Paperclip className="h-3.5 w-3.5" />
-              )}
-              {upload.isPending ? 'Subiendo…' : 'Adjuntar archivo (PDF, Word, imagen…)'}
-            </button>
-            <p className="mt-1 text-[10px] text-muted-foreground">
-              Hasta 3 archivos de 25 MB. Las familias los abren desde el comunicado.
-            </p>
-          </div>
+          <AnnouncementAttachmentManager
+            attachments={attachments}
+            isPending={upload.isPending}
+            fileInputRef={fileInput}
+            onAddFiles={addFiles}
+            onRemoveAttachment={(fileId) => setAttachments((list) => list.filter((x) => x.fileId !== fileId))}
+          />
 
-          <div className="rounded-xl border border-border p-3 space-y-2.5">
-            <span className="block text-xs font-semibold text-muted-foreground uppercase">
-              ¿Pedir respuesta a las familias?
-            </span>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {[
-                { id: 'NONE', label: 'No' },
-                { id: 'ACKNOWLEDGE', label: 'Leído y enterado' },
-                { id: 'AUTHORIZATION', label: 'Autorización' },
-                { id: 'POLL', label: 'Encuesta' },
-              ].map((o) => (
-                <button
-                  key={o.id}
-                  type="button"
-                  onClick={() =>
-                    setValue('responseType', o.id as CreateAnnouncementFormData['responseType'], {
-                      shouldValidate: true,
-                    })
-                  }
-                  className={`rounded-lg border px-2 py-2 text-xs font-semibold transition-colors ${
-                    responseType === o.id
-                      ? 'border-primary bg-primary/10 text-primary'
-                      : 'border-border bg-background text-muted-foreground hover:bg-secondary'
-                  }`}
-                  aria-pressed={responseType === o.id}
-                >
-                  {o.label}
-                </button>
-              ))}
-            </div>
-            {errors.responseType && <p className="text-xs text-destructive">{errors.responseType.message}</p>}
-            {responseType === 'AUTHORIZATION' && (
-              <p className="text-xs text-muted-foreground">
-                Cada familia responde “Autorizo” o “No autorizo” por cada hijo. Se guarda la fecha y el dispositivo como
-                constancia.
-              </p>
-            )}
-            {responseType === 'POLL' && (
-              <div>
-                <label htmlFor="poll-options" className="block text-xs font-medium text-foreground mb-1">
-                  Opciones (una por línea, máximo 6)
-                </label>
-                <textarea
-                  id="poll-options"
-                  rows={3}
-                  placeholder="Sí asistiré"
-                  {...register('pollOptionsText')}
-                  className="w-full rounded-lg border border-border bg-background p-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-                {errors.pollOptionsText && (
-                  <p className="mt-1 text-xs text-destructive">{errors.pollOptionsText.message}</p>
-                )}
-              </div>
-            )}
-            {responseType !== 'NONE' && (
-              <div>
-                <label htmlFor="response-deadline" className="block text-xs font-medium text-foreground mb-1">
-                  Responder hasta (opcional)
-                </label>
-                <input
-                  id="response-deadline"
-                  type="date"
-                  {...register('responseDeadline')}
-                  className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-            )}
-          </div>
-
-          <div className="rounded-xl border border-border p-3 space-y-2.5">
-            <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase">
-              <CalendarClock className="w-3.5 h-3.5" aria-hidden /> Visible en el muro hasta
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {presets.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => setValue('expiresAt', p.value, { shouldValidate: true })}
-                  className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    expiresAt === p.value
-                      ? 'border-primary bg-primary/10 text-primary'
-                      : 'border-border bg-background text-muted-foreground hover:bg-secondary'
-                  }`}
-                  aria-pressed={expiresAt === p.value}
-                >
-                  {p.label}
-                </button>
-              ))}
-              <input
-                id="announcement-expires"
-                type="date"
-                min={today}
-                aria-label="Otra fecha"
-                {...register('expiresAt')}
-                className="rounded-lg border border-border bg-background px-2.5 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {expiresAt
-                ? `Se verá en “Vigentes” hasta el ${formatPeruDate(expiresAt)}. Después pasa a “Anteriores”, donde se puede seguir consultando.`
-                : `Sin fecha: pasa a “Anteriores” a los ${UNDATED_ARCHIVE_DAYS} días de publicado. Si es sobre un evento, elige la fecha del evento.`}
-            </p>
-            {errors.expiresAt && <p className="text-xs text-destructive">{errors.expiresAt.message}</p>}
-          </div>
+          <AnnouncementResponseAndExpiryFields
+            responseType={responseType}
+            expiresAt={expiresAt}
+            today={today}
+            presets={presets}
+            register={register}
+            errors={errors}
+            onSelectResponseType={(type) => setValue('responseType', type, { shouldValidate: true })}
+            onSelectExpiryPreset={(val) => setValue('expiresAt', val, { shouldValidate: true })}
+          />
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
             <button
