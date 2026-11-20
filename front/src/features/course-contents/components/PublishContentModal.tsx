@@ -2,27 +2,15 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { usePeriods } from '@/features/academic-years/api/useAcademicYears';
 import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  X,
-  Upload,
-  FileText,
-  Calendar,
-  Loader2,
-  BookOpen,
-  ClipboardList,
-  MessageSquare,
-  Paperclip,
-} from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ContentType } from '../types';
 import { createCourseContentSchema, type CreateCourseContentFormData } from '../schemas/course-content.schema';
 import { useCreateCourseContent, useUploadMaterial } from '../api/useCourseContents';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-
-import { isGoogleDriveUrl } from '../utils/fileUrls';
-import { Cloud, HardDrive, CheckCircle2 } from 'lucide-react';
+import { getApiErrorMessage } from '@/lib/errors';
+import { PublishContentTypeAndFields } from './publish-content-modal/PublishContentTypeAndFields';
+import { PublishAttachmentSection } from './publish-content-modal/PublishAttachmentSection';
 
 interface PublishContentModalProps {
   isOpen: boolean;
@@ -136,8 +124,7 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
       onClose();
     } catch (err: unknown) {
       setIsUploading(false);
-      const msg = err instanceof Error ? err.message : 'Error al guardar la publicación';
-      toast.error(msg);
+      toast.error(getApiErrorMessage(err, 'Error al guardar la publicación'));
     }
   };
 
@@ -161,253 +148,29 @@ export const PublishContentModal: React.FC<PublishContentModalProps> = ({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit(onSubmit)} className="p-5 overflow-y-auto space-y-4 text-xs">
-          {/* Tipo de Publicación */}
-          <div className="space-y-1.5">
-            <label className="font-semibold text-foreground">Tipo de Contenido:</label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              <button
-                type="button"
-                onClick={() => setValue('contentType', 'LESSON_MATERIAL')}
-                className={`p-3 rounded-2xl border flex flex-col items-center text-center gap-1.5 transition-all text-xs font-semibold ${
-                  currentType === 'LESSON_MATERIAL'
-                    ? 'border-primary bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20'
-                    : 'border-border bg-background text-muted-foreground hover:bg-muted/80'
-                }`}
-              >
-                <div
-                  className={`w-8 h-8 rounded-xl flex items-center justify-center ${currentType === 'LESSON_MATERIAL' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
-                >
-                  <BookOpen className="w-4 h-4" />
-                </div>
-                <div>
-                  <span className="block font-bold">Material de Clase</span>
-                  <span className="text-xs text-muted-foreground font-normal">PPT, PDF, Word</span>
-                </div>
-              </button>
+          <PublishContentTypeAndFields
+            currentType={currentType}
+            currentBimester={currentBimester}
+            periods={periods}
+            periodLabel={periodLabel}
+            register={register}
+            errors={errors}
+            onSelectType={(type) => setValue('contentType', type)}
+            onSelectBimester={(bim) => setValue('bimester', bim)}
+          />
 
-              <button
-                type="button"
-                onClick={() => setValue('contentType', 'HOMEWORK')}
-                className={`p-3 rounded-2xl border flex flex-col items-center text-center gap-1.5 transition-all text-xs font-semibold ${
-                  currentType === 'HOMEWORK'
-                    ? 'border-amber-500 bg-amber-500/10 text-amber-700 dark:text-amber-300 shadow-sm ring-1 ring-amber-500/20'
-                    : 'border-border bg-background text-muted-foreground hover:bg-muted/80'
-                }`}
-              >
-                <div
-                  className={`w-8 h-8 rounded-xl flex items-center justify-center ${currentType === 'HOMEWORK' ? 'bg-amber-500 text-white' : 'bg-muted text-muted-foreground'}`}
-                >
-                  <ClipboardList className="w-4 h-4" />
-                </div>
-                <div>
-                  <span className="block font-bold">Tarea Escolar</span>
-                  <span className="text-xs text-muted-foreground font-normal">Con fecha límite</span>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setValue('contentType', 'FORUM')}
-                className={`p-3 rounded-2xl border flex flex-col items-center text-center gap-1.5 transition-all text-xs font-semibold ${
-                  currentType === 'FORUM'
-                    ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 shadow-sm ring-1 ring-emerald-500/20'
-                    : 'border-border bg-background text-muted-foreground hover:bg-muted/80'
-                }`}
-              >
-                <div
-                  className={`w-8 h-8 rounded-xl flex items-center justify-center ${currentType === 'FORUM' ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'}`}
-                >
-                  <MessageSquare className="w-4 h-4" />
-                </div>
-                <div>
-                  <span className="block font-bold">Foro de Debate</span>
-                  <span className="text-xs text-muted-foreground font-normal">Pregunta y debate</span>
-                </div>
-              </button>
-            </div>
-          </div>
-
-          {/* Bimestre */}
-          <div className="space-y-1.5">
-            <label className="font-semibold text-foreground">{periodLabel} correspondiente:</label>
-            <div className={`grid gap-2 ${periods.length === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
-              {periods.map((bim) => (
-                <button
-                  key={bim}
-                  type="button"
-                  onClick={() => setValue('bimester', bim)}
-                  className={`py-1.5 rounded-lg border text-xs font-bold transition-all ${
-                    currentBimester === bim
-                      ? 'border-primary bg-primary text-primary-foreground shadow-sm'
-                      : 'border-border bg-background text-muted-foreground hover:bg-muted'
-                  }`}
-                >
-                  {bim}° {periodLabel}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Título */}
-          <div className="space-y-1.5">
-            <label className="font-semibold text-foreground">Título:</label>
-            <Input
-              {...register('title')}
-              placeholder={
-                currentType === 'LESSON_MATERIAL'
-                  ? 'Ej: Sesión 04: Las Leyes de Newton (Diapositivas)'
-                  : currentType === 'HOMEWORK'
-                    ? 'Ej: Ficha de Actividades: Ejercicios 1 al 10'
-                    : 'Ej: Foro de Debate: ¿Cómo impacta el cambio climático en tu región?'
-              }
-              className="text-xs"
-            />
-            {errors.title && <p className="text-destructive text-xs">{errors.title.message}</p>}
-          </div>
-
-          {/* Descripción / Indicaciones */}
-          <div className="space-y-1.5">
-            <label className="font-semibold text-foreground">
-              {currentType === 'FORUM' ? 'Pregunta disparadora / Tema de debate:' : 'Instrucciones o descripción:'}
-            </label>
-            <Textarea
-              {...register('description')}
-              rows={3}
-              placeholder="Escribe las indicaciones para los estudiantes..."
-              className="text-xs resize-none"
-            />
-          </div>
-
-          {/* Fecha Límite si es Tarea */}
-          {currentType === 'HOMEWORK' && (
-            <div className="space-y-1.5">
-              <label className="font-semibold text-foreground flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-amber-500" />
-                <span>Fecha Límite de Entrega:</span>
-              </label>
-              <Input type="date" {...register('dueDate')} className="text-xs" />
-            </div>
-          )}
-
-          {/* Documento o Enlace adjunto (para Clase y Tarea) */}
           {currentType !== 'FORUM' && (
-            <div className="space-y-2 pt-1 border-t border-border/50">
-              <div className="flex items-center justify-between">
-                <label className="font-semibold text-foreground flex items-center gap-1.5 text-xs">
-                  <Paperclip className="w-3.5 h-3.5 text-primary" />
-                  <span>Material / Documento Adjunto:</span>
-                </label>
-
-                {/* Selector de modo: subir archivo o pegar un enlace de Google Drive */}
-                <div className="flex items-center gap-1 bg-muted/60 p-0.5 rounded-lg border border-border">
-                  <button
-                    type="button"
-                    onClick={() => setAttachmentMode('FILE')}
-                    className={`px-2 py-0.5 rounded-md text-xs font-bold flex items-center gap-1 transition-all ${
-                      attachmentMode === 'FILE'
-                        ? 'bg-background text-foreground shadow-xs'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    <HardDrive className="w-3 h-3" />
-                    <span>Subir de PC</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAttachmentMode('DRIVE')}
-                    className={`px-2 py-0.5 rounded-md text-xs font-bold flex items-center gap-1 transition-all ${
-                      attachmentMode === 'DRIVE'
-                        ? 'bg-emerald-600 text-white shadow-xs'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    <Cloud className="w-3 h-3" />
-                    <span>Enlace Cloud</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Modo 1: Subir Archivo desde PC */}
-              {attachmentMode === 'FILE' && (
-                <div>
-                  {selectedFile ? (
-                    <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-muted/30">
-                      <div className="flex items-center gap-2 overflow-hidden">
-                        <FileText className="w-5 h-5 text-primary shrink-0" />
-                        <div className="truncate">
-                          <p className="font-medium text-foreground truncate">{selectedFile.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSelectedFile(null)}
-                        className="text-destructive hover:bg-destructive/10"
-                      >
-                        Quitar
-                      </Button>
-                    </div>
-                  ) : (
-                    <label className="border-2 border-dashed border-border hover:border-primary/50 bg-background hover:bg-muted/30 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-all">
-                      <Upload className="w-6 h-6 text-muted-foreground mb-1" />
-                      <span className="font-semibold text-foreground text-xs">Haz clic para subir un archivo</span>
-                      <span className="text-xs text-muted-foreground text-center">
-                        PowerPoint (.pptx), Word (.docx), PDF, Excel o Imágenes (máx. 25 MB)
-                      </span>
-                      <input
-                        type="file"
-                        onChange={handleFileChange}
-                        className="hidden"
-                        accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-                      />
-                    </label>
-                  )}
-                </div>
-              )}
-
-              {/* Modo 2: Enlace Cloud */}
-              {attachmentMode === 'DRIVE' && (
-                <div className="space-y-2 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300">
-                    <Cloud className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <span>Enlace compartido en la nube</span>
-                  </div>
-                  <Input
-                    type="url"
-                    value={driveUrl}
-                    onChange={(e) => setDriveUrl(e.target.value)}
-                    placeholder="Pega el enlace compartido del archivo (ej: https://...)"
-                    className="text-xs bg-background"
-                  />
-
-                  {isGoogleDriveUrl(driveUrl) ? (
-                    <div className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400 font-semibold bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20">
-                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
-                      <span>
-                        ¡Enlace en la nube reconocido! Se activará la descarga directa en 1 clic para los alumnos.
-                      </span>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      💡 <strong>Tip:</strong> Asegúrate de que el archivo tenga permisos de lectura para que cualquier
-                      persona con el enlace pueda abrirlo o descargarlo sin restricciones.
-                    </p>
-                  )}
-
-                  <Input
-                    type="text"
-                    value={driveFileName}
-                    onChange={(e) => setDriveFileName(e.target.value)}
-                    placeholder="Nombre que verá el alumno (ej. Diapositivas_Sesion_1.pptx)"
-                    className="text-xs bg-background"
-                  />
-                </div>
-              )}
-            </div>
+            <PublishAttachmentSection
+              attachmentMode={attachmentMode}
+              selectedFile={selectedFile}
+              driveUrl={driveUrl}
+              driveFileName={driveFileName}
+              onSetAttachmentMode={setAttachmentMode}
+              onSelectFile={setSelectedFile}
+              onDriveUrlChange={setDriveUrl}
+              onDriveFileNameChange={setDriveFileName}
+              onFileChange={handleFileChange}
+            />
           )}
 
           {/* Footer Buttons */}

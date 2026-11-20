@@ -1,32 +1,26 @@
-import React, { useState } from 'react';
+import React, { memo, useState } from 'react';
 import { usePeriods } from '@/features/academic-years/api/useAcademicYears';
 import {
   BookOpen,
   ClipboardList,
   MessageSquare,
-  Download,
   Trash2,
   Calendar,
-  Cloud,
   Clock,
   Sparkles,
-  Eye,
-  UploadCloud,
-  Users,
-  CheckCircle2,
-  Award,
 } from 'lucide-react';
 import type { CourseContent } from '../types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { openFile, isGoogleDriveUrl } from '../utils/fileUrls';
-import { getFileMetadata, getDueDateStatus, formatFileSize } from '../utils/fileHelpers';
+import { getDueDateStatus } from '../utils/fileHelpers';
 import { DocumentPreviewModal } from './DocumentPreviewModal';
 import { HomeworkSubmissionsModal } from './HomeworkSubmissionsModal';
 import { SubmitHomeworkModal } from './SubmitHomeworkModal';
 import { useGetHomeworkSubmissions } from '../api/useCourseContents';
 import { useAuthStore } from '@/store/useAuthStore';
 import { formatPeruDate } from '@/lib/dateUtils';
+import { ContentAttachmentList } from './course-content-card/ContentAttachmentList';
+import { HomeworkActionBar } from './course-content-card/HomeworkActionBar';
 
 interface CourseContentCardProps {
   content: CourseContent;
@@ -37,7 +31,7 @@ interface CourseContentCardProps {
   canManage?: boolean;
 }
 
-export const CourseContentCard: React.FC<CourseContentCardProps> = ({
+export const CourseContentCard: React.FC<CourseContentCardProps> = memo(({
   content,
   onOpenForum,
   onDelete,
@@ -60,10 +54,6 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
 
   // Solo consultar submissions si es de tipo tarea
   const { data: submissionsData } = useGetHomeworkSubmissions(isHomework ? content.id : null);
-
-  const isDrive = isGoogleDriveUrl(content.fileUrl);
-  const fileMeta = getFileMetadata(content.fileName, content.fileType);
-  const FileIcon = fileMeta.icon;
   const dueDateStatus = getDueDateStatus(content.dueDate);
 
   const formattedDate = formatPeruDate(content.createdAt, {
@@ -71,11 +61,6 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
     month: 'short',
     year: 'numeric',
   });
-
-  // Datos de entrega del alumno / apoderado
-  const studentSubmission =
-    submissionsData?.submission || (submissionsData?.submissions && submissionsData.submissions[0]) || null;
-  const isGraded = !!studentSubmission?.gradedAt;
 
   const handleOpenTeacherSubmissions = () => {
     if (onViewSubmissions) {
@@ -166,127 +151,23 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
             </div>
           )}
 
-          {/* Estado de Entrega (Vista Alumno / Apoderado) */}
-          {!isTeacherOrAdmin && (
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/40 border border-border gap-2 flex-wrap">
-              <div className="flex items-center gap-2">
-                {isGraded ? (
-                  <Badge className="text-xs font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 gap-1">
-                    <Award className="w-3 h-3" />
-                    <span>
-                      Calificado:{' '}
-                      {studentSubmission?.literalScore ||
-                        (studentSubmission?.numericScore !== null && studentSubmission?.numericScore !== undefined
-                          ? `${studentSubmission.numericScore}/20`
-                          : 'Revisada')}
-                    </span>
-                  </Badge>
-                ) : studentSubmission?.isLate ? (
-                  <Badge variant="destructive" className="text-xs font-bold">
-                    Entregado fuera de fecha
-                  </Badge>
-                ) : studentSubmission ? (
-                  <Badge
-                    variant="outline"
-                    className="text-xs font-bold text-emerald-600 dark:text-emerald-400 border-emerald-500/30 gap-1"
-                  >
-                    <CheckCircle2 className="w-3 h-3" />
-                    <span>Entregado a tiempo</span>
-                  </Badge>
-                ) : (
-                  <Badge
-                    variant="outline"
-                    className="text-xs font-bold text-amber-600 dark:text-amber-400 border-amber-500/30"
-                  >
-                    Pendiente
-                  </Badge>
-                )}
-              </div>
-
-              <Button
-                size="sm"
-                onClick={handleOpenStudentSubmit}
-                className="gap-1.5 h-7 px-2.5 text-xs font-bold rounded-lg"
-              >
-                <UploadCloud className="w-3.5 h-3.5" />
-                <span>{studentSubmission ? 'Ver Mi Entrega' : 'Subir mi Tarea'}</span>
-              </Button>
-            </div>
-          )}
-
-          {/* Botón Ver Entregas (Vista Docente / Dirección) */}
-          {isTeacherOrAdmin && (
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/30 border border-border gap-2 flex-wrap">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                <Users className="w-4 h-4 text-primary" />
-                <span>
-                  {submissionsData?.submittedCount ?? 0} de {submissionsData?.totalStudents ?? 0} alumnos entregaron
-                </span>
-              </div>
-              <Button
-                size="sm"
-                onClick={handleOpenTeacherSubmissions}
-                className="gap-1.5 h-7 px-3 text-xs font-bold rounded-lg shadow-xs"
-              >
-                <Users className="w-3.5 h-3.5" />
-                <span>Ver Entregas</span>
-              </Button>
-            </div>
-          )}
+          <HomeworkActionBar
+            isTeacherOrAdmin={isTeacherOrAdmin}
+            submissionsData={submissionsData}
+            onOpenTeacherSubmissions={handleOpenTeacherSubmissions}
+            onOpenStudentSubmit={handleOpenStudentSubmit}
+          />
         </div>
       )}
 
-      {/* Archivo adjunto (subido a la plataforma o enlace externo) con descarga directa */}
-      {content.fileUrl && (
-        <div className="p-3 rounded-xl border border-border bg-muted/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-9 h-9 rounded-lg bg-card border border-border flex items-center justify-center shrink-0 shadow-sm text-primary">
-              <FileIcon className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="font-bold text-foreground truncate text-xs">
-                {content.fileName || 'Archivo adjunto de clase'}
-              </p>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap mt-0.5">
-                <Badge variant="outline" className={`py-0 h-4 text-xs font-bold ${fileMeta.badgeStyle}`}>
-                  {fileMeta.label}
-                </Badge>
-                {isDrive && (
-                  <span className="inline-flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400">
-                    <Cloud className="w-3 h-3" />
-                    <span>Enlace Cloud</span>
-                  </span>
-                )}
-                {content.fileSize && <span>• {formatFileSize(content.fileSize)}</span>}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
-            {/* Opción 1: Ver Archivo directamente en visor interactivo */}
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => setIsPreviewOpen(true)}
-              className="flex-1 sm:flex-none gap-1.5 h-9 px-3.5 text-xs font-bold rounded-xl shadow-xs"
-            >
-              <Eye className="w-3.5 h-3.5" />
-              <span>Ver Archivo</span>
-            </Button>
-
-            {/* Opción Descarga: Descargar archivo directamente */}
-            <button
-              type="button"
-              onClick={() => content.fileUrl && void openFile(content.fileUrl, { download: true })}
-              className="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-xl border border-input bg-card hover:bg-muted text-foreground font-bold transition-all text-xs shrink-0"
-              title="Descargar archivo a tu dispositivo"
-            >
-              <Download className="w-3.5 h-3.5 text-muted-foreground" />
-              <span className="hidden sm:inline">Descargar</span>
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Archivo adjunto */}
+      <ContentAttachmentList
+        fileUrl={content.fileUrl}
+        fileName={content.fileName}
+        fileType={content.fileType}
+        fileSize={content.fileSize}
+        onPreview={() => setIsPreviewOpen(true)}
+      />
 
       {/* Foro de Debate Interactivo */}
       {isForum && onOpenForum && (
@@ -329,4 +210,4 @@ export const CourseContentCard: React.FC<CourseContentCardProps> = ({
       <SubmitHomeworkModal isOpen={isSubmitModalOpen} onClose={() => setIsSubmitModalOpen(false)} content={content} />
     </div>
   );
-};
+});
