@@ -8,7 +8,7 @@ import {
   flexRender,
   type ColumnDef,
 } from '@tanstack/react-table';
-import { Search, UserX, UserCheck, Pencil, KeyRound } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { useDeactivateUser, useReactivateUser } from '../api/useUserMutations';
 import { useResetUserPassword } from '../api/useUsers';
@@ -17,41 +17,22 @@ import { UserAvatar } from '@/components/ui/user-avatar';
 import { TemporaryCredentialsDialog, type TemporaryCredential } from '@/components/ui/TemporaryCredentialsDialog';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { formatFullName } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { DirectoryUser } from '../types';
 import { useAuthStore } from '@/store/useAuthStore';
 import { canManage } from '../rules';
+import { getApiErrorMessage } from '@/lib/errors';
+import { USER_TABLE_ROLE_CONFIG } from '../constants';
+import { UserRowActions } from './user-table/UserRowActions';
 
 interface UserTableProps {
   users: DirectoryUser[];
   isLoading: boolean;
-  /** Opción para subpaneles si fuera necesario */
   showStudentLinks?: boolean;
-  /** Acciones extra por fila (p. ej. contratar para un año) */
   renderExtraActions?: (user: DirectoryUser) => React.ReactNode;
 }
-
-const ROLE_CONFIG: Record<string, { label: string; badgeClass: string }> = {
-  TEACHER: {
-    label: 'Profesor / Docente',
-    badgeClass: 'bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/30 font-bold',
-  },
-  ADMINISTRATIVE: {
-    label: 'Secretaría / Caja',
-    badgeClass: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 font-bold',
-  },
-  SCHOOL_ADMIN: {
-    label: 'Director / Promotor',
-    badgeClass: 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30 font-bold',
-  },
-  PARENT: {
-    label: 'Apoderado / Padre',
-    badgeClass: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30 font-bold',
-  },
-};
 
 export const UserTable: React.FC<UserTableProps> = ({ users, isLoading, renderExtraActions }) => {
   const { user: currentUser } = useAuthStore();
@@ -63,6 +44,30 @@ export const UserTable: React.FC<UserTableProps> = ({ users, isLoading, renderEx
   const { mutate: reactivate, isPending: isReactivating } = useReactivateUser();
   const { mutateAsync: resetPassword, isPending: isResetting } = useResetUserPassword();
   const [tempCredentials, setTempCredentials] = useState<TemporaryCredential[] | null>(null);
+
+  const handleResetPassword = async (user: DirectoryUser) => {
+    if (
+      await confirmDialog({
+        title: '¿Restablecer la contraseña?',
+        description: `Se generará una contraseña temporal para ${user.firstName} ${user.lastNamePaternal}.`,
+        confirmText: 'Restablecer',
+      })
+    ) {
+      try {
+        const data = await resetPassword({ userId: user.id });
+        setTempCredentials([
+          {
+            name: `${user.firstName} ${user.lastNamePaternal}`,
+            login: user.email || user.documentId || '',
+            password: data.temporaryPassword,
+          },
+        ]);
+        toast.success('Contraseña temporal generada con éxito');
+      } catch (err: unknown) {
+        toast.error(getApiErrorMessage(err, 'Error al restablecer contraseña'));
+      }
+    }
+  };
 
   const columns: ColumnDef<DirectoryUser>[] = [
     {
@@ -86,7 +91,7 @@ export const UserTable: React.FC<UserTableProps> = ({ users, isLoading, renderEx
       header: 'Cargo / Rol Institucional',
       cell: ({ row }) => {
         const role = row.original.role;
-        const config = ROLE_CONFIG[role] || {
+        const config = USER_TABLE_ROLE_CONFIG[role] || {
           label: role,
           badgeClass: 'bg-muted text-muted-foreground border-border',
         };
@@ -138,92 +143,20 @@ export const UserTable: React.FC<UserTableProps> = ({ users, isLoading, renderEx
         const canDeactivate = canManageUser && currentUser?.id !== user.id;
 
         return (
-          <div className="flex items-center gap-1.5">
-            {/* Botón Editar Usuario */}
-            {canManageUser && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 text-xs text-primary hover:bg-primary/10"
-                onClick={() => setSelectedUserForEdit(user)}
-                title="Editar"
-                aria-label={`Editar a ${user.firstName} ${user.lastNamePaternal}`}
-              >
-                <Pencil className="w-3.5 h-3.5 2xl:mr-1" />
-                <span className="hidden 2xl:inline">Editar</span>
-              </Button>
-            )}
-
-            {/* Restablecer Clave Temporal */}
-            {canResetPassword && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 text-xs text-amber-600 hover:bg-amber-500/10 hover:text-amber-600 font-semibold"
-                onClick={async () => {
-                  if (
-                    await confirmDialog({
-                      title: '¿Restablecer la contraseña?',
-                      description: `Se generará una contraseña temporal para ${user.firstName} ${user.lastNamePaternal}.`,
-                      confirmText: 'Restablecer',
-                    })
-                  ) {
-                    try {
-                      const data = await resetPassword({ userId: user.id });
-                      setTempCredentials([
-                        {
-                          name: `${user.firstName} ${user.lastNamePaternal}`,
-                          login: user.email || user.documentId || '',
-                          password: data.temporaryPassword,
-                        },
-                      ]);
-                      toast.success('Contraseña temporal generada con éxito');
-                    } catch (err: any) {
-                      toast.error(err?.response?.data?.message || 'Error al restablecer contraseña');
-                    }
-                  }
-                }}
-                disabled={isResetting}
-                title="Restablecer clave temporal"
-                aria-label={`Restablecer la clave de ${user.firstName} ${user.lastNamePaternal}`}
-              >
-                <KeyRound className="w-3.5 h-3.5 2xl:mr-1" />
-                <span className="hidden 2xl:inline">Restablecer clave</span>
-              </Button>
-            )}
-
-            {renderExtraActions?.(user)}
-
-            {/* Toggle Activo/Inactivo */}
-            {canDeactivate &&
-              (user.isActive ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  onClick={() => deactivate(user.id)}
-                  disabled={isDeactivating}
-                  title="Desactivar"
-                  aria-label={`Desactivar a ${user.firstName} ${user.lastNamePaternal}`}
-                >
-                  <UserX className="w-3.5 h-3.5 2xl:mr-1" />
-                  <span className="hidden 2xl:inline">Desactivar</span>
-                </Button>
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2 text-xs text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-600"
-                  onClick={() => reactivate(user.id)}
-                  disabled={isReactivating}
-                  title="Reactivar"
-                  aria-label={`Reactivar a ${user.firstName} ${user.lastNamePaternal}`}
-                >
-                  <UserCheck className="w-3.5 h-3.5 2xl:mr-1" />
-                  <span className="hidden 2xl:inline">Reactivar</span>
-                </Button>
-              ))}
-          </div>
+          <UserRowActions
+            user={user}
+            canManageUser={canManageUser}
+            canResetPassword={canResetPassword}
+            canDeactivate={canDeactivate}
+            isResetting={isResetting}
+            isDeactivating={isDeactivating}
+            isReactivating={isReactivating}
+            onEdit={setSelectedUserForEdit}
+            onResetPassword={handleResetPassword}
+            onDeactivate={deactivate}
+            onReactivate={reactivate}
+            renderExtraActions={renderExtraActions}
+          />
         );
       },
     },
@@ -320,7 +253,6 @@ export const UserTable: React.FC<UserTableProps> = ({ users, isLoading, renderEx
         </div>
       </div>
 
-      {/* Modal de Edición de Usuario */}
       <EditUserModal
         user={selectedUserForEdit}
         isOpen={!!selectedUserForEdit}
