@@ -3,18 +3,8 @@ import React, { useState } from 'react';
 import {
   ShieldAlert,
   Plus,
-  Filter,
-  Award,
-  AlertCircle,
-  Stethoscope,
-  CalendarClock,
-  CheckCircle2,
-  Clock,
-  User,
-  School as SchoolIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Pagination } from '@/components/ui/Pagination';
@@ -22,65 +12,10 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useIncidents, useRegisterSiseve } from '../api/useIncidents';
 import { useClassrooms } from '@/features/classrooms/api/useClassrooms';
 import { CreateIncidentModal } from '../components/CreateIncidentModal';
-import type { IncidentType, IncidentSeverity } from '../types';
 import { toast } from 'sonner';
-import { formatPeruDateTime, formatPeruShortDate } from '@/lib/dateUtils';
-import { formatEducationLevel } from '@/lib/utils';
-
-const TYPE_CONFIG: Record<IncidentType, { label: string; icon: React.ReactNode; color: string }> = {
-  MERITO: {
-    label: 'Mérito',
-    icon: <Award className="w-3.5 h-3.5 text-emerald-500" />,
-    color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
-  },
-  POSITIVE: {
-    label: 'Mérito',
-    icon: <Award className="w-3.5 h-3.5 text-emerald-500" />,
-    color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
-  },
-  DEMERITO: {
-    label: 'Falta Conductual',
-    icon: <AlertCircle className="w-3.5 h-3.5 text-amber-500" />,
-    color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
-  },
-  BEHAVIORAL: {
-    label: 'Conductual',
-    icon: <AlertCircle className="w-3.5 h-3.5 text-amber-500" />,
-    color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
-  },
-  ATENCION_TOPICO: {
-    label: 'Tópico de Salud',
-    icon: <Stethoscope className="w-3.5 h-3.5 text-blue-500" />,
-    color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
-  },
-  HEALTH: {
-    label: 'Salud',
-    icon: <Stethoscope className="w-3.5 h-3.5 text-blue-500" />,
-    color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
-  },
-  CITACION_PADRES: {
-    label: 'Citación',
-    icon: <CalendarClock className="w-3.5 h-3.5 text-purple-500" />,
-    color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20',
-  },
-  CITATION: {
-    label: 'Citación',
-    icon: <CalendarClock className="w-3.5 h-3.5 text-purple-500" />,
-    color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20',
-  },
-  ACADEMIC: {
-    label: 'Académico',
-    icon: <AlertCircle className="w-3.5 h-3.5 text-cyan-500" />,
-    color: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20',
-  },
-};
-
-const SEVERITY_CONFIG: Record<IncidentSeverity, { label: string; badgeClass: string }> = {
-  LOW: { label: 'Baja', badgeClass: 'bg-muted text-muted-foreground' },
-  MEDIUM: { label: 'Media', badgeClass: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' },
-  HIGH: { label: 'Alta', badgeClass: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20' },
-  CRITICAL: { label: 'Urgente', badgeClass: 'bg-destructive text-destructive-foreground font-black animate-pulse' },
-};
+import { getApiErrorMessage } from '@/lib/errors';
+import { IncidentsFilterBar } from './incidents-page/IncidentsFilterBar';
+import { IncidentsList } from './incidents-page/IncidentsList';
 
 export const IncidentsPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -123,8 +58,8 @@ export const IncidentsPage: React.FC = () => {
       toast.success('Código SíseVe registrado correctamente.');
       setSiseveModalIncidentId(null);
       setSiseveInputCode('');
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Error al registrar el código SíseVe.');
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, 'Error al registrar el código SíseVe.'));
     }
   };
 
@@ -169,61 +104,24 @@ export const IncidentsPage: React.FC = () => {
       </div>
 
       {/* 2. Barra de Filtros */}
-      <div className="p-4 rounded-xl bg-card border border-border shadow-sm flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground uppercase">
-          <Filter className="w-3.5 h-3.5 text-primary" />
-          <span>Filtros:</span>
-        </div>
-
-        {/* Tipo */}
-        <select
-          value={selectedType}
-          onChange={(e) => {
-            setSelectedType(e.target.value);
-            setPage(1);
-          }}
-          className="text-xs font-semibold bg-background border border-border rounded-lg px-2.5 py-1.5 text-foreground focus:ring-1 focus:ring-primary outline-none"
-        >
-          <option value="ALL">— Todos los Tipos —</option>
-          <option value="MERITO">Méritos</option>
-          <option value="DEMERITO">Faltas Conductuales</option>
-          <option value="ATENCION_TOPICO">Tópico / Salud</option>
-          <option value="CITACION_PADRES">Citaciones</option>
-        </select>
-
-        {/* Severidad */}
-        <select
-          value={selectedSeverity}
-          onChange={(e) => {
-            setSelectedSeverity(e.target.value);
-            setPage(1);
-          }}
-          className="text-xs font-semibold bg-background border border-border rounded-lg px-2.5 py-1.5 text-foreground focus:ring-1 focus:ring-primary outline-none"
-        >
-          <option value="ALL">— Toda Severidad —</option>
-          <option value="LOW">Baja</option>
-          <option value="MEDIUM">Media</option>
-          <option value="HIGH">Alta</option>
-          <option value="CRITICAL">Urgente</option>
-        </select>
-
-        {/* Aula / Salón */}
-        <select
-          value={selectedClassroomId}
-          onChange={(e) => {
-            setSelectedClassroomId(e.target.value);
-            setPage(1);
-          }}
-          className="text-xs font-semibold bg-background border border-border rounded-lg px-2.5 py-1.5 text-foreground focus:ring-1 focus:ring-primary outline-none max-w-[200px]"
-        >
-          <option value="">— Todas las Aulas —</option>
-          {classrooms.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.grade}° "{c.section}" - {formatEducationLevel(c.educationLevel)}
-            </option>
-          ))}
-        </select>
-      </div>
+      <IncidentsFilterBar
+        selectedType={selectedType}
+        selectedSeverity={selectedSeverity}
+        selectedClassroomId={selectedClassroomId}
+        classrooms={classrooms}
+        onSelectType={(t) => {
+          setSelectedType(t);
+          setPage(1);
+        }}
+        onSelectSeverity={(s) => {
+          setSelectedSeverity(s);
+          setPage(1);
+        }}
+        onSelectClassroom={(c) => {
+          setSelectedClassroomId(c);
+          setPage(1);
+        }}
+      />
 
       {/* 3. Lista de Incidencias */}
       {isLoading ? (
@@ -241,132 +139,15 @@ export const IncidentsPage: React.FC = () => {
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {incidents.map((inc) => {
-            const typeInfo = TYPE_CONFIG[inc.type] || TYPE_CONFIG.DEMERITO;
-            const severityInfo = SEVERITY_CONFIG[inc.severity] || SEVERITY_CONFIG.LOW;
-            const student = inc.enrollment?.student;
-            const studentName = student
-              ? `${student.lastNamePaternal} ${student.lastNameMaternal || ''}, ${student.firstNames}`
-              : '—';
-            const classroom = inc.enrollment?.classroom;
-            const classroomLabel = classroom
-              ? `${classroom.grade}° "${classroom.section}" (${formatEducationLevel(classroom.educationLevel)})`
-              : '';
-            const isAcknowledged = Boolean(inc.acknowledgedAt);
-
-            return (
-              <div
-                key={inc.id}
-                className="p-4 sm:p-5 rounded-2xl border border-border bg-card shadow-sm space-y-3 hover:border-primary/30 transition-all"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2.5">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold border ${typeInfo.color}`}
-                    >
-                      {typeInfo.icon}
-                      <span>{typeInfo.label}</span>
-                    </span>
-                    {/* Un mérito no tiene gravedad */}
-                    {inc.type !== 'MERITO' && inc.type !== 'POSITIVE' && (
-                      <Badge variant="outline" className={`text-xs ${severityInfo.badgeClass}`}>
-                        Severidad: {severityInfo.label}
-                      </Badge>
-                    )}
-
-                    {inc.isViolenceCase &&
-                      (inc.siseveCode ? (
-                        <Badge
-                          variant="outline"
-                          className="text-xs bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 font-bold"
-                        >
-                          SíseVe: {inc.siseveCode}
-                        </Badge>
-                      ) : (
-                        <div className="flex items-center gap-1.5">
-                          <Badge variant="destructive" className="text-xs font-bold">
-                            Pendiente SíseVe
-                          </Badge>
-                          {canManageSiseve && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setSiseveModalIncidentId(inc.id);
-                                setSiseveInputCode('');
-                              }}
-                              className="h-6 text-xs px-2 font-bold text-destructive hover:bg-destructive/10 border-destructive/30"
-                            >
-                              Registrar código SíseVe
-                            </Button>
-                          )}
-                        </div>
-                      ))}
-                  </div>
-
-                  <span className="text-xs text-muted-foreground flex items-center gap-1 font-medium">
-                    <Clock className="w-3.5 h-3.5" />
-                    {formatPeruDateTime(inc.createdAt)}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Info Alumno y Autor */}
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-                      <User className="w-3.5 h-3.5 text-primary" />
-                      <span>{studentName}</span>
-                    </div>
-                    <div className="text-xs text-muted-foreground flex items-center gap-1">
-                      <SchoolIcon className="w-3 h-3" />
-                      <span>{classroomLabel}</span>
-                    </div>
-                    {inc.author && (
-                      <p className="text-xs text-muted-foreground pt-1">
-                        Por: {inc.author.firstName} {inc.author.lastNamePaternal}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Descripción y Título */}
-                  <div className="md:col-span-2 space-y-1.5">
-                    <h3 className="text-sm font-bold text-foreground">{inc.title}</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{inc.description}</p>
-
-                    {inc.actionTaken && (
-                      <div className="p-2 rounded-lg bg-muted/40 border border-border text-xs text-muted-foreground">
-                        <strong className="text-foreground">Acción / Medida tomada: </strong>
-                        {inc.actionTaken}
-                      </div>
-                    )}
-
-                    {inc.citationDate && (
-                      <div className="p-2 rounded-lg bg-purple-500/10 border border-purple-500/20 text-xs text-purple-700 dark:text-purple-300 flex items-center gap-2 font-semibold">
-                        <CalendarClock className="w-4 h-4" />
-                        <span>Citación programada: {formatPeruDateTime(inc.citationDate)}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Footer de Acuse de Recibo */}
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
-                  {isAcknowledged ? (
-                    <div className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Enterado por el apoderado el {formatPeruShortDate(inc.acknowledgedAt!)}</span>
-                    </div>
-                  ) : (
-                    <div className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
-                      <Clock className="w-3.5 h-3.5" />
-                      <span>Pendiente de acuse del padre</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+        <>
+          <IncidentsList
+            incidents={incidents}
+            canManageSiseve={canManageSiseve}
+            onOpenSiseveModal={(id) => {
+              setSiseveModalIncidentId(id);
+              setSiseveInputCode('');
+            }}
+          />
 
           {meta && (
             <Pagination
@@ -381,7 +162,7 @@ export const IncidentsPage: React.FC = () => {
               }}
             />
           )}
-        </div>
+        </>
       )}
 
       {/* Modal de Registro */}

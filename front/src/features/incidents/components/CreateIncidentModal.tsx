@@ -1,40 +1,16 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { X, AlertCircle, Award, Stethoscope, CalendarClock, User, ShieldAlert } from 'lucide-react';
+import { X, AlertCircle, CalendarClock, User, ShieldAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { getApiErrorMessage } from '@/lib/errors';
 import { useCreateIncident } from '../api/useIncidents';
 import { useStudents } from '@/features/students/api/useStudents';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
-import type { IncidentType } from '../types';
-
-const incidentSchema = z.object({
-  // Los alumnos se eligen aparte (pueden ser varios); el campo queda para compatibilidad
-  studentId: z.string().optional(),
-  type: z.enum([
-    'MERITO',
-    'DEMERITO',
-    'ATENCION_TOPICO',
-    'CITACION_PADRES',
-    'BEHAVIORAL',
-    'HEALTH',
-    'ACADEMIC',
-    'CITATION',
-    'POSITIVE',
-  ]),
-  severity: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
-  title: z.string().min(3, 'El título debe tener al menos 3 caracteres'),
-  description: z.string().min(5, 'La descripción debe tener al menos 5 caracteres'),
-  actionTaken: z.string().optional(),
-  citationDate: z.string().optional(),
-  isViolenceCase: z.boolean().default(false),
-  notifyFamily: z.boolean().default(true),
-});
-
-type FormData = z.infer<typeof incidentSchema>;
+import { createIncidentSchema, type CreateIncidentFormData } from '../schemas/incident.schema';
+import { INCIDENT_TYPE_OPTIONS } from '../constants/incidentOptions';
 
 interface CreateIncidentModalProps {
   isOpen: boolean;
@@ -42,24 +18,8 @@ interface CreateIncidentModalProps {
   defaultStudentId?: string;
 }
 
-const TYPE_OPTIONS: Array<{ value: IncidentType; label: string; icon: React.ReactNode }> = [
-  { value: 'MERITO', label: 'Mérito / Reconocimiento', icon: <Award className="w-4 h-4 text-emerald-500" /> },
-  { value: 'DEMERITO', label: 'Falta / Demérito Conductual', icon: <AlertCircle className="w-4 h-4 text-amber-500" /> },
-  {
-    value: 'ATENCION_TOPICO',
-    label: 'Atención en Tópico / Enfermería',
-    icon: <Stethoscope className="w-4 h-4 text-blue-500" />,
-  },
-  {
-    value: 'CITACION_PADRES',
-    label: 'Citación a Padres / Entrevista',
-    icon: <CalendarClock className="w-4 h-4 text-purple-500" />,
-  },
-];
-
 export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ isOpen, onClose, defaultStudentId }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  // Una incidencia puede involucrar a varios alumnos (p. ej. una pelea): se registra una ficha por alumno
   const [picked, setPicked] = useState<Array<{ id: string; name: string; room: string }>>([]);
   const [pickError, setPickError] = useState<string | null>(null);
   const debouncedSearch = useDebouncedValue(searchTerm.trim(), 300);
@@ -76,8 +36,8 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ isOpen
     watch,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<FormData>({
-    resolver: zodResolver(incidentSchema),
+  } = useForm<CreateIncidentFormData>({
+    resolver: zodResolver(createIncidentSchema),
     defaultValues: {
       studentId: defaultStudentId || '',
       type: 'DEMERITO',
@@ -103,7 +63,7 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ isOpen
     return c?.grade ? `${c.grade}° "${c.section ?? ''}"` : '';
   };
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = async (data: CreateIncidentFormData) => {
     const targets = picked.length > 0 ? picked : defaultStudentId ? [{ id: defaultStudentId, name: '', room: '' }] : [];
     if (targets.length === 0) {
       setPickError('Elige al menos un estudiante.');
@@ -132,10 +92,7 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ isOpen
       setPicked([]);
       onClose();
     } catch (err: unknown) {
-      const errorMsg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Error al registrar la incidencia.';
-      toast.error(errorMsg);
+      toast.error(getApiErrorMessage(err, 'Error al registrar la incidencia.'));
     }
   };
 
@@ -251,7 +208,7 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ isOpen
                 {...register('type')}
                 className="w-full h-9 rounded-lg border border-border bg-background px-3 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
               >
-                {TYPE_OPTIONS.map((opt) => (
+                {INCIDENT_TYPE_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
                   </option>
