@@ -3,9 +3,10 @@ import { TurnstileWidget, TURNSTILE_SITE_KEY } from '@/components/security/Turns
 import { Link, useParams } from 'react-router-dom';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { LEVEL_LABEL, gradeOptions, submitAdmission, usePublicSchool, type Level } from '../api/useSecretariat';
 import { Field, PublicShell, fieldClass } from '../components/PublicShell';
+import { StudentDataSection } from './public-admission/StudentDataSection';
+import { GuardianDataSection } from './public-admission/GuardianDataSection';
 
 const empty = {
   educationLevel: '' as Level | '',
@@ -39,9 +40,11 @@ export const PublicAdmissionPage: React.FC = () => {
   const [done, setDone] = useState(false);
   const [captcha, setCaptcha] = useState<string | null>(null);
   const [captchaReset, setCaptchaReset] = useState(0);
+
   const set =
     (k: keyof typeof empty) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
       setForm((f) => ({ ...f, [k]: e.target.value }));
+
   const grades = useMemo(() => (form.educationLevel ? gradeOptions(form.educationLevel) : []), [form.educationLevel]);
 
   const submit = async (e: React.FormEvent) => {
@@ -146,159 +149,8 @@ export const PublicAdmissionPage: React.FC = () => {
             </div>
           </section>
 
-          <section className="space-y-4 rounded-lg border bg-background p-5">
-            <h2 className="font-semibold">2. Datos del estudiante</h2>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Field label="Nombres" required className="sm:col-span-1">
-                <input
-                  className={fieldClass}
-                  value={form.studentFirstNames}
-                  onChange={set('studentFirstNames')}
-                  required
-                  maxLength={80}
-                />
-              </Field>
-              <Field label="Apellido paterno" required>
-                <input
-                  className={fieldClass}
-                  value={form.studentLastNamePaternal}
-                  onChange={set('studentLastNamePaternal')}
-                  required
-                  maxLength={60}
-                />
-              </Field>
-              <Field label="Apellido materno">
-                <input
-                  className={fieldClass}
-                  value={form.studentLastNameMaternal}
-                  onChange={set('studentLastNameMaternal')}
-                  maxLength={60}
-                />
-              </Field>
-              <Field label="Tipo de documento" required>
-                <select className={fieldClass} value={form.studentDocumentType} onChange={set('studentDocumentType')}>
-                  <option value="DNI">DNI</option>
-                  <option value="CE">Carné de extranjería</option>
-                  <option value="PASSPORT">Pasaporte</option>
-                  <option value="PNA">Partida de nacimiento</option>
-                </select>
-              </Field>
-              <Field label="N.° de documento" required>
-                <input
-                  className={fieldClass}
-                  value={form.studentDocumentId}
-                  onChange={set('studentDocumentId')}
-                  required
-                  inputMode="numeric"
-                  maxLength={15}
-                />
-              </Field>
-              <Field label="Fecha de nacimiento" required>
-                <input
-                  type="date"
-                  className={fieldClass}
-                  value={form.studentBirthDate}
-                  onChange={set('studentBirthDate')}
-                  required
-                />
-              </Field>
-              <Field label="Sexo" required>
-                <select className={fieldClass} value={form.studentGender} onChange={set('studentGender')} required>
-                  <option value="">Elija…</option>
-                  <option value="FEMALE">Mujer</option>
-                  <option value="MALE">Hombre</option>
-                </select>
-              </Field>
-              <Field label="Colegio de procedencia" className="sm:col-span-2">
-                <input
-                  className={fieldClass}
-                  value={form.previousSchool}
-                  onChange={set('previousSchool')}
-                  maxLength={150}
-                  placeholder="Si viene de otro colegio"
-                />
-              </Field>
-            </div>
-          </section>
-
-          <section className="space-y-4 rounded-lg border bg-background p-5">
-            <h2 className="font-semibold">3. Datos del padre, madre o apoderado</h2>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Field label="Nombres" required>
-                <input
-                  className={fieldClass}
-                  value={form.guardianFirstName}
-                  onChange={set('guardianFirstName')}
-                  required
-                  maxLength={80}
-                />
-              </Field>
-              <Field label="Apellidos" required>
-                <input
-                  className={fieldClass}
-                  value={form.guardianLastNames}
-                  onChange={set('guardianLastNames')}
-                  required
-                  maxLength={120}
-                />
-              </Field>
-              <Field label="Parentesco" required>
-                <select className={fieldClass} value={form.guardianRelation} onChange={set('guardianRelation')}>
-                  <option value="MADRE">Madre</option>
-                  <option value="PADRE">Padre</option>
-                  <option value="APODERADO">Apoderado(a)</option>
-                  <option value="ABUELO">Abuelo(a)</option>
-                  <option value="OTRO">Otro</option>
-                </select>
-              </Field>
-              <Field label="DNI">
-                <input
-                  className={fieldClass}
-                  value={form.guardianDocumentId}
-                  onChange={set('guardianDocumentId')}
-                  inputMode="numeric"
-                  maxLength={15}
-                />
-              </Field>
-              <Field label="Celular (WhatsApp)" required>
-                <input
-                  className={fieldClass}
-                  value={form.guardianPhone}
-                  onChange={set('guardianPhone')}
-                  required
-                  inputMode="tel"
-                  maxLength={20}
-                  placeholder="987654321"
-                />
-              </Field>
-              <Field label="Correo" hint="Le enviaremos la confirmación">
-                <input
-                  type="email"
-                  className={fieldClass}
-                  value={form.guardianEmail}
-                  onChange={set('guardianEmail')}
-                  maxLength={150}
-                />
-              </Field>
-            </div>
-            <Field
-              label="¿Algo que debamos saber?"
-              hint="Necesidades educativas, hermanos en el colegio, horario para llamarle, etc."
-            >
-              <Textarea value={form.familyNotes} onChange={set('familyNotes')} rows={3} maxLength={1500} />
-            </Field>
-            {/* Campo trampa: invisible para personas, los bots lo rellenan */}
-            <input
-              type="text"
-              name="website"
-              value={form.website}
-              onChange={set('website')}
-              tabIndex={-1}
-              autoComplete="off"
-              aria-hidden
-              className="absolute left-[-9999px] h-0 w-0 opacity-0"
-            />
-          </section>
+          <StudentDataSection form={form} onChangeField={(k) => set(k)} />
+          <GuardianDataSection form={form} onChangeField={(k) => set(k)} />
 
           <section className="space-y-3 rounded-lg border bg-background p-5">
             <label className="flex items-start gap-3 text-sm">
