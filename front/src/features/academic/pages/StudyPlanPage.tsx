@@ -1,43 +1,23 @@
 import { useSelectedAcademicYear } from '@/components/AcademicYearSwitcher';
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, BookOpen, Lock, Trash2 } from 'lucide-react';
+import { AlertTriangle, BookOpen } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Tabs } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { cn } from '@/lib/utils';
-import { useApplyTemplate, useCatalog, useRemovePlanCourse, useStudyPlan, useUpdatePlanCourse } from '../api';
+import { useApplyTemplate, useCatalog, useRemovePlanCourse, useStudyPlan } from '../api';
 import { CourseCompetencesModal, SubcourseModal, TemplateModal, WorkshopModal } from '../components/PlanModals';
 import { PreuniversityModal } from '../components/PreuniversityModal';
 import { PhraseBankModal } from '../components/PhraseBankModal';
 import { LEVEL_LABEL, gradeLabel, type CnebArea, type Level, type PlanCourse } from '../types';
+import { AreaCoverageCard } from '../components/study-plan/AreaCoverageCard';
+import { WorkshopsCard } from '../components/study-plan/WorkshopsCard';
 
 const LEVELS: Level[] = ['INITIAL', 'PRIMARY', 'SECONDARY'];
-
-const HoursInput: React.FC<{ course: PlanCourse }> = ({ course }) => {
-  const update = useUpdatePlanCourse();
-  const [value, setValue] = useState(course.weeklyHours?.toString() ?? '');
-  useEffect(() => setValue(course.weeklyHours?.toString() ?? ''), [course.weeklyHours]);
-  return (
-    <Input
-      type="number"
-      min={0}
-      max={40}
-      className="h-8 w-16 text-center"
-      aria-label={`Horas semanales de ${course.name}`}
-      value={value}
-      onChange={(e) => setValue(e.target.value)}
-      onBlur={() => {
-        const next = value === '' ? null : Number(value);
-        if (next !== course.weeklyHours) update.mutate({ planCourseId: course.planCourseId, weeklyHours: next });
-      }}
-    />
-  );
-};
 
 export const StudyPlanPage: React.FC = () => {
   // Año que se edita: el elegido en la cabecera
@@ -152,87 +132,16 @@ export const StudyPlanPage: React.FC = () => {
               .map((cov) => {
                 const spec = areaSpec(cov.code)!;
                 const courses = plan.courses.filter((c) => c.officialAreaCode === cov.code && c.kind !== 'WORKSHOP');
-                const isSplit = courses.some((c) => c.kind === 'SUBCOURSE');
                 return (
-                  <Card key={cov.code} className="p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-semibold">{cov.name}</h3>
-                        {cov.isTransversal && (
-                          <span className="text-xs text-muted-foreground">· las registra el tutor o tutora</span>
-                        )}
-                        {cov.missing.length === 0 && !cov.conflict ? (
-                          <span className="text-xs text-emerald-600">Completa</span>
-                        ) : (
-                          <span className="text-xs text-red-600">Incompleta</span>
-                        )}
-                      </div>
-                      {!cov.isTransversal && !isSplit && (
-                        <Button variant="ghost" size="sm" onClick={() => setSplitArea(spec)}>
-                          Dividir en cursos
-                        </Button>
-                      )}
-                    </div>
-                    <div className="mt-3 divide-y divide-border">
-                      {courses.map((course) => (
-                        <div key={course.planCourseId} className="flex flex-wrap items-center gap-3 py-2">
-                          <div className="min-w-[10rem] flex-1">
-                            <p className="text-sm">
-                              {course.name}
-                              {course.kind === 'SUBCOURSE' && (
-                                <span className="ml-2 text-xs text-muted-foreground">
-                                  {course.catalogKey?.startsWith('REST_')
-                                    ? course.officialAreaCode === 'TRANS'
-                                      ? 'lo registra el tutor'
-                                      : 'resto del área'
-                                    : course.catalogKey
-                                      ? 'curso del catálogo'
-                                      : 'curso del área'}
-                                </span>
-                              )}
-                            </p>
-                            <div className="mt-1 flex flex-wrap gap-1">
-                              {course.competences.map((k) => (
-                                <span
-                                  key={k.id}
-                                  className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground"
-                                >
-                                  {k.shortName}
-                                  {k.weight !== 1 ? ` ×${k.weight}` : ''}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            h/sem <HoursInput course={course} />
-                          </div>
-                          {course.hasGrades && (
-                            <span
-                              className="flex items-center gap-1 text-xs text-muted-foreground"
-                              title="Tiene notas: no se puede quitar"
-                            >
-                              <Lock className="h-3.5 w-3.5" />
-                              Con notas
-                            </span>
-                          )}
-                          {course.kind === 'SUBCOURSE' && (
-                            <Button variant="ghost" size="sm" onClick={() => setEditCourse({ course, area: spec })}>
-                              Competencias
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            disabled={course.hasGrades}
-                            onClick={() => setToRemove(course)}
-                            aria-label={`Quitar ${course.name}`}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
+                  <AreaCoverageCard
+                    key={cov.code}
+                    cov={cov}
+                    spec={spec}
+                    courses={courses}
+                    onSplitArea={setSplitArea}
+                    onEditCourse={setEditCourse}
+                    onRemoveCourse={setToRemove}
+                  />
                 );
               })}
 
@@ -257,32 +166,7 @@ export const StudyPlanPage: React.FC = () => {
               </Card>
             )}
 
-            {workshops.length > 0 && (
-              <Card className="p-4">
-                <h3 className="text-sm font-semibold">
-                  Talleres <span className="font-normal text-muted-foreground">· no van al SIAGIE</span>
-                </h3>
-                <div className="mt-2 divide-y divide-border">
-                  {workshops.map((w) => (
-                    <div key={w.planCourseId} className="flex items-center gap-3 py-2">
-                      <p className="flex-1 text-sm">{w.name}</p>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        h/sem <HoursInput course={w} />
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        disabled={w.hasGrades}
-                        onClick={() => setToRemove(w)}
-                        aria-label={`Quitar ${w.name}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            )}
+            <WorkshopsCard workshops={workshops} onRemoveCourse={setToRemove} />
           </div>
         </>
       )}
