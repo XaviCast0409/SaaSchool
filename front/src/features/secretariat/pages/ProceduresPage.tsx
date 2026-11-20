@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
-import { BookOpenText, CheckCircle2, Download, FilePlus2, Loader2, Lock, XCircle } from 'lucide-react';
+import { BookOpenText, Download, FilePlus2, Lock } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,19 +8,20 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Modal } from '@/components/ui/modal';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatPeruShortDate, formatPeruDateTime } from '@/lib/dateUtils';
-import { apiErrorMessage } from '@/features/academic/api';
+import { formatPeruShortDate } from '@/lib/dateUtils';
+import { getApiErrorMessage } from '@/lib/errors';
 import { openFile } from '@/features/course-contents/utils/fileUrls';
 import { useGetActiveSchool } from '@/features/schools/api/useSchool';
 import {
   DOCUMENT_STATUS_LABEL,
-  DOCUMENT_TYPE_LABEL,
   useFamilyProcedures,
   useRatify,
   useRequestDocument,
   type DocumentStatus,
   type DocumentType,
 } from '../api/useSecretariat';
+import { RatificationCard } from './procedures-page/RatificationCard';
+import { RequestDocumentModal, type RequestDocumentFormState } from './procedures-page/RequestDocumentModal';
 
 const STATUS_VARIANT: Record<DocumentStatus, 'secondary' | 'warning' | 'success' | 'outline' | 'destructive'> = {
   REQUESTED: 'secondary',
@@ -29,7 +30,6 @@ const STATUS_VARIANT: Record<DocumentStatus, 'secondary' | 'warning' | 'success'
   DELIVERED: 'outline',
   REJECTED: 'destructive',
 };
-const select = 'h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground';
 
 /** Trámites de la familia: ratificar matrícula, pedir constancias/certificados y ver su estado. */
 export const ProceduresPage: React.FC = () => {
@@ -40,7 +40,7 @@ export const ProceduresPage: React.FC = () => {
   const [decline, setDecline] = useState<{ studentId: string; name: string } | null>(null);
   const [reason, setReason] = useState('');
   const [reqOpen, setReqOpen] = useState(false);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<RequestDocumentFormState>({
     studentId: '',
     type: 'CONSTANCIA_ESTUDIOS' as DocumentType,
     purpose: '',
@@ -60,7 +60,7 @@ export const ProceduresPage: React.FC = () => {
           setDecline(null);
           setReason('');
         },
-        onError: (e) => toast.error(apiErrorMessage(e)),
+        onError: (e) => toast.error(getApiErrorMessage(e, 'Error al responder ratificación')),
       },
     );
 
@@ -76,7 +76,7 @@ export const ProceduresPage: React.FC = () => {
           );
           setReqOpen(false);
         },
-        onError: (e) => toast.error(apiErrorMessage(e)),
+        onError: (e) => toast.error(getApiErrorMessage(e, 'Error al solicitar documento')),
       },
     );
 
@@ -108,66 +108,13 @@ export const ProceduresPage: React.FC = () => {
         }
       />
 
-      {r.open && r.year && (
-        <Card className="space-y-3 p-4">
-          <div>
-            <p className="font-semibold">Ratificación de matrícula {r.year}</p>
-            <p className="text-sm text-muted-foreground">
-              Confirme si su hijo(a) continuará en el colegio el próximo año
-              {r.deadline ? `, a más tardar el ${formatPeruShortDate(r.deadline.slice(0, 10))}` : ''}.
-            </p>
-          </div>
-          <div className="space-y-2">
-            {data.children.map((c) => (
-              <div key={c.studentId} className="flex flex-wrap items-center gap-3 rounded-md border p-3">
-                <p className="min-w-0 flex-1 font-medium">{c.name}</p>
-                {c.ratification ? (
-                  <div className="flex items-center gap-3">
-                    {c.ratification.decision === 'CONFIRMED' ? (
-                      <span className="flex items-center gap-1 text-sm text-emerald-700 dark:text-emerald-400">
-                        <CheckCircle2 className="h-4 w-4" aria-hidden /> Continúa en {r.year}
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-sm text-red-700 dark:text-red-400">
-                        <XCircle className="h-4 w-4" aria-hidden /> No continuará
-                      </span>
-                    )}
-                    <span className="text-xs text-muted-foreground">
-                      {formatPeruDateTime(c.ratification.updatedAt)}
-                    </span>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() =>
-                        c.ratification!.decision === 'CONFIRMED'
-                          ? setDecline({ studentId: c.studentId, name: c.name })
-                          : confirm(c.studentId, 'CONFIRMED')
-                      }
-                      disabled={ratify.isPending}
-                    >
-                      Cambiar
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setDecline({ studentId: c.studentId, name: c.name })}
-                      disabled={ratify.isPending}
-                    >
-                      No continuará
-                    </Button>
-                    <Button size="sm" onClick={() => confirm(c.studentId, 'CONFIRMED')} disabled={ratify.isPending}>
-                      Sí, continúa en {r.year}
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
+      <RatificationCard
+        ratification={r}
+        childrenList={data.children}
+        isPending={ratify.isPending}
+        onConfirm={(studentId, decision) => confirm(studentId, decision)}
+        onOpenDecline={(student) => setDecline(student)}
+      />
 
       <Card className="p-4">
         <p className="mb-3 font-semibold">Mis solicitudes</p>
@@ -250,76 +197,15 @@ export const ProceduresPage: React.FC = () => {
         </label>
       </Modal>
 
-      <Modal
+      <RequestDocumentModal
         open={reqOpen}
         onClose={() => setReqOpen(false)}
-        title="Pedir un documento"
-        footer={
-          <Button
-            onClick={submitRequest}
-            disabled={request.isPending || !form.studentId || (form.type === 'OTRO' && !form.purpose.trim())}
-          >
-            {request.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Enviar solicitud
-          </Button>
-        }
-      >
-        <div className="space-y-3 text-sm">
-          {data.children.length > 1 && (
-            <label className="block space-y-1">
-              <span>Hijo(a)</span>
-              <select
-                className={select}
-                value={form.studentId}
-                onChange={(e) => setForm((f) => ({ ...f, studentId: e.target.value }))}
-              >
-                {data.children.map((c) => (
-                  <option key={c.studentId} value={c.studentId}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-          <label className="block space-y-1">
-            <span>Documento</span>
-            <select
-              className={select}
-              value={form.type}
-              onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as DocumentType }))}
-            >
-              {(Object.keys(DOCUMENT_TYPE_LABEL) as DocumentType[]).map((t) => (
-                <option key={t} value={t}>
-                  {DOCUMENT_TYPE_LABEL[t]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block space-y-1">
-            <span>{form.type === 'OTRO' ? '¿Qué documento necesita?' : 'Motivo (opcional)'}</span>
-            <Textarea
-              rows={2}
-              value={form.purpose}
-              onChange={(e) => setForm((f) => ({ ...f, purpose: e.target.value }))}
-              placeholder="Ej.: Para trámite de beca, traslado, viaje…"
-              maxLength={300}
-            />
-          </label>
-          <label className="block space-y-1">
-            <span>Ejemplares</span>
-            <select
-              className={select}
-              value={form.copies}
-              onChange={(e) => setForm((f) => ({ ...f, copies: Number(e.target.value) }))}
-            >
-              {[1, 2, 3, 4, 5].map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      </Modal>
+        childrenList={data.children}
+        form={form}
+        setForm={setForm}
+        onSubmit={submitRequest}
+        isPending={request.isPending}
+      />
     </div>
   );
 };
