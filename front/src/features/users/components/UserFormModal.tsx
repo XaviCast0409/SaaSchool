@@ -10,6 +10,9 @@ import { useSelectedAcademicYear } from '@/components/AcademicYearSwitcher';
 import { useAuthStore } from '@/store/useAuthStore';
 import type { DirectoryUser } from '../types';
 import { TemporaryCredentialsDialog, type TemporaryCredential } from '@/components/ui/TemporaryCredentialsDialog';
+import { getApiErrorMessage } from '@/lib/errors';
+import { USER_FORM_ROLE_LABELS } from '../constants';
+import { UserPersonalDataFields } from './user-form-modal/UserPersonalDataFields';
 
 interface UserFormModalProps {
   defaultRole?: 'TEACHER' | 'PARENT' | 'SCHOOL_ADMIN' | 'ADMINISTRATIVE';
@@ -17,13 +20,6 @@ interface UserFormModalProps {
   /** Avisa la cuenta recién creada (p. ej. para vincularla en seguida a un alumno) */
   onCreated?: (user: DirectoryUser) => void;
 }
-
-const ROLE_LABELS: Record<string, string> = {
-  SCHOOL_ADMIN: 'Director / Promotor (Administrador General)',
-  ADMINISTRATIVE: 'Personal Administrativo (Secretaría / Caja)',
-  TEACHER: 'Profesor(a)',
-  PARENT: 'Apoderado / Padre de Familia',
-};
 
 export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PARENT', onClose, onCreated }) => {
   const { mutate: createUser, isPending, error } = useCreateUser();
@@ -33,7 +29,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PAR
   const effectiveDefaultRole =
     isAdministrative && (defaultRole === 'SCHOOL_ADMIN' || defaultRole === 'ADMINISTRATIVE') ? 'TEACHER' : defaultRole;
 
-  // Desde «Personal» se registra personal; los apoderados se crean desde la matrícula o Familias.
   const isParentFlow = defaultRole === 'PARENT';
   const [showPassword, setShowPassword] = useState(false);
 
@@ -53,7 +48,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PAR
 
   const selectedRole = watch('role');
 
-  /** Contraseña temporal legible (sin 0/O ni 1/l) que cumple la regla: letras y números. */
   const generatePassword = () => {
     const letters = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ';
     const digits = '23456789';
@@ -74,7 +68,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PAR
   };
   const isStaff = selectedRole !== 'PARENT';
 
-  // Años para los que se contrata (por defecto, el que se está viendo); solo vigente y siguientes
   const { years, current, selected: viewedYear } = useSelectedAcademicYear();
   const hireYears = [...years].filter((y) => !current || y.year >= current.year).sort((a, b) => a.year - b.year);
   const [yearIds, setYearIds] = useState<string[]>(() => (viewedYear ? [viewedYear.id] : []));
@@ -133,7 +126,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PAR
               {isParentFlow ? 'Registrar apoderado' : 'Registrar personal'}
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Rol: <strong>{ROLE_LABELS[defaultRole]}</strong>
+              Rol: <strong>{USER_FORM_ROLE_LABELS[defaultRole]}</strong>
             </p>
           </div>
           <button
@@ -149,8 +142,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PAR
         <form onSubmit={handleSubmit(onSubmit)} className="p-5 space-y-4">
           {error && (
             <div className="p-3 rounded-md bg-destructive/10 text-destructive text-xs font-medium border border-destructive/20">
-              {(error as { response?: { data?: { message?: string } } }).response?.data?.message ||
-                'Error al registrar el usuario. Verifica los datos.'}
+              {getApiErrorMessage(error, 'Error al registrar el usuario. Verifica los datos.')}
             </div>
           )}
 
@@ -178,95 +170,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ defaultRole = 'PAR
             </select>
           </div>
 
-          {/* Nombre y Apellidos */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label
-                htmlFor="userformmodal-firstName"
-                className="text-xs font-semibold uppercase tracking-wide text-foreground"
-              >
-                Nombre(s) *
-              </label>
-              <Input id="userformmodal-firstName" placeholder="Ej: Luis Alberto" {...register('firstName')} />
-              {errors.firstName && <p className="text-xs text-destructive">{errors.firstName.message}</p>}
-            </div>
-            <div className="space-y-1.5">
-              <label
-                htmlFor="userformmodal-lastNamePaternal"
-                className="text-xs font-semibold uppercase tracking-wide text-foreground"
-              >
-                Apellido Paterno *
-              </label>
-              <Input id="userformmodal-lastNamePaternal" placeholder="Ej: García" {...register('lastNamePaternal')} />
-              {errors.lastNamePaternal && <p className="text-xs text-destructive">{errors.lastNamePaternal.message}</p>}
-            </div>
-            <div className="space-y-1.5 sm:col-span-2">
-              <label
-                htmlFor="userformmodal-lastNameMaternal"
-                className="text-xs font-semibold uppercase tracking-wide text-foreground"
-              >
-                Apellido Materno
-              </label>
-              <Input id="userformmodal-lastNameMaternal" placeholder="Ej: Torres" {...register('lastNameMaternal')} />
-              {errors.lastNameMaternal && <p className="text-xs text-destructive">{errors.lastNameMaternal.message}</p>}
-            </div>
-          </div>
-
-          {/* Documento */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-1.5">
-              <label
-                htmlFor="userformmodal-documentType"
-                className="text-xs font-semibold uppercase tracking-wide text-foreground"
-              >
-                Tipo Doc.
-              </label>
-              <select
-                id="userformmodal-documentType"
-                {...register('documentType')}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              >
-                <option value="DNI">DNI (8 dígitos)</option>
-                <option value="CE">CE (Carné Extranjería)</option>
-                <option value="PTP">PTP (Permiso Temporal)</option>
-                <option value="PASSPORT">Pasaporte</option>
-                <option value="OTHER">Otro</option>
-              </select>
-            </div>
-            <div className="space-y-1.5 col-span-2">
-              <label
-                htmlFor="userformmodal-documentId"
-                className="text-xs font-semibold uppercase tracking-wide text-foreground"
-              >
-                N° Documento *
-              </label>
-              <Input id="userformmodal-documentId" placeholder="Ej: 47812345" {...register('documentId')} />
-              {errors.documentId && <p className="text-xs text-destructive">{errors.documentId.message}</p>}
-            </div>
-          </div>
-
-          {/* Contacto */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label
-                htmlFor="userformmodal-email"
-                className="text-xs font-semibold uppercase tracking-wide text-foreground"
-              >
-                {selectedRole === 'PARENT' ? 'Correo Electrónico (Opcional)' : 'Correo Electrónico *'}
-              </label>
-              <Input id="userformmodal-email" type="email" placeholder="correo@ejemplo.com" {...register('email')} />
-              {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
-            </div>
-            <div className="space-y-1.5">
-              <label
-                htmlFor="userformmodal-cellphone"
-                className="text-xs font-semibold uppercase tracking-wide text-foreground"
-              >
-                Celular
-              </label>
-              <Input id="userformmodal-cellphone" placeholder="Ej: 987654321" {...register('cellphone')} />
-            </div>
-          </div>
+          <UserPersonalDataFields register={register} errors={errors} selectedRole={selectedRole} />
 
           {/* Años de contratación (personal) */}
           {isStaff && hireYears.length > 1 && (
