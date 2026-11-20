@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { CalendarCheck, Clock, AlertCircle, Filter, Calendar, FileText, UserCheck, Info } from 'lucide-react';
+import { CalendarCheck, AlertCircle, Filter, FileText } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,18 +10,10 @@ import { useAttendanceByEnrollment } from '@/features/attendance/api/useAttendan
 import { useJustifications } from '@/features/attendance/api/useJustifications';
 import { usePickups } from '@/features/attendance/api/usePickups';
 import { JustifyAbsenceModal } from '@/features/attendance/components/JustifyAbsenceModal';
-import { AttendanceStatusBadge } from '@/features/attendance/components/AttendanceStatusBadge';
 import { ChildSwitcher } from './ChildSwitcher';
 import { AttendanceMetricsCards } from './AttendanceMetricsCards';
-import { formatPeruDate } from '@/lib/dateUtils';
-
-const REASON_LABELS: Record<string, string> = {
-  MEDICAL: 'Salud / cita médica',
-  FAMILY: 'Motivo familiar',
-  BEREAVEMENT: 'Duelo',
-  TRANSPORT: 'Problema de transporte',
-  OTHER: 'Otro motivo',
-};
+import { ParentAttendanceHistory } from './parent-attendance/ParentAttendanceHistory';
+import { ParentJustificationsAndPickups } from './parent-attendance/ParentJustificationsAndPickups';
 
 export const ParentAttendanceView: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -65,13 +57,6 @@ export const ParentAttendanceView: React.FC = () => {
       nextParams.delete('date');
       setSearchParams(nextParams, { replace: true });
     }
-  };
-
-  const isWithinLast30Days = (dateStr: string) => {
-    const d = new Date(dateStr);
-    const now = new Date();
-    const diffDays = (now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
-    return diffDays >= 0 && diffDays <= 30;
   };
 
   // Conteo por estado para los chips de filtro
@@ -201,230 +186,22 @@ export const ParentAttendanceView: React.FC = () => {
       </div>
 
       {/* 5. Historial Diario de Asistencia */}
-      <div className="rounded-2xl bg-card border border-border shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-border bg-muted/30 flex items-center justify-between">
-          <h3 className="font-extrabold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-primary" />
-            <span>Registro Diario de Entrada ({filteredRecords.length})</span>
-          </h3>
-        </div>
+      <ParentAttendanceHistory
+        filteredRecords={filteredRecords}
+        loadingRecords={loadingRecords}
+        onJustify={(date) => {
+          setModalDefaultDate(date);
+          setModalOpen(true);
+        }}
+      />
 
-        {loadingRecords ? (
-          <div className="p-8 text-center text-xs text-muted-foreground">Cargando historial de asistencias...</div>
-        ) : filteredRecords.length === 0 ? (
-          <div className="p-12 text-center text-muted-foreground space-y-1">
-            <CalendarCheck className="w-10 h-10 mx-auto opacity-30 mb-2" />
-            <p className="font-bold text-sm text-foreground">Sin registros en este filtro</p>
-            <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-              No hay marcas de asistencia registradas para la categoría seleccionada.
-            </p>
-          </div>
-        ) : (
-          <div className="divide-y divide-border/60">
-            {filteredRecords.map((item) => {
-              const recordDate = new Date(item.date);
-              const canJustify =
-                (item.status === 'ABSENT_UNJUSTIFIED' || item.status === 'LATE_UNJUSTIFIED') &&
-                isWithinLast30Days(item.date);
-
-              return (
-                <div
-                  key={item.id}
-                  className="p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:bg-muted/20 transition-colors"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-xl bg-secondary/80 border border-border/60 flex flex-col items-center justify-center text-center shrink-0 shadow-sm">
-                      <span className="text-xs uppercase font-bold text-muted-foreground leading-none">
-                        {recordDate.toLocaleDateString('es-PE', { month: 'short', timeZone: 'UTC' })}
-                      </span>
-                      <span className="text-sm font-black text-foreground leading-none mt-0.5">
-                        {recordDate.getUTCDate()}
-                      </span>
-                    </div>
-
-                    <div className="min-w-0">
-                      <span className="text-xs sm:text-sm font-bold text-foreground block capitalize truncate">
-                        {recordDate.toLocaleDateString('es-PE', {
-                          weekday: 'long',
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric',
-                          timeZone: 'UTC',
-                        })}
-                      </span>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 flex-wrap">
-                        {item.checkInTime ? (
-                          <span className="flex items-center gap-1 font-semibold text-foreground">
-                            <Clock className="w-3 h-3 text-primary" />
-                            Ingreso:{' '}
-                            {new Date(item.checkInTime).toLocaleTimeString('es-PE', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              timeZone: 'America/Lima',
-                            })}
-                          </span>
-                        ) : (
-                          <span>Marcado en lista</span>
-                        )}
-                        {item.notes && (
-                          <>
-                            <span>•</span>
-                            <span className="italic text-muted-foreground truncate max-w-[200px]">"{item.notes}"</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="shrink-0 flex items-center gap-2">
-                    <AttendanceStatusBadge status={item.status} />
-                    {canJustify && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setModalDefaultDate(item.date.slice(0, 10));
-                          setModalOpen(true);
-                        }}
-                        className="h-7 text-xs font-bold rounded-lg gap-1 border-primary/30 text-primary hover:bg-primary/10"
-                      >
-                        <FileText className="w-3 h-3" />
-                        <span>Justificar</span>
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* 6. Sección: Mis Justificaciones */}
-      <div className="rounded-2xl bg-card border border-border shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-border bg-muted/30 flex items-center justify-between">
-          <h3 className="font-extrabold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-            <FileText className="w-4 h-4 text-primary" />
-            <span>Mis Justificaciones ({justificationsData?.data?.length ?? 0})</span>
-          </h3>
-        </div>
-
-        {loadingJustifications ? (
-          <div className="p-8 text-center text-xs text-muted-foreground">Cargando justificaciones...</div>
-        ) : !justificationsData?.data || justificationsData.data.length === 0 ? (
-          <div className="p-8 text-center text-muted-foreground text-xs">
-            No tienes solicitudes de justificación registradas para este estudiante.
-          </div>
-        ) : (
-          <div className="divide-y divide-border/60">
-            {justificationsData.data.map((j) => {
-              const fromStr = formatPeruDate(j.dateFrom, {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                timeZone: 'America/Lima',
-              });
-              const toStr = formatPeruDate(j.dateTo, {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                timeZone: 'America/Lima',
-              });
-              const dateDisplay = fromStr === toStr ? fromStr : `${fromStr} – ${toStr}`;
-
-              return (
-                <div
-                  key={j.id}
-                  className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-muted/20 transition-colors"
-                >
-                  <div className="space-y-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs sm:text-sm font-bold text-foreground">{dateDisplay}</span>
-                      <span className="text-xs font-medium text-muted-foreground">
-                        • {REASON_LABELS[j.reason] || j.reason}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground line-clamp-2">{j.description}</p>
-                    {j.reviewNote && j.status === 'REJECTED' && (
-                      <p className="text-xs text-destructive font-medium">Nota del colegio: {j.reviewNote}</p>
-                    )}
-                  </div>
-
-                  <div className="shrink-0 flex items-center gap-2">
-                    {j.status === 'PENDING' && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                        Pendiente
-                      </span>
-                    )}
-                    {j.status === 'APPROVED' && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                        Aprobada
-                      </span>
-                    )}
-                    {j.status === 'REJECTED' && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-destructive/15 text-destructive border border-destructive/20">
-                        Rechazada
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* 7. Sección: Personas autorizadas a recoger */}
-      <div className="rounded-2xl bg-card border border-border shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-border bg-muted/30 flex items-center justify-between">
-          <h3 className="font-extrabold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-            <UserCheck className="w-4 h-4 text-primary" />
-            <span>
-              Personas autorizadas a recoger a {activeChild.firstNames} ({authorizedPickups.length})
-            </span>
-          </h3>
-        </div>
-
-        {authorizedPickups.length === 0 ? (
-          <div className="p-6 text-center text-muted-foreground text-xs">
-            No hay personas adicionales autorizadas registradas para recoger al alumno.
-          </div>
-        ) : (
-          <div className="divide-y divide-border/60">
-            {authorizedPickups.map((p) => (
-              <div
-                key={p.id}
-                className="p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:bg-muted/20 transition-colors"
-              >
-                <div className="space-y-0.5 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs sm:text-sm font-bold text-foreground truncate">{p.fullName}</span>
-                    <Badge
-                      variant="outline"
-                      className="text-xs text-emerald-600 bg-emerald-500/10 border-emerald-500/30"
-                    >
-                      {p.relationship}
-                    </Badge>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {p.documentType}: <strong className="text-foreground">{p.documentId}</strong>
-                    {p.cellphone && (
-                      <span className="ml-2">
-                        · Cel: <strong className="text-foreground">{p.cellphone}</strong>
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="p-3 bg-muted/30 border-t border-border flex items-center gap-2 text-xs text-muted-foreground">
-          <Info className="w-3.5 h-3.5 text-primary shrink-0" />
-          <span>Para agregar o quitar personas autorizadas a recoger al estudiante, comunícate con Secretaría.</span>
-        </div>
-      </div>
+      {/* 6 y 7. Mis Justificaciones y Autorizados */}
+      <ParentJustificationsAndPickups
+        childName={activeChild.firstNames}
+        justifications={justificationsData?.data ?? []}
+        loadingJustifications={loadingJustifications}
+        authorizedPickups={authorizedPickups}
+      />
 
       {/* Modal para justificar inasistencia */}
       <JustifyAbsenceModal

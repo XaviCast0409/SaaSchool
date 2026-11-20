@@ -56,3 +56,11 @@ export const RISK_REASON_LABELS: Record<AttendanceAlertReason, string> = {
   MONTHLY_ABSENCE_RATE: '% de faltas injustificadas (últimos 30 días)',
   REPEATED_LATENESS: 'Tardanzas injustificadas repetidas (últimos 30 días)',
 };
+
+export const JUSTIFICATION_REASON_LABELS: Record<string, string> = {
+  MEDICAL: 'Salud / cita médica',
+  FAMILY: 'Motivo familiar',
+  BEREAVEMENT: 'Duelo',
+  TRANSPORT: 'Problema de transporte',
+  OTHER: 'Otro motivo',
+};
