@@ -1,4 +1,3 @@
-import { formatMoney } from '@/lib/format';
 import React, { useState } from 'react';
 import { Send, X, Mail, CheckCircle2 } from 'lucide-react';
 import { formatMoney } from '@/lib/format';
