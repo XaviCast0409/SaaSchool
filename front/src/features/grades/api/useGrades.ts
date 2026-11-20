@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
 import { toast } from 'sonner';
@@ -44,7 +45,7 @@ export const useCreateCriterion = () => {
     },
     onError: (error: any) => {
       toast.error('Error al crear criterio', {
-        description: error?.response?.data?.message || 'No se pudo registrar el criterio.',
+        description: getApiErrorMessage(error, 'No se pudo registrar el criterio.'),
       });
     },
   });
@@ -69,7 +70,7 @@ export const useUpdateCriterion = () => {
     },
     onError: (error: any) => {
       toast.error('Error al actualizar criterio', {
-        description: error?.response?.data?.message || 'No se pudo actualizar el criterio.',
+        description: getApiErrorMessage(error, 'No se pudo actualizar el criterio.'),
       });
     },
   });
@@ -94,7 +95,7 @@ export const useDeleteCriterion = () => {
     },
     onError: (error: any) => {
       toast.error('Error al desactivar criterio', {
-        description: error?.response?.data?.message || 'No se pudo desactivar el criterio.',
+        description: getApiErrorMessage(error, 'No se pudo desactivar el criterio.'),
       });
     },
   });

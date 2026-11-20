@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useState } from 'react';
 import { Key, X, Copy, Check, ShieldAlert, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
@@ -38,7 +39,7 @@ export const ResetAdminPasswordModal: React.FC<ResetAdminPasswordModalProps> = (
           toast.success('Clave de Administrador actualizada correctamente.');
         },
         onError: (err: any) => {
-          toast.error(err?.response?.data?.message || 'Error al restablecer la contraseña del administrador.');
+          toast.error(getApiErrorMessage(err, 'Error al restablecer la contraseña del administrador.'));
         },
       },
     );

@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -176,7 +177,7 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({ classr
           refetch();
         },
         onError: (err: any) => {
-          const msg = err?.response?.data?.message || 'Error al ejecutar cierre de asistencia.';
+          const msg = getApiErrorMessage(err, 'Error al ejecutar cierre de asistencia.');
           toast.error(msg);
         },
       },
@@ -226,7 +227,7 @@ export const AttendanceSheetView: React.FC<AttendanceSheetViewProps> = ({ classr
           setHasChanges(false);
         },
         onError: (err: any) => {
-          const msg = err?.response?.data?.message || 'Error al guardar la asistencia.';
+          const msg = getApiErrorMessage(err, 'Error al guardar la asistencia.');
           toast.error(msg);
         },
       },

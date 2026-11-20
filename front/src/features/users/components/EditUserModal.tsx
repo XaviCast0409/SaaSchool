@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -71,7 +72,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ user, isOpen, onCl
           onClose();
         },
         onError: (err: any) => {
-          toast.error(err?.response?.data?.message || 'Error al actualizar usuario.');
+          toast.error(getApiErrorMessage(err, 'Error al actualizar usuario.'));
         },
       },
     );
@@ -104,7 +105,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ user, isOpen, onCl
         <form onSubmit={handleSubmit(onSubmit)} className="p-5 space-y-4">
           {error && (
             <div className="p-3 rounded-xl bg-destructive/10 text-destructive text-xs font-medium border border-destructive/20">
-              {(error as any)?.response?.data?.message || 'Error al actualizar el usuario.'}
+              {getApiErrorMessage(error, 'Error al actualizar el usuario.')}
             </div>
           )}
 

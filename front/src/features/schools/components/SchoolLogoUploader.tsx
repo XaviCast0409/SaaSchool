@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useRef } from 'react';
 import { ImagePlus, Loader2, School as SchoolIcon, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -28,14 +29,14 @@ export const SchoolLogoUploader: React.FC<{ logoUrl?: string | null; schoolName:
     }
     upload.mutate(file, {
       onSuccess: () => toast.success('Logo actualizado. Ya se ve en toda la plataforma.'),
-      onError: (err: any) => toast.error(err?.response?.data?.message || 'No se pudo subir el logo.'),
+      onError: (err: any) => toast.error(getApiErrorMessage(err, 'No se pudo subir el logo.')),
     });
   };
 
   const onRemove = () =>
     remove.mutate(undefined, {
       onSuccess: () => toast.success('Logo quitado.'),
-      onError: (err: any) => toast.error(err?.response?.data?.message || 'No se pudo quitar el logo.'),
+      onError: (err: any) => toast.error(getApiErrorMessage(err, 'No se pudo quitar el logo.')),
     });
 
   return (

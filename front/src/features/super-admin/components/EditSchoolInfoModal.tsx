@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Building2, X, Save, Phone, Mail, MapPin, Globe } from 'lucide-react';
@@ -80,7 +81,7 @@ export const EditSchoolInfoModal: React.FC<EditSchoolInfoModalProps> = ({ school
           onClose();
         },
         onError: (err: any) => {
-          toast.error(err?.response?.data?.message || 'Error al actualizar los datos del colegio.');
+          toast.error(getApiErrorMessage(err, 'Error al actualizar los datos del colegio.'));
         },
       },
     );

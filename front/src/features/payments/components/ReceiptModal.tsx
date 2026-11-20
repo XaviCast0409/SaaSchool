@@ -1,3 +1,4 @@
+import { formatMoney } from '@/lib/format';
 import React from 'react';
 import { SchoolLetterhead } from '@/features/schools/components/SchoolLetterhead';
 import { Printer, X, FileCheck2 } from 'lucide-react';
@@ -106,7 +107,7 @@ export const ReceiptDocument: React.FC<{ receipt: ReceiptData; isPrint?: boolean
           <span
             className={`font-extrabold text-lg text-emerald-600 dark:text-emerald-400 ${receipt.voided ? 'line-through opacity-60' : ''}`}
           >
-            S/ {Number(receipt.payment.amountPaid).toFixed(2)}
+            {formatMoney(Number(receipt.payment.amountPaid))}
           </span>
         </div>
       </div>

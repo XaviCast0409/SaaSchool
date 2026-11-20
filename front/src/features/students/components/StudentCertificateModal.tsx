@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useState } from 'react';
 import { formatEducationLevel } from '@/lib/utils';
 import { SchoolLogo } from '@/features/schools/components/SchoolLetterhead';
@@ -168,8 +169,7 @@ export const StudentCertificateModal: React.FC<StudentCertificateModalProps> = (
   const isLoading = tab === 'ENROLLMENT' ? loadingEnrollment : loadingNoDebt;
   const isError = tab === 'ENROLLMENT' ? errorEnrollment : errorNoDebt;
   const noDebtErrorMessage =
-    (noDebtErrorObj as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-    'No se puede emitir la Constancia de No Adeudo debido a obligaciones pendientes de pago.';
+    getApiErrorMessage(noDebtErrorObj, 'No se puede emitir la Constancia de No Adeudo debido a obligaciones pendientes de pago.');
 
   const { print, isPrinting } = usePrint({
     pageSize: 'A4 portrait',

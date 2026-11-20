@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
 import { toast } from 'sonner';
@@ -38,7 +39,7 @@ export const useUpdateGradingScale = () => {
       toast.success('Escala de calificación actualizada con éxito.');
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message || 'Error al actualizar la escala.');
+      toast.error(getApiErrorMessage(error, 'Error al actualizar la escala.'));
     },
   });
 };

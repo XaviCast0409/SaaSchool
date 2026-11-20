@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/axios';
@@ -30,7 +31,7 @@ export const useCreatePickup = () => {
       toast.success('Persona autorizada registrada con éxito.');
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Error al registrar persona autorizada.');
+      toast.error(getApiErrorMessage(err, 'Error al registrar persona autorizada.'));
     },
   });
 };
@@ -56,7 +57,7 @@ export const useUpdatePickup = () => {
       toast.success('Datos actualizados correctamente.');
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Error al actualizar datos.');
+      toast.error(getApiErrorMessage(err, 'Error al actualizar datos.'));
     },
   });
 };
@@ -74,7 +75,7 @@ export const useDeactivatePickup = () => {
       toast.success('Persona autorizada retirada de la lista.');
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Error al retirar persona autorizada.');
+      toast.error(getApiErrorMessage(err, 'Error al retirar persona autorizada.'));
     },
   });
 };

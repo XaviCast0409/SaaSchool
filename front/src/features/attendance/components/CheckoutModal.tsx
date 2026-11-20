@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
@@ -325,7 +326,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) =
             <div className="p-6 rounded-2xl border border-destructive/30 bg-destructive/10 text-destructive text-center space-y-3">
               <AlertCircle className="w-8 h-8 mx-auto" />
               <p className="text-sm font-bold">
-                {(previewError as any)?.response?.data?.message || 'No se encontró estudiante con el código ingresado.'}
+                {getApiErrorMessage(previewError, 'No se encontró estudiante con el código ingresado.')}
               </p>
               <Button size="sm" variant="outline" onClick={handleResetSearch} className="rounded-xl text-xs font-bold">
                 Intentar con otro código

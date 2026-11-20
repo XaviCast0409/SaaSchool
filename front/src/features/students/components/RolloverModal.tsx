@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { AlertTriangle, ArrowRight, CheckCircle2, Loader2, Repeat2, XCircle } from 'lucide-react';
@@ -139,7 +140,7 @@ export const RolloverModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
           if (res.failed === 0) toast.success(`${res.enrolled} alumnos matriculados en ${res.year}.`);
           else toast.warning(`${res.enrolled} matriculados, ${res.failed} con error.`);
         },
-        onError: (err: any) => toast.error(err?.response?.data?.message || 'No se pudo completar la re-matrícula.'),
+        onError: (err: any) => toast.error(getApiErrorMessage(err, 'No se pudo completar la re-matrícula.')),
       },
     );
   };

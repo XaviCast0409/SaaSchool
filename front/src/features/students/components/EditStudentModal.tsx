@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useEffect } from 'react';
 import { UbigeoPicker } from './UbigeoPicker';
 import { useForm } from 'react-hook-form';
@@ -136,7 +137,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isO
           onClose();
         },
         onError: (err: any) => {
-          toast.error(err?.response?.data?.message || 'Error al actualizar estudiante.');
+          toast.error(getApiErrorMessage(err, 'Error al actualizar estudiante.'));
         },
       },
     );
@@ -172,7 +173,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isO
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {error && (
             <div className="p-3 rounded-xl bg-destructive/10 text-destructive text-xs font-medium border border-destructive/20">
-              {(error as any)?.response?.data?.message || 'Error al actualizar el estudiante.'}
+              {getApiErrorMessage(error, 'Error al actualizar el estudiante.')}
             </div>
           )}
 

@@ -1,3 +1,4 @@
+import { formatMoney } from '@/lib/format';
 import React from 'react';
 import { CheckCircle2, Clock, QrCode, XCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -37,7 +38,7 @@ export const ParentPaymentReportsCard: React.FC = () => {
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="font-medium text-foreground">
-                    {r.obligation.title} · S/ {Number(r.amount).toFixed(2)}
+                    {r.obligation.title} · {formatMoney(Number(r.amount))}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {METHOD_LABEL[r.method]} · op. {r.operationNumber} · pagado el{' '}

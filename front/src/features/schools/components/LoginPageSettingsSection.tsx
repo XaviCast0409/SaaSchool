@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useRef } from 'react';
 import { schoolLoginUrl } from '@/lib/schoolDomain';
 import type { UseFormRegister, UseFormSetValue } from 'react-hook-form';
@@ -52,7 +53,7 @@ export const LoginPageSettingsSection: React.FC<Props> = ({
       { file, purpose: 'SCHOOL_ASSET' },
       {
         onSuccess: (r) => setValue('loginBackgroundUrl', r.url, { shouldDirty: true }),
-        onError: (err: any) => toast.error(err?.response?.data?.message || 'No se pudo subir la imagen.'),
+        onError: (err: any) => toast.error(getApiErrorMessage(err, 'No se pudo subir la imagen.')),
       },
     );
   };

@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import { confirmDialog } from '@/components/ui/confirm';
 import React, { useState } from 'react';
 import {
@@ -139,7 +140,7 @@ export const AcademicYearsPage: React.FC = () => {
               ? `Matrícula ${ay.year} cerrada.`
               : `Matrícula ${ay.year} abierta: ya puedes matricular y re-matricular para ${ay.year} sin cambiar el año vigente.`,
           ),
-        onError: (err: any) => toast.error(err?.response?.data?.message || 'No se pudo cambiar la matrícula.'),
+        onError: (err: any) => toast.error(getApiErrorMessage(err, 'No se pudo cambiar la matrícula.')),
       },
     );
 
@@ -219,7 +220,7 @@ export const AcademicYearsPage: React.FC = () => {
       setIsModalOpen(false);
       refetch();
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Error al guardar el Año Lectivo.');
+      toast.error(getApiErrorMessage(err, 'Error al guardar el Año Lectivo.'));
     }
   };
 
@@ -236,7 +237,7 @@ export const AcademicYearsPage: React.FC = () => {
         toast.success('Año Lectivo eliminado.');
         refetch();
       } catch (err: any) {
-        toast.error(err?.response?.data?.message || 'Error al eliminar el Año Lectivo.');
+        toast.error(getApiErrorMessage(err, 'Error al eliminar el Año Lectivo.'));
       }
     }
   };
@@ -253,7 +254,7 @@ export const AcademicYearsPage: React.FC = () => {
       setYearToActivate(null);
       refetch();
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'No se pudo activar el Año Lectivo.');
+      toast.error(getApiErrorMessage(err, 'No se pudo activar el Año Lectivo.'));
     }
   };
 

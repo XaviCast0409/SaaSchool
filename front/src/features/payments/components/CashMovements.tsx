@@ -1,3 +1,4 @@
+import { formatMoney } from '@/lib/format';
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,7 +16,7 @@ import {
   type PaymentMethod,
 } from '../types';
 
-const soles = (n: number | null | undefined) => `S/ ${Number(n ?? 0).toFixed(2)}`;
+const soles = (n: number | null | undefined) => formatMoney(n ?? 0);
 export { soles };
 
 /** Tarjetas con el total por medio de pago (solo cobros vigentes). */

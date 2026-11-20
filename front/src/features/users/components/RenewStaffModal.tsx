@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -81,7 +82,7 @@ export const RenewStaffModal: React.FC<{
                     toast.success(`${r.hired} personas contratadas para ${toYear.year}.`);
                     onClose();
                   },
-                  onError: (err: any) => toast.error(err?.response?.data?.message || 'No se pudo renovar.'),
+                  onError: (err: any) => toast.error(getApiErrorMessage(err, 'No se pudo renovar.')),
                 },
               )
             }

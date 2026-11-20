@@ -1,3 +1,4 @@
+import { formatMoney } from '@/lib/format';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -275,7 +276,7 @@ const StaffDashboard: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
-                  S/ {paidTotal.toFixed(2)}
+                  {formatMoney(paidTotal)}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">{collectionPercentage}% cobrado de obligaciones</p>
               </CardContent>
@@ -290,7 +291,7 @@ const StaffDashboard: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-extrabold text-amber-600 dark:text-amber-400">
-                  S/ {pendingTotal.toFixed(2)}
+                  {formatMoney(pendingTotal)}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">Pensiones por regularizar</p>
               </CardContent>
@@ -309,20 +310,20 @@ const StaffDashboard: React.FC = () => {
                 Salud de Recaudación Financiera
               </div>
               <h3 className="text-lg font-bold text-foreground">
-                S/ {paidTotal.toFixed(2)}{' '}
+                {formatMoney(paidTotal)}{' '}
                 <span className="text-xs font-normal text-muted-foreground">
-                  cobrados de S/ {totalAmountDue.toFixed(2)} en total
+                  cobrados de {formatMoney(totalAmountDue)} en total
                 </span>
               </h3>
             </div>
             <div className="flex items-center gap-4 text-xs font-medium">
               <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Cobrado: S/ {paidTotal.toFixed(2)}</span>
+                <span>Cobrado: {formatMoney(paidTotal)}</span>
               </div>
               <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
                 <Clock className="w-4 h-4" />
-                <span>Pendiente: S/ {pendingTotal.toFixed(2)}</span>
+                <span>Pendiente: {formatMoney(pendingTotal)}</span>
               </div>
             </div>
           </div>

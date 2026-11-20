@@ -1,3 +1,4 @@
+import { formatMoney } from '@/lib/format';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CreditCard, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
@@ -66,7 +67,7 @@ export const ChildFinancialCard: React.FC<ChildFinancialCardProps> = ({ enrollme
               !hasPending ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground'
             }`}
           >
-            {!hasPending ? 'Sin deudas registradas' : `S/ ${totalPending.toFixed(2)}`}
+            {!hasPending ? 'Sin deudas registradas' : formatMoney(totalPending)}
           </span>
         </div>
 

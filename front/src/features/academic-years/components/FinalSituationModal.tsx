@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -56,7 +57,7 @@ export const FinalSituationModal: React.FC<{ year: { id: string; year: number } 
       );
       onClose();
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message || 'No se pudo guardar.'),
+    onError: (err: any) => toast.error(getApiErrorMessage(err, 'No se pudo guardar.')),
   });
 
   useEffect(() => {

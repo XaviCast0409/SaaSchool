@@ -1,3 +1,4 @@
+import { formatMoney } from '@/lib/format';
 import React, { useState } from 'react';
 import { UbigeoPicker } from './UbigeoPicker';
 import { useForm } from 'react-hook-form';
@@ -473,7 +474,7 @@ export const EnrollStudentModal: React.FC<EnrollStudentModalProps> = ({ isOpen, 
       if (schedule?.warning) {
         toast.warning(schedule.warning, { duration: 8000 });
       } else if (schedule?.created) {
-        toast.info(`Se generaron ${schedule.created} cuotas por S/ ${schedule.total.toFixed(2)}.`);
+        toast.info(`Se generaron ${schedule.created} cuotas por ${formatMoney(schedule.total)}.`);
       }
 
       const creds: TemporaryCredential[] = [];

@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useRef } from 'react';
 import { Camera, Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -37,7 +38,7 @@ export const AvatarUploader: React.FC<Props> = ({ name, avatarUrl, userId, onCha
         toast.success('Foto de perfil actualizada.');
         onChange?.(d.avatarUrl);
       },
-      onError: (err: any) => toast.error(err?.response?.data?.message || 'No se pudo subir la foto.'),
+      onError: (err: any) => toast.error(getApiErrorMessage(err, 'No se pudo subir la foto.')),
     });
   };
 
@@ -47,7 +48,7 @@ export const AvatarUploader: React.FC<Props> = ({ name, avatarUrl, userId, onCha
         toast.success('Foto de perfil quitada.');
         onChange?.(null);
       },
-      onError: (err: any) => toast.error(err?.response?.data?.message || 'No se pudo quitar la foto.'),
+      onError: (err: any) => toast.error(getApiErrorMessage(err, 'No se pudo quitar la foto.')),
     });
 
   return (

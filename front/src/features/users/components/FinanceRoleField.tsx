@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -41,7 +42,7 @@ export const FinanceRoleField: React.FC<{ user: DirectoryUser }> = ({ user }) =>
     onError: (e: unknown) => {
       setValue(user.financeRole ?? '');
       toast.error(
-        (e as { response?: { data?: { message?: string } } })?.response?.data?.message || 'No se pudo cambiar el rol.',
+        getApiErrorMessage(e, 'No se pudo cambiar el rol.'),
       );
     },
   });

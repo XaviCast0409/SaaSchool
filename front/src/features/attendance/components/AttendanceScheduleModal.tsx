@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useState, useEffect } from 'react';
 import { X, Clock, Save, CheckCircle2, Sliders, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
@@ -80,7 +81,7 @@ export const AttendanceScheduleModal: React.FC<AttendanceScheduleModalProps> = (
           toast.success('✅ Configuración de horarios actualizada correctamente.');
         },
         onError: (err: any) => {
-          const msg = err?.response?.data?.message || 'Error al guardar configuración.';
+          const msg = getApiErrorMessage(err, 'Error al guardar configuración.');
           toast.error(msg);
         },
       },

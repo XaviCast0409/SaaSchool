@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useState } from 'react';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { useQuery } from '@tanstack/react-query';
@@ -177,7 +178,7 @@ const ReplacementsList: React.FC = () => {
                     { id: r.id },
                     {
                       onSuccess: (res) => toast.success(`${person(r.outgoing)} retoma ${res.returned} curso(s).`),
-                      onError: (err: any) => toast.error(err?.response?.data?.message || 'No se pudo finalizar.'),
+                      onError: (err: any) => toast.error(getApiErrorMessage(err, 'No se pudo finalizar.')),
                     },
                   )
                 }

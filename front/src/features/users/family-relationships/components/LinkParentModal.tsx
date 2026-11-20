@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useState } from 'react';
 import { Search, UserPlus, Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -59,7 +60,7 @@ export const LinkParentModal: React.FC<LinkParentModalProps> = ({
           toast.success(`${picked.firstName} ${picked.lastNamePaternal} quedó vinculado(a) a ${studentName}.`);
           onClose();
         },
-        onError: (err: any) => toast.error(err?.response?.data?.message || 'No se pudo vincular al apoderado.'),
+        onError: (err: any) => toast.error(getApiErrorMessage(err, 'No se pudo vincular al apoderado.')),
       },
     );
   };

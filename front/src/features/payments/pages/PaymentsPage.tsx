@@ -1,3 +1,4 @@
+import { formatMoney } from '@/lib/format';
 import { useUrlFilters } from '@/lib/useUrlFilters';
 import { confirmDialog } from '@/components/ui/confirm';
 import React, { useState } from 'react';
@@ -344,13 +345,13 @@ export const PaymentsPage: React.FC = () => {
                 <Skeleton className="h-7 w-24" />
               ) : (
                 <div className="text-xl font-extrabold text-amber-600 dark:text-amber-400">
-                  S/ {(financialSummary?.pendingThisMonth ?? financialSummary?.totalPending ?? 0).toFixed(2)}
+                  {formatMoney(financialSummary?.pendingThisMonth ?? financialSummary?.totalPending ?? 0)}
                 </div>
               )}
               <p className="text-xs text-muted-foreground mt-1">
                 Vence hasta fin de mes (incluye vencidas)
                 {financialSummary && financialSummary.pendingThisMonth !== undefined && (
-                  <> · Total del año: S/ {financialSummary.totalPending.toFixed(2)}</>
+                  <> · Total del año: {formatMoney(financialSummary.totalPending)}</>
                 )}
               </p>
             </CardContent>
@@ -486,11 +487,11 @@ export const PaymentsPage: React.FC = () => {
                           </div>
                           <div className="text-right">
                             <div className="text-base font-extrabold text-foreground">
-                              S/ {item.amountDue.toFixed(2)}
+                              {formatMoney(item.amountDue)}
                             </div>
                             {remainingOf(item) > 0 && remainingOf(item) !== item.amountDue && (
                               <div className="text-[11px] text-muted-foreground">
-                                Saldo: S/ {remainingOf(item).toFixed(2)}
+                                Saldo: {formatMoney(remainingOf(item))}
                               </div>
                             )}
                           </div>
@@ -589,7 +590,7 @@ export const PaymentsPage: React.FC = () => {
                           </TableCell>
                           <TableCell>
                             <span className="font-extrabold text-foreground text-sm">
-                              S/ {item.amountDue.toFixed(2)}
+                              {formatMoney(item.amountDue)}
                             </span>
                           </TableCell>
                           <TableCell>

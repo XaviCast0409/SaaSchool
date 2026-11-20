@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { ArrowRight, Loader2 } from 'lucide-react';
@@ -70,7 +71,7 @@ export const ReplaceTeacherModal: React.FC<{ teacher: DirectoryUser; onClose: ()
           );
           onClose();
         },
-        onError: (err: any) => toast.error(err?.response?.data?.message || 'No se pudo hacer el reemplazo.'),
+        onError: (err: any) => toast.error(getApiErrorMessage(err, 'No se pudo hacer el reemplazo.')),
       },
     );
 

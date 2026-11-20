@@ -1,3 +1,4 @@
+import { formatMoney } from '@/lib/format';
 import { useUrlFilters } from '@/lib/useUrlFilters';
 import { confirmDialog } from '@/components/ui/confirm';
 import React, { useState } from 'react';
@@ -277,7 +278,7 @@ export const SuperAdminPage: React.FC = () => {
               <Skeleton className="h-8 w-24" />
             ) : (
               <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
-                S/ {estimatedMRR.toFixed(2)}
+                {formatMoney(estimatedMRR)}
               </div>
             )}
             <p className="text-xs text-muted-foreground mt-1">

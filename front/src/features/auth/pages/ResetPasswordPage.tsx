@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, Lock, Loader2, AlertCircle } from 'lucide-react';
@@ -41,7 +42,7 @@ export const ResetPasswordPage: React.FC = () => {
       });
       setSuccess(true);
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'El enlace no es válido o ya venció. Solicita uno nuevo.');
+      setError(getApiErrorMessage(err, 'El enlace no es válido o ya venció. Solicita uno nuevo.'));
     } finally {
       setIsPending(false);
     }

@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import { confirmDialog } from '@/components/ui/confirm';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -165,7 +166,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({
         { name, login: student.studentCode || student.documentId, password: data.temporaryPassword },
       ]);
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'No se pudo restablecer la contraseña.');
+      toast.error(getApiErrorMessage(err, 'No se pudo restablecer la contraseña.'));
     }
   };
 

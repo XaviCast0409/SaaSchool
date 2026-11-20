@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useState } from 'react';
 import { formatEducationLevel } from '@/lib/utils';
 import { useForm } from 'react-hook-form';
@@ -103,7 +104,7 @@ export const BulkObligationModal: React.FC<BulkObligationModalProps> = ({ onClos
         onClose();
       },
       onError: (err: any) => {
-        toast.error(err?.response?.data?.message || 'Error al generar el cronograma masivo.');
+        toast.error(getApiErrorMessage(err, 'Error al generar el cronograma masivo.'));
       },
     });
   };

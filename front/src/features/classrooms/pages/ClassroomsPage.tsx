@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useMemo, useState } from 'react';
 import { Copy, DoorClosed, DoorOpen, Pencil, Plus, School as SchoolIcon, Trash2, Users } from 'lucide-react';
 import { useSelectedAcademicYear } from '@/components/AcademicYearSwitcher';
@@ -132,7 +133,7 @@ export const ClassroomsPage: React.FC = () => {
         t ? `${t.name} será tutor(a) de ${roomLabel(c)}${yearTxt}.` : `${roomLabel(c)} quedó sin tutor(a)${yearTxt}.`,
       );
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'No se pudo cambiar el tutor.');
+      toast.error(getApiErrorMessage(err, 'No se pudo cambiar el tutor.'));
     }
   };
 
@@ -143,7 +144,7 @@ export const ClassroomsPage: React.FC = () => {
       await setSection.mutateAsync({ id: c.id, academicYearId: viewedYear.id, body: { open } });
       toast.success(`${roomLabel(c)} ${open ? 'abierta' : 'cerrada'} en ${viewedYear.year}.`);
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'No se pudo cambiar la sección.');
+      toast.error(getApiErrorMessage(err, 'No se pudo cambiar la sección.'));
     }
   };
 
@@ -377,7 +378,7 @@ export const ClassroomsPage: React.FC = () => {
               }
               setFormOpen(false);
             } catch (err: any) {
-              toast.error(err?.response?.data?.message || 'No se pudo guardar el aula.');
+              toast.error(getApiErrorMessage(err, 'No se pudo guardar el aula.'));
             }
           }}
         />
@@ -401,7 +402,7 @@ export const ClassroomsPage: React.FC = () => {
             await deleteClassroom.mutateAsync(toDelete.id);
             toast.success(`${roomLabel(toDelete)} eliminada.`);
           } catch (err: any) {
-            toast.error(err?.response?.data?.message || 'No se pudo eliminar el aula.');
+            toast.error(getApiErrorMessage(err, 'No se pudo eliminar el aula.'));
           } finally {
             setToDelete(null);
           }
@@ -607,7 +608,7 @@ const BulkCreateModal: React.FC<{ defaultLevel: Level; onClose: () => void }> = 
                 );
                 onClose();
               } catch (err: any) {
-                toast.error(err?.response?.data?.message || 'No se pudieron crear las aulas.');
+                toast.error(getApiErrorMessage(err, 'No se pudieron crear las aulas.'));
               }
             }}
           >
@@ -738,7 +739,7 @@ const CopySectionsModal: React.FC<{
                     );
                     onClose();
                   },
-                  onError: (err: any) => toast.error(err?.response?.data?.message || 'No se pudo copiar.'),
+                  onError: (err: any) => toast.error(getApiErrorMessage(err, 'No se pudo copiar.')),
                 },
               )
             }

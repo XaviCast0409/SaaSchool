@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import {
@@ -135,7 +136,7 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({ isOpen
       onClose();
     } catch (error: any) {
       console.error('Error actualizando datos del colegio:', error);
-      toast.error(error?.response?.data?.message || 'Error al guardar los datos del colegio.');
+      toast.error(getApiErrorMessage(error, 'Error al guardar los datos del colegio.'));
     }
   };
 

@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { Sparkles, X, Save, Calendar } from 'lucide-react';
@@ -54,7 +55,7 @@ export const EditSchoolPlanModal: React.FC<EditSchoolPlanModalProps> = ({ school
           onClose();
         },
         onError: (err: any) => {
-          toast.error(err?.response?.data?.message || 'Error al cambiar el plan del colegio.');
+          toast.error(getApiErrorMessage(err, 'Error al cambiar el plan del colegio.'));
         },
       },
     );

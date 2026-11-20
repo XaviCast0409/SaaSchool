@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/axios';
@@ -51,7 +52,7 @@ export const useAttendAlert = () => {
       toast.success('Alerta marcada como atendida.');
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Error al atender la alerta.');
+      toast.error(getApiErrorMessage(err, 'Error al atender la alerta.'));
     },
   });
 };
@@ -80,7 +81,7 @@ export const useCiteFamily = () => {
       toast.success('Familia citada y alerta atendida.');
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Error al registrar la citación.');
+      toast.error(getApiErrorMessage(err, 'Error al registrar la citación.'));
     },
   });
 };
@@ -102,7 +103,7 @@ export const useEvaluateAlerts = () => {
       );
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Error al ejecutar la evaluación de alertas.');
+      toast.error(getApiErrorMessage(err, 'Error al ejecutar la evaluación de alertas.'));
     },
   });
 };

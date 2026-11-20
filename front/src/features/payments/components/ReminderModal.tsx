@@ -1,3 +1,4 @@
+import { formatMoney } from '@/lib/format';
 import React, { useState } from 'react';
 import { Send, X, Mail, CheckCircle2 } from 'lucide-react';
 import { useSendReminder } from '../api/usePayments';
@@ -78,7 +79,7 @@ export const ReminderModal: React.FC<ReminderModalProps> = ({ obligation, onClos
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground font-semibold">Monto Pendiente:</span>
-                  <span className="font-bold text-destructive">S/ {obligation.amountDue.toFixed(2)}</span>
+                  <span className="font-bold text-destructive">{formatMoney(obligation.amountDue)}</span>
                 </div>
               </div>
 

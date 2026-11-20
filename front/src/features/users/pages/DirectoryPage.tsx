@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import { useUrlFilters } from '@/lib/useUrlFilters';
 import React, { useState } from 'react';
 import {
@@ -108,7 +109,7 @@ export const DirectoryPage: React.FC = () => {
           toast.success(
             `${u.firstName} ${u.lastNamePaternal} ${hired ? 'quedó contratado(a)' : 'ya no figura en el personal'} de ${viewedYear.year}.`,
           ),
-        onError: (err: any) => toast.error(err?.response?.data?.message || 'No se pudo actualizar.'),
+        onError: (err: any) => toast.error(getApiErrorMessage(err, 'No se pudo actualizar.')),
       },
     );
   };

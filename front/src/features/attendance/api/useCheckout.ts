@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/axios';
@@ -39,7 +40,7 @@ export const useCheckout = () => {
       toast.success(data.message || 'Salida registrada con éxito.');
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Error al registrar la salida.');
+      toast.error(getApiErrorMessage(err, 'Error al registrar la salida.'));
     },
   });
 };

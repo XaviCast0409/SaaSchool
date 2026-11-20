@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useState } from 'react';
 import { UserPlus, Trash2, Shield, CreditCard, Home, Phone, Mail, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -56,7 +57,7 @@ export const StudentParentsPanel: React.FC<StudentParentsPanelProps> = ({ studen
   ) =>
     updateRelationship(
       { id: rel.id, ...patch },
-      { onError: (err: any) => toast.error(err?.response?.data?.message || 'No se pudo guardar el cambio.') },
+      { onError: (err: any) => toast.error(getApiErrorMessage(err, 'No se pudo guardar el cambio.')) },
     );
 
   const unlink = async (rel: FamilyRelationship) => {
@@ -71,7 +72,7 @@ export const StudentParentsPanel: React.FC<StudentParentsPanelProps> = ({ studen
       await deleteRelationship(rel.id);
       toast.success('Apoderado desvinculado.');
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'No se pudo desvincular.');
+      toast.error(getApiErrorMessage(err, 'No se pudo desvincular.'));
     }
   };
 

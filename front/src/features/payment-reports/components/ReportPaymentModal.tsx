@@ -1,3 +1,4 @@
+import { formatMoney } from '@/lib/format';
 import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { CheckCircle2, ImagePlus, Loader2, Smartphone } from 'lucide-react';
@@ -135,7 +136,7 @@ export const ReportPaymentModal: React.FC<{ obligation: ReportableObligation | n
       title="Reportar pago"
       description={
         obligation
-          ? `${obligation.title}${obligation.studentName ? ` · ${obligation.studentName}` : ''} · saldo S/ ${obligation.balance.toFixed(2)}`
+          ? `${obligation.title}${obligation.studentName ? ` · ${obligation.studentName}` : ''} · saldo ${formatMoney(obligation.balance)}`
           : undefined
       }
       size="lg"

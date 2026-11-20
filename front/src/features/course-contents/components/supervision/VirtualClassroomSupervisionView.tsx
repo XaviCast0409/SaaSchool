@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import { confirmDialog } from '@/components/ui/confirm';
 import React, { useState } from 'react';
 import { usePeriods } from '@/features/academic-years/api/useAcademicYears';
@@ -62,7 +63,7 @@ export const VirtualClassroomSupervisionView: React.FC = () => {
       await deleteMutation.mutateAsync(id);
       toast.success('Publicación eliminada correctamente.');
     } catch (e: any) {
-      toast.error(e?.response?.data?.message || 'Error al eliminar la publicación.');
+      toast.error(getApiErrorMessage(e, 'Error al eliminar la publicación.'));
     }
   };
 

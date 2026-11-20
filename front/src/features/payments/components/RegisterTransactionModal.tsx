@@ -1,3 +1,5 @@
+import { formatMoney } from '@/lib/format';
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -53,7 +55,7 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
     if (data.amountPaid > remainingBalance + 0.001) {
       setError('amountPaid', {
         type: 'manual',
-        message: `No puedes cobrar más que el saldo pendiente (S/ ${remainingBalance.toFixed(2)}).`,
+        message: `No puedes cobrar más que el saldo pendiente (${formatMoney(remainingBalance)}).`,
       });
       return;
     }
@@ -61,13 +63,13 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
     registerTransaction(payload, {
       onSuccess: (tx) => {
         toast.success(
-          `Pago de S/ ${data.amountPaid.toFixed(2)} registrado para ${studentName}. Recibo ${tx.receiptNumber ?? ''}.`,
+          `Pago de ${formatMoney(data.amountPaid)} registrado para ${studentName}. Recibo ${tx.receiptNumber ?? ''}.`,
         );
         if (tx?.id) setReceiptId(tx.id);
         else onClose();
       },
       onError: (err: any) => {
-        toast.error(err?.response?.data?.message || 'Error al registrar el cobro.');
+        toast.error(getApiErrorMessage(err, 'Error al registrar el cobro.'));
       },
     });
   };
@@ -112,7 +114,7 @@ export const RegisterTransactionModal: React.FC<RegisterTransactionModalProps> =
           </div>
           <div className="text-right">
             <span className="text-xs text-muted-foreground block font-medium">Monto de esta cuota:</span>
-            <span className="text-sm font-semibold text-foreground">S/ {obligation.amountDue.toFixed(2)}</span>
+            <span className="text-sm font-semibold text-foreground">{formatMoney(obligation.amountDue)}</span>
           </div>
         </div>
 

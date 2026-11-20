@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { UserMinus, UserCheck, Info } from 'lucide-react';
@@ -83,7 +84,7 @@ export const WithdrawStudentModal: React.FC<{ target: WithdrawTarget | null; onC
             );
             onClose();
           },
-          onError: (err: any) => toast.error(err?.response?.data?.message || 'No se pudo reincorporar.'),
+          onError: (err: any) => toast.error(getApiErrorMessage(err, 'No se pudo reincorporar.')),
         },
       );
       return;
@@ -107,7 +108,7 @@ export const WithdrawStudentModal: React.FC<{ target: WithdrawTarget | null; onC
           );
           onClose();
         },
-        onError: (err: any) => toast.error(err?.response?.data?.message || 'No se pudo registrar el retiro.'),
+        onError: (err: any) => toast.error(getApiErrorMessage(err, 'No se pudo registrar el retiro.')),
       },
     );
   };

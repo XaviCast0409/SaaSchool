@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, CheckCircle2, KeyRound, Loader2, Mail } from 'lucide-react';
@@ -20,7 +21,7 @@ export const ForgotPasswordPage: React.FC = () => {
       await api.post('/auth/forgot-password', { email });
       setSubmitted(true);
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'No se pudo procesar la solicitud. Intenta nuevamente.');
+      setError(getApiErrorMessage(err, 'No se pudo procesar la solicitud. Intenta nuevamente.'));
     } finally {
       setIsPending(false);
     }

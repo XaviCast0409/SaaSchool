@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import { useMutation } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -31,8 +32,7 @@ export const useChangePassword = () => {
     },
     onError: (err: unknown) => {
       const errorMsg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Error al actualizar contraseña';
+        getApiErrorMessage(err, 'Error al actualizar contraseña');
       toast.error(errorMsg);
     },
   });

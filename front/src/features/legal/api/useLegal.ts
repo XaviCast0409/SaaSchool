@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
 import { toast } from 'sonner';
@@ -42,7 +43,7 @@ export const useAcceptLegal = () => {
       toast.success('Consentimientos registrados correctamente.');
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message || 'Error al registrar los consentimientos.');
+      toast.error(getApiErrorMessage(error, 'Error al registrar los consentimientos.'));
     },
   });
 };

@@ -1,3 +1,4 @@
+import { formatMoney } from '@/lib/format';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Modal } from '@/components/ui/modal';
@@ -50,7 +51,7 @@ export const AdjustmentDialog: React.FC<{
       { obligationId, type, amount, reason: reason.trim() },
       {
         onSuccess: (a) => {
-          toast.success(`Ajuste ${a.number} registrado. La cuota queda en S/ ${newDue.toFixed(2)}.`);
+          toast.success(`Ajuste ${a.number} registrado. La cuota queda en ${formatMoney(newDue)}.`);
           onClose();
         },
         onError: (e) => toast.error(apiError(e, 'No se pudo registrar el ajuste.')),
@@ -63,7 +64,7 @@ export const AdjustmentDialog: React.FC<{
       onClose={onClose}
       size="sm"
       title="Agregar ajuste a la cuota"
-      description={`Monto original S/ ${originalAmount.toFixed(2)} · vigente S/ ${currentDue.toFixed(2)} · pagado S/ ${paid.toFixed(2)}`}
+      description={`Monto original ${formatMoney(originalAmount)} · vigente ${formatMoney(currentDue)} · pagado ${formatMoney(paid)}`}
       footer={
         <>
           <Button variant="ghost" size="sm" onClick={onClose}>
@@ -119,10 +120,10 @@ export const AdjustmentDialog: React.FC<{
         {amount > 0 && (
           <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-2.5 text-sm">
             <span className="text-muted-foreground">
-              {sign < 0 ? 'Rebaja' : 'Recargo'} de S/ {amount.toFixed(2)} → cuota queda en
+              {sign < 0 ? 'Rebaja' : 'Recargo'} de {formatMoney(amount)} → cuota queda en
             </span>
             <span className={`font-bold ${belowPaid || newDue < 0 ? 'text-destructive' : ''}`}>
-              S/ {newDue.toFixed(2)}
+              {formatMoney(newDue)}
             </span>
           </div>
         )}

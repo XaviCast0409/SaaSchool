@@ -1,3 +1,4 @@
+import { formatMoney } from '@/lib/format';
 import React, { useState } from 'react';
 import { SchoolLetterhead } from '@/features/schools/components/SchoolLetterhead';
 import {
@@ -236,7 +237,7 @@ export const StudentFichaDocument: React.FC<{
                         variant="outline"
                         className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
                       >
-                        Pensión Especial: S/ {Number((enr as any).customPensionAmount).toFixed(2)} (
+                        Pensión Especial: {formatMoney(Number((enr as any).customPensionAmount))} (
                         {(enr as any).discountReason || 'Beca'})
                       </Badge>
                     )}

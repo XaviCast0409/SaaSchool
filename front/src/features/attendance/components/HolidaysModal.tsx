@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useState } from 'react';
 import { X, CalendarOff, Plus, Trash2, Calendar, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -41,7 +42,7 @@ export const HolidaysModal: React.FC<HolidaysModalProps> = ({ isOpen, onClose })
       setNewDate('');
       setNewName('');
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Error al agregar el feriado.');
+      toast.error(getApiErrorMessage(error, 'Error al agregar el feriado.'));
     }
   };
 
@@ -51,7 +52,7 @@ export const HolidaysModal: React.FC<HolidaysModalProps> = ({ isOpen, onClose })
       await deleteMutation.mutateAsync(id);
       toast.success('Feriado eliminado.');
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Error al eliminar el feriado.');
+      toast.error(getApiErrorMessage(error, 'Error al eliminar el feriado.'));
     }
   };
 

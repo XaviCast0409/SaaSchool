@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useState, useEffect } from 'react';
 import { X, CheckCircle2, UserCheck, Save, Users, Calendar as CalendarIcon, School, QrCode } from 'lucide-react';
 import { toast } from 'sonner';
@@ -116,7 +117,7 @@ export const BulkAttendanceModal: React.FC<BulkAttendanceModalProps> = ({
           onClose();
         },
         onError: (err: any) => {
-          const msg = err?.response?.data?.message || 'Error al guardar la asistencia masiva.';
+          const msg = getApiErrorMessage(err, 'Error al guardar la asistencia masiva.');
           toast.error(msg);
         },
       },

@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/axios';
@@ -60,7 +61,7 @@ export const useCreateJustification = () => {
       }
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Error al enviar la justificación.');
+      toast.error(getApiErrorMessage(err, 'Error al enviar la justificación.'));
     },
   });
 };
@@ -88,7 +89,7 @@ export const useReviewJustification = () => {
       toast.success(data.status === 'APPROVED' ? 'Justificación aprobada correctamente.' : 'Justificación rechazada.');
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Error al revisar la justificación.');
+      toast.error(getApiErrorMessage(err, 'Error al revisar la justificación.'));
     },
   });
 };

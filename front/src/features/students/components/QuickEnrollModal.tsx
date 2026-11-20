@@ -1,3 +1,5 @@
+import { formatMoney } from '@/lib/format';
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { UserCheck } from 'lucide-react';
@@ -57,11 +59,11 @@ export const QuickEnrollModal: React.FC<{ student: QuickEnrollStudent | null; on
           }
           if (r.warning) toast.warning(r.warning, { duration: 8000 });
           toast.success(
-            `${student.name} matriculado en ${res.year}${r.cuotas ? ` · ${r.cuotas} cuotas por S/ ${(r.total ?? 0).toFixed(2)}` : ''}.`,
+            `${student.name} matriculado en ${res.year}${r.cuotas ? ` · ${r.cuotas} cuotas por ${formatMoney(r.total ?? 0)}` : ''}.`,
           );
           onClose();
         },
-        onError: (err: any) => toast.error(err?.response?.data?.message || 'No se pudo matricular.'),
+        onError: (err: any) => toast.error(getApiErrorMessage(err, 'No se pudo matricular.')),
       },
     );
   };

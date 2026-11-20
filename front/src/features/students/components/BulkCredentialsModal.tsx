@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/errors';
 import React, { useState } from 'react';
 import { KeyRound, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -51,8 +52,7 @@ export const BulkCredentialsModal: React.FC<Props> = ({ isOpen, onClose }) => {
       }
     } catch (err: unknown) {
       const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Error al generar credenciales masivas';
+        getApiErrorMessage(err, 'Error al generar credenciales masivas');
       toast.error(msg);
     }
   };
